@@ -153,7 +153,8 @@ The title's letters assemble rather than fade-and-slide: each letter starts loos
 
 ### Performance (headless Chromium on the owner's GPU family, Intel Arc, through Playwright's new headless mode)
 - No long tasks during the scripted scroll; long animation frames during scroll had no blocking time.
-- At load there are a few long tasks (about 60–110 ms): hydration, building the timelines, the SplitText split and the one-time haze sprites. They happen before the first scroll; the brief's budget is for scrolling.
+- At load there are a few long tasks (about 60–190 ms across runs): hydration, building the timelines, the SplitText split and the one-time haze sprites. They happen before the first scroll; the brief's budget is for scrolling.
+- The numbers are sensitive to what else uses the GPU. One run made while a desktop browser played video on the same machine recorded over 200 long tasks during the scroll and timed out encoding its video; the same code on a quiet machine recorded none, twice. Real smoothness has to be confirmed on the owner's laptop with `?debug`.
 - About 600 SVG elements in the scene (budget 2,500), about 270 in the hero ship (budget 1,200), tested in `tests/e2e/scene.spec.ts`.
 
 ## Review against the brief and the avoid-list (session 2)

@@ -6,7 +6,7 @@ Legend: `[x]` done, `[~]` built but not yet reviewed or finished, `[ ]` not star
 
 ## Session log
 - Session 1 (24 October 2026): phases 0–2, the ship engine and a first pass of the whole scene (environment, choreography, text). It ran out of usage during phase 5 tuning; the retuning it left uncommitted was finished and committed as `bd0c849`. The research for `docs/history-notes.md` was done (three research tracks, one fact-checked), but the session stopped before the file was written, so it did not exist in the repository.
-- Session 2 (25 October 2026): resumed from the repository and the previous session's research files.
+- Session 2 (25 October 2026): resumed from the repository and the previous session's research files. Wrote `docs/history-notes.md` (and kept the full research in `docs/research/`), ran a review round on screenshots and close-ups, fixed what was off, finished phases 5–7. Interrupted once when the editor closed; resumed from the repository again.
 
 ## 0. Setup
 - [x] Node 24.15.0 and git 2.55 checked; git user configured
@@ -17,10 +17,10 @@ Legend: `[x]` done, `[~]` built but not yet reviewed or finished, `[ ]` not star
 - [x] git initialised on `main`; first commit
 
 ## 1. Research and design plan
-- [~] Victory 1805 hull, rig, flags and the dawn setting researched (done in session 1); `docs/history-notes.md` still to be written from that research
+- [x] Victory 1805 hull, rig, flags and the dawn setting researched; `docs/history-notes.md` written, full research in `docs/research/`
 - [x] GSAP skills and current docs (GSAP 3.15, Lenis 1.3, Next 16.4, Tailwind 4.3, Biome 2.5, Playwright 1.64): findings applied, see decisions.md
 - [x] Design plan in `docs/decisions.md`: palette, type roles, layout sketch, layer stack, choreography table
-- [ ] Plan reviewed against the brief and the avoid-list
+- [x] Plan reviewed against the brief and the avoid-list (decisions.md, "Review against the brief and the avoid-list")
 
 ## 2. Foundations
 - [x] `src/lib/gsap.ts`, `SmoothScroll` (Lenis on the GSAP ticker, prioritised; keyboard guard)
@@ -32,32 +32,32 @@ Legend: `[x]` done, `[~]` built but not yet reviewed or finished, `[ ]` not star
 ## 3. The ship
 - [x] `ShipSpec` types, seeded variation, geometry functions
 - [x] `VICTORY_1805` spec with the research figures (16/15/15 ports, 2015 paint survey colours, Steel 1794 spars, main truck 60.2 m, four topsail reef bands)
-- [~] Hero rendering (hull, ports, chequer, copper, masts, sails, rigging, flags, details): built, needs a review round
+- [x] Hero rendering (hull, ports, chequer, copper, masts, sails, rigging, flags, details); mast highlights behind the sails, warm light on canvas only
 - [x] Silhouette mode
 - [x] `/lab/ship` (noindex) with detail, lighting, backdrop and close-up controls
-- [~] Visual iteration rounds with screenshots and close-up crops (some rounds in session 1; final critique pending)
+- [x] Visual iteration rounds with screenshots and close-up crops at device scale 2
 
-## 4. Environment (first pass built)
-- [~] Sky (night and dawn gradients, stars, moon, procedural cloud strands), sun and glow
-- [~] Sea strips (tiling SVG, two colour variants), front strip, sun reflection
-- [~] Haze canvases (back and front), glitter canvas
-- [~] Distant fleets (33 enemy in four groups, enemy lights, 3 British astern)
+## 4. Environment
+- [x] Sky (night and dawn gradients, stars, moon, procedural cloud strands), sun and glow
+- [x] Sea strips (tiling SVG, two colour variants), front strip, sun reflection
+- [x] Haze canvases (back and front), glitter canvas
+- [x] Distant fleets (33 enemy in four groups, enemy lights, 3 British astern in two tones)
 
-## 5. Choreography and text (first pass built)
-- [~] Master scroll timeline (300vh pin), idle loops with pause logic (in view and tab visibility)
-- [~] SplitText title, copy, scrim, scroll cue, chapter marker
+## 5. Choreography and text
+- [x] Master scroll timeline (300vh pin), idle loops with pause logic (in view and tab visibility)
+- [x] SplitText title (never wraps), copy, scrim, scroll cue, chapter marker
 - [x] Scene 2 placeholder
 
 ## 6. Polish and performance
-- [ ] Profile; long tasks; element budgets
-- [ ] Easing and timing
-- [ ] Avoid-list walk-through
+- [x] Profile; long tasks; element budgets (no long tasks during scroll; about 600 SVG elements in the scene, 270 in the hero)
+- [x] Easing and timing (checked frame by frame at p = 0.1, 0.25, 0.4, 0.5, 0.62, 0.75, 0.85, 0.95, 1)
+- [x] Avoid-list walk-through
 
 ## 7. Verification and report
-- [ ] Fallback shows a static composition with Victory (currently text on a gradient only)
-- [ ] Playwright: SVG element count test; screenshot spec (`docs` project)
-- [ ] `npm run check` green
-- [ ] Screenshots in `docs/screenshots/scene-01/`, reviewed
-- [ ] Scroll-through video in `test-results/`
-- [ ] Docs current; everything committed
-- [ ] Final report (Russian)
+- [x] Fallback shows a static composition with Victory in dawn light (client-mounted)
+- [x] Playwright: SVG element count test; screenshot spec (`docs` project)
+- [x] `npm run check` green
+- [x] Screenshots in `docs/screenshots/scene-01/`, reviewed
+- [x] Scroll-through video in `test-results/` (headless video looks choppier than real hardware)
+- [x] Docs current (README rewritten); everything committed
+- [x] Final report (Russian)

@@ -123,3 +123,51 @@ Victory's x follows one continuous curve with no stop at the hero position: bris
 Idle loops on the shared ticker, independent of scroll: sea strips drift (crests travel left to right), a slow vertical swell per strip, Victory's heave and pitch in phase with the front strip's swell, flags, haze drift, glitter shimmer, bow wave. All pause when the scene leaves the viewport (ScrollTrigger toggle) or the tab is hidden.
 
 The title's letters assemble rather than fade-and-slide: each letter starts loosely spaced and faint, as if seen through the haze, and draws into its place in the word from left to right. On the way out the letters loosen and fade toward the right, the way the haze drifts.
+
+## Implementation decisions
+
+### Foundations
+- **One clock.** Lenis runs with `autoRaf: false` and is stepped from `gsap.ticker` as a prioritised callback, so ScrollTrigger and the canvas draws later in the same tick see the current scroll. Lenis scroll events call `ScrollTrigger.update`. GSAP's lag smoothing is off while Lenis runs (`lagSmoothing(0)`, as the Lenis docs advise), and restored when it is torn down.
+- **Reduced motion.** No Lenis instance is created at all, so native scrolling applies. Lenis 1.3.27 would honour the preference by itself anyway (`respectReducedMotion`, on by default since 1.3.26; checked in the installed README). The scene builds the same timeline paused and sets it to p = 0.7: no pin, no scrub, no idle loops, one static canvas draw.
+- **Fallback.** Switched by CSS (the `fallback` custom variant, `(max-width: 1023.98px), (pointer: coarse)`), so the server HTML is identical for everyone. `gsap.matchMedia` mirrors the query: in fallback mode no Lenis, no ScrollTriggers and no loops are created, and a live resize across the breakpoint tears them down or rebuilds them. The story stays in the accessibility tree (visually hidden), so the one h1 is kept; the fallback's title and dateline are visual duplicates marked `aria-hidden`.
+- **SplitText.** The title is split into chars after `document.fonts.ready`, with `aria: "auto"` (the h1 gets an `aria-label`, the letters `aria-hidden`) and `autoSplit`; the title tween is built in `onSplit`, so a re-split rebuilds it. Text fades use opacity, never `autoAlpha`, so nothing leaves the accessibility tree.
+- **Pin.** `anticipatePin: 1`, `invalidateOnRefresh`, `scrub: 0.6`; ScrollTrigger refreshes after fonts load. The master timeline lasts exactly 1, so every tween's position is its p.
+- **Idle loops** live in one paused timeline, played only while the scene's wrapper is within the viewport (a ScrollTrigger toggle) and the tab is visible. After a hidden tab they resume from a one-shot ticker callback so the root clock's jump never shows.
+
+### The ship
+- The geometry functions are pure and cached per spec; the component only renders. Silhouette mode is a handful of paths with one fill.
+- **Two-tone silhouettes (deviation).** The brief asks for one fill in silhouette mode. The distant enemy line keeps one fill. The three British ships astern are at mid distance, and with one fill their hulls read lighter than their canvas against the dark sea, the reverse of reality. They take an optional second tone (`hullFill`) for hull and spars: pale canvas, dark hulls, both veiled more with distance. Still a handful of paths.
+- **The warm-light layer** is a separate SVG above the ship whose wrapper opacity the scroll drives. It repaints the yards and the rigging in front of the sails, so the warm light falls on the canvas only; the lower-mast highlights are drawn behind the sails, where the courses hide them.
+- **Hull colours follow the paint research, not the starting palette.** The 2015 paint survey gives a near-neutral black (`#2D2C2B` here, against the brief's brownish `#1B1714`) and a pale, slightly pinkish ochre (`#C29A77`, against the golden `#C99A3E`). The golden accents of the palette stay elsewhere: the lower masts, the warm light, the sun.
+- Historical choices (ports, paint, entry port, truck height, flags, studding sails) are recorded with their sources in `history-notes.md`.
+
+### Environment and choreography
+- **Sun and enemy scale.** Both are enlarged about three times over their true angular size, keeping their ratio: the sun disc is 6.2 vh, a first rate's rig on the enemy line 2.4 vh (a 74's about 2.0 vh), a third of the sun as the research gives. At true size the enemy would be a few pixels tall.
+- **Enemy line.** 33 ships along 0.60–0.88 of the width, the sun at 0.86 at its southern (right-hand) end. Seeded ragged spacing with bunches and gaps, and a depth spread that sets both size and how pale each silhouette is. Some ships are hidden behind Victory's hull by the end of the scroll; the line is a ragged straight line, since the crescent formed only later in the morning.
+- **Clouds** are procedural strands of stratocumulus (seeded): a gradient body and a lit underside deepest toward the sun. They are static art; only their wrappers' opacity changes.
+- **The sun's two discs** are flat in tone; the low disc starts flattened by refraction and rounds as it climbs (a scale on a plain div), so the crossfade to the pale disc shows no ring.
+
+### Text (changes to the design plan)
+- **The title never wraps.** After the split its letters are inline blocks, so the h1 is `white-space: nowrap`, and the title card is `min(80vh, 58vw)` wide instead of `min(36em, 58vw)`: the card scales with the viewport height like the type, so 1440p and 21:9 screens keep "Trafalgar" on one line.
+- **Caps for large monitors.** Dateline and chapter marker `clamp(13px, 1.85vh, 20px)`, lede and caption `clamp(16px, 2.35vh, 27px)`, scroll cue `clamp(12px, 1.6vh, 16px)`, so the small text keeps its proportion to a 151 px title on a 1440 px tall screen.
+
+### Performance (headless Chromium on the owner's GPU family, Intel Arc, through Playwright's new headless mode)
+- No long tasks during the scripted scroll; long animation frames during scroll had no blocking time.
+- At load there are a few long tasks (about 60–110 ms): hydration, building the timelines, the SplitText split and the one-time haze sprites. They happen before the first scroll; the brief's budget is for scrolling.
+- About 600 SVG elements in the scene (budget 2,500), about 270 in the hero ship (budget 1,200), tested in `tests/e2e/scene.spec.ts`.
+
+## Review against the brief and the avoid-list (session 2)
+
+The design plan and the built scene were checked against the brief and the avoid-list.
+
+- Tracked-out caps, eyebrows, small caps: none. The chapter marker and dateline are sentence case with normal tracking.
+- Metadata joined with middle dots, "word — fragment" labels, monospace labels, arrows on links: none. The debug overlay (`?debug`) is a developer tool and uses the text face.
+- Italic or coloured accent words in the headline: none; the title is one word in one colour.
+- Pill buttons, cards, glass panels, `backdrop-filter`: none in the site. The lab page's control panel is a plain dark strip on a developer page.
+- Terracotta or clay: the warm notes are golden (amber, straw, ochre). The red port linings are historical (the 2015 paint research), not an accent.
+- Cream or off-white page background: the page is deep sea-grey `#1B2529`.
+- Decorative gradient blobs: the radial gradients are the sun's glow, its reflection and the text scrim, each with a job.
+- Drop shadows on text: none; legibility comes from the scrim.
+- A centred hero with a button: none.
+- Fade-and-slide-up on every element: text fades in place by opacity only; the title's letters draw together horizontally, the way the haze drifts.
+- Defaults caught and changed in this pass: clouds that read as sticks, then as small boats; a dense, uniform enemy line; one-tone mid-distance silhouettes; a title that wrapped on large screens; a fallback without the ship.

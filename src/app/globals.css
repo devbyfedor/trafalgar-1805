@@ -1,1 +1,77 @@
 @import "tailwindcss";
+/* Imported here, not from JS: lenis declares sideEffects:false. */
+@import "lenis/dist/lenis.css";
+
+/*
+ * The fallback screen replaces the scene below 1024px or when the primary
+ * pointer is coarse. Keep this query in sync with FALLBACK_QUERY in
+ * src/lib/media.ts, which gsap.matchMedia uses for the same switch.
+ * Block form on purpose: the one-line form splits the comma list and drops
+ * the pointer half.
+ */
+@custom-variant fallback {
+  @media (max-width: 1023.98px), (pointer: coarse) {
+    @slot;
+  }
+}
+
+/*
+ * Fonts: the owner supplies the faces later (docs/fonts.md). next/font will
+ * set --font-display-face and --font-text-face on <html>; until then the
+ * var() fallbacks give a system serif stack and no font file is referenced.
+ * `inline` so the utilities resolve the variables where they are used.
+ */
+@theme inline {
+  --font-display: var(
+    --font-display-face,
+    "Iowan Old Style",
+    "Palatino Linotype",
+    "Book Antiqua",
+    Palatino,
+    Georgia,
+    serif
+  );
+  --font-text: var(
+    --font-text-face,
+    "Iowan Old Style",
+    "Palatino Linotype",
+    "Book Antiqua",
+    Palatino,
+    Georgia,
+    serif
+  );
+}
+
+/* Design tokens. Colours follow the art direction in docs/decisions.md. */
+@theme {
+  --color-ink: #f3ead8;
+  --color-ink-soft: #d9d0bf;
+  --color-night: #1e2a3a;
+  --color-night-horizon: #4a5566;
+  --color-dawn-top: #3b5068;
+  --color-dawn-horizon: #e8b07a;
+  --color-sun: #ffe2a8;
+  --color-sea-night: #1d2b33;
+  --color-sea-dawn: #34505a;
+  --color-sea-glint: #c9b48c;
+  --color-haze-cool: #8c98a4;
+  --color-haze-warm: #e9d6b8;
+  --color-deep-sea: #1b2529;
+}
+
+@layer base {
+  html {
+    background-color: var(--color-deep-sea);
+    color: var(--color-ink);
+    font-family: var(--font-text);
+    font-kerning: normal;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100%;
+  }
+}

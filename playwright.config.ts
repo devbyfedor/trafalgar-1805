@@ -1,0 +1,93 @@
+import { defineConfig, devices } from "@playwright/test";
+
+/**
+ * End-to-end tests run against the static export in `out/`, served on
+ * 127.0.0.1 (no firewall prompts on Windows) on a port of their own, so a
+ * running `npm run preview` does not get in the way. `npm run test:e2e`
+ * builds first, so the export is never stale.
+ *
+ * Projects:
+ * - laptop: the owner's machine, 1280×720 CSS px at device scale 1.5
+ * - desktop-1080: a 1920×1080 monitor
+ * - phone: a 390×844 touch screen, for the fallback
+ * - perf: one scripted scroll-through with video and long-task recording,
+ *   on Chromium's new headless mode, which renders on the GPU
+ * - docs: screenshots for docs/screenshots (run with `npm run screenshots`)
+ */
+
+const PORT = 4174;
+const BASE_URL = `http://127.0.0.1:${PORT}`;
+const desktop = { ...devices["Desktop Chrome"], screen: undefined };
+
+export default defineConfig({
+  testDir: "./tests/e2e",
+  outputDir: "./test-results",
+  fullyParallel: false,
+  workers: 2,
+  timeout: 120_000,
+  expect: { timeout: 10_000 },
+  reporter: [["list"], ["html", { open: "never" }]],
+  use: {
+    baseURL: BASE_URL,
+    trace: "retain-on-failure",
+  },
+  webServer: {
+    command: `npx serve out --listen tcp://127.0.0.1:${PORT} --no-clipboard --no-port-switching -L`,
+    url: `${BASE_URL}/`,
+    reuseExistingServer: false,
+    timeout: 60_000,
+    stdout: "ignore",
+    stderr: "pipe",
+  },
+  projects: [
+    {
+      name: "laptop",
+      testMatch: [/scene\.spec\.ts/, /reduced-motion\.spec\.ts/],
+      use: {
+        ...desktop,
+        viewport: { width: 1280, height: 720 },
+        deviceScaleFactor: 1.5,
+      },
+    },
+    {
+      name: "desktop-1080",
+      testMatch: [/scene\.spec\.ts/, /reduced-motion\.spec\.ts/],
+      use: {
+        ...desktop,
+        viewport: { width: 1920, height: 1080 },
+        deviceScaleFactor: 1,
+      },
+    },
+    {
+      name: "phone",
+      testMatch: /fallback\.spec\.ts/,
+      use: {
+        viewport: { width: 390, height: 844 },
+        deviceScaleFactor: 3,
+        isMobile: true,
+        hasTouch: true,
+      },
+    },
+    {
+      name: "perf",
+      testMatch: /perf\.spec\.ts/,
+      use: {
+        ...desktop,
+        channel: "chromium",
+        viewport: { width: 1280, height: 720 },
+        deviceScaleFactor: 1.5,
+        video: { mode: "on", size: { width: 1920, height: 1080 }, fps: 60 },
+      },
+    },
+    {
+      name: "docs",
+      testMatch: /screenshots\.spec\.ts/,
+      use: {
+        ...desktop,
+        channel: "chromium",
+        viewport: { width: 1280, height: 720 },
+        deviceScaleFactor: 1.5,
+      },
+    },
+  ],
+});

@@ -1,0 +1,16 @@
+{
+  // Deployment config only: Cloudflare Workers static assets serving the
+  // Next.js static export. `npm run deploy` builds and deploys; the owner
+  // connects Cloudflare and runs it.
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "trafalgar-1805",
+  // Not after the workerd bundled with wrangler 4.152 (1.20261019.x).
+  "compatibility_date": "2026-10-19",
+  "assets": {
+    "directory": "./out",
+    // Next exports every page as folder/index.html with trailingSlash: true;
+    // this makes /lab/ship/ canonical and redirects /lab/ship to it.
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  }
+}

@@ -21,19 +21,25 @@ export const METRE_VH = ((WATERLINE - TRUCK) * 100) / MAIN_TRUCK_M;
 /** Victory's horizontal positions (hull centre, fraction of viewport width). */
 export const VICTORY_X = {
   /** p = 0: only her bow and foremast inside the left edge. */
-  start: -0.16,
-  hero: 0.47,
+  start: -0.18,
+  hero: 0.45,
   /** p = 1: still sailing slowly toward the enemy. */
-  end: 0.53,
+  end: 0.49,
 } as const;
 
-/** The sun's horizontal position (fraction of width): right-hand end of the enemy line. */
-export const SUN_X = 0.8;
+/**
+ * The sun's horizontal position (fraction of width): at the right-hand
+ * (southern) end of the enemy line. Corrected for magnetic variation the
+ * sun rose 10–15° south of the enemy's southern end, so the glow is behind
+ * the line and the disc at its end (docs/history-notes.md).
+ */
+export const SUN_X = 0.86;
 /** Sun disc diameter, vh. About three enemy rigs high, as the research advises. */
-export const SUN_DIAMETER_VH = 5.2;
+export const SUN_DIAMETER_VH = 5.6;
 
 /** Enemy line along the horizon (fractions of width). */
-export const ENEMY_SPAN = { from: 0.5, to: 0.9 } as const;
+// Right of Victory's bow, which hides the horizon wherever she is.
+export const ENEMY_SPAN = { from: 0.6, to: 0.88 } as const;
 
 export interface SeaStrip extends StripSpec {
   /** Top of the strip's wave band (units of 1/1000 viewport height). */

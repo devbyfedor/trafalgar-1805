@@ -69,8 +69,8 @@ export function collect(root: HTMLElement): DawnElements {
 /** Victory's travel, as a fraction of the viewport width (see composition). */
 const victoryPath = [
   [0, VICTORY_X.start],
-  [0.18, 0.12],
-  [0.4, 0.37],
+  [0.18, 0.1],
+  [0.4, 0.34],
   [P.hero, VICTORY_X.hero],
   [1, VICTORY_X.end],
 ] as const;
@@ -137,8 +137,8 @@ export function buildChoreography(
   );
   tl.fromTo(
     one("[data-el=sky-dawn]"),
-    { opacity: 0, yPercent: 14 },
-    { opacity: 1, yPercent: 0, ease: "sine.inOut", duration: 0.55 },
+    { opacity: 0, yPercent: 12 },
+    { opacity: 1, yPercent: 0, ease: "sine.out", duration: 0.55 },
     P.dawn,
   );
   tl.fromTo(
@@ -152,7 +152,7 @@ export function buildChoreography(
   tl.fromTo(
     one("[data-el=sun-glow]"),
     { opacity: 0, scale: 0.82 },
-    { opacity: 1, scale: 1, ease: "sine.in", duration: 0.45 },
+    { opacity: 1, scale: 1, ease: "sine.out", duration: 0.45 },
     0.08,
   );
   tl.fromTo(
@@ -275,7 +275,7 @@ export function buildChoreography(
     tl.fromTo(
       ship,
       { opacity: 0 },
-      { opacity: d < 3 ? 0.85 : 0.65, ease: "sine.inOut", duration: 0.3 },
+      { opacity: d < 4 ? 0.85 : 0.65, ease: "sine.inOut", duration: 0.3 },
       0.3,
     );
   }

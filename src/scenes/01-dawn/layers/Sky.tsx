@@ -1,4 +1,5 @@
 import { HORIZON, SUN_X } from "../composition";
+import { buildCloud, CLOUD_STRANDS } from "./clouds";
 import { STAR_FIELD, starPaths } from "./stars";
 
 /**
@@ -19,7 +20,7 @@ const NIGHT = `linear-gradient(to bottom, #1a2533 0%, #1e2a3a 18%, #2c3949 ${h -
 // The dawn layer is 130% tall and starts 30% above the viewport, so stop
 // positions are mapped: viewport fraction v sits at (v + 0.3) / 1.3.
 const at = (v: number) => `${(((v + 0.3) / 1.3) * 100).toFixed(2)}%`;
-const DAWN = `linear-gradient(to bottom, #2f4459 0%, #3b5068 ${at(0)}, #55687e ${at(0.2)}, #7a8494 ${at(0.34)}, #ab9a8f ${at(0.45)}, #d3a882 ${at(0.53)}, #e8b07a ${at(0.58)}, #f2c994 ${at(HORIZON)}, #f2c994 100%)`;
+const DAWN = `linear-gradient(to bottom, #2f4459 0%, #3b5068 ${at(0)}, #55687e ${at(0.2)}, #7a8494 ${at(0.34)}, #ab9a8f ${at(0.45)}, #d0a283 ${at(0.53)}, #e2a878 ${at(0.58)}, #ecbd88 ${at(HORIZON)}, #ecbd88 100%)`;
 
 export function Sky() {
   const stars = starPaths();
@@ -99,22 +100,7 @@ function Moon() {
 
 /** Low cloud strands in the east, unlit and lit. */
 function Clouds() {
-  // Cloud strands in a 2400 × 1000 field (1000 = viewport height), drawn
-  // as long, flat, slightly broken bands.
-  const strands = [
-    // Above the sun's path, catching light underneath.
-    "M-93 478C-33 470 57 466 147 468C217 470 297 466 357 472C407 477 427 486 377 490C287 496 167 494 67 495C-3 496 -73 494 -103 489C-123 485 -118 481 -93 478Z",
-    "M-213 503C-163 498 -93 497 -33 499C7 500 37 504 17 508C-33 512 -113 512 -173 511C-213 510 -233 507 -213 503Z",
-    // Low and long to the left of the sunrise, its right end lit.
-    "M-483 566C-423 560 -333 557 -253 558C-173 559 -93 562 -43 567C-13 571 -33 576 -83 577C-173 579 -283 579 -373 578C-433 577 -493 575 -508 571C-515 568 -503 567 -483 566Z",
-    "M227 548C277 544 347 543 407 545C457 547 507 550 497 555C467 559 387 559 327 558C277 557 227 555 217 552C213 550 217 549 227 548Z",
-  ];
-  const lit = [
-    "M-73 489C27 492 167 491 297 487C347 485 377 487 377 490C287 496 167 494 67 495C-3 496 -73 494 -103 489C-93 489 -83 489 -73 489Z",
-    "M-173 509C-113 510 -33 508 19 506C19 507 18 508 17 508C-33 512 -113 512 -173 511C-193 511 -203 510 -208 509Z",
-    "M-253 575C-173 575 -93 573 -33 571C-31 573 -43 576 -83 577C-173 579 -283 579 -373 578C-333 577 -293 576 -253 575Z",
-    "M307 556C377 556 457 554 499 552C500 553 499 554 497 555C467 559 387 559 327 558C312 558 297 557 287 556Z",
-  ];
+  const clouds = CLOUD_STRANDS.map(buildCloud);
   // Coordinates are relative to the sun's x (1000 units = viewport height),
   // so the clouds keep their place beside the sun at every aspect ratio.
   const viewBox = "-1000 0 2000 1000";
@@ -131,9 +117,7 @@ function Clouds() {
         style={box}
         viewBox={viewBox}
       >
-        {strands.map((d) => (
-          <path key={d.slice(0, 12)} d={d} fill="#2a3544" />
-        ))}
+        <path d={clouds.map((c) => c.body).join("")} fill="#28323f" />
       </svg>
       <svg
         data-el="clouds-dawn"
@@ -143,12 +127,8 @@ function Clouds() {
         style={box}
         viewBox={viewBox}
       >
-        {strands.map((d) => (
-          <path key={d.slice(0, 12)} d={d} fill="#9b8b8a" />
-        ))}
-        {lit.map((d) => (
-          <path key={d.slice(0, 12)} d={d} fill="#f7cf93" />
-        ))}
+        <path d={clouds.map((c) => c.body).join("")} fill="#8d8288" />
+        <path d={clouds.map((c) => c.rim).join("")} fill="#f6cf95" />
       </svg>
     </div>
   );

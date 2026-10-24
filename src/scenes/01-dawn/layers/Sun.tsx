@@ -42,7 +42,7 @@ export function Sun() {
           style={{
             inset: `${-d * 0.9}vh`,
             background:
-              "radial-gradient(circle, rgba(255,232,190,0.55) 0%, rgba(255,214,150,0.18) 38%, rgba(255,214,150,0) 70%)",
+              "radial-gradient(circle, rgba(255,240,212,0.8) 0%, rgba(255,226,170,0.34) 30%, rgba(255,214,150,0.1) 52%, rgba(255,214,150,0) 72%)",
           }}
         />
         <div
@@ -50,7 +50,7 @@ export function Sun() {
           className="absolute inset-0 rounded-full opacity-0"
           style={{
             background:
-              "radial-gradient(circle, #fff6df 0%, #ffe9bd 62%, #ffe2a8 100%)",
+              "radial-gradient(circle, #fffdf6 0%, #fff4d8 55%, #ffe6b4 100%)",
           }}
         />
         <div
@@ -58,7 +58,7 @@ export function Sun() {
           className="absolute inset-0 rounded-full"
           style={{
             background:
-              "radial-gradient(circle, #ffe2ae 0%, #fbc98c 64%, #f3b06e 100%)",
+              "radial-gradient(circle, #fff0cf 0%, #ffd9a0 58%, #f6b46e 100%)",
             transform: "scaleY(0.86)",
           }}
         />

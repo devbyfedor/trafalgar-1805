@@ -70,7 +70,9 @@ function makeSprite(kind: number): HTMLCanvasElement {
   for (const [cx, cy, k] of blobs) {
     const x = cx * SPRITE_H;
     const y = cy * SPRITE_H;
-    const g = ctx.createRadialGradient(x, y, 0, x, y, r * k);
+    // Keep every blob inside the sprite, or its edge shows as a hard line.
+    const radius = Math.min(r * k, x, SPRITE_H - x, y, SPRITE_H - y);
+    const g = ctx.createRadialGradient(x, y, 0, x, y, radius);
     g.addColorStop(0, "rgba(255,255,255,0.55)");
     g.addColorStop(0.45, "rgba(255,255,255,0.32)");
     g.addColorStop(1, "rgba(255,255,255,0)");

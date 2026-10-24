@@ -51,9 +51,9 @@ function createRenderers(el: DawnElements, fx: DawnFx): FxRenderers | null {
   if (!back || !front || !glint) return null;
   const hazeBack = new HazeRenderer(back, {
     seed: 21,
-    count: 24,
-    band: { center: HORIZON - 0.02, spread: 0.13 },
-    size: [0.28, 0.62],
+    count: 26,
+    band: { center: HORIZON - 0.01, spread: 0.07 },
+    size: [0.3, 0.7],
     drift: [0.004, 0.011],
     alpha: 0.5,
     lift: 0.1,
@@ -62,9 +62,9 @@ function createRenderers(el: DawnElements, fx: DawnFx): FxRenderers | null {
   });
   const hazeFront = new HazeRenderer(front, {
     seed: 22,
-    count: 34,
-    band: { center: 0.46, spread: 0.3 },
-    size: [0.3, 0.78],
+    count: 30,
+    band: { center: 0.57, spread: 0.17 },
+    size: [0.32, 0.8],
     drift: [0.006, 0.016],
     alpha: 0.5,
     lift: 0.16,
@@ -74,10 +74,10 @@ function createRenderers(el: DawnElements, fx: DawnFx): FxRenderers | null {
   });
   const glitter = new GlitterRenderer(glint, {
     seed: 23,
-    count: 240,
-    color: "#fff1d2",
-    halfWidthTop: 0.035,
-    halfWidthBottom: 0.44,
+    count: 320,
+    color: "#ffe8c2",
+    halfWidthTop: 0.03,
+    halfWidthBottom: 0.42,
   });
   const resize = () => {
     hazeBack.resize(back.clientWidth, back.clientHeight);

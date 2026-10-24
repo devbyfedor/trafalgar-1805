@@ -26,7 +26,7 @@ import { ENEMY_SPAN, HORIZON, METRE_VH, WATERLINE } from "../composition";
  */
 
 /** Main truck height of a first rate on the enemy line, vh. */
-const ENEMY_RIG_VH = 1.7;
+const ENEMY_RIG_VH = 2.0;
 const ENEMY_FILL = "#5c6272";
 
 function placement(spec: ShipSpec, metreVh: number, waterlineVh: number) {
@@ -110,9 +110,9 @@ export interface AsternShip {
 }
 
 export const BRITISH_ASTERN: readonly AsternShip[] = [
-  { id: "temeraire", spec: BRITISH_98, distance: 2.3, x: 0.17 },
-  { id: "neptune", spec: BRITISH_98, distance: 3.3, x: 0.31 },
-  { id: "seventy-four", spec: BRITISH_74, distance: 4.4, x: 0.05 },
+  { id: "temeraire", spec: BRITISH_98, distance: 3.4, x: 0.16 },
+  { id: "neptune", spec: BRITISH_98, distance: 4.6, x: 0.29 },
+  { id: "seventy-four", spec: BRITISH_74, distance: 5.8, x: 0.05 },
 ];
 
 /** Waterline of a ship at `distance` × Victory's, in units of 1/1000 vh. */
@@ -125,7 +125,7 @@ export function BritishShip({ ship }: { ship: AsternShip }) {
   const p = placement(ship.spec, m, asternWaterline(ship.distance) / 10);
   // Nearer ships are less veiled by the haze.
   const fill =
-    ship.distance < 3 ? "#56606c" : ship.distance < 4 ? "#66707b" : "#727c86";
+    ship.distance < 4 ? "#6d7680" : ship.distance < 5 ? "#79828c" : "#858e97";
   return (
     <div
       data-el="british"

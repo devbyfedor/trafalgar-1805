@@ -59,6 +59,47 @@
   --color-deep-sea: #1b2529;
 }
 
+/* SplitText letters (tag "span" gets no inline display from SplitText). */
+.title-char {
+  display: inline-block;
+}
+
+/*
+ * Before hydration the scene must already look like its first frame, so
+ * nothing flashes: in motion mode the title, lede and closing caption start
+ * transparent; the timeline takes over from the same values. Reduced motion
+ * shows the hero frame, where only the closing caption is hidden. Opacity,
+ * never visibility: the text stays in the accessibility tree.
+ */
+@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+  @media not all and (pointer: coarse) {
+    [data-scene="dawn"] [data-el="title"],
+    [data-scene="dawn"] [data-el="lede"],
+    [data-scene="dawn"] [data-el="closing"] {
+      opacity: 0;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scene="dawn"] [data-el="closing"],
+  [data-scene="dawn"] [data-el="cue"] {
+    opacity: 0;
+  }
+}
+
+/*
+ * Compositor hints for wrappers that move for most of the scroll. Never on
+ * html, body, main, the scene section or anything above the pinned stage:
+ * a transform there breaks position: fixed pinning.
+ */
+[data-el="victory"],
+[data-el="heave"],
+[data-el="strip-loop"],
+[data-el="sun-disc"] {
+  will-change: transform;
+}
+
 @layer base {
   html {
     background-color: var(--color-deep-sea);

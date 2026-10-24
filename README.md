@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Trafalgar 1805
 
-## Getting Started
+A scroll-driven, cinematic telling of the Battle of Trafalgar, 21 October 1805, as a sequence of scenes. Scene 1, "Dawn", is built: dawn breaks off Cape Trafalgar, the haze lifts, HMS Victory comes in under full sail, the title assembles, and the enemy fleet appears on the eastern horizon.
 
-First, run the development server:
+Desktop only: below 1024 px wide, or with a coarse pointer, visitors get a single static screen instead. With reduced motion the scene shows its hero frame without a pin.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Built with Next.js 16 (static export), React 19, GSAP 3.15 (ScrollTrigger, SplitText), Lenis 1.3, Tailwind CSS 4 and TypeScript 7. Biome lints and formats; Playwright tests the exported site.
+
+## Running it
+
+Node 24 or later (`.nvmrc` says 26) and npm.
+
+```powershell
+npm install
+npx playwright install chromium   # once, for the tests
+npm run dev                       # http://127.0.0.1:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Add `?debug` to the URL for an FPS readout, the scroll progress and ScrollTrigger markers. The ship lab is at `/lab/ship/` (not indexed): Victory large, with detail, lighting, backdrop and close-up controls; the query string sets them too, for example `/lab/ship/?focus=bow&panel=off`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Script | What it does |
+| --- | --- |
+| `npm run dev` | Development server on 127.0.0.1 |
+| `npm run build` | Static export to `out/` |
+| `npm run preview` | Serves `out/` on http://127.0.0.1:4173 |
+| `npm run lint` | `biome check` |
+| `npm run lint:fix` | `biome check --write` |
+| `npm run format` | `biome format --write` |
+| `npm run typecheck` | Route types, then `tsc --noEmit` |
+| `npm run test:e2e` | A fresh build, then Playwright against the served export (laptop 1280×720 at scale 1.5, 1920×1080, a phone, and a scroll-through with video and long-task recording) |
+| `npm run check` | Lint, typecheck and the end-to-end tests |
+| `npm run screenshots` | A fresh build, then the screenshots in `docs/screenshots/scene-01/` |
+| `npm run deploy` | Build, then `wrangler deploy` to Cloudflare Workers (static assets, `wrangler.jsonc`) |
 
-## Learn More
+All scripts work in PowerShell. The test server binds to 127.0.0.1:4174, so a running preview doesn't get in the way. Run `npm run screenshots` before `npm run check` if you want to keep the scroll-through video: each Playwright run clears `test-results/`.
 
-To learn more about Next.js, take a look at the following resources:
+## Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+src/
+  app/                    layout, page, globals.css (Tailwind and theme tokens), lab/ship
+  components/
+    experience/           Experience (scenes in order, fallback), Fallback, DebugOverlay
+    providers/            SmoothScroll: Lenis on the GSAP ticker
+    ship/                 ShipOfTheLine, ShipSpec types, specs (Victory 1805, the fleets), geometry
+    fx/                   haze and glitter canvases
+  lib/                    gsap registration, media queries, seeded random, curves, debug channel
+  scenes/
+    registry.ts           the scenes in story order
+    01-dawn/              Scene01Dawn, choreography, composition, content (the copy), layers/
+    ChapterPlaceholder    stands in for scene 2
+tests/e2e/                Playwright specs
+docs/                     the brief, progress, decisions, history notes and research, fonts, screenshots
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+To add a scene, create `src/scenes/02-…/`, then replace the placeholder entry in `src/scenes/registry.ts`. The copy for scene 1 is in `src/scenes/01-dawn/content.ts`.
 
-## Deploy on Vercel
+## Documentation
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `docs/scene-01-brief.md`: the brief for scene 1.
+- `docs/progress.md`: the checklist and where work stands.
+- `docs/decisions.md`: the design plan, decisions and deviations from the brief.
+- `docs/history-notes.md`: the historical facts used, with sources and doubts; the full research is in `docs/research/`.
+- `docs/fonts.md`: how to add the real typefaces with `next/font/local`.

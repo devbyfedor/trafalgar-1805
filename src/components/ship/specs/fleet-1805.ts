@@ -130,14 +130,14 @@ export function enemyLine(): FleetShip[] {
   const raw: number[] = [];
   for (let i = 0; i < 33; i++) {
     raw.push(u);
-    const bunch = rng() < 0.22;
-    u += bunch ? 0.35 + rng() * 0.3 : 0.8 + rng() * 0.9;
+    const bunch = rng() < 0.3;
+    u += bunch ? 0.25 + rng() * 0.3 : 0.7 + rng() * 1.2;
   }
   const max = raw[raw.length - 1];
   return raw.map((r, i) => ({
     spec: ENEMY_TYPES[types[i]],
     u: r / max,
-    depth: 0.88 + rng() * 0.26,
+    depth: 0.8 + rng() * 0.45,
     group: Math.min(3, Math.floor((r / max) * 4)),
   }));
 }

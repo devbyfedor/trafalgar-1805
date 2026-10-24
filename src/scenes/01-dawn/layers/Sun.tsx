@@ -50,7 +50,7 @@ export function Sun() {
           className="absolute inset-0 rounded-full opacity-0"
           style={{
             background:
-              "radial-gradient(circle, #fffdf6 0%, #fff4d8 55%, #ffe6b4 100%)",
+              "radial-gradient(circle, #fffcf3 0%, #fff6e0 70%, #ffefcc 100%)",
           }}
         />
         <div
@@ -58,8 +58,7 @@ export function Sun() {
           className="absolute inset-0 rounded-full"
           style={{
             background:
-              "radial-gradient(circle, #fff0cf 0%, #ffd9a0 58%, #f6b46e 100%)",
-            transform: "scaleY(0.86)",
+              "radial-gradient(circle, #ffeccb 0%, #ffdcaa 70%, #fbcb8e 100%)",
           }}
         />
       </div>

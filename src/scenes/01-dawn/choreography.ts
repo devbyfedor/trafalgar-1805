@@ -165,6 +165,13 @@ export function buildChoreography(
     },
     sunPath[0][0],
   );
+  // Refraction flattens the disc on the horizon; it rounds as it climbs.
+  tl.fromTo(
+    one("[data-el=sun-low]"),
+    { scaleY: 0.88 },
+    { scaleY: 1, ease: "sine.out", duration: 0.18 },
+    P.sunrise,
+  );
   tl.fromTo(
     one("[data-el=sun-high]"),
     { opacity: 0 },

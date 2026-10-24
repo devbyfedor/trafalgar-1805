@@ -44,6 +44,12 @@ export interface ShipOfTheLineProps {
   lighting?: Lighting;
   /** Fill for silhouette mode. */
   fill?: string;
+  /**
+   * Silhouette only: a second tone for the hull and spars. Mid-distance ships
+   * read better with their black hulls darker than their canvas; distant
+   * ones keep the single fill.
+   */
+  hullFill?: string;
   /** Initial opacity of the warm-light layer (the scene animates it). */
   warmth?: number;
   /** Render flags and the bow wave (hero only). */
@@ -63,6 +69,7 @@ export function ShipOfTheLine({
   detail = "hero",
   lighting = "neutral",
   fill = "#2a3038",
+  hullFill,
   warmth = 1,
   showFlags = true,
   showBowWave = true,
@@ -120,6 +127,7 @@ export function ShipOfTheLine({
           <SilhouetteArt
             g={geometry}
             fill={fill}
+            hullFill={hullFill ?? fill}
             uid={uid}
             cut={cutAtWaterline}
           />
@@ -246,11 +254,13 @@ export function ShipOfTheLine({
 function SilhouetteArt({
   g,
   fill,
+  hullFill,
   uid,
   cut,
 }: {
   g: ShipGeometry;
   fill: string;
+  hullFill: string;
   uid: string;
   cut: boolean;
 }) {
@@ -266,12 +276,12 @@ function SilhouetteArt({
       ) : null}
       <g fill={fill} clipPath={cut ? `url(#${uid}-wl)` : undefined}>
         <path d={g.silhouette.sails} />
-        <path d={g.silhouette.spars} />
-        <path d={g.silhouette.hull} />
+        <path d={g.silhouette.spars} fill={hullFill} />
+        <path d={g.silhouette.hull} fill={hullFill} />
         <path
           d={g.silhouette.rigging}
           fill="none"
-          stroke={fill}
+          stroke={hullFill}
           strokeWidth={0.16}
         />
       </g>
@@ -377,6 +387,7 @@ function HeroArt({
 
       {/* Masts, tops and stays behind the sails. */}
       <path d={g.rig.lowerMasts} fill={p.lowerMast} />
+      {thin(g.rig.sparHighlights, "#e3c47e", 0.07, 0.55)}
       <path d={g.rig.hoops} fill={p.lowerMast} opacity={0.75} />
       <path d={g.rig.spars} fill={p.spar} />
       <path d={g.rig.sparsDark} fill={p.sparDark} />
@@ -393,7 +404,6 @@ function HeroArt({
       ))}
       <path d={g.rig.yards} fill={p.sparDark} />
       <path d={g.rig.furled} fill={spec.paint.canvas.shade} />
-      {thin(g.rig.sparHighlights, "#e3c47e", 0.07, 0.55)}
 
       {/* Hull: black ground, copper, bands, ports. */}
       <path d={h.outline} fill={p.hull} />
@@ -477,6 +487,17 @@ function WarmArt({
   uid: string;
 }) {
   const warm = spec.paint.warmLight;
+  const p = spec.paint;
+  const line = (d: string, stroke: string, width: number, opacity = 1) => (
+    <path
+      d={d}
+      fill="none"
+      stroke={stroke}
+      strokeWidth={width}
+      opacity={opacity}
+      strokeLinecap="round"
+    />
+  );
   return (
     <>
       <defs>
@@ -499,13 +520,13 @@ function WarmArt({
         fill={`url(#${uid}-hull-warm)`}
         clipPath={`url(#${uid}-hull)`}
       />
-      <path
-        d={g.rig.sparHighlights}
-        fill="none"
-        stroke={warm}
-        strokeWidth={0.1}
-        opacity={0.7}
-      />
+      {/* What lies in front of the sails, repainted as in the hero art so
+          the warm light falls on the canvas only. */}
+      <path d={g.rig.yards} fill={p.sparDark} />
+      {line(g.rigging.ratlines, p.rigging.running, 0.045, 0.7)}
+      {line(g.rigging.shrouds, p.rigging.standing, 0.13)}
+      {line(g.rigging.light, p.rigging.standing, 0.085)}
+      {line(g.rigging.running, p.rigging.running, 0.06, 0.75)}
     </>
   );
 }

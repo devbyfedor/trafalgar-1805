@@ -26,8 +26,17 @@ import { ENEMY_SPAN, HORIZON, METRE_VH, WATERLINE } from "../composition";
  */
 
 /** Main truck height of a first rate on the enemy line, vh. */
-const ENEMY_RIG_VH = 2.0;
-const ENEMY_FILL = "#5c6272";
+const ENEMY_RIG_VH = 2.4;
+
+/** Backlit and veiled by the haze: nearer ships darker, farther ones paler. */
+function enemyFill(depth: number): string {
+  const t = Math.min(1, Math.max(0, (depth - 0.8) / 0.45));
+  const mix = (a: number, b: number) =>
+    Math.round(a + (b - a) * t)
+      .toString(16)
+      .padStart(2, "0");
+  return `#${mix(84, 122)}${mix(88, 122)}${mix(102, 134)}`;
+}
 
 function placement(spec: ShipSpec, metreVh: number, waterlineVh: number) {
   const vb = buildShip(spec).viewBox;
@@ -84,7 +93,7 @@ export function EnemyFleet() {
                   key={`${s.spec.id}-${s.u.toFixed(4)}`}
                   spec={s.spec}
                   detail="silhouette"
-                  fill={ENEMY_FILL}
+                  fill={enemyFill(s.depth)}
                   style={{
                     position: "absolute",
                     left: `calc(${spanFrom + s.u * spanWidth}% - ${p.centre}vh)`,
@@ -123,9 +132,13 @@ export function asternWaterline(distance: number): number {
 export function BritishShip({ ship }: { ship: AsternShip }) {
   const m = METRE_VH / ship.distance;
   const p = placement(ship.spec, m, asternWaterline(ship.distance) / 10);
-  // Nearer ships are less veiled by the haze.
-  const fill =
-    ship.distance < 4 ? "#6d7680" : ship.distance < 5 ? "#79828c" : "#858e97";
+  // Canvas pale, hulls dark, both veiled more the further off they are.
+  const [fill, hullFill] =
+    ship.distance < 4
+      ? ["#a19c9c", "#575e69"]
+      : ship.distance < 5
+        ? ["#a8a4a3", "#666c76"]
+        : ["#aeaaa8", "#737881"];
   return (
     <div
       data-el="british"
@@ -136,6 +149,7 @@ export function BritishShip({ ship }: { ship: AsternShip }) {
         spec={ship.spec}
         detail="silhouette"
         fill={fill}
+        hullFill={hullFill}
         cutAtWaterline
         style={{
           position: "absolute",

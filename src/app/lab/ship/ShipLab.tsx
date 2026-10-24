@@ -9,7 +9,8 @@ import type { Detail, Lighting } from "@/components/ship/types";
 /**
  * Dev page: Victory large on a neutral backdrop, with detail, lighting and
  * close-up controls. The state also reads from the query string
- * (?detail=silhouette&lighting=dawn&focus=bow) so screenshots are scripted.
+ * (?detail=silhouette&lighting=dawn&focus=bow) so screenshots are scripted;
+ * `panel=off` hides the controls for clean close-ups.
  */
 
 type Focus =
@@ -37,6 +38,7 @@ export function ShipLab() {
   const [focus, setFocus] = useState<Focus>("whole");
   const [backdrop, setBackdrop] = useState<"neutral" | "dawn">("neutral");
   const [sea, setSea] = useState<"on" | "off">("on");
+  const [panel, setPanel] = useState(true);
 
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
@@ -50,6 +52,7 @@ export function ShipLab() {
     if (b === "neutral" || b === "dawn") setBackdrop(b);
     const w = q.get("sea");
     if (w === "on" || w === "off") setSea(w);
+    if (q.get("panel") === "off") setPanel(false);
   }, []);
 
   const geometry = useMemo(() => buildShip(VICTORY_1805), []);
@@ -138,6 +141,7 @@ export function ShipLab() {
       </div>
 
       <form
+        hidden={!panel}
         data-lab-controls
         className="absolute top-3 left-3 flex flex-col gap-2 bg-[#14191d]/80 px-3 py-2 text-[13px] text-ink"
         onSubmit={(e) => e.preventDefault()}

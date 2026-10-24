@@ -35,7 +35,7 @@ export const VICTORY_X = {
  */
 export const SUN_X = 0.86;
 /** Sun disc diameter, vh. About three enemy rigs high, as the research advises. */
-export const SUN_DIAMETER_VH = 5.6;
+export const SUN_DIAMETER_VH = 6.2;
 
 /** Enemy line along the horizon (fractions of width). */
 // Right of Victory's bow, which hides the horizon wherever she is.

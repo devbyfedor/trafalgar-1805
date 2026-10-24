@@ -117,7 +117,7 @@ function Clouds() {
         style={box}
         viewBox={viewBox}
       >
-        <path d={clouds.map((c) => c.body).join("")} fill="#28323f" />
+        <path d={clouds.map((c) => c.body).join("")} fill="#252f3c" />
       </svg>
       <svg
         data-el="clouds-dawn"
@@ -127,8 +127,33 @@ function Clouds() {
         style={box}
         viewBox={viewBox}
       >
-        <path d={clouds.map((c) => c.body).join("")} fill="#8d8288" />
-        <path d={clouds.map((c) => c.rim).join("")} fill="#f6cf95" />
+        <defs>
+          {clouds.map((c, i) => (
+            <linearGradient
+              // biome-ignore lint/suspicious/noArrayIndexKey: fixed strands
+              key={i}
+              id={`cloud-${i}`}
+              gradientUnits="userSpaceOnUse"
+              x1="0"
+              x2="0"
+              y1={c.top}
+              y2={c.bottom}
+            >
+              <stop offset="0" stopColor="#7b7887" />
+              <stop offset="0.6" stopColor="#968690" />
+              <stop offset="1" stopColor="#b8978a" />
+            </linearGradient>
+          ))}
+        </defs>
+        {clouds.map((c, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: fixed strands
+          <path key={i} d={c.body} fill={`url(#cloud-${i})`} />
+        ))}
+        <path
+          d={clouds.map((c) => c.rim).join("")}
+          fill="#f3c690"
+          opacity="0.92"
+        />
       </svg>
     </div>
   );

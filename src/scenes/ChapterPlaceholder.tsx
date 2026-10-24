@@ -13,7 +13,7 @@ export function ChapterPlaceholder() {
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 h-[30vh] bg-linear-to-b from-[#24363d] to-deep-sea"
       />
-      <p className="relative font-text text-[clamp(16px,2.35vh,23px)] text-ink">
+      <p className="relative font-text text-[clamp(16px,2.35vh,27px)] text-ink">
         Chapter II follows
       </p>
     </section>

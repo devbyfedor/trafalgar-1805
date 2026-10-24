@@ -3,9 +3,9 @@ import { createRng } from "@/lib/random";
 /**
  * Low cloud in the east at daybreak: the squalls of the night had passed,
  * leaving broken cloud in the north-east and south-east quadrants (Gravina's
- * staff log). Drawn as long, flat strands of stratocumulus: a gently
- * undulating base, a top of irregular rounded heads, broken into pieces.
- * A thin strip along the underside catches the sunrise.
+ * staff log). Drawn as long strands of stratocumulus broken into pieces: a
+ * nearly flat base, a top of irregular rounded heads, and a lit underside
+ * that is deepest on the side facing the sun, which rises below them.
  *
  * Coordinates: x relative to the sun's position, y from the top of the
  * viewport, both in units of 1/1000 viewport height.
@@ -25,71 +25,100 @@ export interface CloudStrand {
 export interface CloudArt {
   body: string;
   rim: string;
+  /** Vertical extent, for the body's gradient. */
+  top: number;
+  bottom: number;
 }
 
+type Pt = readonly [number, number];
 const f = (n: number) => String(Math.round(n * 10) / 10);
+const pt = (p: Pt) => `${f(p[0])} ${f(p[1])}`;
 
 export function buildCloud(strand: CloudStrand): CloudArt {
   const rng = createRng(strand.seed);
   const body: string[] = [];
   const rim: string[] = [];
-  // Break the strand into a few pieces with gaps.
+  let top = strand.y;
   let x = strand.x0;
-  while (x < strand.x1 - 20) {
-    const len = Math.min(strand.x1 - x, 60 + rng() * 180);
+  while (x < strand.x1 - 30) {
+    const len = Math.min(strand.x1 - x, 90 + rng() * 170);
     const a = x;
     const b = x + len;
-    x = b + 8 + rng() * 40;
-    const th = strand.thickness * (0.6 + rng() * 0.6);
-    // Base: gently undulating, rising a little at the ends.
-    const base: [number, number][] = [];
-    const steps = Math.max(4, Math.round(len / 18));
+    x = b + 6 + rng() * 40;
+    const th = strand.thickness * (0.65 + rng() * 0.55);
+    // The sun is at x = 0: light reaches each piece from that side.
+    const sunward = (t: number) => ((a + b) / 2 < 0 ? t : 1 - t);
+
+    // Base, left to right: nearly flat, lifting into rounded ends.
+    const steps = Math.max(5, Math.round(len / 14));
+    const base: Pt[] = [];
     for (let i = 0; i <= steps; i++) {
       const t = i / steps;
-      const px = a + (b - a) * t;
-      const lift = 4 * (t - 0.5) ** 2 * th * 0.35;
-      base.push([px, strand.y - lift + (rng() - 0.5) * 1.2]);
+      const end = Math.max(0, Math.abs(t - 0.5) * 2 - 0.8) / 0.2;
+      base.push([
+        a + len * t,
+        strand.y - end ** 2 * th * 0.12 + (rng() - 0.5) * 1.2,
+      ]);
     }
-    // Top: a run of rounded heads, highest in the middle of the piece.
-    const top: [number, number][] = [];
+
+    // Heads, right to left: a hump per head, tallest mid-piece and thinning
+    // to nothing at the ends.
+    const heads: { from: Pt; to: Pt; peak: number }[] = [];
     let hx = b;
-    while (hx > a) {
-      const w = 10 + rng() * 26;
-      const t = (hx - a) / (b - a);
-      const h =
-        th * (0.35 + 0.65 * Math.sin(Math.PI * t)) * (0.75 + rng() * 0.4);
-      top.push([hx, strand.y - h * 0.55]);
-      top.push([hx - w / 2, strand.y - h]);
-      hx -= w;
+    let prev: Pt = base[base.length - 1];
+    while (hx > a + 6) {
+      const w = Math.min(hx - a, 12 + rng() * 26);
+      const nx = hx - w;
+      const t = (nx - a) / len;
+      const env = Math.sin(Math.PI * Math.min(1, Math.max(0, t))) ** 0.8;
+      const h = th * (0.06 + 0.94 * env) * (0.7 + rng() * 0.45);
+      const to: Pt = nx <= a + 6 ? base[0] : [nx, strand.y - h * 0.62];
+      heads.push({ from: prev, to, peak: strand.y - h });
+      top = Math.min(top, strand.y - h);
+      prev = to;
+      hx = nx;
     }
-    top.push([a, strand.y - 1]);
-    let d = `M${f(base[0][0])} ${f(base[0][1])}`;
-    for (const p of base.slice(1)) d += `L${f(p[0])} ${f(p[1])}`;
-    for (let i = 0; i < top.length - 1; i += 2) {
-      const ctrl = top[i + 1] ?? top[i];
-      const end = top[i + 2] ?? [a, strand.y - 1];
-      d += `Q${f(ctrl[0])} ${f(ctrl[1])} ${f(end[0])} ${f(end[1])}`;
+
+    let d = `M${pt(base[0])}`;
+    for (const p of base.slice(1)) d += `L${pt(p)}`;
+    for (const { from, to, peak } of heads) {
+      d += `C${f(from[0])} ${f(peak)} ${f(to[0])} ${f(peak)} ${pt(to)}`;
     }
     body.push(`${d}Z`);
-    // Lit underside: a thin band along the base.
-    const lit = base.map(
-      ([px, py]) => [px, py - Math.min(2.6, th * 0.22)] as const,
-    );
-    let r = `M${f(base[0][0])} ${f(base[0][1])}`;
-    for (const p of base.slice(1)) r += `L${f(p[0])} ${f(p[1])}`;
-    for (const p of [...lit].reverse()) r += `L${f(p[0])} ${f(p[1])}`;
+
+    // Lit underside: a band along the base, deeper toward the sun and
+    // tapering out at both ends, its upper edge undulating like the cloud's
+    // own relief.
+    const lit = base.map(([px, py], i): Pt => {
+      const t = i / steps;
+      const taper = Math.sin(Math.PI * t) ** 0.6;
+      const depth =
+        th *
+        (0.1 + 0.22 * sunward(t)) *
+        taper *
+        (0.8 + 0.4 * Math.sin(t * 9 + a));
+      return [px, py - Math.max(0.3, depth)];
+    });
+    let r = `M${pt(base[0])}`;
+    for (const p of base.slice(1)) r += `L${pt(p)}`;
+    for (const p of [...lit].reverse()) r += `L${pt(p)}`;
     rim.push(`${r}Z`);
   }
-  return { body: body.join(""), rim: rim.join("") };
+  return {
+    body: body.join(""),
+    rim: rim.join(""),
+    top,
+    bottom: strand.y,
+  };
 }
 
 export const CLOUD_STRANDS: readonly CloudStrand[] = [
-  // A long band above the sun's path, the sun rising toward it.
-  { x0: -240, x1: 330, y: 478, thickness: 15, seed: 31 },
-  // A thin wisp higher up.
-  { x0: -90, x1: 190, y: 432, thickness: 7, seed: 32 },
+  // A long band above the sun's path; the sun rises toward it.
+  { x0: -270, x1: 300, y: 470, thickness: 26, seed: 31 },
+  // A thinner strand higher up.
+  { x0: -130, x1: 170, y: 424, thickness: 13, seed: 32 },
   // Low and long, left of the sunrise point.
-  { x0: -600, x1: -70, y: 572, thickness: 11, seed: 33 },
+  { x0: -640, x1: -100, y: 566, thickness: 18, seed: 33 },
   // To the right, beyond the sun.
-  { x0: 170, x1: 470, y: 548, thickness: 9, seed: 34 },
+  { x0: 170, x1: 520, y: 542, thickness: 16, seed: 34 },
 ];

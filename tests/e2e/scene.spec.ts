@@ -30,6 +30,26 @@ test.describe("scene 1 on desktop", () => {
     expect(errors).toEqual([]);
   });
 
+  test("keeps the SVG element count under budget", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    const counts = await page.evaluate(() => {
+      const svgElements = (root: Element | null) =>
+        root ? root.querySelectorAll("svg, svg *").length : 0;
+      return {
+        scene: svgElements(document.querySelector("#dawn")),
+        hero: svgElements(
+          document.querySelector(
+            '[data-el=victory] [data-ship="victory-1805"][data-detail="hero"]',
+          ),
+        ),
+      };
+    });
+    expect(counts.hero, "hero ship").toBeGreaterThan(0);
+    expect(counts.hero, "hero ship").toBeLessThan(1200);
+    expect(counts.scene, "scene").toBeLessThan(2500);
+  });
+
   test("pins for the scene and releases into the scene 2 placeholder", async ({
     page,
   }) => {

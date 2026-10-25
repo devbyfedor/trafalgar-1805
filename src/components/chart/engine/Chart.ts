@@ -6,7 +6,11 @@ import {
   Vector3,
   WebGLRenderer,
 } from "three";
-import { contourIntervalAt, exaggerationAt } from "../camera/rig";
+import {
+  type CameraRig,
+  contourIntervalAt,
+  exaggerationAt,
+} from "../camera/rig";
 import { type LowresHeights, loadLowres } from "../data/loaders";
 import { type ChartManifest, loadManifest } from "../data/manifest";
 import { LightBlend, type LightId } from "../light/states";
@@ -197,6 +201,12 @@ export class Chart {
     cam.far = Math.max(45000, eye.z * 25);
     cam.updateProjectionMatrix();
     cam.updateMatrixWorld();
+  }
+
+  /** Points the camera where a rig puts it at progress p. */
+  fly(rig: CameraRig, p: number): void {
+    const fov = rig.evaluate(p, this.eye, this.target);
+    this.setView(this.eye, this.target, fov);
   }
 
   /** CSS size of the canvas. */

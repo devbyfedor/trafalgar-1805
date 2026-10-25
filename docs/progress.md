@@ -7,6 +7,8 @@ Legend: `[x]` done, `[~]` built but not yet reviewed or finished, `[ ]` not star
 ## Session log
 - Session 1 (24 October 2026): phases 0–2, the ship engine and a first pass of the whole scene (environment, choreography, text). It ran out of usage during phase 5 tuning; the retuning it left uncommitted was finished and committed as `bd0c849`. The research for `docs/history-notes.md` was done (three research tracks, one fact-checked), but the session stopped before the file was written, so it did not exist in the repository.
 - Session 2 (25 October 2026): resumed from the repository and the previous session's research files. Wrote `docs/history-notes.md` (and kept the full research in `docs/research/`), ran a review round on screenshots and close-ups, fixed what was off, finished phases 5–7. Interrupted once when the editor closed; resumed from the repository again.
+- Owner review (25 October 2026): the production preview with `?debug` runs at a steady 60 fps on the owner's laptop (Intel Arc integrated graphics). **Owner-verified.**
+- Session 3 (25 October 2026): a short follow-up round on the owner's review: the real fonts, his answers on the rig and flags, 15 lower-deck ports, a backlog for later scenes, and public-repository hygiene. See "Follow-up round" below.
 
 ## 0. Setup
 - [x] Node 24.15.0 and git 2.55 checked; git user configured
@@ -50,6 +52,7 @@ Legend: `[x]` done, `[~]` built but not yet reviewed or finished, `[ ]` not star
 
 ## 6. Polish and performance
 - [x] Profile; long tasks; element budgets (no long tasks during scroll; about 600 SVG elements in the scene, 270 in the hero)
+- [x] 60 fps while scrolling on the owner's laptop: owner-verified with `?debug` on the production preview (25 October 2026)
 - [x] Easing and timing (checked frame by frame at p = 0.1, 0.25, 0.4, 0.5, 0.62, 0.75, 0.85, 0.95, 1)
 - [x] Avoid-list walk-through
 
@@ -61,3 +64,12 @@ Legend: `[x]` done, `[~]` built but not yet reviewed or finished, `[ ]` not star
 - [x] Scroll-through video in `test-results/` (headless video looks choppier than real hardware)
 - [x] Docs current (README rewritten); everything committed
 - [x] Final report (Russian)
+
+## Follow-up round (session 3)
+- [x] Owner's 60 fps result recorded as owner-verified
+- [ ] Fonts: Bodoni Moda (title) and Baskervville (text) through next/font/local; SplitText re-split on font load; title on one line at every screenshot size; small text legible
+- [ ] Owner's answers applied: no studding sails, no stern ensign at dawn, vice-admiral's flag kept
+- [ ] Lower gun deck: 15 ports a side
+- [ ] `docs/backlog.md` for later scenes
+- [ ] Public-repository hygiene: research notes, downloads, git history
+- [ ] `npm run check`, screenshots regenerated and reviewed, docs updated

@@ -5,6 +5,7 @@ import { buildShip } from "@/components/ship/geometry/index";
 import { ShipOfTheLine } from "@/components/ship/ShipOfTheLine";
 import { VICTORY_1805 } from "@/components/ship/specs/victory-1805";
 import type { Detail, Lighting } from "@/components/ship/types";
+import { VICTORY_FLAGS_AT_DAWN } from "@/scenes/01-dawn/composition";
 
 /**
  * Dev page: Victory large on a neutral backdrop, with detail, lighting and
@@ -38,6 +39,8 @@ export function ShipLab() {
   const [focus, setFocus] = useState<Focus>("whole");
   const [backdrop, setBackdrop] = useState<"neutral" | "dawn">("neutral");
   const [sea, setSea] = useState<"on" | "off">("on");
+  // "dawn" flies what scene 1 shows; "all" adds the ensign, hoisted later.
+  const [flags, setFlags] = useState<"dawn" | "all">("dawn");
   const [panel, setPanel] = useState(true);
 
   useEffect(() => {
@@ -52,6 +55,8 @@ export function ShipLab() {
     if (b === "neutral" || b === "dawn") setBackdrop(b);
     const w = q.get("sea");
     if (w === "on" || w === "off") setSea(w);
+    const fl = q.get("flags");
+    if (fl === "dawn" || fl === "all") setFlags(fl);
     if (q.get("panel") === "off") setPanel(false);
   }, []);
 
@@ -128,6 +133,7 @@ export function ShipLab() {
             detail={detail}
             lighting={lighting}
             fill="#2c333b"
+            flying={flags === "dawn" ? VICTORY_FLAGS_AT_DAWN : undefined}
             style={{ width: "100%" }}
           />
           {sea === "on" ? (
@@ -173,6 +179,13 @@ export function ShipLab() {
           value={sea}
           options={["on", "off"]}
           onChange={(v) => setSea(v as "on" | "off")}
+        />
+        <Radio
+          legend="Flags"
+          name="flags"
+          value={flags}
+          options={["dawn", "all"]}
+          onChange={(v) => setFlags(v as "dawn" | "all")}
         />
         <Radio
           legend="Focus"

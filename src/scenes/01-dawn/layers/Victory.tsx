@@ -1,7 +1,12 @@
 import { buildShip } from "@/components/ship/geometry/index";
 import { ShipOfTheLine } from "@/components/ship/ShipOfTheLine";
 import { VICTORY_1805 } from "@/components/ship/specs/victory-1805";
-import { METRE_VH, VICTORY_X, WATERLINE } from "../composition";
+import {
+  METRE_VH,
+  VICTORY_FLAGS_AT_DAWN,
+  VICTORY_X,
+  WATERLINE,
+} from "../composition";
 
 /**
  * Layer 6, Victory. Three wrappers:
@@ -56,6 +61,7 @@ export function Victory() {
             detail="hero"
             lighting="dawn"
             warmth={0}
+            flying={VICTORY_FLAGS_AT_DAWN}
             style={{ position: "absolute", inset: 0 }}
           />
           <div data-el="veil" className="absolute inset-0">

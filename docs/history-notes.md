@@ -17,11 +17,11 @@ Times are local apparent time (ship's time). Bearings in 1805 logs are magnetic;
 | Ports per side: lower 15, middle 14, upper 15 | Those are guns per side. Ports per side: lower 16 (one cut in 1800–03), middle 15 plus a small double-door bow port, upper 15, quarterdeck about 7, forecastle about 3 | Ports as the sources give them | medium (lower), medium-high (middle), high (upper) |
 | Ochre bands `#C99A3E`, hull `#1B1714` | NMRN paint survey 2015: "Victory Hull Ochre" NCS S 3020-Y40R (about `#C19979`), a pale, slightly pinkish buff; the black is a near-neutral NCS S 8500-N (about `#2D2C2C`) | `#C29A77` bands, `#2D2C2B` hull | high (codes), medium (screen values) |
 | Entry port | The only contemporary model of her 1803 state has side steps at the after end of the waist and no entry port; today's canopied port is later | Side steps, no entry port | medium |
-| Main truck about 62 m above the waterline | 205 ft (62.5 m) is the 1760s figure. A reconstruction from Steel's 1794 spar table gives 195–200 ft (59.5–61 m) | 60.2 m; fore truck 0.90 and mizzen 0.83 of the main | medium |
+| Main truck about 62 m above the waterline | 205 ft (62.5 m) is the 1760s figure. A reconstruction from Steel's 1794 spar table gives 195–200 ft (59.5–61 m) | 60.2 m; fore truck 0.90 and mizzen 0.83 of the main. Accepted by the owner (session 3) | medium |
 | Haze is artistic licence | Haze is documented: Euryalus, Britannia, Pickle, Defiance and Sirius logged "hazy", and the Montañés "horizontes calimosos". No log mentions fog, and the enemy was counted at 9–12 nm | A light haze that lifts, never fog | high |
 | Wind WNW, British course due east | Victory's log: wind NW, course ENE then E by N (magnetic), so about NE then ENE true, wind 2–3 points abaft the larboard beam | The frame stays a stylised west-to-east side view; yards braced about 30° | high (log), low (exact true direction) |
 | The sun rises behind the enemy fleet | Corrected for variation, the sun rose 10–15° south of the southern end of the enemy line | Sun disc at the right-hand end of the enemy line; the glow spreads behind it | medium |
-| Rig at dawn: courses to royals, no studding sails | On bearing up (about 06:40–07:00) Victory shook out her reefs and set royals and studding sails, later on both sides | No studding sails: see the licences below | high |
+| Rig at dawn: courses to royals, no studding sails | On bearing up (about 06:40–07:00) Victory shook out her reefs and set royals and studding sails, later on both sides | No studding sails in scene 1 (owner's decision): they belong to the approach scene, where the fleet sets every scrap of canvas in the light wind | high |
 
 ## The setting
 
@@ -65,7 +65,7 @@ After the 1800–1803 great repair. The most valuable source is the contemporary
 
 ### Flags
 - Vice-admiral's flag of the White (white, plain red St George's cross) at the fore topgallant masthead: confirmed by the 1808 Regulations, an RMG catalogue note and Pocock's 1805 drawing. High for the position.
-- White Ensign with the post-1801 Union canton, at the peak of the spanker gaff when flown under sail (Perrin 1922). High for design and position.
+- White Ensign with the post-1801 Union canton, at the peak of the spanker gaff when flown under sail (Perrin 1922). High for design and position. **Not flown at dawn** (owner's decision, see below); the spec keeps it, with its position and size, for the approach scene.
 - No commission pennant while an admiral's flag flies. Medium-high.
 - Ensigns were about twice as long as deep (a surviving 1794 ensign is 20 × 40 ft). The flags are drawn about 1:2 and foreshortened, since they stream toward the viewer as well as to the right.
 - The Union Jacks on the stays and "England expects" (about 11:45) belong to late morning, not dawn, and are not shown.
@@ -73,20 +73,21 @@ After the 1800–1803 great repair. The most valuable source is the contemporary
 ## Assumptions and licences
 
 1. **Ports closed at dawn.** An assumption, as the brief says. The lidless ports still show as openings.
-2. **The White Ensign at dawn.** A small licence. The Euryalus log and James have colours hoisted at about 12:15, as the action began; no source has ensigns flying at dawn. Kept because the brief asks for it and it identifies the ship.
-3. **The vice-admiral's flag at dawn.** Disputed: the Euryalus log and James have the admirals hoisting their flags at 12:16, while Perrin and Basil Hall suggest flag officers' flags flew day and night. Kept, as an assumption.
-4. **No studding sails.** The log has them set on bearing up, about 20–30 minutes after sunrise, and later accounts have them on both sides. The brief's rig leaves them out, and the scene compresses the morning anyway: at the moment of sunrise Victory was most likely still steering N by E under reefed topsails and foresail. Left out for now; a question for the owner.
+2. **No White Ensign at dawn** (owner's decision, session 3). The Euryalus log and James have colours hoisted at about 12:15, as the action began; no source has ensigns flying at dawn. The brief asked for one; the owner removed it. It will be hoisted in the approach scene, before battle, as a deliberate moment.
+3. **The vice-admiral's flag at dawn.** Kept (owner's decision, session 3): as he understands it, a flag officer's flag flew for as long as he was aboard in command. The sources do not clearly say otherwise. For: Basil Hall (via Perrin) has the commission pendant never hauled down, day or night, and in a flagship the admiral's flag takes its place; the 1808 Regulations keep even a fallen commander-in-chief's flag flying until the battle ends. Against, at most: the Euryalus log and James have the admirals "hoisting their respective flags" at about 12:16, which can also be read as battle flags added to the ones already flying. No source says Nelson's flag was down at dawn.
+4. **No studding sails in scene 1** (owner's decision, session 3). The log has them set on bearing up, about 20–30 minutes after sunrise, and later accounts have them on both sides; at the moment of sunrise Victory was most likely still steering N by E under reefed topsails and foresail. They belong to the approach scene, where the fleet sets every scrap of canvas in the light wind (`docs/backlog.md`).
 5. **The British in a column.** At dawn they were in loose order; the scene shows the weather column already forming astern of Victory, which is how it looked within the next two hours.
 6. **Scale of the distant ships.** At true angular size the enemy rigs would be a few pixels tall. They are drawn larger, still about a third of the sun's diameter as the research advises, so they read as ships.
-7. **Viewpoint.** A side view looking north with the sun and the enemy on the right is a stylised panorama: the real enemy line ran north–south across 90° of the eastern horizon, and the sun rose at 102.5° true, behind a north-facing viewer's right shoulder.
+7. **The sun in frame.** Artistic licence, accepted by the owner: the real sun rose behind a north-facing viewer's right shoulder (see 8), but the scene shows it rising on the right of the frame.
+8. **Viewpoint.** A side view looking north with the sun and the enemy on the right is a stylised panorama: the real enemy line ran north–south across 90° of the eastern horizon, and the sun rose at 102.5° true, behind a north-facing viewer's right shoulder.
 
 ## Open doubts
 
 - Lower-deck ports: 16 a side (a Trafalgar midshipman, the 2012 official site, the present ship) against 15 on the contemporary model.
-- The main truck height (59.5–61 m by reconstruction against the quoted 62.5 m) depends on the assumed heel depth and Steel's long-pole rule.
+- The main truck height (59.5–61 m by reconstruction against the quoted 62.5 m) depends on the assumed heel depth and Steel's long-pole rule. The owner accepted the 60.2 m reconstruction from Steel's 1794 tables.
 - Gaff, spanker boom, flying jib-boom and dolphin striker lengths are rule-based estimates.
 - Quarterdeck (7 or 8) and forecastle (2 or 3) openings; the poop bulwark (open rail on the model, solid in one reconstruction).
-- Red inside the ports: the museum's specifications use red, but a summary of Goodwin's 2013 paint article says the 1805 accounts list no red.
+- Red inside the ports: the museum's specifications use red, but a summary of Goodwin's 2013 paint article says the 1805 accounts list no red. Deferred by the owner until a scene shows the ports open (`docs/backlog.md`); in scene 1 the colour shows only through the lidless upper-deck, quarterdeck and forecastle openings.
 - The exact wind direction at dawn; the distances to the enemy (6–12 nm across sources) and to the coast.
 - Whether the Spanish coast was visible from deck at first light (certainly seen later in the morning).
 - Not consulted first-hand: McKay's *Anatomy of the Ship* drawings and spar tables, McGowan (2003), Goodwin's *Pocket Manual* (2015) and his 2013 *Mariner's Mirror* article.

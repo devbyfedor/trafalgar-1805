@@ -5,6 +5,7 @@ import { buildShip } from "@/components/ship/geometry/index";
 import { ShipOfTheLine } from "@/components/ship/ShipOfTheLine";
 import { VICTORY_1805 } from "@/components/ship/specs/victory-1805";
 import { FALLBACK_QUERY } from "@/lib/media";
+import { VICTORY_FLAGS_AT_DAWN } from "@/scenes/01-dawn/composition";
 import { dawnContent } from "@/scenes/01-dawn/content";
 
 /**
@@ -97,6 +98,7 @@ export function Fallback() {
               detail="hero"
               lighting="dawn"
               warmth={1}
+              flying={VICTORY_FLAGS_AT_DAWN}
               showBowWave={false}
               style={{ width: "100%" }}
             />

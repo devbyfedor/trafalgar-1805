@@ -54,6 +54,14 @@ export interface ShipOfTheLineProps {
   warmth?: number;
   /** Render flags and the bow wave (hero only). */
   showFlags?: boolean;
+  /**
+   * Ids of the spec's flags that are flying; all of them when omitted. What
+   * flies is the scene's state (an ensign hoisted before battle), not the
+   * ship's, so the spec lists every flag she can show and the scene picks.
+   * The viewBox always leaves room for all of them, so hoisting one later
+   * never moves the ship.
+   */
+  flying?: readonly string[];
   showBowWave?: boolean;
   /** Silhouette only: cut the drawing at the waterline (for ships set into the sea). */
   cutAtWaterline?: boolean;
@@ -72,6 +80,7 @@ export function ShipOfTheLine({
   hullFill,
   warmth = 1,
   showFlags = true,
+  flying,
   showBowWave = true,
   cutAtWaterline = false,
   className,
@@ -159,71 +168,73 @@ export function ShipOfTheLine({
       ) : null}
 
       {hero && showFlags
-        ? geometry.flags.map((flag, i) => {
-            const { spec: f, anchor } = flag;
-            const frames = [0, Math.PI].map((phase) =>
-              buildFlag(f.design, f.fly, f.hoist, {
-                amplitude: 0.07,
-                waves: 1.25,
-                phase,
-                droop: 0.22,
-              }),
-            );
-            const h = frames[0].height + f.hoist * 0.2;
-            return (
-              <div
-                key={f.id}
-                ref={(el) => {
-                  if (el) flagRefs.current[i] = el;
-                }}
-                data-flag={f.id}
-                style={{
-                  position: "absolute",
-                  left: pct((anchor[0] - vb.x) / vb.width),
-                  top: pct((-anchor[1] - vb.y) / vb.height),
-                  width: pct(f.fly / vb.width),
-                  height: pct(h / vb.height),
-                  transformOrigin: "0 0",
-                  pointerEvents: "none",
-                }}
-              >
-                {frames.map((frame, k) => (
-                  <div
-                    // biome-ignore lint/suspicious/noArrayIndexKey: two fixed frames
-                    key={k}
-                    ref={(el) => {
-                      frameRefs.current[i] ??= [null, null];
-                      frameRefs.current[i][k] = el;
-                    }}
-                    data-flag-frame={k}
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      opacity: k === 0 ? 1 : 0,
-                    }}
-                  >
-                    <svg
-                      aria-hidden="true"
-                      focusable="false"
-                      viewBox={`0 0 ${f.fly} ${h}`}
-                      width="100%"
-                      height="100%"
-                      style={{ display: "block", overflow: "visible" }}
+        ? geometry.flags
+            .filter((flag) => !flying || flying.includes(flag.spec.id))
+            .map((flag, i) => {
+              const { spec: f, anchor } = flag;
+              const frames = [0, Math.PI].map((phase) =>
+                buildFlag(f.design, f.fly, f.hoist, {
+                  amplitude: 0.07,
+                  waves: 1.25,
+                  phase,
+                  droop: 0.22,
+                }),
+              );
+              const h = frames[0].height + f.hoist * 0.2;
+              return (
+                <div
+                  key={f.id}
+                  ref={(el) => {
+                    if (el) flagRefs.current[i] = el;
+                  }}
+                  data-flag={f.id}
+                  style={{
+                    position: "absolute",
+                    left: pct((anchor[0] - vb.x) / vb.width),
+                    top: pct((-anchor[1] - vb.y) / vb.height),
+                    width: pct(f.fly / vb.width),
+                    height: pct(h / vb.height),
+                    transformOrigin: "0 0",
+                    pointerEvents: "none",
+                  }}
+                >
+                  {frames.map((frame, k) => (
+                    <div
+                      // biome-ignore lint/suspicious/noArrayIndexKey: two fixed frames
+                      key={k}
+                      ref={(el) => {
+                        frameRefs.current[i] ??= [null, null];
+                        frameRefs.current[i][k] = el;
+                      }}
+                      data-flag-frame={k}
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        opacity: k === 0 ? 1 : 0,
+                      }}
                     >
-                      {frame.layers.map((layer) => (
-                        <path
-                          key={layer.fill + layer.d.length}
-                          d={layer.d}
-                          fill={layer.fill}
-                        />
-                      ))}
-                      <path d={frame.shade} fill="#1c2430" opacity="0.16" />
-                    </svg>
-                  </div>
-                ))}
-              </div>
-            );
-          })
+                      <svg
+                        aria-hidden="true"
+                        focusable="false"
+                        viewBox={`0 0 ${f.fly} ${h}`}
+                        width="100%"
+                        height="100%"
+                        style={{ display: "block", overflow: "visible" }}
+                      >
+                        {frame.layers.map((layer) => (
+                          <path
+                            key={layer.fill + layer.d.length}
+                            d={layer.d}
+                            fill={layer.fill}
+                          />
+                        ))}
+                        <path d={frame.shade} fill="#1c2430" opacity="0.16" />
+                      </svg>
+                    </div>
+                  ))}
+                </div>
+              );
+            })
         : null}
 
       {hero && showBowWave ? (

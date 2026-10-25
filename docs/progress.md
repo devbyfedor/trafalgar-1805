@@ -68,7 +68,7 @@ Legend: `[x]` done, `[~]` built but not yet reviewed or finished, `[ ]` not star
 ## Follow-up round (session 3)
 - [x] Owner's 60 fps result recorded as owner-verified
 - [x] Fonts: Bodoni Moda (title) and Baskervville (text) through next/font/local from `src/fonts/`; SplitText re-split on font load and resize with kerning restored; title on one line at every screenshot size (tested); small text one step larger, contrast measured over the moving background
-- [ ] Owner's answers applied: no studding sails, no stern ensign at dawn, vice-admiral's flag kept
+- [x] Owner's answers applied: no studding sails, no stern ensign at dawn (`flying` prop; the spec keeps the ensign for later), vice-admiral's flag kept (sources split, not against)
 - [ ] Lower gun deck: 15 ports a side
 - [ ] `docs/backlog.md` for later scenes
 - [ ] Public-repository hygiene: research notes, downloads, git history

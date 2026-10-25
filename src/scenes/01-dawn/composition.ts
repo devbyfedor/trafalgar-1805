@@ -18,6 +18,13 @@ export const MAIN_TRUCK_M = 60.2;
 /** One metre at Victory's distance, in vh. */
 export const METRE_VH = ((WATERLINE - TRUCK) * 100) / MAIN_TRUCK_M;
 
+/**
+ * Victory's flags at dawn: Nelson's flag as vice-admiral of the white at the
+ * fore. Her ensign is hoisted later, before battle, in the approach scene
+ * (docs/backlog.md).
+ */
+export const VICTORY_FLAGS_AT_DAWN = ["vice-admiral"] as const;
+
 /** Victory's horizontal positions (hull centre, fraction of viewport width). */
 export const VICTORY_X = {
   /** p = 0: only her bow and foremast inside the left edge. */

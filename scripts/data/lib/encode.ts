@@ -1,8 +1,9 @@
 import { HEIGHT_CODE, SDF_CODE } from "../config.ts";
 
 /**
- * The byte encodings of the tile images. The decoder is the GPU pass in
- * src/components/chart/data/decode.ts, which reads the same parameters
+ * The encodings of the tile images (see HEIGHT_CODE and SDF_CODE in
+ * config.ts). The decoder is the GPU pass in
+ * src/components/chart/terrain/field.ts, which reads the same parameters
  * from public/chart/manifest.json.
  */
 
@@ -22,62 +23,38 @@ export function decodeHeight(code16: number): number {
   return scale * Math.sinh(min + (code16 / 65535) * (max - min));
 }
 
-/**
- * The logarithmic part's constant for a distance range: chosen so the
- * linear core and the logarithmic tail meet with the same slope.
- */
-export function sdfTail(range: number): number {
-  const { core, coreShare } = SDF_CODE;
-  const span = range - core;
-  const coreSlope = coreShare / core;
-  const tailSlope = (c: number) =>
-    (1 - coreShare) / (c * Math.log(1 + span / c));
-  // tailSlope falls as c falls; bisect in log space.
-  let lo = 1e-6;
-  let hi = 1e6;
-  for (let i = 0; i < 200; i++) {
-    const mid = Math.sqrt(lo * hi);
-    if (tailSlope(mid) > coreSlope) lo = mid;
-    else hi = mid;
-  }
-  return Math.sqrt(lo * hi);
+const DISTANCE_LEVELS = 2 ** SDF_CODE.bits - 1;
+
+/** The code of a signed distance in cells, linear over ±range. */
+export function encodeDistance(cells: number, range: number): number {
+  const s = Math.min(1, Math.max(-1, cells / range));
+  return Math.round(((s + 1) / 2) * DISTANCE_LEVELS);
 }
 
-/** One byte for a signed distance in cells (127.5 is the coast itself). */
-export function encodeDistance(
-  cells: number,
-  range: number,
-  tail: number,
-): number {
-  const { core, coreShare } = SDF_CODE;
-  const u = Math.min(range, Math.abs(cells));
-  const g =
-    u <= core
-      ? (coreShare * u) / core
-      : coreShare +
-        ((1 - coreShare) * Math.log(1 + (u - core) / tail)) /
-          Math.log(1 + (range - core) / tail);
-  const s = Math.sign(cells) * g;
-  return Math.min(255, Math.max(0, Math.round(127.5 + 127.5 * s)));
+export function decodeDistance(code: number, range: number): number {
+  return ((code / DISTANCE_LEVELS) * 2 - 1) * range;
 }
 
-export function decodeDistance(
-  byte: number,
-  range: number,
-  tail: number,
-): number {
-  const { core, coreShare } = SDF_CODE;
-  const s = (byte - 127.5) / 127.5;
-  const g = Math.abs(s);
-  const u =
-    g <= coreShare
-      ? (g / coreShare) * core
-      : core +
-        tail *
-          (Math.exp(
-            ((g - coreShare) / (1 - coreShare)) *
-              Math.log(1 + (range - core) / tail),
-          ) -
-            1);
-  return Math.sign(s) * u;
+/** A texel's three bytes from the 16-bit height code and the distance code. */
+export function packTexel(
+  height16: number,
+  distance: number,
+  out: Uint8Array | Buffer,
+  offset: number,
+): void {
+  out[offset] = height16 >> 8;
+  out[offset + 1] = (height16 & 0xf0) | (distance & 0x0f);
+  out[offset + 2] = distance >> 4;
+}
+
+/** The two codes of a texel: the 16-bit height code and the distance code. */
+export function unpackTexel(
+  r: number,
+  g: number,
+  b: number,
+): { height16: number; distance: number } {
+  return {
+    height16: r * 256 + (g & 0xf0) + 2 ** (15 - HEIGHT_CODE.bits),
+    distance: b * 16 + (g & 0x0f),
+  };
 }

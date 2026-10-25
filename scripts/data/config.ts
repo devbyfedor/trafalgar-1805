@@ -17,6 +17,11 @@ export const OUT_DIR = path.join(ROOT, "public", "chart");
  */
 export interface TileConfig {
   id: string;
+  /**
+   * How the app layers the tile: the surround under everything, the
+   * overview (the stage) over it, a detail tile over the overview.
+   */
+  role: "surround" | "overview" | "detail";
   west: number;
   east: number;
   south: number;
@@ -33,8 +38,24 @@ export interface TileConfig {
 
 export const TILES: readonly TileConfig[] = [
   {
+    // The world around the stage, coarse (4 overview cells to a cell), so
+    // that no view meets an edge of the map: distance fades into haze
+    // over real coasts instead (brief, "Sky and horizon").
+    id: "surround",
+    role: "surround",
+    west: -110,
+    east: 60,
+    south: -10,
+    north: 72,
+    cellArcSec: 720,
+    stride: 48,
+    sdfRange: 32,
+    rowsPerRequest: 300,
+  },
+  {
     // From the Caribbean to the upper Danube, with room for haze at the edges.
     id: "overview",
+    role: "overview",
     west: -72,
     east: 20,
     south: 5,
@@ -47,6 +68,7 @@ export const TILES: readonly TileConfig[] = [
   {
     // The Gulf of Cádiz from Cape St Vincent, with the Strait of Gibraltar.
     id: "cadiz",
+    role: "detail",
     west: -9.6,
     east: -4.3,
     south: 34.9,
@@ -61,11 +83,9 @@ export const TILES: readonly TileConfig[] = [
 /**
  * Heights (metres, land positive, depths negative) are stored as an asinh
  * code: fine steps near sea level, coarser on high ground and in the deep
- * ocean, where contours and isobaths are far apart. 12 bits in two bytes
- * (the low four bits constant, so they compress away): steps of 0.14 m at
- * sea level, 1.4 m at 500 m, 5 m at 1,500 m and 11 m at 4,000 m, finer
- * than any line the chart draws. Against 16 bits it saves a third of the
- * download (4.7 MB to 3.0 MB) with no visible terracing.
+ * ocean, where contours and isobaths are far apart. 12 bits: steps of
+ * 0.14 m at sea level, 1.4 m at 500 m, 5 m at 1,500 m and 11 m at 4,000 m,
+ * finer than any line the chart draws, with no visible terracing.
  */
 export const HEIGHT_CODE = {
   scale: 50,
@@ -76,14 +96,17 @@ export const HEIGHT_CODE = {
 
 /**
  * The coast's signed distance (positive at sea, negative on land), in cells,
- * as one byte: linear within `core` cells of the coast (sub-cell precision
- * where the inked coast and the first waterlines are drawn), logarithmic
- * beyond, out to the tile's `sdfRange`. The two pieces meet with matching
- * slope, so interpolated values bend nowhere visible.
+ * as a 12-bit code linear over ± the tile's `sdfRange`: steps of 1/32 cell
+ * on the overview and 1/16 cell on the Cádiz tile. An 8-bit code with a
+ * logarithmic tail was tried first; its steps grew to two cells far from
+ * the coast, and the waterlines there broke into dashes.
+ *
+ * A texel's three bytes hold both codes: R the height code's high byte,
+ * G its low four bits (high nibble) and the distance code's low four bits
+ * (low nibble), B the distance code's high byte.
  */
 export const SDF_CODE = {
-  core: 4,
-  coreShare: 0.5,
+  bits: 12,
 } as const;
 
 export const ETOPO = {

@@ -15,27 +15,35 @@ import {
   ShaderMaterial,
   Texture,
   UnsignedByteType,
+  Vector3,
   Vector4,
   type WebGLRenderer,
   WebGLRenderTarget,
 } from "three";
 import { loadBitmap } from "../data/loaders";
-import { type ChartManifest, type TileInfo, tileRect } from "../data/manifest";
+import {
+  type ChartManifest,
+  type TileInfo,
+  type TileRole,
+  tileRect,
+} from "../data/manifest";
 import { mercatorY } from "../geo/mercator";
 import { GLSL_FIELD, GLSL_GEO } from "../shaders/common";
 
 /**
- * The terrain field on the GPU. Each tile's WebP (height code in R and G,
- * coast distance in B) is decoded once by a full-screen pass into a
- * half-float texture of (height m, coast distance km, slope east, slope
+ * The terrain field on the GPU. Each tile's WebP (height and coast distance
+ * codes, scripts/data/config.ts) is decoded once by a full-screen pass into
+ * a half-float texture of (height m, coast distance km, slope east, slope
  * north), mipmapped and filtered, so the chart's shaders sample real
- * heights and distances with one texture fetch per tile.
+ * heights and distances with one texture fetch per tile. Three layers: the
+ * coarse surround, the overview (the stage) and a detail tile.
  *
- * The horizon maps are baked from the decoded heights the same way: for
- * each texel, the steepest rise of the land toward each lighting state's
- * sun azimuth, at true scale. Shadows then follow any exaggeration and sun
- * height without re-baking: a point is in shadow when exaggeration × that
- * tangent exceeds the tangent of the sun's elevation.
+ * The horizon maps of the overview and the detail tile are baked from the
+ * decoded heights the same way: for each texel, the steepest rise of the
+ * land toward each lighting state's sun azimuth, at true scale. Shadows
+ * then follow any exaggeration and sun height without re-baking: a point
+ * is in shadow when exaggeration × that tangent exceeds the tangent of the
+ * sun's elevation. The surround, seen only from far off, casts none.
  *
  * Everything here is GPU state that a lost WebGL context destroys; `restore`
  * rebuilds it from the bitmaps, which are kept.
@@ -45,14 +53,31 @@ interface FieldTile {
   info: TileInfo;
   bitmap: ImageBitmap;
   field: WebGLRenderTarget;
-  horizon: WebGLRenderTarget;
+  horizon: WebGLRenderTarget | null;
   rect: Vector4;
-  /** Horizon map scale against the tile (the overview's is baked at half size). */
-  horizonScale: number;
 }
 
 /** Azimuths (radians from north, clockwise) baked into the horizon maps' R and G. */
 export type HorizonAzimuths = readonly [number, number];
+
+/** Horizon map size against its tile (the overview's is baked at half size). */
+const HORIZON_SCALE: Record<TileRole, number> = {
+  surround: 0,
+  overview: 0.5,
+  detail: 1,
+};
+
+/** Width of the band over which a tile blends into the layer below, km. */
+const FADE_KM: Record<TileRole, number> = {
+  surround: 0,
+  overview: 160,
+  detail: 18,
+};
+
+const LOAD_ORDER: readonly TileRole[] = ["overview", "surround", "detail"];
+
+/** Where a tile's coast distance stops (its code's range), km. */
+const saturation = (info: TileInfo) => info.sdfRange * info.cellKm * 0.98;
 
 const VERTEX = /* glsl */ `
 void main() {
@@ -65,30 +90,30 @@ precision highp float;
 precision highp int;
 uniform sampler2D uPacked;
 uniform vec3 uHeightCode;
-uniform vec4 uSdfCode;
+uniform float uSdfRange;
 uniform float uCellKm;
 uniform float uMercTop;
 out vec4 fragColor;
 
-float heightAt(ivec2 p) {
+// The texel's bytes (scripts/data/config.ts, SDF_CODE): R and G's high
+// nibble the 12-bit height code, B and G's low nibble the distance code.
+ivec3 bytesAt(ivec2 p) {
   ivec2 size = textureSize(uPacked, 0);
   vec3 c = texelFetch(uPacked, clamp(p, ivec2(0), size - 1), 0).rgb;
-  float code = floor(c.r * 255.0 + 0.5) * 256.0 + floor(c.g * 255.0 + 0.5);
+  return ivec3(floor(c * 255.0 + 0.5));
+}
+
+float heightAt(ivec2 p) {
+  ivec3 b = bytesAt(p);
+  // The 16-bit code, centred in its 12-bit step.
+  float code = float(b.r * 256 + (b.g & 0xF0) + 8);
   return uHeightCode.x * sinh(uHeightCode.y + code / 65535.0 * (uHeightCode.z - uHeightCode.y));
 }
 
 float distanceAt(ivec2 p) {
-  float b = floor(texelFetch(uPacked, p, 0).b * 255.0 + 0.5);
-  float s = (b - 127.5) / 127.5;
-  float g = abs(s);
-  float core = uSdfCode.x;
-  float share = uSdfCode.y;
-  float range = uSdfCode.z;
-  float tail = uSdfCode.w;
-  float u = g <= share
-    ? g / share * core
-    : core + tail * (exp((g - share) / (1.0 - share) * log(1.0 + (range - core) / tail)) - 1.0);
-  return sign(s) * u * uCellKm;
+  ivec3 b = bytesAt(p);
+  float code = float(b.b * 16 + (b.g & 0x0F));
+  return (code / 4095.0 * 2.0 - 1.0) * uSdfRange * uCellKm;
 }
 
 void main() {
@@ -116,14 +141,13 @@ uniform vec2 uAzimuth;
 uniform float uStep0;
 uniform float uGrowth;
 uniform int uSteps;
-uniform vec2 uTexelKm;
+uniform vec3 uTexelKm;
 out vec4 fragColor;
 
 float landAt(vec2 q, float stepKm) {
   // Far samples read coarser mip levels: an average of what lies between.
-  float lodA = max(0.0, log2(stepKm / uTexelKm.x));
-  float lodB = max(0.0, log2(stepKm / uTexelKm.y));
-  return max(sampleFieldLod(q, lodA, lodB).x, 0.0);
+  vec3 lod = max(vec3(0.0), log2(max(stepKm, 1e-3) / uTexelKm));
+  return max(sampleFieldLod(q, lod).x, 0.0);
 }
 
 void main() {
@@ -162,15 +186,22 @@ function fullscreenTriangle(): BufferGeometry {
 export class TerrainField {
   readonly uniforms = {
     uOriginMercY: { value: 0 },
+    uFieldC: { value: null as Texture | null },
+    uRectC: { value: new Vector4(0, 0, 1, 1) },
     uFieldA: { value: null as Texture | null },
-    uRectA: { value: new Vector4() },
+    uRectA: { value: new Vector4(0, 0, 1, 1) },
+    uFadeA: { value: FADE_KM.overview },
+    uSatA: { value: 1e4 },
     uFieldB: { value: null as Texture | null },
     uRectB: { value: new Vector4(0, 0, 1, 1) },
-    uFadeB: { value: 18 },
+    uFadeB: { value: FADE_KM.detail },
+    uSatB: { value: 1e4 },
     uHasB: { value: 0 },
     uHorizonA: { value: null as Texture | null },
     uHorizonB: { value: null as Texture | null },
   };
+  /** Cell sizes of the overview, detail and surround tiles, km. */
+  readonly texelKm = new Vector3(1, 1, 1);
 
   private tiles: FieldTile[] = [];
   private azimuths: HorizonAzimuths = [0, 0];
@@ -179,7 +210,7 @@ export class TerrainField {
   private readonly passCamera = new OrthographicCamera();
   private readonly decodeMaterial: ShaderMaterial;
   private readonly horizonMaterial: ShaderMaterial;
-  /** A 1 × 1 stand-in while the detail tile is missing. */
+  /** A 1 × 1 stand-in for a layer that is missing or not loaded yet. */
   private readonly blank = new WebGLRenderTarget(1, 1, { type: HalfFloatType });
 
   constructor(
@@ -197,7 +228,7 @@ export class TerrainField {
       uniforms: {
         uPacked: { value: null },
         uHeightCode: { value: [scale, min, max] },
-        uSdfCode: { value: new Vector4() },
+        uSdfRange: { value: 1 },
         uCellKm: { value: 1 },
         uMercTop: { value: 0 },
       },
@@ -216,34 +247,49 @@ export class TerrainField {
         uStep0: { value: 1 },
         uGrowth: { value: 1.1 },
         uSteps: { value: 48 },
-        uTexelKm: { value: [1, 1] },
+        uTexelKm: { value: this.texelKm },
       },
       depthTest: false,
       depthWrite: false,
     });
-    this.uniforms.uFieldB.value = this.blank.texture;
-    this.uniforms.uHorizonB.value = this.blank.texture;
+    const blank = this.blank.texture;
+    this.uniforms.uFieldC.value = blank;
+    this.uniforms.uFieldA.value = blank;
+    this.uniforms.uFieldB.value = blank;
+    this.uniforms.uHorizonA.value = blank;
+    this.uniforms.uHorizonB.value = blank;
+    const tile = (role: TileRole) =>
+      manifest.tiles.find((t) => t.role === role);
+    this.texelKm.set(
+      tile("overview")?.cellKm ?? 1,
+      tile("detail")?.cellKm ?? 1,
+      tile("surround")?.cellKm ?? 1,
+    );
   }
 
   /** World-space rectangle of the overview (the stage). */
   get stage(): Vector4 {
-    return this.uniforms.uRectA.value;
+    const overview = this.manifest.tiles.find((t) => t.role === "overview");
+    return new Vector4(...(overview ? tileRect(overview) : [0, 0, 1, 1]));
   }
 
-  /** Fetches and decodes the tiles; the overview first, so it can show alone. */
+  /**
+   * Fetches and decodes the tiles, the overview first, so it can show
+   * alone; then bakes the horizon maps, which read every layer.
+   */
   async load(azimuths: HorizonAzimuths, signal?: AbortSignal): Promise<void> {
     this.azimuths = azimuths;
-    const [overview, ...details] = this.manifest.tiles;
-    const bitmaps = [overview, ...details].map((t) =>
-      loadBitmap(t.file, signal),
+    const infos = LOAD_ORDER.flatMap((role) =>
+      this.manifest.tiles.filter((t) => t.role === role),
     );
-    for (const [i, info] of [overview, ...details].entries()) {
+    const bitmaps = infos.map((t) => loadBitmap(t.file, signal));
+    for (const [i, info] of infos.entries()) {
       const bitmap = await bitmaps[i];
       signal?.throwIfAborted();
-      const tile = this.createTile(info, bitmap, i === 0 ? 0.5 : 1);
+      const tile = this.createTile(info, bitmap);
       this.tiles.push(tile);
       this.decode(tile);
-      this.bind();
+      this.bind(tile);
     }
     for (const tile of this.tiles) this.bake(tile);
   }
@@ -268,7 +314,7 @@ export class TerrainField {
     for (const t of this.tiles) {
       bytes += t.info.cols * t.info.rows * 8 * (4 / 3);
       const h = t.horizon;
-      bytes += h.width * h.height * 2 * (4 / 3);
+      if (h) bytes += h.width * h.height * 2 * (4 / 3);
     }
     return Math.round(bytes);
   }
@@ -276,7 +322,7 @@ export class TerrainField {
   dispose(): void {
     for (const tile of this.tiles) {
       tile.field.dispose();
-      tile.horizon.dispose();
+      tile.horizon?.dispose();
       tile.bitmap.close();
     }
     this.tiles = [];
@@ -286,11 +332,7 @@ export class TerrainField {
     this.horizonMaterial.dispose();
   }
 
-  private createTile(
-    info: TileInfo,
-    bitmap: ImageBitmap,
-    horizonScale: number,
-  ): FieldTile {
+  private createTile(info: TileInfo, bitmap: ImageBitmap): FieldTile {
     const anisotropy = Math.min(
       8,
       this.renderer.capabilities.getMaxAnisotropy(),
@@ -306,28 +348,31 @@ export class TerrainField {
       depthBuffer: false,
       anisotropy,
     });
-    const horizon = new WebGLRenderTarget(
-      Math.round(info.cols * horizonScale),
-      Math.round(info.rows * horizonScale),
-      {
-        type: UnsignedByteType,
-        format: RGFormat,
-        minFilter: LinearMipmapLinearFilter,
-        magFilter: LinearFilter,
-        wrapS: ClampToEdgeWrapping,
-        wrapT: ClampToEdgeWrapping,
-        generateMipmaps: true,
-        depthBuffer: false,
-        anisotropy,
-      },
-    );
+    const scale = HORIZON_SCALE[info.role];
+    const horizon =
+      scale > 0
+        ? new WebGLRenderTarget(
+            Math.round(info.cols * scale),
+            Math.round(info.rows * scale),
+            {
+              type: UnsignedByteType,
+              format: RGFormat,
+              minFilter: LinearMipmapLinearFilter,
+              magFilter: LinearFilter,
+              wrapS: ClampToEdgeWrapping,
+              wrapT: ClampToEdgeWrapping,
+              generateMipmaps: true,
+              depthBuffer: false,
+              anisotropy,
+            },
+          )
+        : null;
     return {
       info,
       bitmap,
       field,
       horizon,
       rect: new Vector4(...tileRect(info)),
-      horizonScale,
     };
   }
 
@@ -349,12 +394,7 @@ export class TerrainField {
     packed.needsUpdate = true;
     const u = this.decodeMaterial.uniforms;
     u.uPacked.value = packed;
-    u.uSdfCode.value.set(
-      this.manifest.sdf.core,
-      this.manifest.sdf.coreShare,
-      tile.info.sdfRange,
-      tile.info.sdfTail,
-    );
+    u.uSdfRange.value = tile.info.sdfRange;
     u.uCellKm.value = tile.info.cellKm;
     u.uMercTop.value = tile.info.yTop + this.uniforms.uOriginMercY.value;
     this.run(this.decodeMaterial, tile.field);
@@ -364,8 +404,9 @@ export class TerrainField {
   }
 
   private bake(tile: FieldTile) {
+    if (!tile.horizon) return;
     const u = this.horizonMaterial.uniforms;
-    const detail = tile !== this.tiles[0];
+    const detail = tile.info.role === "detail";
     u.uTarget.value.copy(tile.rect);
     u.uSize.value = [tile.horizon.width, tile.horizon.height];
     u.uAzimuth.value = [this.azimuths[0], this.azimuths[1]];
@@ -374,23 +415,30 @@ export class TerrainField {
     u.uStep0.value = tile.info.cellKm * 0.5;
     u.uGrowth.value = detail ? 1.12 : 1.1;
     u.uSteps.value = detail ? 68 : 52;
-    const texelB = this.tiles[1]?.info.cellKm ?? 1;
-    u.uTexelKm.value = [this.tiles[0].info.cellKm, texelB];
     this.run(this.horizonMaterial, tile.horizon);
   }
 
-  private bind() {
-    const [overview, detail] = this.tiles;
-    if (overview) {
-      this.uniforms.uFieldA.value = overview.field.texture;
-      this.uniforms.uHorizonA.value = overview.horizon.texture;
-      this.uniforms.uRectA.value.copy(overview.rect);
-    }
-    if (detail) {
-      this.uniforms.uFieldB.value = detail.field.texture;
-      this.uniforms.uHorizonB.value = detail.horizon.texture;
-      this.uniforms.uRectB.value.copy(detail.rect);
-      this.uniforms.uHasB.value = 1;
+  private bind(tile: FieldTile) {
+    const u = this.uniforms;
+    const texture = tile.field.texture;
+    switch (tile.info.role) {
+      case "surround":
+        u.uFieldC.value = texture;
+        u.uRectC.value.copy(tile.rect);
+        break;
+      case "overview":
+        u.uFieldA.value = texture;
+        u.uRectA.value.copy(tile.rect);
+        u.uSatA.value = saturation(tile.info);
+        if (tile.horizon) u.uHorizonA.value = tile.horizon.texture;
+        break;
+      case "detail":
+        u.uFieldB.value = texture;
+        u.uRectB.value.copy(tile.rect);
+        u.uSatB.value = saturation(tile.info);
+        if (tile.horizon) u.uHorizonB.value = tile.horizon.texture;
+        u.uHasB.value = 1;
+        break;
     }
   }
 }

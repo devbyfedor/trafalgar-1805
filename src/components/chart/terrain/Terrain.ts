@@ -36,7 +36,7 @@ export class Terrain {
   private readonly nodes: InstancedBufferAttribute;
   private readonly eye = new Vector3();
 
-  constructor(field: TerrainField, texelKm: [number, number]) {
+  constructor(field: TerrainField) {
     const stage = field.stage;
     const cx = stage.x + stage.z / 2;
     const cy = stage.y - stage.w / 2;
@@ -50,12 +50,7 @@ export class Terrain {
 
     const { coords, index } = patchGrid(GRID);
     const geometry = new InstancedBufferGeometry();
-    const positions = new Float32Array((coords.length / 2) * 3);
-    for (let i = 0; i < coords.length / 2; i++) {
-      positions[i * 3] = coords[i * 2];
-      positions[i * 3 + 1] = coords[i * 2 + 1];
-    }
-    geometry.setAttribute("position", new BufferAttribute(positions, 3));
+    geometry.setAttribute("position", new BufferAttribute(coords, 3));
     geometry.setIndex(new BufferAttribute(index, 1));
     this.nodes = new InstancedBufferAttribute(this.cdlod.instances, 4);
     this.nodes.setUsage(DynamicDrawUsage);
@@ -72,7 +67,7 @@ export class Terrain {
         uGridN: { value: GRID },
         uExag: { value: 1 },
         uEye: { value: this.eye },
-        uTexelKm: { value: texelKm },
+        uTexelKm: { value: field.texelKm },
         uDpr: { value: 1 },
         // Sky (shared chunk).
         uSkyStops: { value: [] as Vector3[] },
@@ -101,18 +96,16 @@ export class Terrain {
         uLightMix: { value: 0 },
         uSlotA: { value: new Vector3() },
         uSlotB: { value: new Vector3() },
-        uHazeDensity: { value: 1 },
         // Chart style.
         uContourInterval: { value: 200 },
         uContourBlend: { value: 0 },
         uWaterSpacingPx: { value: 2.6 },
         uWaterBand: { value: 3 },
-        uWaterExtent: { value: 30 },
+        uWaterExtent: { value: 12 },
         uIsobathDeepest: { value: 200 },
-        uHazeNear: { value: 120 },
-        uHazeScale: { value: 2.2 },
-        uHazeMax: { value: 0.92 },
-        uStageFadeKm: { value: 420 },
+        uSmoothBias: { value: 1.5 },
+        uHazeVisibility: { value: 100 },
+        uStageFadeKm: { value: 900 },
       },
     });
     this.mesh = new Mesh(geometry, material);
@@ -133,7 +126,6 @@ export class Terrain {
     u.uGlowColor.value = light.glowColor;
     u.uGlow.value = light.glow;
     u.uHazeColor.value = light.haze;
-    u.uHazeDensity.value = light.hazeDensity;
     u.uSeaDeep.value = light.seaDeep;
     u.uSeaShallow.value = light.seaShallow;
     u.uSeaReflect.value = light.seaReflect;

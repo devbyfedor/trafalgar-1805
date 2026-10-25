@@ -182,7 +182,10 @@ export function coastField(
     const projected = projectRings(grid, rings);
     const fill = fillLand(grid, projected);
     for (let i = 0; i < fill.length; i++) land[i] |= fill[i];
-    segments.push(...collectSegments(grid, projected, range + 2));
+    // A loop, not a spread: the surround has too many segments for one call.
+    for (const segment of collectSegments(grid, projected, range + 2)) {
+      segments.push(segment);
+    }
   }
 
   // Seeds: every cell a coastline segment passes through.

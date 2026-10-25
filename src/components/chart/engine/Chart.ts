@@ -8,10 +8,13 @@ import {
 } from "three";
 import {
   type CameraRig,
+  type ContourStyle,
   contourIntervalAt,
   exaggerationAt,
+  HAZE_OPAQUE,
+  hazeVisibilityAt,
 } from "../camera/rig";
-import { type LowresHeights, loadLowres } from "../data/loaders";
+import { type LowresHeights, landIndex, loadLowres } from "../data/loaders";
 import { type ChartManifest, loadManifest } from "../data/manifest";
 import { LightBlend, type LightId } from "../light/states";
 import { Sky } from "../sky/Sky";
@@ -101,6 +104,7 @@ export class Chart {
   private readonly quality: QualityLadder;
   private readonly frustum = new Frustum();
   private readonly viewProj = new Matrix4();
+  private readonly contours: ContourStyle = { interval: 100, blend: 0 };
   private readonly info: FrameInfo;
   private cssWidth = 1;
   private cssHeight = 1;
@@ -145,11 +149,8 @@ export class Chart {
     readonly lowres: LowresHeights,
     private readonly options: ChartOptions,
   ) {
-    const [overview, detail] = manifest.tiles;
-    this.terrain = new Terrain(field, [
-      overview.cellKm,
-      detail?.cellKm ?? overview.cellKm,
-    ]);
+    this.terrain = new Terrain(field);
+    this.terrain.cdlod.hasLand = landIndex(lowres);
     this.scene.add(this.terrain.mesh, this.sky.mesh);
     this.camera.up.set(0, 0, 1);
     this.quality = new QualityLadder((level) => this.applyQuality(level));
@@ -237,10 +238,14 @@ export class Chart {
       this.camera.matrixWorldInverse,
     );
     this.frustum.setFromProjectionMatrix(this.viewProj);
-    this.terrain.cdlod.setResolution(this.cssHeight * dpr, this.camera.fov, 7);
+    const visibility = hazeVisibilityAt(this.eye.z) / this.light.hazeDensity;
+    const cdlod = this.terrain.cdlod;
+    cdlod.setResolution(this.cssHeight * dpr, this.camera.fov, 7);
+    cdlod.detailLimit = visibility * HAZE_OPAQUE;
     this.terrain.update(this.eye, this.frustum, exaggeration, dpr);
-    const contours = contourIntervalAt(this.eye.z);
+    const contours = contourIntervalAt(this.eye.z, this.contours);
     const u = this.terrain.uniforms;
+    u.uHazeVisibility.value = visibility;
     u.uContourInterval.value = contours.interval;
     u.uContourBlend.value = contours.blend;
     u.uShadowStrength.value = level.effects ? this.light.shadowStrength : 0;

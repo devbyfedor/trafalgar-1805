@@ -18,17 +18,24 @@ float secLat(float worldY) {
 `;
 
 /**
- * The terrain field: the overview tile everywhere (open sea beyond it),
- * the detail tile where it exists, blended across a band at its edges.
- * Each field texel holds (height m, coast distance km, slope east, slope
- * north), the slopes as rise over ground run of the land surface.
+ * The terrain field, in three layers: the coarse surround under everything
+ * (open sea beyond it), the overview (the stage) over it, and the detail
+ * tile over that, each blended in across a band at its edges. Each field
+ * texel holds (height m, coast distance km, slope east, slope north), the
+ * slopes as rise over ground run of the land surface. Samples are taken
+ * outside any branch, so mip selection stays defined.
  */
 export const GLSL_FIELD = /* glsl */ `
+uniform sampler2D uFieldC;
+uniform vec4 uRectC;
 uniform sampler2D uFieldA;
 uniform vec4 uRectA;
+uniform float uFadeA;
+uniform float uSatA;
 uniform sampler2D uFieldB;
 uniform vec4 uRectB;
 uniform float uFadeB;
+uniform float uSatB;
 uniform float uHasB;
 uniform sampler2D uHorizonA;
 uniform sampler2D uHorizonB;
@@ -45,37 +52,53 @@ float insideKm(vec2 uv, vec4 rect) {
 
 const vec4 OPEN_SEA = vec4(-4000.0, 1.0e4, 0.0, 0.0);
 
-// Weight of the detail tile at a point.
-float detailWeight(vec2 uvB) {
-  return uHasB * smoothstep(0.0, 1.0, clamp(insideKm(uvB, uRectB) / uFadeB, 0.0, 1.0));
+// How much a tile covers a point: 1 inside, easing to 0 across its edge band.
+float cover(vec2 p, vec4 rect, float fadeKm) {
+  float inside = insideKm(tileUv(p, rect), rect);
+  return smoothstep(0.0, 1.0, clamp(inside / fadeKm, 0.0, 1.0));
+}
+
+// A finer layer's coast distance stops at its range (sat, km); beyond it
+// the coarser layer below knows better. Mixing a capped distance with an
+// uncapped one would draw false waterlines across the blend band.
+vec4 handOver(vec4 fine, vec4 below, float sat) {
+  fine.y = mix(fine.y, below.y, smoothstep(0.85 * sat, sat, abs(fine.y)));
+  return fine;
+}
+
+// The layers' samples at a point (surround c, overview a, detail b), stacked.
+vec4 layered(vec2 p, vec4 c, vec4 a, vec4 b) {
+  vec4 f = insideKm(tileUv(p, uRectC), uRectC) > 0.0 ? c : OPEN_SEA;
+  f = mix(f, handOver(a, f, uSatA), cover(p, uRectA, uFadeA));
+  return mix(f, handOver(b, f, uSatB), uHasB * cover(p, uRectB, uFadeB));
 }
 
 vec4 sampleField(vec2 p) {
-  vec2 uvA = tileUv(p, uRectA);
-  vec4 a = texture(uFieldA, uvA);
-  a = insideKm(uvA, uRectA) > 0.0 ? a : OPEN_SEA;
-  vec2 uvB = tileUv(p, uRectB);
-  vec4 b = texture(uFieldB, uvB);
-  return mix(a, b, detailWeight(uvB));
+  return layered(
+    p,
+    texture(uFieldC, tileUv(p, uRectC)),
+    texture(uFieldA, tileUv(p, uRectA)),
+    texture(uFieldB, tileUv(p, uRectB))
+  );
 }
 
-vec4 sampleFieldLod(vec2 p, float lodA, float lodB) {
-  vec2 uvA = tileUv(p, uRectA);
-  vec4 a = textureLod(uFieldA, uvA, lodA);
-  a = insideKm(uvA, uRectA) > 0.0 ? a : OPEN_SEA;
-  vec2 uvB = tileUv(p, uRectB);
-  vec4 b = textureLod(uFieldB, uvB, lodB);
-  return mix(a, b, detailWeight(uvB));
+// Explicit levels of detail per layer: (overview, detail, surround).
+vec4 sampleFieldLod(vec2 p, vec3 lod) {
+  return layered(
+    p,
+    textureLod(uFieldC, tileUv(p, uRectC), lod.z),
+    textureLod(uFieldA, tileUv(p, uRectA), lod.x),
+    textureLod(uFieldB, tileUv(p, uRectB), lod.y)
+  );
 }
 
-// Horizon tangents toward the two lighting states' suns (true scale).
+// Horizon tangents toward the two lighting states' suns (true scale). The
+// surround casts no shadows.
 vec2 sampleHorizon(vec2 p) {
-  vec2 uvA = tileUv(p, uRectA);
-  vec2 a = texture(uHorizonA, uvA).rg;
-  a = insideKm(uvA, uRectA) > 0.0 ? a : vec2(0.0);
-  vec2 uvB = tileUv(p, uRectB);
-  vec2 b = texture(uHorizonB, uvB).rg;
-  vec2 h = mix(a, b, detailWeight(uvB));
+  vec2 a = texture(uHorizonA, tileUv(p, uRectA)).rg;
+  vec2 b = texture(uHorizonB, tileUv(p, uRectB)).rg;
+  vec2 h = a * cover(p, uRectA, uFadeA);
+  h = mix(h, b, uHasB * cover(p, uRectB, uFadeB));
   // Stored as sqrt(t / 0.25).
   return h * h * 0.25;
 }
@@ -139,12 +162,11 @@ vec3 skyColor(vec3 dir) {
   return c;
 }
 
-// Haze takes the colour of the sky just above the horizon in the view
-// direction, so distant chart dissolves into the horizon seamlessly.
+// Haze takes the colour of the sky behind the point: at the view's own
+// elevation above the horizon, the horizon's colour below it. Distant
+// land dissolves into the very sky behind it and leaves no silhouette.
 vec3 hazeColorFor(vec3 dir) {
-  vec2 across = length(dir.xy) > 1e-4 ? normalize(dir.xy) : vec2(0.0, 1.0);
-  vec3 horizonDir = normalize(vec3(across, 0.02));
-  vec3 c = skyColor(horizonDir);
+  vec3 c = skyColor(normalize(vec3(dir.xy, max(dir.z, 0.0)) + vec3(0.0, 0.0, 1e-6)));
   // Looking down, the haze is the general colour of the air.
   return mix(c, uHazeColor, clamp(-dir.z * 0.8, 0.0, 0.6));
 }

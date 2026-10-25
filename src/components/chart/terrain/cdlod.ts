@@ -7,7 +7,12 @@ import { Box3, type Frustum, type Vector3 } from "three";
  * same N × N grid patch; a node splits while the camera is nearer than
  * `cellSize × k`, k chosen so a grid cell stays a few pixels on screen.
  * Vertices morph toward the next coarser grid over the last 30 % of a
- * node's range, so neighbouring levels meet without cracks or popping.
+ * node's range, so neighbouring levels meet without popping.
+ *
+ * Open sea is flat, so a node with no land in or near it needs no finer
+ * grid: it splits only while the camera is nearer than its size, which
+ * keeps culling fine-grained near the camera. That leaves neighbours
+ * several levels apart; every patch has skirts, so their seams never open.
  *
  * Distances are measured to the flat chart (z = 0) plus the camera's
  * altitude, the same metric the vertex shader uses for morphing.
@@ -23,12 +28,27 @@ export interface CdlodOptions {
   maxDepth: number;
 }
 
+/** True when a square (world km) and a margin around it hold no land. */
+export type LandQuery = (
+  x0: number,
+  y0: number,
+  size: number,
+  marginKm: number,
+) => boolean;
+
+/** Margin around a node within which land keeps it splitting, km. */
+const LAND_MARGIN_KM = 25;
+
 export class Cdlod {
   /** Per selected node: x0, y0, size, morph end distance. */
   readonly instances: Float32Array;
   count = 0;
   /** Split factor: a node splits while nearer than its cell size × k. */
   k = 160;
+  /** Beyond this distance the haze hides the chart: no node splits there. */
+  detailLimit = Number.POSITIVE_INFINITY;
+  /** Where the land is; without it every node is treated as land. */
+  hasLand: LandQuery | null = null;
 
   private readonly stack: Float64Array;
   private readonly box = new Box3();
@@ -68,14 +88,21 @@ export class Cdlod {
       const size = stack[--sp];
       const y0 = stack[--sp];
       const x0 = stack[--sp];
+      const land =
+        this.hasLand === null || this.hasLand(x0, y0, size, LAND_MARGIN_KM);
       this.box.min.set(x0, y0, -0.5);
-      this.box.max.set(x0 + size, y0 + size, maxZ);
+      this.box.max.set(x0 + size, y0 + size, land ? maxZ : 0);
       if (!frustum.intersectsBox(this.box)) continue;
       const cell = size / grid;
       const dx = Math.max(x0 - eye.x, 0, eye.x - (x0 + size));
       const dy = Math.max(y0 - eye.y, 0, eye.y - (y0 + size));
       const distance = Math.sqrt(dx * dx + dy * dy + eye.z * eye.z);
-      if (depth < maxDepth && distance < cell * this.k) {
+      const splitAt = land ? cell * this.k : size;
+      if (
+        depth < maxDepth &&
+        distance < splitAt &&
+        distance < this.detailLimit
+      ) {
         const half = size / 2;
         // Children pushed far-first, so nearer ones are drawn first.
         const cx = eye.x < x0 + half ? 0 : 1;
@@ -104,20 +131,27 @@ export class Cdlod {
   }
 }
 
-/** The patch: (grid + 1)² vertices carrying their integer grid coordinates. */
+/**
+ * The patch: (grid + 1)² vertices carrying their integer grid coordinates
+ * (z = 0), then a skirt along each edge: the edge's vertices again with
+ * z = 1, which the vertex shader hangs below the surface. Skirts face
+ * outward and are seen only through a seam between patches.
+ */
 export function patchGrid(grid: number): {
   coords: Float32Array;
   index: Uint16Array;
 } {
   const n = grid + 1;
-  const coords = new Float32Array(n * n * 2);
+  const vertices = n * n + 4 * grid;
+  const coords = new Float32Array(vertices * 3);
   for (let j = 0; j < n; j++) {
     for (let i = 0; i < n; i++) {
-      coords[(j * n + i) * 2] = i;
-      coords[(j * n + i) * 2 + 1] = j;
+      const v = (j * n + i) * 3;
+      coords[v] = i;
+      coords[v + 1] = j;
     }
   }
-  const index = new Uint16Array(grid * grid * 6);
+  const index = new Uint16Array(grid * grid * 6 + 4 * grid * 6);
   let k = 0;
   for (let j = 0; j < grid; j++) {
     for (let i = 0; i < grid; i++) {
@@ -133,6 +167,30 @@ export function patchGrid(grid: number): {
       }
       k += 6;
     }
+  }
+  // The edges walked counter-clockwise seen from above, the patch on the
+  // left; each step A→B gets a quad hanging on its right, facing outward.
+  const ring: number[] = [];
+  for (let i = 0; i < grid; i++) ring.push(i); // south, west to east
+  for (let j = 0; j < grid; j++) ring.push(j * n + grid); // east, south to north
+  for (let i = grid; i > 0; i--) ring.push(grid * n + i); // north, east to west
+  for (let j = grid; j > 0; j--) ring.push(j * n); // west, north to south
+  let s = n * n;
+  const skirtOf = new Map<number, number>();
+  for (const v of ring) {
+    skirtOf.set(v, s);
+    coords[s * 3] = coords[v * 3];
+    coords[s * 3 + 1] = coords[v * 3 + 1];
+    coords[s * 3 + 2] = 1;
+    s++;
+  }
+  for (let r = 0; r < ring.length; r++) {
+    const a = ring[r];
+    const b = ring[(r + 1) % ring.length];
+    const sa = skirtOf.get(a) ?? a;
+    const sb = skirtOf.get(b) ?? b;
+    index.set([a, sb, b, a, sa, sb], k);
+    k += 6;
   }
   return { coords, index };
 }

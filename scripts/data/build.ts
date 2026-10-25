@@ -13,7 +13,7 @@ import {
 } from "./config.ts";
 import { etopoBands, naturalEarthFile } from "./download.ts";
 import { coastField, type Ring } from "./lib/coast.ts";
-import { encodeDistance, encodeHeight, sdfTail } from "./lib/encode.ts";
+import { encodeDistance, encodeHeight, packTexel } from "./lib/encode.ts";
 import { readEtopoBands } from "./lib/etopo.ts";
 import { resampleToTile, type TileGrid, tileGrid } from "./lib/grid.ts";
 import { extractRivers, packRivers } from "./lib/rivers.ts";
@@ -21,18 +21,17 @@ import { extractRivers, packRivers } from "./lib/rivers.ts";
 /**
  * Builds the chart's assets in public/chart/ from the raw downloads:
  *
- * - <tile>.webp per tile, lossless RGB: R and G are the height's 16-bit
- *   asinh code (high byte, low byte), B the coast's signed distance. The
+ * - <tile>.webp per tile, lossless RGB: the height's 12-bit asinh code and
+ *   the coast's 12-bit signed distance, packed as SDF_CODE describes. The
  *   app decodes them on the GPU into half-float textures.
- * - lowres.bin (gzip): the overview's highest land in blocks of 4 × 4 cells,
- *   u16 metres, for placing lettering on the relief from the CPU.
+ * - lowres.bin (gzip): the highest land (one byte, LOWRES_STEP_M steps) per cell of the
+ *   surround's grid, for the CPU: where the terrain needs detail, and
+ *   placing lettering on the relief.
  * - rivers.bin (gzip): Natural Earth rivers as world-space polylines.
  * - manifest.json: grids, encodings and files, read by the app.
  *
  * Run with `npm run data:build`, which downloads first.
  */
-
-const LOWRES_BLOCK = 4;
 
 type Polygon = readonly Ring[];
 interface PolygonFeature {
@@ -68,7 +67,6 @@ async function buildTile(tile: TileConfig, landGroups: Ring[][]) {
   );
   const heights = resampleToTile(grid, source.values, source.lats, source.lons);
   const coast = coastField(grid, landGroups, tile.sdfRange);
-  const tail = sdfTail(tile.sdfRange);
 
   // Natural Earth decides land and sea; ETOPO's heights follow it, so the
   // relief never pokes out of the sea and no land sits below the waterline.
@@ -92,10 +90,12 @@ async function buildTile(tile: TileConfig, landGroups: Ring[][]) {
     heights[i] = h;
     min = Math.min(min, h);
     max = Math.max(max, h);
-    const code = encodeHeight(h);
-    rgb[i * 3] = code >> 8;
-    rgb[i * 3 + 1] = code & 255;
-    rgb[i * 3 + 2] = encodeDistance(coast.distance[i], tile.sdfRange, tail);
+    packTexel(
+      encodeHeight(h),
+      encodeDistance(coast.distance[i], tile.sdfRange),
+      rgb,
+      i * 3,
+    );
   }
 
   await mkdir(OUT_DIR, { recursive: true });
@@ -113,23 +113,43 @@ async function buildTile(tile: TileConfig, landGroups: Ring[][]) {
       `${fixedLand} land and ${fixedSea} sea cells reconciled, ` +
       `${(info.size / 1e6).toFixed(2)} MB (${seconds} s)`,
   );
-  return { grid, heights, bytes: info.size, file, tail };
+  return { grid, heights, bytes: info.size, file };
 }
 
-/** Highest land in blocks of the overview, for the CPU. */
-function lowres(grid: TileGrid, heights: Float32Array) {
-  const cols = Math.ceil(grid.cols / LOWRES_BLOCK);
-  const rows = Math.ceil(grid.rows / LOWRES_BLOCK);
-  const out = new Uint16Array(cols * rows);
-  for (let r = 0; r < grid.rows; r++) {
-    for (let c = 0; c < grid.cols; c++) {
-      const i =
-        Math.floor(r / LOWRES_BLOCK) * cols + Math.floor(c / LOWRES_BLOCK);
-      const h = Math.max(0, Math.round(heights[r * grid.cols + c]));
+/** Height step of lowres.bin: 0 is sea, 1 or more is land, up to 5,100 m. */
+const LOWRES_STEP_M = 20;
+
+interface BuiltGrid {
+  grid: TileGrid;
+  heights: Float32Array;
+}
+
+/**
+ * Highest land per cell of the surround's grid, in LOWRES_STEP_M steps:
+ * its own heights, and the overview's finer ones where it covers. Any land
+ * counts at least one step, so every coast shows.
+ */
+function lowres(surround: BuiltGrid, overview: BuiltGrid) {
+  const s = surround.grid;
+  const o = overview.grid;
+  const code = (h: number) =>
+    h > 0 ? Math.min(255, Math.max(1, Math.ceil(h / LOWRES_STEP_M))) : 0;
+  const out = new Uint8Array(s.cols * s.rows);
+  for (let i = 0; i < out.length; i++) out[i] = code(surround.heights[i]);
+  for (let r = 0; r < o.rows; r++) {
+    const rs = Math.floor(
+      (s.yTop - (o.yTop - (r + 0.5) * o.cellKm)) / s.cellKm,
+    );
+    if (rs < 0 || rs >= s.rows) continue;
+    for (let c = 0; c < o.cols; c++) {
+      const cs = Math.floor((o.x0 + (c + 0.5) * o.cellKm - s.x0) / s.cellKm);
+      if (cs < 0 || cs >= s.cols) continue;
+      const h = code(overview.heights[r * o.cols + c]);
+      const i = rs * s.cols + cs;
       if (h > out[i]) out[i] = h;
     }
   }
-  return { cols, rows, data: out };
+  return { cols: s.cols, rows: s.rows, data: out };
 }
 
 async function main() {
@@ -145,9 +165,10 @@ async function main() {
   for (const tile of TILES)
     built.push({ tile, ...(await buildTile(tile, [land, islands])) });
 
-  const overview = built.find((b) => b.tile.id === "overview");
-  if (!overview) throw new Error("no overview tile");
-  const low = lowres(overview.grid, overview.heights);
+  const overview = built.find((b) => b.tile.role === "overview");
+  const surround = built.find((b) => b.tile.role === "surround");
+  if (!overview || !surround) throw new Error("no overview or surround tile");
+  const low = lowres(surround, overview);
   const lowFile = "lowres.bin";
   const lowBytes = gzipSync(Buffer.from(low.data.buffer), { level: 9 });
   await writeFile(path.join(OUT_DIR, lowFile), lowBytes);
@@ -182,12 +203,13 @@ async function main() {
   );
 
   const manifest = {
-    version: 1,
+    version: 3,
     origin: ORIGIN,
     height: HEIGHT_CODE,
     sdf: SDF_CODE,
-    tiles: built.map(({ tile, grid, bytes, file, tail }) => ({
+    tiles: built.map(({ tile, grid, bytes, file }) => ({
       id: tile.id,
+      role: tile.role,
       file,
       bytes,
       cols: grid.cols,
@@ -200,16 +222,16 @@ async function main() {
       south: grid.south,
       north: grid.north,
       sdfRange: tile.sdfRange,
-      sdfTail: tail,
     })),
     lowres: {
       file: lowFile,
       bytes: lowBytes.length,
       cols: low.cols,
       rows: low.rows,
-      cellKm: g.cellKm * LOWRES_BLOCK,
-      x0: g.x0,
-      yTop: g.yTop,
+      cellKm: surround.grid.cellKm,
+      stepM: LOWRES_STEP_M,
+      x0: surround.grid.x0,
+      yTop: surround.grid.yTop,
     },
     rivers: {
       file: riverFile,

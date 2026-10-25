@@ -109,39 +109,64 @@ export class CameraRig {
 }
 
 /**
- * Vertical exaggeration for a camera altitude: at continental scale true
- * relief is invisible, so it is exaggerated, easing off as the camera comes
- * down, log-linearly between the two anchors.
+ * Vertical exaggeration for a camera altitude (km, value). At continental
+ * scale true relief is invisible, so it is exaggerated; it eases off as
+ * the camera comes down, to true scale low over the sea, where scene 1's
+ * horizon has to match. A monotone cubic through the anchors in log–log
+ * space, so the change never shows as a bend in motion.
  */
-export const EXAGGERATION = {
-  near: { altitude: 12, value: 2.6 },
-  far: { altitude: 6000, value: 22 },
-} as const;
+export const EXAGGERATION: readonly (readonly [number, number])[] = [
+  [0.5, 1],
+  [20, 1.5],
+  [150, 3],
+  [1200, 8],
+  [6000, 15],
+];
+
+const exaggerationCurve = monotoneCurve(
+  EXAGGERATION.map(([a, v]) => [Math.log(a), Math.log(v)] as const),
+);
 
 export function exaggerationAt(altitudeKm: number): number {
-  const { near, far } = EXAGGERATION;
-  const t =
-    (Math.log(altitudeKm) - Math.log(near.altitude)) /
-    (Math.log(far.altitude) - Math.log(near.altitude));
-  const s = Math.min(1, Math.max(0, t));
-  // Smooth at both ends, so the change never shows as a bend in motion.
-  const e = s * s * (3 - 2 * s);
-  return Math.exp(
-    Math.log(near.value) + (Math.log(far.value) - Math.log(near.value)) * e,
-  );
+  return Math.exp(exaggerationCurve(Math.log(Math.max(altitudeKm, 1e-3))));
+}
+
+/**
+ * The haze: the distance (km) at which it hides 63 % of the chart, for a
+ * camera altitude. Low over the sea it is short, so the coast 20 nautical
+ * miles off is lost in the dawn haze as it is in scene 1; it opens up in
+ * proportion to altitude, as a haze layer near the ground does when seen
+ * from above. The light state's density divides it.
+ */
+export const HAZE = { nearKm: 17, perAltitudeKm: 3.5 } as const;
+
+/** Past this many visibility distances the haze is opaque (99.5 %). */
+export const HAZE_OPAQUE = 2.3;
+
+export function hazeVisibilityAt(altitudeKm: number): number {
+  return HAZE.nearKm + HAZE.perAltitudeKm * Math.max(altitudeKm, 0);
+}
+
+/** A contour interval (m) and the blend toward its double (0..1). */
+export interface ContourStyle {
+  interval: number;
+  blend: number;
 }
 
 /**
  * Contour interval for a camera altitude: 100 m doubling as the camera
  * climbs, with the blend between an interval and its double, so contours
  * thin out smoothly (the doubled set is a subset of the finer one).
+ * Writes into `out`, so the frame allocates nothing.
  */
-export function contourIntervalAt(altitudeKm: number): {
-  interval: number;
-  blend: number;
-} {
+export function contourIntervalAt(
+  altitudeKm: number,
+  out: ContourStyle,
+): ContourStyle {
   const ideal = 100 * Math.max(1, (altitudeKm / 40) ** 0.62);
   const k = Math.log2(ideal / 100);
   const whole = Math.floor(k);
-  return { interval: 100 * 2 ** whole, blend: k - whole };
+  out.interval = 100 * 2 ** whole;
+  out.blend = k - whole;
+  return out;
 }

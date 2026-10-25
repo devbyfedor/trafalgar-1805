@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
 import { OUT_DIR } from "./config.ts";
-import { decodeDistance, decodeHeight } from "./lib/encode.ts";
+import { decodeDistance, decodeHeight, unpackTexel } from "./lib/encode.ts";
 
 /**
  * Renders a quick CPU preview of each tile (hillshade, inked coast, a few
@@ -23,8 +23,9 @@ for (const [ti, tile] of manifest.tiles.entries()) {
   const h = new Float32Array(W * H);
   const d = new Float32Array(W * H);
   for (let i = 0; i < W * H; i++) {
-    h[i] = decodeHeight(data[i * C] * 256 + data[i * C + 1]);
-    d[i] = decodeDistance(data[i * C + 2], tile.sdfRange, tile.sdfTail);
+    const t = unpackTexel(data[i * C], data[i * C + 1], data[i * C + 2]);
+    h[i] = decodeHeight(t.height16);
+    d[i] = decodeDistance(t.distance, tile.sdfRange);
   }
   const out = Buffer.alloc(W * H * 3);
   const az = (315 * Math.PI) / 180;

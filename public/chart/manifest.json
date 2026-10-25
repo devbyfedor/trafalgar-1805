@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 3,
   "origin": {
     "lon": -6,
     "lat": 36
@@ -11,14 +11,30 @@
     "bits": 12
   },
   "sdf": {
-    "core": 4,
-    "coreShare": 0.5
+    "bits": 12
   },
   "tiles": [
     {
+      "id": "surround",
+      "role": "surround",
+      "file": "surround.webp",
+      "bytes": 717668,
+      "cols": 850,
+      "rows": 579,
+      "cellKm": 22.263898158654715,
+      "x0": -11577.22704250045,
+      "yTop": 7471.285686958849,
+      "west": -110,
+      "east": 60,
+      "south": -10,
+      "north": 72.0519000227698,
+      "sdfRange": 32
+    },
+    {
       "id": "overview",
+      "role": "overview",
       "file": "overview.webp",
-      "bytes": 2029196,
+      "bytes": 2290052,
       "cols": 1840,
       "rows": 1295,
       "cellKm": 5.565974539663679,
@@ -28,13 +44,13 @@
       "east": 20,
       "south": 5,
       "north": 57.02505922250185,
-      "sdfRange": 64,
-      "sdfTail": 0.9647407692971847
+      "sdfRange": 64
     },
     {
       "id": "cadiz",
+      "role": "detail",
       "file": "cadiz.webp",
-      "bytes": 788582,
+      "bytes": 972588,
       "cols": 1272,
       "rows": 865,
       "cellKm": 0.4638312116386398,
@@ -44,18 +60,18 @@
       "east": -4.3,
       "south": 34.9,
       "north": 37.80215006406626,
-      "sdfRange": 128,
-      "sdfTail": 0.7901818378065265
+      "sdfRange": 128
     }
   ],
   "lowres": {
     "file": "lowres.bin",
-    "bytes": 76581,
-    "cols": 460,
-    "rows": 324,
+    "bytes": 158969,
+    "cols": 850,
+    "rows": 579,
     "cellKm": 22.263898158654715,
-    "x0": -7347.0863923560555,
-    "yTop": 3464.6209140947694
+    "stepM": 20,
+    "x0": -11577.22704250045,
+    "yTop": 7471.285686958849
   },
   "rivers": {
     "file": "rivers.bin",

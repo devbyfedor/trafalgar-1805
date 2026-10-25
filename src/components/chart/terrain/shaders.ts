@@ -14,7 +14,7 @@ in vec4 node;
 uniform float uGridN;
 uniform float uExag;
 uniform vec3 uEye;
-uniform vec2 uTexelKm;
+uniform vec3 uTexelKm;
 out vec3 vWorld;
 
 void main() {
@@ -26,12 +26,12 @@ void main() {
   float morph = clamp((dist - 0.7 * node.w) / (0.3 * node.w), 0.0, 1.0);
   p -= mod(grid, 2.0) * cell * morph;
   // Read the field at a mip level matching the mesh spacing.
-  float lodA = max(0.0, log2(cell / uTexelKm.x));
-  float lodB = max(0.0, log2(cell / uTexelKm.y));
-  vec4 f = sampleFieldLod(p, lodA, lodB);
+  vec4 f = sampleFieldLod(p, max(vec3(0.0), log2(cell / uTexelKm)));
   // Only land rises; it eases to sea level within a mesh cell of the coast.
   float taper = smoothstep(0.0, cell, -f.y);
   float z = max(f.x, 0.0) * 0.001 * secLat(p.y) * uExag * taper;
+  // Skirt vertices (position.z = 1) hang below the patch's edge.
+  z -= position.z * cell * 0.5;
   vWorld = vec3(p, z);
   gl_Position = projectionMatrix * viewMatrix * vec4(vWorld, 1.0);
 }
@@ -69,7 +69,6 @@ uniform float uLightOnB;
 uniform float uLightMix;
 uniform vec3 uSlotA;
 uniform vec3 uSlotB;
-uniform float uHazeDensity;
 
 uniform float uContourInterval;
 uniform float uContourBlend;
@@ -77,10 +76,21 @@ uniform float uWaterSpacingPx;
 uniform float uWaterBand;
 uniform float uWaterExtent;
 uniform float uIsobathDeepest;
-uniform float uHazeNear;
-uniform float uHazeScale;
-uniform float uHazeMax;
+uniform float uSmoothBias;
+uniform float uHazeVisibility;
 uniform float uStageFadeKm;
+
+// The field read at a coarser mip: soundings, contours and shading follow
+// the landforms, not every gully and every sounding. (Fragment shaders
+// only: texture() takes a bias only here.)
+vec4 sampleFieldBias(vec2 p, float bias) {
+  return layered(
+    p,
+    texture(uFieldC, tileUv(p, uRectC), bias),
+    texture(uFieldA, tileUv(p, uRectA), bias),
+    texture(uFieldB, tileUv(p, uRectB), bias)
+  );
+}
 
 // Relief light of one state, relative to lit flat ground (1).
 float reliefLight(vec3 n, vec3 L, float horizonTan, float on) {
@@ -117,10 +127,10 @@ float waterlines(float d, float pxKm) {
   return cov * fade * step(0.0, d);
 }
 
-float hazeAmount(float dist, float alt) {
-  float visibility = (uHazeNear + uHazeScale * alt) / uHazeDensity;
-  float x = dist / visibility;
-  return uHazeMax * (1.0 - exp(-x * x));
+// Clear near the camera, closing smoothly to opaque at the far distance.
+float hazeAmount(float dist) {
+  float x = dist / uHazeVisibility;
+  return 1.0 - exp(-x * x);
 }
 
 void main() {
@@ -128,13 +138,13 @@ void main() {
   vec4 f = sampleField(p);
   float h = f.x;
   float sdf = f.y;
-  vec2 slope = f.zw;
+  vec4 fs = sampleFieldBias(p, uSmoothBias);
   float dpr = uDpr;
   // Km per pixel across the coast (the distance field's gradient is 1).
   float pxKm = max(length(vec2(dFdx(sdf), dFdy(sdf))), 1e-6);
 
-  vec2 uvA = tileUv(p, uRectA);
-  float stage = smoothstep(0.0, uStageFadeKm, insideKm(uvA, uRectA));
+  // The world ends at the surround's edges, far out in the haze.
+  float stage = smoothstep(0.0, uStageFadeKm, insideKm(tileUv(p, uRectC), uRectC));
   float land = clamp(0.5 - sdf / pxKm, 0.0, 1.0) * stage;
 
   vec3 toPoint = vWorld - cameraPosition;
@@ -148,7 +158,8 @@ void main() {
 
   // Isobaths in fathoms, on the shelf and its edge only: deep water was
   // unsounded in 1805 and stays blank.
-  float dPx = max(length(vec2(dFdx(depth), dFdy(depth))), 1e-5);
+  float sounding = max(-fs.x, 0.0);
+  float dPx = max(length(vec2(dFdx(sounding), dFdy(sounding))), 1e-5);
   float iso = 0.0;
   float levels[6] = float[6](10.0, 20.0, 50.0, 100.0, 200.0, 500.0);
   for (int i = 0; i < 6; i++) {
@@ -158,7 +169,7 @@ void main() {
     float gap = (i < 5 ? levels[i + 1] - fm : fm) * 1.8288;
     float crowd = smoothstep(2.0 * dpr, 7.0 * dpr, gap / dPx);
     float w = (fm == 100.0 ? 1.15 : 0.8) * dpr;
-    iso = max(iso, lineCov(abs(depth - L) / dPx, w) * crowd);
+    iso = max(iso, lineCov(abs(sounding - L) / dPx, w) * crowd);
   }
   // Keep the coast clean: soundings give way to the waterlining.
   float waterReach = sdf / (uWaterSpacingPx * dpr * pxKm);
@@ -171,10 +182,14 @@ void main() {
   float fresnel = pow(grazing, 6.0) * uSeaReflect;
   vec3 skyRefl = skyColor(reflect(view, vec3(0.0, 0.0, 1.0)));
   sea = mix(sea, skyRefl, fresnel * 0.85);
-  // The sun's road on the water, broad and soft, never sparkling.
+  // The sun's road: a soft column under the sun, narrow at the horizon and
+  // widening toward the viewer, as on a long swell. Never sparkling.
   vec3 reflDir = reflect(view, vec3(0.0, 0.0, 1.0));
-  float road = pow(max(dot(reflDir, uSunDir), 0.0), 220.0) * uSunDisc * grazing;
-  sea = mix(sea, uGlowColor, clamp(road, 0.0, 0.6));
+  float dAz = abs(mod(atan(reflDir.x, reflDir.y) - atan(uSunDir.x, uSunDir.y) + 3.14159265, 6.2831853) - 3.14159265);
+  float below = asin(clamp(-view.z, 0.0, 1.0));
+  float halfWidth = radians(1.2) + 0.35 * below;
+  float road = exp(-dAz * dAz / (halfWidth * halfWidth)) * exp(-below / radians(9.0));
+  sea = mix(sea, uGlowColor, clamp(road * uSunDisc, 0.0, 0.6));
 
   vec3 seaColor = sea;
   seaColor = mix(seaColor, uInkPale, iso * 0.28);
@@ -182,7 +197,7 @@ void main() {
 
   // ---- Land ---------------------------------------------------------
   float hl = max(h, 0.0);
-  vec3 n = normalize(vec3(-uExag * slope, 1.0));
+  vec3 n = normalize(vec3(-uExag * fs.zw, 1.0));
   vec3 hz = vec3(sampleHorizon(p), 0.0);
   float lightA = reliefLight(n, uLightDirA, dot(hz, uSlotA), uLightOnA);
   float lightB = reliefLight(n, uLightDirB, dot(hz, uSlotB), uLightOnB);
@@ -194,12 +209,13 @@ void main() {
   vec3 landColor = paper * mix(vec3(1.0), tint, uReliefGain) * value;
 
   // Contours: an interval and its double, nested, chosen by the camera.
-  float hPx = max(length(vec2(dFdx(hl), dFdy(hl))), 1e-5);
+  float hc = max(fs.x, 0.0);
+  float hPx = max(length(vec2(dFdx(hc), dFdy(hc))), 1e-5);
   float I = uContourInterval;
-  float cFine = lineCov(abs(hl - floor(hl / I + 0.5) * I) / hPx, 0.7 * dpr);
-  float cCoarse = lineCov(abs(hl - floor(hl / (2.0 * I) + 0.5) * 2.0 * I) / hPx, 0.7 * dpr);
+  float cFine = lineCov(abs(hc - floor(hc / I + 0.5) * I) / hPx, 0.7 * dpr);
+  float cCoarse = lineCov(abs(hc - floor(hc / (2.0 * I) + 0.5) * 2.0 * I) / hPx, 0.7 * dpr);
   float contour = max(cCoarse, cFine * (1.0 - uContourBlend));
-  contour *= smoothstep(3.0 * dpr, 8.0 * dpr, I / hPx) * smoothstep(0.4 * I, 0.9 * I, hl);
+  contour *= smoothstep(3.0 * dpr, 8.0 * dpr, I / hPx) * smoothstep(0.4 * I, 0.9 * I, hc);
   landColor = mix(landColor, uContourInk, contour * 0.32);
 
   // ---- Together -------------------------------------------------------
@@ -210,7 +226,7 @@ void main() {
   // Beyond the stage the chart gives way to open sea and haze.
   vec3 hazeCol = hazeColorFor(view);
   color = mix(mix(uSeaDeep, hazeCol, 0.25), color, stage);
-  color = mix(color, hazeCol, hazeAmount(dist, max(uEye.z, 0.05)));
+  color = mix(color, hazeCol, hazeAmount(dist));
   fragColor = vec4(color, 1.0);
 }
 `;

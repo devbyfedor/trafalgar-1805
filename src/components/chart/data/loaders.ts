@@ -31,14 +31,19 @@ async function loadGzip(
   return new Response(stream).arrayBuffer();
 }
 
-/** The overview's highest land per block, for placing things on the relief. */
+/**
+ * The highest land per cell of a coarse grid over the surround: where the
+ * terrain needs detail, and where lettering clears the relief.
+ */
 export interface LowresHeights {
   cols: number;
   rows: number;
   cellKm: number;
+  /** Metres per step of `data` (0 is sea). */
+  stepM: number;
   x0: number;
   yTop: number;
-  data: Uint16Array;
+  data: Uint8Array;
 }
 
 export async function loadLowres(
@@ -47,7 +52,7 @@ export async function loadLowres(
 ): Promise<LowresHeights> {
   const { file, ...grid } = manifest.lowres;
   const buffer = await loadGzip(file, signal);
-  return { ...grid, data: new Uint16Array(buffer) };
+  return { ...grid, data: new Uint8Array(buffer) };
 }
 
 /** Highest land (metres) around a world point, within `radiusKm`. */
@@ -67,7 +72,49 @@ export function highestLand(
       best = Math.max(best, low.data[r * low.cols + c]);
     }
   }
-  return best;
+  return best * low.stepM;
+}
+
+/**
+ * Whether any land lies within `marginKm` of a square (world km), in
+ * constant time: a summed-area table counts the land blocks of the low
+ * resolution grid. Beyond the stage there is only open sea.
+ */
+export function landIndex(
+  low: LowresHeights,
+): (x0: number, y0: number, size: number, marginKm: number) => boolean {
+  const { cols, rows, cellKm, data } = low;
+  const w = cols + 1;
+  const sums = new Uint32Array(w * (rows + 1));
+  for (let r = 0; r < rows; r++) {
+    let line = 0;
+    for (let c = 0; c < cols; c++) {
+      line += data[r * cols + c] > 0 ? 1 : 0;
+      sums[(r + 1) * w + c + 1] = sums[r * w + c + 1] + line;
+    }
+  }
+  return (x0, y0, size, marginKm) => {
+    const c0 = Math.max(0, Math.floor((x0 - marginKm - low.x0) / cellKm));
+    const c1 = Math.min(
+      cols - 1,
+      Math.floor((x0 + size + marginKm - low.x0) / cellKm),
+    );
+    const r0 = Math.max(
+      0,
+      Math.floor((low.yTop - (y0 + size + marginKm)) / cellKm),
+    );
+    const r1 = Math.min(
+      rows - 1,
+      Math.floor((low.yTop - (y0 - marginKm)) / cellKm),
+    );
+    if (c0 > c1 || r0 > r1) return false;
+    const count =
+      sums[(r1 + 1) * w + c1 + 1] -
+      sums[r0 * w + c1 + 1] -
+      sums[(r1 + 1) * w + c0] +
+      sums[r0 * w + c0];
+    return count > 0;
+  };
 }
 
 export interface RiverData {

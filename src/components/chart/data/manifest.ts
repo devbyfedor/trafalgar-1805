@@ -3,8 +3,12 @@
  * mirror what the build writes; the loaders read nothing else.
  */
 
+/** How a tile is layered: surround under the overview, detail over it. */
+export type TileRole = "surround" | "overview" | "detail";
+
 export interface TileInfo {
   id: string;
+  role: TileRole;
   file: string;
   bytes: number;
   cols: number;
@@ -18,16 +22,15 @@ export interface TileInfo {
   east: number;
   south: number;
   north: number;
-  /** Signed-distance range of the coast field, cells, and its tail constant. */
+  /** The coast distance code spans ± this many cells. */
   sdfRange: number;
-  sdfTail: number;
 }
 
 export interface ChartManifest {
   version: number;
   origin: { lon: number; lat: number };
   height: { scale: number; min: number; max: number; bits: number };
-  sdf: { core: number; coreShare: number };
+  sdf: { bits: number };
   tiles: TileInfo[];
   lowres: {
     file: string;
@@ -35,11 +38,16 @@ export interface ChartManifest {
     cols: number;
     rows: number;
     cellKm: number;
+    /** Metres per step of the one-byte height code (0 is sea). */
+    stepM: number;
     x0: number;
     yTop: number;
   };
   rivers: { file: string; bytes: number; count: number; points: number };
 }
+
+/** The manifest layout these types describe. */
+const MANIFEST_VERSION = 3;
 
 /** Where the chart's assets are served from (same origin, public/chart/). */
 export const CHART_BASE = "/chart/";
@@ -50,7 +58,7 @@ export async function loadManifest(
   const response = await fetch(`${CHART_BASE}manifest.json`, { signal });
   if (!response.ok) throw new Error(`chart manifest: HTTP ${response.status}`);
   const manifest = (await response.json()) as ChartManifest;
-  if (manifest.version !== 1) {
+  if (manifest.version !== MANIFEST_VERSION) {
     throw new Error(`chart manifest: unknown version ${manifest.version}`);
   }
   return manifest;

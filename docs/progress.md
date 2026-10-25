@@ -71,5 +71,5 @@ Legend: `[x]` done, `[~]` built but not yet reviewed or finished, `[ ]` not star
 - [x] Owner's answers applied: no studding sails, no stern ensign at dawn (`flying` prop; the spec keeps the ensign for later), vice-admiral's flag kept (sources split, not against)
 - [x] Lower gun deck: 15 ports a side, as on the contemporary model (bow port kept, aftmost dropped); derived specs now scale explicit port positions too
 - [x] `docs/backlog.md` for later scenes: studding sails and the ensign hoist (approach scene), port interiors (when ports open)
-- [ ] Public-repository hygiene: research notes, downloads, git history
+- [x] Public-repository hygiene: research notes keep only our own words and links (modern quotations paraphrased, long period quotations trimmed; rules in `docs/research/README.md`); nothing downloaded was ever committed; `/docs/research/sources/` git-ignored. **Waiting for the owner:** whether to rewrite history so the old wording of the three research notes (commit `a87b070` onwards) goes too
 - [ ] `npm run check`, screenshots regenerated and reviewed, docs updated

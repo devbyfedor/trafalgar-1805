@@ -1,6 +1,6 @@
 # History notes
 
-Facts the scene uses, with their sources, confidence and doubts. This file is the summary; the full research, with quotations, measurements, tables and every URL, is in `docs/research/`:
+Facts the scene uses, with their sources, confidence and doubts. This file is the summary; the full research notes, with measurements, tables, short quotations from period sources and every URL, are in `docs/research/` (what may and may not go there: `docs/research/README.md`):
 
 - `research/victory-hull.md`: Victory's hull as of October 1805 (dimensions, ports, paint, details, what not to copy from the present ship).
 - `research/victory-rig.md`: masts, spars, sails, rigging and flags, with an elevation coordinate table.

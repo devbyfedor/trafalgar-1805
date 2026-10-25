@@ -48,3 +48,7 @@ next-env.d.ts
 
 # cloudflare wrangler
 /.wrangler/
+
+# downloaded research material (PDFs, page images, saved pages): local only,
+# never published; see docs/research/README.md
+/docs/research/sources/

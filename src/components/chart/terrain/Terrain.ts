@@ -88,7 +88,11 @@ export class Terrain {
         uSunColor: { value: new Vector3() },
         uShadeColor: { value: new Vector3() },
         uReliefGain: { value: 0.5 },
+        // True-scale slopes over which hill shading fades in (rise / run).
+        uReliefSlope: { value: [0.002, 0.04] },
         uShadowStrength: { value: 0.5 },
+        // The most exaggeration cast shadows follow.
+        uShadowExag: { value: 3.5 },
         uLightDirA: { value: new Vector3(0, 0, 1) },
         uLightDirB: { value: new Vector3(0, 0, 1) },
         uLightOnA: { value: 0 },

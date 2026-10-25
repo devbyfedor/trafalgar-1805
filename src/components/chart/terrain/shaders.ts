@@ -61,7 +61,9 @@ uniform vec3 uContourInk;
 uniform vec3 uSunColor;
 uniform vec3 uShadeColor;
 uniform float uReliefGain;
+uniform vec2 uReliefSlope;
 uniform float uShadowStrength;
+uniform float uShadowExag;
 uniform vec3 uLightDirA;
 uniform vec3 uLightDirB;
 uniform float uLightOnA;
@@ -92,14 +94,20 @@ vec4 sampleFieldBias(vec2 p, float bias) {
   );
 }
 
-// Relief light of one state, relative to lit flat ground (1).
-float reliefLight(vec3 n, vec3 L, float horizonTan, float on) {
+// One lighting state's light on the relief. x: how the slope faces the
+// sun against flat ground, compressed to (-0.5, 1), so slopes toward a low
+// sun never blaze. y: the cast shadow, where the exaggerated horizon rises
+// above the sun. A state with no sun leaves the relief unlit.
+vec2 reliefLight(vec3 n, vec3 L, float horizonTan, float on) {
   float tanSun = L.z / max(length(L.xy), 1e-4);
-  // In shadow when the exaggerated horizon rises above the sun.
-  float shadow = smoothstep(-0.012, 0.012, uExag * horizonTan - tanSun);
-  float direct = max(dot(n, L), 0.0) * (1.0 - shadow * uShadowStrength);
-  float lit = direct / max(L.z, 0.09);
-  return mix(1.0, lit, on);
+  // Shadows take a capped exaggeration: at continental scale a low sun
+  // would otherwise throw shadows a hundred kilometres long across plains.
+  // The penumbra grows with the sun's height, soft as a wash.
+  float rise = min(uExag, uShadowExag) * horizonTan - tanSun;
+  float soft = max(0.006, 0.3 * tanSun);
+  float shadow = smoothstep(-soft, soft, rise);
+  float facing = max(dot(n, L), 0.0) / max(L.z, 0.02) - 1.0;
+  return on * vec2(facing / (1.0 + abs(facing)), shadow);
 }
 
 // One waterlining set at spacing s: multiples of s near the coast, the
@@ -199,14 +207,19 @@ void main() {
   float hl = max(h, 0.0);
   vec3 n = normalize(vec3(-uExag * fs.zw, 1.0));
   vec3 hz = vec3(sampleHorizon(p), 0.0);
-  float lightA = reliefLight(n, uLightDirA, dot(hz, uSlotA), uLightOnA);
-  float lightB = reliefLight(n, uLightDirB, dot(hz, uSlotB), uLightOnB);
-  float light = mix(lightA, lightB, uLightMix);
+  vec2 lightA = reliefLight(n, uLightDirA, dot(hz, uSlotA), uLightOnA);
+  vec2 lightB = reliefLight(n, uLightDirB, dot(hz, uSlotB), uLightOnB);
+  vec2 lit = mix(lightA, lightB, uLightMix);
   vec3 paper = mix(uPaperLow, uPaperHigh, smoothstep(50.0, 2200.0, hl));
-  // Restrained shading: the light moves the paper's value a little.
-  float value = 1.0 + uReliefGain * (clamp(light, 0.0, 2.2) - 1.0) * 0.5;
-  vec3 tint = mix(uShadeColor, uSunColor, smoothstep(0.0, 1.0, light));
-  vec3 landColor = paper * mix(vec3(1.0), tint, uReliefGain) * value;
+  // Restrained hill shading: only real relief is shaded (true-scale slope,
+  // so it doesn't grow with the exaggeration); gentle lowland stays plain
+  // paper, as on a chart. Cast shadows are their own term: long shadows
+  // from a low sun carry the drama.
+  float relief = smoothstep(uReliefSlope.x, uReliefSlope.y, length(fs.zw));
+  float shade = uReliefGain * relief * lit.x - uShadowStrength * lit.y;
+  vec3 tint = shade < 0.0 ? uShadeColor : uSunColor;
+  vec3 landColor = paper * (1.0 + 0.45 * shade);
+  landColor = mix(landColor, landColor * tint, min(abs(shade), 1.0) * 0.6);
 
   // Contours: an interval and its double, nested, chosen by the camera.
   float hc = max(fs.x, 0.0);

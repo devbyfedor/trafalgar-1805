@@ -14,7 +14,7 @@ Times are local apparent time (ship's time). Bearings in 1805 logs are magnetic;
 
 | Brief | Sources | Scene | Confidence |
 | --- | --- | --- | --- |
-| Ports per side: lower 15, middle 14, upper 15 | Those are guns per side. Ports per side: lower 16 (one cut in 1800–03), middle 15 plus a small double-door bow port, upper 15, quarterdeck about 7, forecastle about 3 | Ports as the sources give them | medium (lower), medium-high (middle), high (upper) |
+| Ports per side: lower 15, middle 14, upper 15 | Those are guns per side. Ports per side: lower 16 (one cut in 1800–03), middle 15 plus a small double-door bow port, upper 15, quarterdeck about 7, forecastle about 3 | Lower 15, as on the contemporary model and one per gun (owner's decision, session 3: the bow port, none under the aftmost upper-deck port); middle and upper as the sources give them | medium (lower), medium-high (middle), high (upper) |
 | Ochre bands `#C99A3E`, hull `#1B1714` | NMRN paint survey 2015: "Victory Hull Ochre" NCS S 3020-Y40R (about `#C19979`), a pale, slightly pinkish buff; the black is a near-neutral NCS S 8500-N (about `#2D2C2C`) | `#C29A77` bands, `#2D2C2B` hull | high (codes), medium (screen values) |
 | Entry port | The only contemporary model of her 1803 state has side steps at the after end of the waist and no entry port; today's canopied port is later | Side steps, no entry port | medium |
 | Main truck about 62 m above the waterline | 205 ft (62.5 m) is the 1760s figure. A reconstruction from Steel's 1794 spar table gives 195–200 ft (59.5–61 m) | 60.2 m; fore truck 0.90 and mizzen 0.83 of the main. Accepted by the owner (session 3) | medium |
@@ -83,7 +83,7 @@ After the 1800–1803 great repair. The most valuable source is the contemporary
 
 ## Open doubts
 
-- Lower-deck ports: 16 a side (a Trafalgar midshipman, the 2012 official site, the present ship) against 15 on the contemporary model.
+- Lower-deck ports: 16 a side (a Trafalgar midshipman, the 2012 official site, the present ship) against 15 on the contemporary model. Settled by the owner for the scene: 15, as on the model, matching her 15 lower-deck guns a side.
 - The main truck height (59.5–61 m by reconstruction against the quoted 62.5 m) depends on the assumed heel depth and Steel's long-pole rule. The owner accepted the 60.2 m reconstruction from Steel's 1794 tables.
 - Gaff, spanker boom, flying jib-boom and dolphin striker lengths are rule-based estimates.
 - Quarterdeck (7 or 8) and forecastle (2 or 3) openings; the poop bulwark (open rail on the model, solid in one reconstruction).

@@ -196,15 +196,17 @@ const mizzen: MastSpec = {
 
 const gunDecks: GunDeckSpec[] = [
   {
-    // 16 a side in 1805: 15 under the upper-deck ports and a new bow port
-    // one space forward, cut in 1800–03.
+    // 15 a side, one per gun, as on the contemporary model of the 1800–03
+    // repair: the new bow port one space forward of the foremost upper-deck
+    // port, and none under the aftmost. (A Trafalgar midshipman and the
+    // present ship have 16; the owner chose the model. history-notes.md.)
     id: "lower",
-    portsPerSide: 16,
+    portsPerSide: 15,
     sill: { y: 1.42, ...SHEER },
     port: { width: 1.0, height: 0.95 },
-    firstX: UPPER_X[0],
+    firstX: UPPER_X[1],
     lastX: UPPER_X[14] + SPACING,
-    xs: [...UPPER_X, UPPER_X[14] + SPACING],
+    xs: [...UPPER_X.slice(1), UPPER_X[14] + SPACING],
     band: { below: 0.08, above: 0.3, taper: 0.3 },
   },
   {

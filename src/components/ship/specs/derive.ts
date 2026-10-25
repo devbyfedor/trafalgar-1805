@@ -90,6 +90,8 @@ function decksFor(
     port: { width: d.port.width * k, height: d.port.height * k },
     firstX: d.firstX * k,
     lastX: d.lastX * k,
+    xs: d.xs?.map((x) => x * k),
+    bowPort: d.bowPort ? { ...d.bowPort, x: d.bowPort.x * k } : undefined,
   }));
   const lower = scaled.find((d) => d.id === "lower");
   const middle = scaled.find((d) => d.id === "middle");

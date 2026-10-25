@@ -165,6 +165,9 @@ export class Terrain {
     const maxZ = 4.9 * 1.9 * exaggeration;
     const count = this.cdlod.select(eye, frustum, maxZ);
     this.mesh.geometry.instanceCount = count;
+    // Nothing to upload when nothing is in view (an empty range would
+    // upload the whole buffer).
+    if (count === 0) return;
     this.nodes.clearUpdateRanges();
     this.nodes.addUpdateRange(0, count * 4);
     this.nodes.needsUpdate = true;

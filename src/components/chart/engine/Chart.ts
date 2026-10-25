@@ -1,5 +1,6 @@
 import {
   Frustum,
+  LinearSRGBColorSpace,
   Matrix4,
   PerspectiveCamera,
   Scene,
@@ -131,6 +132,9 @@ export class Chart {
       stencil: false,
       powerPreference: "high-performance",
     });
+    // The chart writes sRGB values straight to the canvas (shaders/common.ts):
+    // no output conversion, for its own materials and for troika's text.
+    renderer.outputColorSpace = LinearSRGBColorSpace;
     try {
       const ext = renderer.extensions;
       if (
@@ -289,9 +293,19 @@ export class Chart {
   }
 
   /** Compiles every material now, so the first visible frame never hitches. */
+  /**
+   * Compiles every material and draws one frame, so the first visible frame
+   * never hitches. ANGLE on Direct3D (the owner's Intel Arc) finishes
+   * compiling at the first draw: on that GPU compileAsync alone left 15 to
+   * 55 ms for the first frame, with the extra draw 4 to 7 ms (research,
+   * three r186 notes). The host draws it while the chart is still hidden.
+   */
   async warm(): Promise<void> {
     this.camera.updateMatrixWorld();
     await this.renderer.compileAsync(this.scene, this.camera);
+    if (this.disposed || this.lost) return;
+    this.frame(0);
+    this.quality.reset();
   }
 
   /** Forget frame timing after a pause (scroll out of view, hidden tab). */

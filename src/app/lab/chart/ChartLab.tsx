@@ -7,6 +7,7 @@ import { SmoothScroll } from "@/components/providers/SmoothScroll";
 import { registerChartReadout, reportProgress } from "@/lib/debug";
 import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
 import { isDebug } from "@/lib/media";
+import { GAZETTEER } from "@/scenes/02-road/gazetteer";
 import { TOULON_TO_CADIZ } from "@/scenes/02-road/routes";
 import {
   buildFlight,
@@ -135,6 +136,10 @@ export function ChartLab() {
         chart.add(rivers, rivers.mesh);
         const route = new engine.Route(chart.field, TOULON_TO_CADIZ);
         chart.add(route, route.mesh);
+        const lettering = new engine.Lettering(chart.field, GAZETTEER);
+        chart.add(lettering, lettering.batch);
+        await lettering.ready;
+        if (cancelled) return;
         const rig = new engine.CameraRig(LAB_FLIGHT);
 
         const draw = (time: number) => {

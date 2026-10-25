@@ -6,18 +6,47 @@ Live checklist. A later session picks up from here. The briefs are `docs/scene-0
 
 Stage A builds the chart engine, its data and its look, proven by one camera flight on `/lab/chart`, then stops for the owner's performance check on his GPU. Stage B (the full scene) waits for his approval.
 
+**Where it stopped (25 October 2026).** The owner stopped the session mid-step 4. Everything is committed; the last commit is a work-in-progress commit of engine code that has **never been run, type-checked or linted**. No test was run in this session. Scene 1 is untouched.
+
 1. Research
-   - [~] History of the campaign, fleet sizes, signals, 1805 names (research workflow running; fact-checked track by track)
-   - [~] three r186, troika-three-text 0.52.5, the GSAP skills, period chart conventions
-   - [x] ERDDAP subsetting: `ETOPO_2022_v1_15s` on coastwatch.pfeg.noaa.gov (the 30″ and 60″ ids are not served there); index-based requests with a stride, in latitude bands
-2. [ ] Design plan in decisions.md, reviewed against the brief and both avoid-lists
+   - [x] ERDDAP subsetting: coastwatch.pfeg.noaa.gov serves only `ETOPO_2022_v1_15s` (and `_Lon0360`); the `_30s` and `_60s` ids return 404 there. Requests use grid indices with a stride, in latitude bands.
+   - [ ] History (campaign and dates, Boulogne, Ulm, Cádiz and the sortie, fleet sizes, signals by day and night, 1805 names for the lettering) — **to redo**. A research workflow (four history tracks, each with an independent fact-check) was started and then stopped at the owner's request before any history track finished. Nothing is in `history-notes.md` yet.
+   - [ ] three r186, troika-three-text 0.52.5, period chart conventions — **to redo** (same workflow, unfinished). Its script is saved at `C:\Users\User\.claude\projects\d--dev-trafalgar-1805\77ea0797-a7cb-4b62-862c-c645c2812e68\workflows\scripts\scene2-research-wf_e9d907ad-a91.js` and can be re-run as it is.
+   - [~] The GSAP skills: the one track that finished. Its notes are outside the repository at `C:\Users\User\AppData\Local\Temp\claude\d--dev-trafalgar-1805\77ea0797-a7cb-4b62-862c-c645c2812e68\scratchpad\research\t3-gsap-skills.md` (not yet read or applied).
+   - Checked by hand while writing the engine (three r186 source and types in `node_modules`): every `ShaderMaterial` compiles as GLSL ES 3.00 (with `glslVersion: GLSL3` the shader declares its own output); r186 has `reversedDepthBuffer`, but the default framebuffer's depth stays 24-bit integer; on context restore three re-initialises its state, so render-target contents must be rebuilt by the app; `compileAsync`, `initTexture`, `addUpdateRange`/`clearUpdateRanges` exist. troika 0.52.5 ships its own `.d.ts` in `dist/types`.
+2. [ ] Design plan in decisions.md, reviewed against the brief and both avoid-lists. Not written; the decisions already taken are listed below so they aren't lost.
 3. Data pipeline
-   - [x] `npm run data:build`: ETOPO 2022 overview (3′, Caribbean to the upper Danube) and Gulf of Cádiz tile (15″), Natural Earth land, islands and rivers; 3.0 MB in `public/chart/`
-4. [ ] Engine and the chart's look (sea, isobaths, waterlining, coast, relief, contours, light, lettering, sky and haze, ship glyphs, one route)
-5. [ ] `/lab/chart` flight with `?debug` readouts
+   - [x] `npm run data:build` (commit `b4cb148`): ETOPO 2022 overview (3′ cells, 72° W–20° E, 5–57° N) and Gulf of Cádiz tile (15″, 9.6–4.3° W, 34.9–37.8° N); Natural Earth 5.1.2 land, minor islands and rivers; 3.04 MB in `public/chart/` (overview 2.03 MB, Cádiz 0.79 MB, low-res heights 77 kB, rivers 142 kB, manifest). Raw downloads (92 MB) in git-ignored `data/raw/`. `scripts/data/preview.ts` renders a CPU preview of the tiles for checking by eye; both tiles were checked this way.
+4. Engine and the chart's look
+   - [~] Written, not yet run (`src/components/chart/`): `geo/mercator.ts` (committed with the pipeline), `data/manifest.ts`, `data/loaders.ts`, `shaders/common.ts` (field sampling, line coverage, sky and haze GLSL), `terrain/field.ts` (GPU decode of the WebP tiles into half-float fields; horizon maps baked on the GPU at load), `terrain/cdlod.ts`, `terrain/shaders.ts` (sea, shelf isobaths, waterlining, coast, land relief, shadows, contours, haze), `terrain/Terrain.ts`, `light/states.ts` (dawn, campaign, night), `sky/Sky.ts`, `camera/rig.ts` (spline rig, exaggeration and contour interval by altitude), `engine/quality.ts` (quality ladder), `engine/Chart.ts` (renderer, frame, stats, context loss, warm-up).
+   - [ ] Not started: `src/components/chart/index.ts` (the dynamic-import entry), rivers and the route as ribbon lines, lettering (troika, the owner's WOFF fonts from `/fonts/3d/`, no CDN fallback), the 1805 gazetteer, ship glyphs (atlas drawn from `buildShip` silhouettes, instanced upright glyphs, ink wakes).
+5. [ ] `/lab/chart` flight with `?debug` readouts. Not started; `DebugOverlay` and `src/lib/debug.ts` still need a stats channel for the chart.
 6. [ ] Tests (lab page: no console errors, canvas renders, same-origin; scene 1 unchanged)
 7. [ ] Screenshots of the flight at 1280×720 (scale 1.5) and 1920×1080, reviewed and fixed
 8. [ ] Commit, progress, report in Russian
+
+### Decisions taken so far (to move into decisions.md)
+- **Source grid.** Only the 15″ ETOPO grid is served by ERDDAP, so the overview takes every fourth 15″ sample (1′) and the build tent-filters it to 3′ cells; the Cádiz tile uses every sample.
+- **World space.** Mercator km at the equator's scale, origin at 36° N 6° W (precision where the camera comes closest), x east, y north, z up. Tiles are Mercator grids with square map cells, row 0 north. Heights are scaled by sec φ before exaggeration.
+- **Encoding.** Lossless WebP per tile: R and G a 12-bit asinh height code (steps of 0.14 m at sea level to 11 m at 4,000 m; a third smaller than 16-bit with no visible terracing), B the coast's signed distance (linear within 4 cells, logarithmic beyond, joined with matching slope). Natural Earth decides land and sea; ETOPO heights are reconciled to it.
+- **Decoding on the GPU.** Images decode off the main thread (`createImageBitmap`, no colour conversion); one full-screen pass per tile writes a mipmapped half-float field (height, coast distance, slopes). No JavaScript loops over the data.
+- **Shadows baked on the GPU at load, not at build time** (a deviation to justify): the horizon maps store true-scale horizon tangents per sun azimuth (dawn and campaign), so shadows stay right for any exaggeration and sun height, and the download is about 1.5 MB smaller.
+- **Isobaths on the shelf only** (10, 20, 50, 100, 200 fathoms): deep water was unsounded in 1805 and stays blank. The preview showed deep isobaths turning the Mid-Atlantic Ridge into squiggles.
+- **Waterlining** in world space as nested line sets: the spacing doubles each time the distance from the coast doubles beyond a band, and the set for the next zoom octave is a subset of the current one, so lines thin out smoothly as the camera pulls back and stay crisp at every zoom.
+- **The flight's first frame.** Scene 1 is a stylised north-facing panorama, but its sun sits 25° right of centre; with the true sunrise azimuth (102.5°) that puts the camera's heading at about 77.5°, which is "looking east" with the sun where scene 1 has it. A 40° lens pitched about 4.6° up puts the horizon at 61 %; the sky stops are scene 1's CSS gradient read at those elevations.
+- **Light states.** Dawn (sun 102.5°, 4.1° up), campaign (low warm light from 292°, 16° up: upper-left light, so relief never reads inverted on a north-up chart), night (moonless). Palettes blend on the CPU; each sunlit state has its own horizon-map channel.
+- **Colour.** Shader colours are raw sRGB uniforms with no three colour management, so the chart matches scene 1's CSS palette exactly.
+- **Depth.** No reversed depth (no gain with a 24-bit integer buffer); near and far planes follow the altitude each frame; overlays will be pulled slightly toward the camera.
+- **Quality ladder.** Device pixel ratio 1.5, 1.25, 1.0, then 0.85 with optional effects off; steps down after sustained missed frames, up after long clean stretches, with a waiting time that doubles after a failed step up.
+- **Scripts.** The data scripts are TypeScript run by Node 24's type stripping, with `--disable-warning=MODULE_TYPELESS_PACKAGE_JSON` rather than switching the package to ES modules under the approved scene 1 setup; `tsconfig.json` gained `allowImportingTsExtensions`.
+
+### Next steps, in order
+1. Re-run the research: the four history tracks with their fact-checks, three r186, troika 0.52.5 and period chart conventions (the saved workflow script above does all of it). Read the GSAP-skills notes.
+2. `npx tsc --noEmit` and `npx biome check src/components/chart`; fix what they find.
+3. Write `src/components/chart/index.ts` and `/lab/chart` (ScrollTrigger pin with Lenis, flight keyframes, `?p`, `?light`, `?quality`, `?debug`); get terrain and sky rendering and look at them before adding more.
+4. Rivers and the Toulon–Cádiz route as ribbon lines, lettering, ship glyphs, the chart's debug readouts.
+5. The design plan in decisions.md, reviewed against the brief and both avoid-lists; the Scene 2 section of history-notes.md.
+6. Tests, screenshots and review rounds; the credits line and README; `binary` entries for `.webp`, `.woff` and `.bin` in `.gitattributes`; commit; the report in Russian.
 
 ## Scene 1
 

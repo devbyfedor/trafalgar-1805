@@ -1,0 +1,298 @@
+import {
+  Frustum,
+  Matrix4,
+  PerspectiveCamera,
+  Scene,
+  Vector3,
+  WebGLRenderer,
+} from "three";
+import { contourIntervalAt, exaggerationAt } from "../camera/rig";
+import { type LowresHeights, loadLowres } from "../data/loaders";
+import { type ChartManifest, loadManifest } from "../data/manifest";
+import { LightBlend, type LightId } from "../light/states";
+import { Sky } from "../sky/Sky";
+import { TerrainField } from "../terrain/field";
+import { Terrain } from "../terrain/Terrain";
+import { QUALITY_LADDER, QualityLadder, type QualityLevel } from "./quality";
+
+/**
+ * The chart engine: a WebGL 2 renderer, the terrain, the sky and the layers
+ * a scene adds (rivers, routes, lettering, ship glyphs). It owns no loop:
+ * the host calls `frame` from gsap.ticker, the page's one clock, only while
+ * the chart is on screen and the tab is visible.
+ */
+
+/** What every layer sees each frame. */
+export interface FrameInfo {
+  camera: PerspectiveCamera;
+  eye: Vector3;
+  target: Vector3;
+  /** Vertical exaggeration of the relief this frame. */
+  exaggeration: number;
+  /** Device pixels per CSS pixel in use. */
+  dpr: number;
+  /** Device pixels per radian of view, vertically. */
+  pxPerRadian: number;
+  time: number;
+  light: LightBlend;
+  effects: boolean;
+}
+
+export interface ChartLayer {
+  update(frame: FrameInfo): void;
+  /** Rebuild GPU state after a lost context was restored. */
+  restore?(): void;
+  dispose(): void;
+}
+
+export interface ChartStats {
+  calls: number;
+  triangles: number;
+  textures: number;
+  programs: number;
+  quality: number;
+  width: number;
+  height: number;
+  dpr: number;
+  /** Estimated GPU memory of the chart's own textures, MB. */
+  gpuMB: number;
+  exaggeration: number;
+  altitude: number;
+  nodes: number;
+}
+
+export interface ChartOptions {
+  canvas: HTMLCanvasElement;
+  /** Called when the chart can't go on (WebGL lost for good). */
+  onFatal?: (reason: string) => void;
+  /** Pins a quality level (lab and tests); otherwise the ladder adapts. */
+  quality?: number;
+  signal?: AbortSignal;
+}
+
+export class Chart {
+  readonly scene = new Scene();
+  readonly camera = new PerspectiveCamera(40, 16 / 9, 0.05, 60000);
+  readonly light = new LightBlend();
+  readonly eye = new Vector3();
+  readonly target = new Vector3();
+  readonly stats: ChartStats = {
+    calls: 0,
+    triangles: 0,
+    textures: 0,
+    programs: 0,
+    quality: 0,
+    width: 0,
+    height: 0,
+    dpr: 1,
+    gpuMB: 0,
+    exaggeration: 1,
+    altitude: 0,
+    nodes: 0,
+  };
+
+  private readonly layers: ChartLayer[] = [];
+  private readonly terrain: Terrain;
+  private readonly sky = new Sky();
+  private readonly quality: QualityLadder;
+  private readonly frustum = new Frustum();
+  private readonly viewProj = new Matrix4();
+  private readonly info: FrameInfo;
+  private cssWidth = 1;
+  private cssHeight = 1;
+  private lost = false;
+  private lossTimer = 0;
+  private disposed = false;
+  private extraGpuBytes = 0;
+
+  static async create(options: ChartOptions): Promise<Chart> {
+    const renderer = new WebGLRenderer({
+      canvas: options.canvas,
+      antialias: true,
+      alpha: false,
+      stencil: false,
+      powerPreference: "high-performance",
+    });
+    try {
+      const ext = renderer.extensions;
+      if (!ext.has("EXT_color_buffer_float") && !ext.has("EXT_color_buffer_half_float")) {
+        throw new Error("half-float render targets are not supported");
+      }
+      const manifest = await loadManifest(options.signal);
+      const field = new TerrainField(renderer, manifest);
+      const [low] = await Promise.all([
+        loadLowres(manifest, options.signal),
+        field.load(LightBlend.AZIMUTHS, options.signal),
+      ]);
+      return new Chart(renderer, manifest, field, low, options);
+    } catch (error) {
+      renderer.dispose();
+      throw error;
+    }
+  }
+
+  private constructor(
+    readonly renderer: WebGLRenderer,
+    readonly manifest: ChartManifest,
+    readonly field: TerrainField,
+    readonly lowres: LowresHeights,
+    private readonly options: ChartOptions,
+  ) {
+    const [overview, detail] = manifest.tiles;
+    this.terrain = new Terrain(field, [overview.cellKm, detail?.cellKm ?? overview.cellKm]);
+    this.scene.add(this.terrain.mesh, this.sky.mesh);
+    this.camera.up.set(0, 0, 1);
+    this.quality = new QualityLadder((level) => this.applyQuality(level));
+    if (options.quality !== undefined) this.quality.force(options.quality);
+    this.info = {
+      camera: this.camera,
+      eye: this.eye,
+      target: this.target,
+      exaggeration: 1,
+      dpr: 1,
+      pxPerRadian: 1,
+      time: 0,
+      light: this.light,
+      effects: true,
+    };
+    this.setLight("dawn", "dawn", 0);
+    const canvas = renderer.domElement;
+    canvas.addEventListener("webglcontextlost", this.onLost);
+    canvas.addEventListener("webglcontextrestored", this.onRestored);
+  }
+
+  /** Adds a layer's objects and keeps it updated each frame. */
+  add(layer: ChartLayer, ...objects: Parameters<Scene["add"]>): void {
+    this.layers.push(layer);
+    if (objects.length) this.scene.add(...objects);
+  }
+
+  /** GPU memory a layer holds outside three's own accounting, bytes. */
+  addGpuBytes(bytes: number): void {
+    this.extraGpuBytes += bytes;
+  }
+
+  setLight(a: LightId, b: LightId, t: number): void {
+    this.light.set(a, b, t);
+    this.terrain.applyLight(this.light);
+    this.sky.applyLight(this.light);
+  }
+
+  /** Points the camera (world km); `fov` is vertical, degrees. */
+  setView(eye: Vector3, target: Vector3, fov: number): void {
+    this.eye.copy(eye);
+    this.target.copy(target);
+    const cam = this.camera;
+    cam.position.copy(eye);
+    cam.lookAt(target);
+    cam.fov = fov;
+    // Planes follow the altitude: depth precision goes where the camera is.
+    cam.near = Math.min(200, Math.max(0.02, eye.z * 0.3));
+    cam.far = Math.max(45000, eye.z * 25);
+    cam.updateProjectionMatrix();
+    cam.updateMatrixWorld();
+  }
+
+  /** CSS size of the canvas. */
+  resize(width: number, height: number): void {
+    this.cssWidth = Math.max(1, width);
+    this.cssHeight = Math.max(1, height);
+    this.applyQuality(this.quality.current);
+  }
+
+  /** Renders one frame. `time` is gsap.ticker's time, seconds. */
+  frame(time: number): void {
+    if (this.lost || this.disposed) return;
+    if (this.options.quality === undefined) this.quality.frame(time);
+    const level = this.quality.current;
+    const dpr = this.renderer.getPixelRatio();
+    const exaggeration = exaggerationAt(Math.max(0.05, this.eye.z));
+    const info = this.info;
+    info.exaggeration = exaggeration;
+    info.dpr = dpr;
+    info.pxPerRadian = (this.cssHeight * dpr) / (2 * Math.tan((this.camera.fov * Math.PI) / 360));
+    info.time = time;
+    info.effects = level.effects;
+
+    this.viewProj.multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse);
+    this.frustum.setFromProjectionMatrix(this.viewProj);
+    this.terrain.cdlod.setResolution(this.cssHeight * dpr, this.camera.fov, 7);
+    this.terrain.update(this.eye, this.frustum, exaggeration, dpr);
+    const contours = contourIntervalAt(this.eye.z);
+    const u = this.terrain.uniforms;
+    u.uContourInterval.value = contours.interval;
+    u.uContourBlend.value = contours.blend;
+    u.uShadowStrength.value = level.effects ? this.light.shadowStrength : 0;
+    this.sky.update(this.camera);
+    for (const layer of this.layers) layer.update(info);
+
+    this.renderer.render(this.scene, this.camera);
+
+    const r = this.renderer.info;
+    const s = this.stats;
+    s.calls = r.render.calls;
+    s.triangles = r.render.triangles;
+    s.textures = r.memory.textures;
+    s.programs = r.programs?.length ?? 0;
+    s.quality = this.quality.level;
+    s.width = this.renderer.domElement.width;
+    s.height = this.renderer.domElement.height;
+    s.dpr = dpr;
+    s.gpuMB = Math.round((this.field.gpuBytes + this.extraGpuBytes) / 1e5) / 10;
+    s.exaggeration = Math.round(exaggeration * 10) / 10;
+    s.altitude = Math.round(this.eye.z * 10) / 10;
+    s.nodes = this.terrain.cdlod.count;
+  }
+
+  /** Compiles every material now, so the first visible frame never hitches. */
+  async warm(): Promise<void> {
+    this.camera.updateMatrixWorld();
+    await this.renderer.compileAsync(this.scene, this.camera);
+  }
+
+  /** Forget frame timing after a pause (scroll out of view, hidden tab). */
+  pause(): void {
+    this.quality.reset();
+  }
+
+  dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+    window.clearTimeout(this.lossTimer);
+    const canvas = this.renderer.domElement;
+    canvas.removeEventListener("webglcontextlost", this.onLost);
+    canvas.removeEventListener("webglcontextrestored", this.onRestored);
+    for (const layer of this.layers) layer.dispose();
+    this.terrain.dispose();
+    this.sky.dispose();
+    this.field.dispose();
+    this.renderer.dispose();
+  }
+
+  private applyQuality(level: QualityLevel) {
+    const device = typeof window === "undefined" ? 1 : window.devicePixelRatio || 1;
+    const dpr = Math.min(device, level.dpr);
+    this.renderer.setPixelRatio(dpr);
+    this.renderer.setSize(this.cssWidth, this.cssHeight, false);
+    this.camera.aspect = this.cssWidth / this.cssHeight;
+    this.camera.updateProjectionMatrix();
+    this.quality.reset();
+  }
+
+  private readonly onLost = (event: Event) => {
+    event.preventDefault();
+    this.lost = true;
+    // A context that doesn't come back in a few seconds isn't coming back.
+    this.lossTimer = window.setTimeout(() => this.options.onFatal?.("webgl-context-lost"), 4000);
+  };
+
+  private readonly onRestored = () => {
+    window.clearTimeout(this.lossTimer);
+    this.lost = false;
+    this.field.restore();
+    for (const layer of this.layers) layer.restore?.();
+    this.quality.reset();
+  };
+}
+
+export { QUALITY_LADDER };

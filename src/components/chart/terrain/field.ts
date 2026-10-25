@@ -234,7 +234,9 @@ export class TerrainField {
   async load(azimuths: HorizonAzimuths, signal?: AbortSignal): Promise<void> {
     this.azimuths = azimuths;
     const [overview, ...details] = this.manifest.tiles;
-    const bitmaps = [overview, ...details].map((t) => loadBitmap(t.file, signal));
+    const bitmaps = [overview, ...details].map((t) =>
+      loadBitmap(t.file, signal),
+    );
     for (const [i, info] of [overview, ...details].entries()) {
       const bitmap = await bitmaps[i];
       signal?.throwIfAborted();
@@ -248,7 +250,8 @@ export class TerrainField {
 
   /** Rebakes the shadows for other sun azimuths (lighting states). */
   setAzimuths(azimuths: HorizonAzimuths): void {
-    if (azimuths[0] === this.azimuths[0] && azimuths[1] === this.azimuths[1]) return;
+    if (azimuths[0] === this.azimuths[0] && azimuths[1] === this.azimuths[1])
+      return;
     this.azimuths = azimuths;
     for (const tile of this.tiles) this.bake(tile);
   }
@@ -283,8 +286,15 @@ export class TerrainField {
     this.horizonMaterial.dispose();
   }
 
-  private createTile(info: TileInfo, bitmap: ImageBitmap, horizonScale: number): FieldTile {
-    const anisotropy = Math.min(8, this.renderer.capabilities.getMaxAnisotropy());
+  private createTile(
+    info: TileInfo,
+    bitmap: ImageBitmap,
+    horizonScale: number,
+  ): FieldTile {
+    const anisotropy = Math.min(
+      8,
+      this.renderer.capabilities.getMaxAnisotropy(),
+    );
     const field = new WebGLRenderTarget(info.cols, info.rows, {
       type: HalfFloatType,
       format: RGBAFormat,

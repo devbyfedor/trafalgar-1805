@@ -44,7 +44,9 @@ export interface ChartManifest {
 /** Where the chart's assets are served from (same origin, public/chart/). */
 export const CHART_BASE = "/chart/";
 
-export async function loadManifest(signal?: AbortSignal): Promise<ChartManifest> {
+export async function loadManifest(
+  signal?: AbortSignal,
+): Promise<ChartManifest> {
   const response = await fetch(`${CHART_BASE}manifest.json`, { signal });
   if (!response.ok) throw new Error(`chart manifest: HTTP ${response.status}`);
   const manifest = (await response.json()) as ChartManifest;

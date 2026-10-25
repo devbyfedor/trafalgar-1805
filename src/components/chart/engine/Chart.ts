@@ -115,7 +115,10 @@ export class Chart {
     });
     try {
       const ext = renderer.extensions;
-      if (!ext.has("EXT_color_buffer_float") && !ext.has("EXT_color_buffer_half_float")) {
+      if (
+        !ext.has("EXT_color_buffer_float") &&
+        !ext.has("EXT_color_buffer_half_float")
+      ) {
         throw new Error("half-float render targets are not supported");
       }
       const manifest = await loadManifest(options.signal);
@@ -139,7 +142,10 @@ export class Chart {
     private readonly options: ChartOptions,
   ) {
     const [overview, detail] = manifest.tiles;
-    this.terrain = new Terrain(field, [overview.cellKm, detail?.cellKm ?? overview.cellKm]);
+    this.terrain = new Terrain(field, [
+      overview.cellKm,
+      detail?.cellKm ?? overview.cellKm,
+    ]);
     this.scene.add(this.terrain.mesh, this.sky.mesh);
     this.camera.up.set(0, 0, 1);
     this.quality = new QualityLadder((level) => this.applyQuality(level));
@@ -210,11 +216,16 @@ export class Chart {
     const info = this.info;
     info.exaggeration = exaggeration;
     info.dpr = dpr;
-    info.pxPerRadian = (this.cssHeight * dpr) / (2 * Math.tan((this.camera.fov * Math.PI) / 360));
+    info.pxPerRadian =
+      (this.cssHeight * dpr) /
+      (2 * Math.tan((this.camera.fov * Math.PI) / 360));
     info.time = time;
     info.effects = level.effects;
 
-    this.viewProj.multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse);
+    this.viewProj.multiplyMatrices(
+      this.camera.projectionMatrix,
+      this.camera.matrixWorldInverse,
+    );
     this.frustum.setFromProjectionMatrix(this.viewProj);
     this.terrain.cdlod.setResolution(this.cssHeight * dpr, this.camera.fov, 7);
     this.terrain.update(this.eye, this.frustum, exaggeration, dpr);
@@ -270,7 +281,8 @@ export class Chart {
   }
 
   private applyQuality(level: QualityLevel) {
-    const device = typeof window === "undefined" ? 1 : window.devicePixelRatio || 1;
+    const device =
+      typeof window === "undefined" ? 1 : window.devicePixelRatio || 1;
     const dpr = Math.min(device, level.dpr);
     this.renderer.setPixelRatio(dpr);
     this.renderer.setSize(this.cssWidth, this.cssHeight, false);
@@ -283,7 +295,10 @@ export class Chart {
     event.preventDefault();
     this.lost = true;
     // A context that doesn't come back in a few seconds isn't coming back.
-    this.lossTimer = window.setTimeout(() => this.options.onFatal?.("webgl-context-lost"), 4000);
+    this.lossTimer = window.setTimeout(
+      () => this.options.onFatal?.("webgl-context-lost"),
+      4000,
+    );
   };
 
   private readonly onRestored = () => {

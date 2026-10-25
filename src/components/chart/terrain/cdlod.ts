@@ -105,7 +105,10 @@ export class Cdlod {
 }
 
 /** The patch: (grid + 1)² vertices carrying their integer grid coordinates. */
-export function patchGrid(grid: number): { coords: Float32Array; index: Uint16Array } {
+export function patchGrid(grid: number): {
+  coords: Float32Array;
+  index: Uint16Array;
+} {
   const n = grid + 1;
   const coords = new Float32Array(n * n * 2);
   for (let j = 0; j < n; j++) {

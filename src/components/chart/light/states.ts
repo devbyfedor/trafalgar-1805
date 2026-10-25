@@ -133,7 +133,11 @@ function rgb(hex: string): Rgb {
 function sunVector(az: number, el: number, out: Vector3): Vector3 {
   const a = (az * Math.PI) / 180;
   const e = (el * Math.PI) / 180;
-  return out.set(Math.sin(a) * Math.cos(e), Math.cos(a) * Math.cos(e), Math.sin(e));
+  return out.set(
+    Math.sin(a) * Math.cos(e),
+    Math.cos(a) * Math.cos(e),
+    Math.sin(e),
+  );
 }
 
 /** The blended lighting, as preallocated uniform values (sRGB 0..1). */
@@ -174,7 +178,11 @@ export class LightBlend {
   private readonly tb = new Vector3();
 
   /** Horizon-map channel of each sunlit state (R and G). */
-  static readonly SLOTS: Record<LightId, number> = { dawn: 0, campaign: 1, night: -1 };
+  static readonly SLOTS: Record<LightId, number> = {
+    dawn: 0,
+    campaign: 1,
+    night: -1,
+  };
 
   /** Azimuths baked into the horizon maps, radians (R: dawn, G: campaign). */
   static readonly AZIMUTHS = [

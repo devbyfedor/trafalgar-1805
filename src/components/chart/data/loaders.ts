@@ -7,7 +7,10 @@ import { CHART_BASE, type ChartManifest } from "./manifest";
  * The small binaries are gzip, unpacked with the native DecompressionStream.
  */
 
-export async function loadBitmap(file: string, signal?: AbortSignal): Promise<ImageBitmap> {
+export async function loadBitmap(
+  file: string,
+  signal?: AbortSignal,
+): Promise<ImageBitmap> {
   const response = await fetch(`${CHART_BASE}${file}`, { signal });
   if (!response.ok) throw new Error(`${file}: HTTP ${response.status}`);
   const blob = await response.blob();
@@ -17,9 +20,13 @@ export async function loadBitmap(file: string, signal?: AbortSignal): Promise<Im
   });
 }
 
-async function loadGzip(file: string, signal?: AbortSignal): Promise<ArrayBuffer> {
+async function loadGzip(
+  file: string,
+  signal?: AbortSignal,
+): Promise<ArrayBuffer> {
   const response = await fetch(`${CHART_BASE}${file}`, { signal });
-  if (!response.ok || !response.body) throw new Error(`${file}: HTTP ${response.status}`);
+  if (!response.ok || !response.body)
+    throw new Error(`${file}: HTTP ${response.status}`);
   const stream = response.body.pipeThrough(new DecompressionStream("gzip"));
   return new Response(stream).arrayBuffer();
 }
@@ -82,7 +89,9 @@ export async function loadRivers(
   const total = view.getUint32(4, true);
   const offsets = new Uint32Array(buffer.slice(8, 8 + (count + 1) * 4));
   const pointsStart = 8 + (count + 1) * 4;
-  const points = new Float32Array(buffer.slice(pointsStart, pointsStart + total * 8));
+  const points = new Float32Array(
+    buffer.slice(pointsStart, pointsStart + total * 8),
+  );
   const ranks = new Uint8Array(buffer, pointsStart + total * 8, count);
   return { offsets, points, ranks: ranks.slice() };
 }

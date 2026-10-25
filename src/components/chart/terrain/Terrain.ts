@@ -156,7 +156,12 @@ export class Terrain {
   }
 
   /** Selects the patches for this frame. */
-  update(eye: Vector3, frustum: Frustum, exaggeration: number, dpr: number): void {
+  update(
+    eye: Vector3,
+    frustum: Frustum,
+    exaggeration: number,
+    dpr: number,
+  ): void {
     this.eye.copy(eye);
     this.uniforms.uExag.value = exaggeration;
     this.uniforms.uDpr.value = dpr;

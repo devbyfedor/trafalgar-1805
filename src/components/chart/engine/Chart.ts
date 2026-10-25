@@ -40,6 +40,16 @@ export interface FrameInfo {
   dpr: number;
   /** Device pixels per radian of view, vertically. */
   pxPerRadian: number;
+  /** The drawing buffer, device pixels. */
+  width: number;
+  height: number;
+  /** Haze visibility distance this frame, km (see hazeVisibilityAt). */
+  hazeVisibility: number;
+  /**
+   * The terrain's split factor: its mesh cells are about distance / lodK
+   * wide, so a layer on the relief can read the field where the surface does.
+   */
+  lodK: number;
   time: number;
   light: LightBlend;
   effects: boolean;
@@ -162,6 +172,10 @@ export class Chart {
       exaggeration: 1,
       dpr: 1,
       pxPerRadian: 1,
+      width: 1,
+      height: 1,
+      hazeVisibility: 100,
+      lodK: 100,
       time: 0,
       light: this.light,
       effects: true,
@@ -249,6 +263,10 @@ export class Chart {
     u.uContourInterval.value = contours.interval;
     u.uContourBlend.value = contours.blend;
     u.uShadowStrength.value = level.effects ? this.light.shadowStrength : 0;
+    info.width = this.renderer.domElement.width;
+    info.height = this.renderer.domElement.height;
+    info.hazeVisibility = visibility;
+    info.lodK = cdlod.k;
     this.sky.update(this.camera);
     for (const layer of this.layers) layer.update(info);
 

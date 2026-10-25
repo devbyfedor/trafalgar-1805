@@ -20,3 +20,33 @@ export function reportProgress(sceneId: string, progress: number): void {
   const el = sinks.get(sceneId);
   if (el) el.textContent = progress.toFixed(3);
 }
+
+/** What a WebGL chart reports (src/components/chart, ChartStats). */
+export interface ChartReadout {
+  calls: number;
+  triangles: number;
+  textures: number;
+  programs: number;
+  quality: number;
+  width: number;
+  height: number;
+  dpr: number;
+  gpuMB: number;
+  exaggeration: number;
+  altitude: number;
+  nodes: number;
+}
+
+let chartSource: (() => ChartReadout) | null = null;
+
+/** A chart offers its readouts; the overlay reads them twice a second. */
+export function registerChartReadout(read: () => ChartReadout): () => void {
+  chartSource = read;
+  return () => {
+    if (chartSource === read) chartSource = null;
+  };
+}
+
+export function readChart(): ChartReadout | null {
+  return chartSource ? chartSource() : null;
+}

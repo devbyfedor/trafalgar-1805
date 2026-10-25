@@ -1,20 +1,48 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { registerProgressSink } from "@/lib/debug";
+import { readChart, registerProgressSink } from "@/lib/debug";
 import { gsap } from "@/lib/gsap";
 import { isDebug } from "@/lib/media";
 
 /**
  * `?debug` overlay: frames per second, measured on the shared GSAP ticker
- * and printed twice a second, and scene 1's scroll progress. ScrollTrigger
+ * and printed twice a second; the scroll progress of the scenes named in
+ * `progress`; and, while a chart is running, its renderer readouts (draw
+ * calls, triangles, textures, quality level, render resolution). ScrollTrigger
  * markers are switched on by the scenes themselves when `?debug` is present.
  * Renders nothing on the server, so the static HTML is the same for everyone.
  */
-export function DebugOverlay() {
+
+const PERIOD_MS = 500;
+
+function chartText(): string {
+  const c = readChart();
+  if (!c) return "";
+  const k = (n: number) => (n >= 1e4 ? `${Math.round(n / 1e3)}k` : String(n));
+  return [
+    `calls ${c.calls}`,
+    `triangles ${k(c.triangles)}`,
+    `textures ${c.textures}, programs ${c.programs}`,
+    `quality ${c.quality} (dpr ${c.dpr})`,
+    `render ${c.width} × ${c.height}`,
+    `gpu ${c.gpuMB} MB`,
+    `altitude ${c.altitude} km`,
+    `relief ×${c.exaggeration}, patches ${c.nodes}`,
+  ].join("\n");
+}
+
+export function DebugOverlay({
+  progress = ["dawn"],
+}: {
+  /** Scenes whose scroll progress is shown, by the id they report with. */
+  progress?: readonly string[];
+}) {
   const [enabled, setEnabled] = useState(false);
   const fpsRef = useRef<HTMLSpanElement>(null);
-  const progressRef = useRef<HTMLSpanElement>(null);
+  const chartRef = useRef<HTMLDivElement>(null);
+  const progressRefs = useRef(new Map<string, HTMLSpanElement>());
+  const key = progress.join(" ");
 
   useEffect(() => {
     setEnabled(isDebug());
@@ -23,16 +51,21 @@ export function DebugOverlay() {
   useEffect(() => {
     if (!enabled) return;
     const fpsEl = fpsRef.current;
-    const progressEl = progressRef.current;
-    if (!fpsEl || !progressEl) return;
-    const unregister = registerProgressSink("dawn", progressEl);
+    const chartEl = chartRef.current;
+    if (!fpsEl || !chartEl) return;
+    const ids = key ? key.split(" ") : [];
+    const unregister = ids.map((id) => {
+      const el = progressRefs.current.get(id);
+      return el ? registerProgressSink(id, el) : () => {};
+    });
     let frames = 0;
     let last = performance.now();
     const tick = () => {
       frames++;
       const now = performance.now();
-      if (now - last >= 500) {
+      if (now - last >= PERIOD_MS) {
         fpsEl.textContent = String(Math.round((frames * 1000) / (now - last)));
+        chartEl.textContent = chartText();
         frames = 0;
         last = now;
       }
@@ -40,9 +73,9 @@ export function DebugOverlay() {
     gsap.ticker.add(tick);
     return () => {
       gsap.ticker.remove(tick);
-      unregister();
+      for (const off of unregister) off();
     };
-  }, [enabled]);
+  }, [enabled, key]);
 
   if (!enabled) return null;
   return (
@@ -53,9 +86,20 @@ export function DebugOverlay() {
       <div>
         fps <span ref={fpsRef}>–</span>
       </div>
-      <div>
-        dawn p <span ref={progressRef}>0.000</span>
-      </div>
+      {progress.map((id) => (
+        <div key={id}>
+          {id} p{" "}
+          <span
+            ref={(el) => {
+              if (el) progressRefs.current.set(id, el);
+              else progressRefs.current.delete(id);
+            }}
+          >
+            0.000
+          </span>
+        </div>
+      ))}
+      <div ref={chartRef} data-debug-chart className="whitespace-pre" />
     </div>
   );
 }

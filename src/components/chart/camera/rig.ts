@@ -3,15 +3,18 @@ import { type Keyframe, monotoneCurve } from "@/lib/curve";
 import { worldX, worldY } from "../geo/mercator";
 
 /**
- * The camera rig: two splines, one for the eye and one for the target,
- * through keyframes placed by progress p (0..1). No roll: the camera's up
- * is always the chart's up.
+ * The camera rig: a path for the eye and one for the target, through
+ * keyframes placed by progress p (0..1). No roll: the camera's up is always
+ * the chart's up.
  *
- * - The eye's spline runs through (x, y, ln altitude), so a climb from a few
- *   hundred metres to thousands of kilometres keeps an even pace.
- * - Splines are centripetal Catmull–Rom (no loops or overshoot between
- *   unevenly spaced keys); a monotone cubic maps p to the spline parameter,
- *   so speed is continuous through every keyframe.
+ * - Across the chart, each path is a centripetal Catmull–Rom spline (no
+ *   loops or cusps between unevenly spaced keys).
+ * - Heights are separate monotone cubics: the eye's in ln altitude, so a
+ *   climb from a few dozen metres to thousands of kilometres keeps an even
+ *   pace, and neither overshoots a key (one spline for all three axes let
+ *   a long horizontal leg fling the camera four times past its highest key).
+ * - A monotone cubic maps p to the keys' index, so speed is continuous
+ *   through every keyframe.
  */
 
 export interface CameraKey {
@@ -23,23 +26,20 @@ export interface CameraKey {
   fov?: number;
 }
 
-type V3 = [number, number, number];
+type V2 = [number, number];
 
 /** Centripetal knot spacing (alpha = 0.5). */
-function knot(a: V3, b: V3): number {
-  return Math.max(
-    1e-6,
-    Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]) ** 0.5,
-  );
+function knot(a: V2, b: V2): number {
+  return Math.max(1e-6, Math.hypot(b[0] - a[0], b[1] - a[1]) ** 0.5);
 }
 
-function catmullRom(p0: V3, p1: V3, p2: V3, p3: V3, t: number, out: V3): void {
+function catmullRom(p0: V2, p1: V2, p2: V2, p3: V2, t: number, out: V2): void {
   const t0 = 0;
   const t1 = t0 + knot(p0, p1);
   const t2 = t1 + knot(p1, p2);
   const t3 = t2 + knot(p2, p3);
   const u = t1 + (t2 - t1) * t;
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 2; i++) {
     const a1 = ((t1 - u) / (t1 - t0)) * p0[i] + ((u - t0) / (t1 - t0)) * p1[i];
     const a2 = ((t2 - u) / (t2 - t1)) * p1[i] + ((u - t1) / (t2 - t1)) * p2[i];
     const a3 = ((t3 - u) / (t3 - t2)) * p2[i] + ((u - t2) / (t3 - t2)) * p3[i];
@@ -49,33 +49,34 @@ function catmullRom(p0: V3, p1: V3, p2: V3, p3: V3, t: number, out: V3): void {
   }
 }
 
+/** A monotone cubic through one value per key, over the keys' index. */
+function perKey(values: readonly number[]): (u: number) => number {
+  return monotoneCurve(values.map((v, i) => [i, v] as const));
+}
+
 export class CameraRig {
-  private readonly eyes: V3[];
-  private readonly targets: V3[];
-  private readonly fovs: number[];
+  private readonly eyes: V2[];
+  private readonly targets: V2[];
+  private readonly lnAltitude: (u: number) => number;
+  private readonly targetZ: (u: number) => number;
+  private readonly fov: (u: number) => number;
   private readonly param: (p: number) => number;
-  private readonly tmp: V3 = [0, 0, 0];
-  private readonly ghostStart: V3 = [0, 0, 0];
-  private readonly ghostEnd: V3 = [0, 0, 0];
+  private readonly tmp: V2 = [0, 0];
+  private readonly ghostStart: V2 = [0, 0];
+  private readonly ghostEnd: V2 = [0, 0];
 
   constructor(readonly keys: readonly CameraKey[]) {
     if (keys.length < 2) throw new Error("a camera rig needs two keys");
-    this.eyes = keys.map((k) => [
-      worldX(k.eye[0]),
-      worldY(k.eye[1]),
-      Math.log(k.eye[2]),
-    ]);
-    this.targets = keys.map((k) => [
-      worldX(k.target[0]),
-      worldY(k.target[1]),
-      k.target[2],
-    ]);
-    this.fovs = keys.map((k) => k.fov ?? 40);
+    this.eyes = keys.map((k) => [worldX(k.eye[0]), worldY(k.eye[1])]);
+    this.targets = keys.map((k) => [worldX(k.target[0]), worldY(k.target[1])]);
+    this.lnAltitude = perKey(keys.map((k) => Math.log(k.eye[2])));
+    this.targetZ = perKey(keys.map((k) => k.target[2]));
+    this.fov = perKey(keys.map((k) => k.fov ?? 40));
     const points: Keyframe[] = keys.map((k, i) => [k.p, i]);
     this.param = monotoneCurve(points);
   }
 
-  private sample(points: V3[], u: number, out: V3): void {
+  private sample(points: V2[], u: number, out: V2): void {
     const n = points.length;
     const i = Math.min(n - 2, Math.max(0, Math.floor(u)));
     const t = Math.min(1, Math.max(0, u - i));
@@ -85,12 +86,12 @@ export class CameraRig {
     let p0 = points[i - 1];
     if (!p0) {
       p0 = this.ghostStart;
-      for (let k = 0; k < 3; k++) p0[k] = 2 * p1[k] - p2[k];
+      for (let k = 0; k < 2; k++) p0[k] = 2 * p1[k] - p2[k];
     }
     let p3 = points[i + 2];
     if (!p3) {
       p3 = this.ghostEnd;
-      for (let k = 0; k < 3; k++) p3[k] = 2 * p2[k] - p1[k];
+      for (let k = 0; k < 2; k++) p3[k] = 2 * p2[k] - p1[k];
     }
     catmullRom(p0, p1, p2, p3, t, out);
   }
@@ -99,12 +100,10 @@ export class CameraRig {
   evaluate(p: number, eye: Vector3, target: Vector3): number {
     const u = this.param(Math.min(1, Math.max(0, p)));
     this.sample(this.eyes, u, this.tmp);
-    eye.set(this.tmp[0], this.tmp[1], Math.exp(this.tmp[2]));
+    eye.set(this.tmp[0], this.tmp[1], Math.exp(this.lnAltitude(u)));
     this.sample(this.targets, u, this.tmp);
-    target.set(this.tmp[0], this.tmp[1], this.tmp[2]);
-    const i = Math.min(this.fovs.length - 2, Math.floor(u));
-    const t = Math.min(1, Math.max(0, u - i));
-    return this.fovs[i] + (this.fovs[i + 1] - this.fovs[i]) * t;
+    target.set(this.tmp[0], this.tmp[1], this.targetZ(u));
+    return this.fov(u);
   }
 }
 

@@ -70,6 +70,6 @@ Legend: `[x]` done, `[~]` built but not yet reviewed or finished, `[ ]` not star
 - [x] Fonts: Bodoni Moda (title) and Baskervville (text) through next/font/local from `src/fonts/`; SplitText re-split on font load and resize with kerning restored; title on one line at every screenshot size (tested); small text one step larger, contrast measured over the moving background
 - [x] Owner's answers applied: no studding sails, no stern ensign at dawn (`flying` prop; the spec keeps the ensign for later), vice-admiral's flag kept (sources split, not against)
 - [x] Lower gun deck: 15 ports a side, as on the contemporary model (bow port kept, aftmost dropped); derived specs now scale explicit port positions too
-- [ ] `docs/backlog.md` for later scenes
+- [x] `docs/backlog.md` for later scenes: studding sails and the ensign hoist (approach scene), port interiors (when ports open)
 - [ ] Public-repository hygiene: research notes, downloads, git history
 - [ ] `npm run check`, screenshots regenerated and reviewed, docs updated

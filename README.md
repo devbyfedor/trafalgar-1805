@@ -65,3 +65,4 @@ To add a scene, create `src/scenes/02-…/`, then replace the placeholder entry 
 - `docs/decisions.md`: the design plan, decisions and deviations from the brief.
 - `docs/history-notes.md`: the historical facts used, with sources and doubts; the full research is in `docs/research/`.
 - `docs/fonts.md`: the typefaces, how they are wired with `next/font/local`, and how the split title follows them.
+- `docs/backlog.md`: work deferred to later scenes (studding sails and hoisting the ensign in the approach scene, port interiors).

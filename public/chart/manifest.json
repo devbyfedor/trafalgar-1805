@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "origin": {
+    "lon": -6,
+    "lat": 36
+  },
+  "height": {
+    "scale": 50,
+    "min": -5.886111747410234,
+    "max": 5.298342365610589,
+    "bits": 12
+  },
+  "sdf": {
+    "core": 4,
+    "coreShare": 0.5
+  },
+  "tiles": [
+    {
+      "id": "overview",
+      "file": "overview.webp",
+      "bytes": 2029196,
+      "cols": 1840,
+      "rows": 1295,
+      "cellKm": 5.565974539663679,
+      "x0": -7347.0863923560555,
+      "yTop": 3464.6209140947694,
+      "west": -72,
+      "east": 20,
+      "south": 5,
+      "north": 57.02505922250185,
+      "sdfRange": 64,
+      "sdfTail": 0.9647407692971847
+    },
+    {
+      "id": "cadiz",
+      "file": "cadiz.webp",
+      "bytes": 788582,
+      "cols": 1272,
+      "rows": 865,
+      "cellKm": 0.4638312116386398,
+      "x0": -400.75016685578476,
+      "yTop": 250.89245975575705,
+      "west": -9.6,
+      "east": -4.3,
+      "south": 34.9,
+      "north": 37.80215006406626,
+      "sdfRange": 128,
+      "sdfTail": 0.7901818378065265
+    }
+  ],
+  "lowres": {
+    "file": "lowres.bin",
+    "bytes": 76581,
+    "cols": 460,
+    "rows": 324,
+    "cellKm": 22.263898158654715,
+    "x0": -7347.0863923560555,
+    "yTop": 3464.6209140947694
+  },
+  "rivers": {
+    "file": "rivers.bin",
+    "bytes": 142322,
+    "count": 412,
+    "points": 20002
+  },
+  "sources": {
+    "relief": "NOAA NCEI ETOPO 2022 (15 arc-second, surface), via ERDDAP griddap",
+    "coast": "Natural Earth 5.1.2: ne_10m_land, ne_10m_minor_islands, ne_10m_rivers_lake_centerlines, ne_10m_rivers_europe"
+  }
+}

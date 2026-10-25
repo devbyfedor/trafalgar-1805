@@ -52,3 +52,6 @@ next-env.d.ts
 # downloaded research material (PDFs, page images, saved pages): local only,
 # never published; see docs/research/README.md
 /docs/research/sources/
+
+# raw downloads for the chart data pipeline (scripts/data/): local only
+/data/raw/

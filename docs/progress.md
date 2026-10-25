@@ -1,6 +1,25 @@
 # Progress
 
-Live checklist for scene 1. A later session picks up from here. The brief is `docs/scene-01-brief.md`; decisions and deviations are in `docs/decisions.md`.
+Live checklist. A later session picks up from here. The briefs are `docs/scene-01-brief.md` and `docs/scene-02-brief.md`; decisions and deviations are in `docs/decisions.md`.
+
+## Scene 2, Stage A: engine, data and look (session 4, 25 October 2026)
+
+Stage A builds the chart engine, its data and its look, proven by one camera flight on `/lab/chart`, then stops for the owner's performance check on his GPU. Stage B (the full scene) waits for his approval.
+
+1. Research
+   - [~] History of the campaign, fleet sizes, signals, 1805 names (research workflow running; fact-checked track by track)
+   - [~] three r186, troika-three-text 0.52.5, the GSAP skills, period chart conventions
+   - [x] ERDDAP subsetting: `ETOPO_2022_v1_15s` on coastwatch.pfeg.noaa.gov (the 30″ and 60″ ids are not served there); index-based requests with a stride, in latitude bands
+2. [ ] Design plan in decisions.md, reviewed against the brief and both avoid-lists
+3. Data pipeline
+   - [x] `npm run data:build`: ETOPO 2022 overview (3′, Caribbean to the upper Danube) and Gulf of Cádiz tile (15″), Natural Earth land, islands and rivers; 3.0 MB in `public/chart/`
+4. [ ] Engine and the chart's look (sea, isobaths, waterlining, coast, relief, contours, light, lettering, sky and haze, ship glyphs, one route)
+5. [ ] `/lab/chart` flight with `?debug` readouts
+6. [ ] Tests (lab page: no console errors, canvas renders, same-origin; scene 1 unchanged)
+7. [ ] Screenshots of the flight at 1280×720 (scale 1.5) and 1920×1080, reviewed and fixed
+8. [ ] Commit, progress, report in Russian
+
+## Scene 1
 
 Legend: `[x]` done, `[~]` built but not yet reviewed or finished, `[ ]` not started.
 

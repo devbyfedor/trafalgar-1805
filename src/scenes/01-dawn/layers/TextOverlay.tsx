@@ -39,7 +39,7 @@ export function TextOverlay() {
       >
         <p
           data-el="dateline"
-          className="mb-[1.6vh] text-[clamp(14px,2vh,21px)] leading-snug text-ink"
+          className="mb-[1vh] text-[clamp(14px,2vh,21px)] leading-snug text-ink"
         >
           {dawnContent.dateline}
         </p>
@@ -54,7 +54,7 @@ export function TextOverlay() {
             </h1>
             <p
               data-el="lede"
-              className="mt-[2.2vh] max-w-[34em] text-[clamp(16px,2.35vh,27px)] leading-[1.45] text-ink"
+              className="mt-[2.8vh] max-w-[34em] text-[clamp(16px,2.35vh,27px)] leading-[1.45] text-ink"
             >
               {dawnContent.lede}
             </p>

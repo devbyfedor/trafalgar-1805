@@ -16,6 +16,7 @@ import {
   type DawnFx,
   HERO_P,
   PIN_LENGTH,
+  restoreKerning,
 } from "./choreography";
 import { BACK_STRIPS, FRONT_STRIPS, HORIZON, SUN_X } from "./composition";
 import {
@@ -160,23 +161,40 @@ export function Scene01Dawn() {
           });
           buildChoreography(tl, els, fx);
 
-          // The title's letters, split once fonts are ready. A letters-only
-          // split reflows by itself, so autoSplit never needs to re-split.
+          // The title's letters, split once fonts are ready and split again
+          // whenever a face finishes loading later or the window is resized:
+          // the letters carry kerning measured with the face and size in use
+          // (restoreKerning). SplitText's autoSplit only watches fonts and
+          // width for line splits, so these re-splits are wired here. A
+          // re-split rebuilds the title tween at the same playhead.
           const title = els.one("[data-el=title]");
+          let split: SplitText | null = null;
           let cancelled = false;
+          let resizeTimer = 0;
+          const splitVars: SplitText.Vars = {
+            type: "chars",
+            tag: "span",
+            charsClass: "title-char",
+            aria: "auto",
+            onSplit: (self) => {
+              if (!title) return;
+              const chars = self.chars as HTMLElement[];
+              restoreKerning(title, chars);
+              return buildTitle(tl, title, chars);
+            },
+          };
+          const resplit = () => split?.split(splitVars);
+          const onResize = () => {
+            window.clearTimeout(resizeTimer);
+            resizeTimer = window.setTimeout(resplit, 200);
+          };
           document.fonts.ready.then(() => {
             if (cancelled || !title) return;
             context.add(() => {
-              SplitText.create(title, {
-                type: "chars",
-                tag: "span",
-                charsClass: "title-char",
-                aria: "auto",
-                autoSplit: true,
-                onSplit: (self) =>
-                  buildTitle(tl, title, self.chars as HTMLElement[]),
-              });
+              split = SplitText.create(title, splitVars);
             });
+            document.fonts.addEventListener("loadingdone", resplit);
+            window.addEventListener("resize", onResize);
           });
 
           // Idle loops and canvas draws run only while the scene is on screen
@@ -219,6 +237,9 @@ export function Scene01Dawn() {
 
           return () => {
             cancelled = true;
+            document.fonts.removeEventListener("loadingdone", resplit);
+            window.removeEventListener("resize", onResize);
+            window.clearTimeout(resizeTimer);
             document.removeEventListener("visibilitychange", onVisibility);
             if (pending) gsap.ticker.remove(pending);
             gsap.ticker.remove(draw);

@@ -2,74 +2,58 @@
 
 The site uses two type roles, wired as CSS variables:
 
-- `--font-display`: the title "Trafalgar" only.
-- `--font-text`: everything else (dateline, lede, captions, chapter marker, scroll cue, fallback screen).
+- `--font-display`: the title "Trafalgar" only. **Bodoni Moda**, variable (wght 400–900, opsz 6–96).
+- `--font-text`: everything else (dateline, lede, closing caption, chapter marker, scroll cue, fallback screen, scene 2 placeholder). **Baskervville**, variable (wght 400–700).
 
-Until real faces are added, both fall back to a system serif stack: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif. Nothing references a font file yet, and no font is ever requested from another host.
+Both are under the SIL Open Font License 1.1. The owner supplied them as WOFF2 files converted from the Google Fonts variable TTFs; neither licence names a Reserved Font Name. They are self-hosted: no font is ever requested from another host (a Playwright test checks every request is same-origin).
 
-## How the wiring works
+## Where things are
 
-`src/app/globals.css` defines the two roles in `@theme inline`:
-
-```css
---font-display: var(--font-display-face, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif);
---font-text: var(--font-text-face, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif);
+```
+src/fonts/
+  index.ts                            the next/font/local definitions
+  README.md                           the owner's notes on the files
+  BodoniModa-Variable.woff2           wired: the title
+  BodoniModa-Italic-Variable.woff2    not wired (for later scenes)
+  OFL-BodoniModa.txt                  its licence, next to the fonts
+  Baskervville-Variable.woff2         wired: everything else
+  Baskervville-Italic-Variable.woff2  not wired (for later scenes)
+  OFL-Baskervville.txt                its licence, next to the fonts
 ```
 
-`--font-display-face` and `--font-text-face` are not set anywhere today, so the fallback stack after the comma applies. When you add fonts with `next/font/local`, it sets those two variables on `<html>` and the real faces take over. **No CSS change is needed.**
+- `src/fonts/index.ts` calls `localFont()` once per family, with `variable: "--font-display-face"` and `variable: "--font-text-face"`.
+- `src/app/layout.tsx` puts both `.variable` classes on `<html>`, so the root layout preloads the two files on every route.
+- `src/app/globals.css` maps the roles in `@theme inline`: `--font-display: var(--font-display-face, <serif stack>)`, the same for `--font-text`. The serif stack ("Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif) only shows while a face is still loading, or if it fails.
+- next/font hashes the files into `/_next/static/media/` in the export, so they are served from the same origin with long-lived caching.
 
-## Adding the .woff2 files
+## Settings and why
 
-1. Put the files in `src/app/fonts/` (create the folder). Not in `public/`: next/font hashes the files and serves them from `/_next/static/media/`, same-origin, with preload links.
-
-2. Create `src/app/fonts.ts`. Adjust file names, weights and styles to what you have:
-
-   ```ts
-   import localFont from "next/font/local";
-
-   export const displayFace = localFont({
-     src: [
-       { path: "./fonts/Display-Regular.woff2", weight: "400", style: "normal" },
-     ],
-     variable: "--font-display-face",
-     display: "swap",
-     adjustFontFallback: false,
-     fallback: ['"Iowan Old Style"', '"Palatino Linotype"', '"Book Antiqua"', "Palatino", "Georgia", "serif"],
-   });
-
-   export const textFace = localFont({
-     src: [
-       { path: "./fonts/Text-Regular.woff2", weight: "400", style: "normal" },
-       { path: "./fonts/Text-Italic.woff2", weight: "400", style: "italic" },
-     ],
-     variable: "--font-text-face",
-     display: "swap",
-     adjustFontFallback: false,
-     fallback: ['"Iowan Old Style"', '"Palatino Linotype"', '"Book Antiqua"', "Palatino", "Georgia", "serif"],
-   });
-   ```
-
-   For a variable font, give one file and the weight range instead: `src: "./fonts/Text-Variable.woff2", weight: "300 700"`.
-
-3. In `src/app/layout.tsx`, add the two variable classes to `<html>`:
-
-   ```tsx
-   import { displayFace, textFace } from "./fonts";
-   // ...
-   <html lang="en" className={`${displayFace.variable} ${textFace.variable}`}>
-   ```
-
-4. Run `npm run check`.
+- `display: "swap"`. With the preload links the files usually arrive before first paint; on a slow connection the text shows in the serif stack first instead of staying invisible.
+- `adjustFontFallback: false` keeps the serif stack above as the fallback. The default would put a metric-adjusted Arial in front of it.
+- Only the upright faces are wired. Nothing in scene 1 is italic, and next/font preloads every file listed in one `localFont()` call. To use an italic later, add it to that family's call as an array (`src: [{ path: "./Baskervville-Variable.woff2", style: "normal" }, { path: "./Baskervville-Italic-Variable.woff2", style: "italic" }]`, each with `weight: "400 700"`), and accept the extra preload, or check whether the page that needs it can live without one.
+- Title: `font-optical-sizing: auto` (Tailwind `[font-optical-sizing:auto]`), so Chromium sets Bodoni Moda's `opsz` axis to the font size in CSS pixels: about 76 on the owner's laptop, and the axis maximum, 96, on larger screens. That is the high-contrast display cut. Weight 400, tracking −0.01em, unchanged from the plan.
 
 ## Rules next/font enforces
 
-- Only create `fonts.ts` once the files exist: a missing file fails the build.
-- The `localFont()` calls must sit at module scope, each assigned to a `const`, with literal options: no variables, no spreads. That is why the fallback list is written out twice.
-- `src` paths are relative to `fonts.ts`.
-- `adjustFontFallback: false` keeps the serif stack above as the fallback. The default would insert a metric-adjusted Arial or Times New Roman in front of it.
+- The `localFont()` calls sit at module scope, each assigned to an exported `const`, with literal options: no variables, no spreads. That is why the fallback list is written out twice.
+- `src` paths are relative to `index.ts`. A missing file fails the build.
+- **Quote multi-word fallback names with single quotes inside the string** (`"'Iowan Old Style'"`). next/font pastes the list into generated JavaScript without escaping, and double quotes (`'"Iowan Old Style"'`) break the build with "Expected ','". (This page's earlier example had double quotes; it was wrong.)
 
-## What else happens when the fonts arrive
+## The split title and the fonts
 
-- The scroll machinery already waits for `document.fonts.ready` and then calls `ScrollTrigger.refresh()`, so pins and positions are re-measured with the real metrics.
-- The title is split into letters (GSAP SplitText) after fonts are ready. A letters-only split reflows by itself if metrics change, so nothing re-splits.
-- If the display face has an optical-size axis, `font-optical-sizing: auto` on the title uses it. If its kerning or proportions differ a lot from Palatino, look at the title's tracking (`tracking-[-0.01em]` in `src/scenes/01-dawn/Scene01Dawn.tsx`) and the title size in the type scale (`docs/decisions.md`).
+The title is split into letters with GSAP SplitText (`src/scenes/01-dawn/Scene01Dawn.tsx`). Three things depend on the loaded face:
+
+1. **When it splits.** After `document.fonts.ready`, which waits for the preloaded faces when they are still loading.
+2. **Re-splitting.** SplitText's `autoSplit` only watches fonts and width when lines are split, and the title is split into characters only, so the scene wires it: every `loadingdone` event on `document.fonts`, and every window resize (debounced 200 ms), calls `split.split()`. SplitText reverts the old letters and the old title tween, splits again, and `onSplit` rebuilds the tween at the same playhead.
+3. **Kerning.** Each letter becomes an inline block, which loses the face's kerning: in Bodoni Moda "fa", "ga" and "ar" opened up by 1–2 px at the laptop size and up to 4 px on a 1440 px tall screen. `restoreKerning` (in `choreography.ts`) measures the kerned position of every letter in an unsplit copy of the title and gives the letters the difference as left margins in em. The measurement belongs to the face and size in use, which is why the re-splits above matter.
+
+`ScrollTrigger.refresh()` runs after `document.fonts.ready` and again on every later `loadingdone` (`src/components/experience/Experience.tsx`).
+
+`tests/e2e/fonts.spec.ts` checks, at 1280×720 and 1920×1080: both faces load; the title uses the display face with optical sizing; it stays on one line; every letter sits within 0.5 px of its kerned position; a face that finishes loading later replaces the letters; and with the font files delayed by 1.5 s the title still ends up split and kerned in the real face.
+
+## Changing a face
+
+1. Put the `.woff2` file and its licence in `src/fonts/`.
+2. Point the `src` of the matching `localFont()` call at it and set its `weight` range (or a single weight for a static font).
+3. If the new display face has no optical-size axis, `font-optical-sizing: auto` does nothing and can stay. Look at the title's tracking and size (`TextOverlay.tsx`; the type scale is in `docs/decisions.md`), and at the size of the smallest text tier, which was tuned to Baskervville's x-height.
+4. Run `npm run check` and `npm run screenshots`.

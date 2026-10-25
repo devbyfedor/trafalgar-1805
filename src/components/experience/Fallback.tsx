@@ -116,7 +116,7 @@ export function Fallback() {
         </p>
         <p
           aria-hidden="true"
-          className="mt-2 font-display text-[clamp(48px,16vw,96px)] leading-[0.95] tracking-[-0.01em] text-ink"
+          className="mt-2 font-display text-[clamp(48px,16vw,96px)] leading-[0.95] tracking-[-0.01em] text-ink [font-optical-sizing:auto]"
         >
           {dawnContent.title}
         </p>

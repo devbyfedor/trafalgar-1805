@@ -28,7 +28,7 @@ export function TextOverlay() {
       />
       <p
         data-el="chapter"
-        className="absolute top-[4.6vh] left-[4.6vw] text-[clamp(13px,1.85vh,20px)] leading-none text-ink"
+        className="absolute top-[4.6vh] left-[4.6vw] text-[clamp(14px,2vh,21px)] leading-none text-ink"
       >
         {dawnContent.chapter}
       </p>
@@ -39,7 +39,7 @@ export function TextOverlay() {
       >
         <p
           data-el="dateline"
-          className="mb-[1.6vh] text-[clamp(13px,1.85vh,20px)] leading-snug text-ink"
+          className="mb-[1.6vh] text-[clamp(14px,2vh,21px)] leading-snug text-ink"
         >
           {dawnContent.dateline}
         </p>
@@ -48,7 +48,7 @@ export function TextOverlay() {
             <h1
               id="dawn-title"
               data-el="title"
-              className="title font-display whitespace-nowrap text-[clamp(56px,10.5vh,168px)] leading-[0.95] font-normal tracking-[-0.01em] text-ink"
+              className="title font-display whitespace-nowrap text-[clamp(56px,10.5vh,168px)] leading-[0.95] font-normal tracking-[-0.01em] text-ink [font-optical-sizing:auto]"
             >
               {dawnContent.title}
             </h1>
@@ -73,7 +73,7 @@ export function TextOverlay() {
         aria-hidden="true"
         className="absolute bottom-[3.2vh] left-0 flex w-full flex-col items-center gap-[1vh]"
       >
-        <span className="text-[clamp(12px,1.6vh,16px)] leading-none text-ink">
+        <span className="text-[clamp(13px,1.75vh,17px)] leading-none text-ink">
           {dawnContent.scrollCue}
         </span>
         <span className="relative block h-[4.2vh] w-px overflow-hidden bg-ink/25">

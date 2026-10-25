@@ -4,7 +4,7 @@ A scroll-driven, cinematic telling of the Battle of Trafalgar, 21 October 1805, 
 
 Desktop only: below 1024 px wide, or with a coarse pointer, visitors get a single static screen instead. With reduced motion the scene shows its hero frame without a pin.
 
-Built with Next.js 16 (static export), React 19, GSAP 3.15 (ScrollTrigger, SplitText), Lenis 1.3, Tailwind CSS 4 and TypeScript 7. Biome lints and formats; Playwright tests the exported site.
+Built with Next.js 16 (static export), React 19, GSAP 3.15 (ScrollTrigger, SplitText), Lenis 1.3, Tailwind CSS 4 and TypeScript 7. Biome lints and formats; Playwright tests the exported site. Type is Bodoni Moda (the title) and Baskervville, both under the SIL Open Font License and self-hosted.
 
 ## Running it
 
@@ -41,6 +41,7 @@ All scripts work in PowerShell. The test server binds to 127.0.0.1:4174, so a ru
 ```
 src/
   app/                    layout, page, globals.css (Tailwind and theme tokens), lab/ship
+  fonts/                  Bodoni Moda and Baskervville (OFL, licences beside them) and their next/font setup
   components/
     experience/           Experience (scenes in order, fallback), Fallback, DebugOverlay
     providers/            SmoothScroll: Lenis on the GSAP ticker
@@ -63,4 +64,4 @@ To add a scene, create `src/scenes/02-…/`, then replace the placeholder entry 
 - `docs/progress.md`: the checklist and where work stands.
 - `docs/decisions.md`: the design plan, decisions and deviations from the brief.
 - `docs/history-notes.md`: the historical facts used, with sources and doubts; the full research is in `docs/research/`.
-- `docs/fonts.md`: how to add the real typefaces with `next/font/local`.
+- `docs/fonts.md`: the typefaces, how they are wired with `next/font/local`, and how the split title follows them.

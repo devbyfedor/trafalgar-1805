@@ -28,7 +28,7 @@ Legend: `[x]` done, `[~]` built but not yet reviewed or finished, `[ ]` not star
 - [x] `src/lib/gsap.ts`, `SmoothScroll` (Lenis on the GSAP ticker, prioritised; keyboard guard)
 - [x] `Experience` + scene registry; pinned scene with a debug progress readout (`?debug`)
 - [x] Fallback branch (CSS switch, `gsap.matchMedia`), reduced-motion branch
-- [x] Font variables and `docs/fonts.md`
+- [x] Font variables and `docs/fonts.md` (real faces wired in session 3)
 - [x] Playwright smoke tests against the export (laptop, 1080p, phone, perf with video)
 
 ## 3. The ship
@@ -67,7 +67,7 @@ Legend: `[x]` done, `[~]` built but not yet reviewed or finished, `[ ]` not star
 
 ## Follow-up round (session 3)
 - [x] Owner's 60 fps result recorded as owner-verified
-- [ ] Fonts: Bodoni Moda (title) and Baskervville (text) through next/font/local; SplitText re-split on font load; title on one line at every screenshot size; small text legible
+- [x] Fonts: Bodoni Moda (title) and Baskervville (text) through next/font/local from `src/fonts/`; SplitText re-split on font load and resize with kerning restored; title on one line at every screenshot size (tested); small text one step larger, contrast measured over the moving background
 - [ ] Owner's answers applied: no studding sails, no stern ensign at dawn, vice-admiral's flag kept
 - [ ] Lower gun deck: 15 ports a side
 - [ ] `docs/backlog.md` for later scenes

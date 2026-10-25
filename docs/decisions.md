@@ -172,3 +172,15 @@ The design plan and the built scene were checked against the brief and the avoid
 - A centred hero with a button: none.
 - Fade-and-slide-up on every element: text fades in place by opacity only; the title's letters draw together horizontally, the way the haze drifts.
 - Defaults caught and changed in this pass: clouds that read as sticks, then as small boats; a dense, uniform enemy line; one-tone mid-distance silhouettes; a title that wrapped on large screens; a fallback without the ship.
+
+## Follow-up round (session 3, 25 October 2026)
+
+The owner reviewed scene 1: a steady 60 fps on his laptop with `?debug`. This round wires his fonts, applies his answers on the rig and flags, and prepares the repository to go public.
+
+### Fonts
+- **The faces.** Bodoni Moda for the title (`--font-display`), Baskervville for everything else (`--font-text`), both variable WOFF2 under the OFL, self-hosted with `next/font/local` from `src/fonts/` with their licences beside them. Details and the reasoning for each setting are in `docs/fonts.md`; the type roles in the design plan above are otherwise unchanged.
+- **Upright faces only.** next/font preloads every file in a `localFont()` call and scene 1 has no italics, so the italic files stay in `src/fonts/` unwired.
+- **Optical sizing.** `font-optical-sizing: auto` on the title (and the fallback screen's title): Bodoni Moda's `opsz` follows the font size, about 76 on the laptop and its maximum, 96, from 1080p up.
+- **Kerning restored after the split (new).** SplitText wraps each letter in an inline block, which drops kerning; in Bodoni Moda "fa", "ga" and "ar" opened by 1–2 px on the laptop and up to 4 px at 1440p. The scene now measures the kerned positions in an unsplit copy and gives the letters the difference as em margins. Kerning depends on the loaded face, so the title is re-split on every `loadingdone` and on resize (SplitText's own `autoSplit` covers only line splits). A test holds every letter within 0.5 px of its kerned position.
+- **The smallest text tier is one step larger.** Baskervville's x-height is 0.436 em against Palatino's 0.469, so at the same size the dateline, chapter marker and scroll cue read about 7 % smaller than planned. They go from `clamp(13px, 1.85vh, 20px)` to `clamp(14px, 2vh, 21px)` (the cue from `clamp(12px, 1.6vh, 16px)` to `clamp(13px, 1.75vh, 17px)`), which restores the planned x-height on the laptop. The lede and caption keep their size. Weight stays 400.
+- **Legibility over the moving background, measured.** With the glyphs hidden and the scrim kept, the background behind each text block was sampled at p = 0 to 1 in steps of 0.05, twice per step while the sea, haze and glitter kept moving, at 1280×720, 1920×1080 and 3440×1440. Against the 99th-percentile brightest background pixel, the worst cases were: chapter marker 6.1:1, dateline 6.1:1, closing caption 6.5:1, lede 10.1:1, scroll cue 13.5:1, title 6.2:1. All clear WCAG AA (4.5:1 for small text) with margin, so the scrim stays as it was.

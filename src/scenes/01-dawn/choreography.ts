@@ -336,6 +336,43 @@ export function buildChoreography(
 }
 
 /**
+ * Splitting wraps each letter in an inline block, which loses the face's
+ * kerning ("fa", "ga" and "ar" open up in Bodoni Moda). This measures each
+ * letter's kerned position in an unsplit copy of the title, set in the same
+ * face, size and optical size, and gives the letters the difference back as
+ * left margins, in em so they scale with the title. Call it on fresh letters,
+ * before any transform: the measurement belongs to the face that is loaded,
+ * which is why the title is re-split when a face finishes loading.
+ */
+export function restoreKerning(h1: HTMLElement, chars: HTMLElement[]): void {
+  if (chars.length < 2) return;
+  const probe = document.createElement("span");
+  probe.setAttribute("aria-hidden", "true");
+  probe.style.cssText =
+    "position:absolute;left:0;top:0;visibility:hidden;white-space:nowrap";
+  probe.textContent = chars.map((c) => c.textContent ?? "").join("");
+  h1.append(probe);
+  const text = probe.firstChild as Text;
+  const range = document.createRange();
+  const kerned: number[] = [];
+  let index = 0;
+  for (const c of chars) {
+    range.setStart(text, index);
+    range.setEnd(text, index);
+    kerned.push(range.getBoundingClientRect().left);
+    index += c.textContent?.length ?? 0;
+  }
+  probe.remove();
+  const split = chars.map((c) => c.getBoundingClientRect().left);
+  const em = Number.parseFloat(getComputedStyle(h1).fontSize) || 1;
+  chars.forEach((c, i) => {
+    if (i === 0) return;
+    const gap = kerned[i] - kerned[i - 1] - (split[i] - split[i - 1]);
+    c.style.marginLeft = `${(gap / em).toFixed(4)}em`;
+  });
+}
+
+/**
  * The title's letters: they start loosely spaced and faint, as if seen
  * through the haze, and draw into the word from left to right; at the
  * handover they loosen and drift off to the right with the haze.

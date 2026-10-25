@@ -42,7 +42,11 @@ export default defineConfig({
   projects: [
     {
       name: "laptop",
-      testMatch: [/scene\.spec\.ts/, /reduced-motion\.spec\.ts/],
+      testMatch: [
+        /scene\.spec\.ts/,
+        /fonts\.spec\.ts/,
+        /reduced-motion\.spec\.ts/,
+      ],
       use: {
         ...desktop,
         viewport: { width: 1280, height: 720 },
@@ -51,7 +55,11 @@ export default defineConfig({
     },
     {
       name: "desktop-1080",
-      testMatch: [/scene\.spec\.ts/, /reduced-motion\.spec\.ts/],
+      testMatch: [
+        /scene\.spec\.ts/,
+        /fonts\.spec\.ts/,
+        /reduced-motion\.spec\.ts/,
+      ],
       use: {
         ...desktop,
         viewport: { width: 1920, height: 1080 },

@@ -15,13 +15,17 @@ import { Fallback } from "./Fallback";
  */
 export function Experience() {
   useEffect(() => {
-    // Text metrics change when web fonts arrive; pins and splits must follow.
+    // Text metrics change when web fonts arrive, including a face that
+    // finishes loading after `ready`; pins and positions must follow.
     let cancelled = false;
-    document.fonts?.ready.then(() => {
+    const refresh = () => {
       if (!cancelled) ScrollTrigger.refresh();
-    });
+    };
+    document.fonts?.ready.then(refresh);
+    document.fonts?.addEventListener("loadingdone", refresh);
     return () => {
       cancelled = true;
+      document.fonts?.removeEventListener("loadingdone", refresh);
     };
   }, []);
 

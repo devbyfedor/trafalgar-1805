@@ -16,9 +16,9 @@
 }
 
 /*
- * Fonts: the owner supplies the faces later (docs/fonts.md). next/font will
- * set --font-display-face and --font-text-face on <html>; until then the
- * var() fallbacks give a system serif stack and no font file is referenced.
+ * Fonts (docs/fonts.md): next/font sets --font-display-face (Bodoni Moda)
+ * and --font-text-face (Baskervville) on <html> from src/fonts. The var()
+ * fallbacks keep a system serif stack if those variables are ever missing.
  * `inline` so the utilities resolve the variables where they are used.
  */
 @theme inline {

@@ -12,6 +12,12 @@ import { defineConfig, devices } from "@playwright/test";
  * - phone: a 390×844 touch screen, for the fallback
  * - perf: one scripted scroll-through with video and long-task recording,
  *   on Chromium's new headless mode, which renders on the GPU
+ * - chart, chart-gpu: the chart lab (/lab/chart), in the default headless
+ *   shell, which renders WebGL in software (SwiftShader, 2.4 to 5 s a frame
+ *   at the laptop's 1920×1080 device pixels, so it gets a quarter of them),
+ *   and in the new headless mode on the GPU at the owner's viewport
+ * - regression: scene 1's frames against its approved screenshots, rendered
+ *   as they were (the new headless mode, on the GPU)
  * - docs: screenshots for docs/screenshots (run with `npm run screenshots`)
  */
 
@@ -85,6 +91,35 @@ export default defineConfig({
         viewport: { width: 1280, height: 720 },
         deviceScaleFactor: 1.5,
         video: { mode: "on", size: { width: 1920, height: 1080 }, fps: 60 },
+      },
+    },
+    {
+      name: "chart",
+      testMatch: /chart.spec.ts/,
+      use: {
+        ...desktop,
+        viewport: { width: 960, height: 540 },
+        deviceScaleFactor: 1,
+      },
+    },
+    {
+      name: "chart-gpu",
+      testMatch: /chart.spec.ts/,
+      use: {
+        ...desktop,
+        channel: "chromium",
+        viewport: { width: 1280, height: 720 },
+        deviceScaleFactor: 1.5,
+      },
+    },
+    {
+      name: "regression",
+      testMatch: /regression.spec.ts/,
+      use: {
+        ...desktop,
+        channel: "chromium",
+        viewport: { width: 1280, height: 720 },
+        deviceScaleFactor: 1.5,
       },
     },
     {

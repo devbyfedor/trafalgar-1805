@@ -50,6 +50,34 @@ test.describe("scene 1 on desktop", () => {
     expect(counts.scene, "scene").toBeLessThan(2500);
   });
 
+  test("the ?debug overlay shows fps and the scene's progress, and no chart readouts", async ({
+    page,
+  }) => {
+    const errors = collectErrors(page);
+    await page.goto("/?debug");
+    await page.waitForLoadState("networkidle");
+    const overlay = page.locator("[data-debug-overlay]");
+    await expect(overlay).toBeVisible();
+    await scrollToProgress(page, 0.5);
+    // The readouts refresh twice a second.
+    await page.waitForTimeout(1200);
+
+    const lines = (await overlay.innerText())
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toMatch(/^fps \d+$/);
+    expect(lines[1]).toMatch(/^dawn p \d\.\d{3}$/);
+    expect(Number(lines[1].split(" ").pop())).toBeCloseTo(0.5, 1);
+    // The chart's block exists for scene 2 and stays empty here, taking
+    // no room, so scene 1's overlay looks as it did before the chart.
+    const chart = overlay.locator("[data-debug-chart]");
+    await expect(chart).toHaveText("");
+    expect((await chart.boundingBox())?.height).toBe(0);
+    expect(errors).toEqual([]);
+  });
+
   test("pins for the scene and releases into the scene 2 placeholder", async ({
     page,
   }) => {

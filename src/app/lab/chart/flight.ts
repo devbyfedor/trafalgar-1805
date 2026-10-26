@@ -52,8 +52,9 @@ export const LAB_FLIGHT: readonly CameraKey[] = [
   { p: 0.24, eye: [-7.6, 35.25, 115], target: [-6.25, 36.3, 0] },
   // Pulling back, the Strait and the Mediterranean opening to the east.
   { p: 0.42, eye: [-11.5, 30.5, 1400], target: [-6.5, 37.5, 0] },
-  // The whole Atlantic, from the Caribbean to the Mediterranean.
-  { p: 0.62, eye: [-30, 8, 5600], target: [-27, 31, 0], fov: 42 },
+  // The whole Atlantic, from the West Indies to the Mediterranean, seen
+  // from the south: the Caribbean nearest, lower left; Europe to the right.
+  { p: 0.62, eye: [-37, -11, 5000], target: [-32, 24.5, 0], fov: 52 },
   // Gliding north toward the Channel.
   { p: 0.82, eye: [-12, 38.5, 1500], target: [-3, 47.5, 0] },
   { p: 1, eye: [-4.2, 47.0, 390], target: [0.9, 50.5, 0] },

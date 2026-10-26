@@ -2,11 +2,17 @@
 
 import { useRef } from "react";
 import type { ChartStats, LightId } from "@/components/chart";
+import { worldX, worldY } from "@/components/chart/geo/mercator";
 import { DebugOverlay } from "@/components/experience/DebugOverlay";
 import { SmoothScroll } from "@/components/providers/SmoothScroll";
 import { registerChartReadout, reportProgress } from "@/lib/debug";
 import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
 import { isDebug } from "@/lib/media";
+import {
+  GLYPH_TYPES,
+  LAB_MARKS,
+  ROUTE_SQUADRON,
+} from "@/scenes/02-road/fleets";
 import { GAZETTEER } from "@/scenes/02-road/gazetteer";
 import { TOULON_TO_CADIZ } from "@/scenes/02-road/routes";
 import {
@@ -25,10 +31,23 @@ import {
  * Query: `?p=` jumps to a progress (0..1), `?light=` pins a lighting state
  * (dawn, campaign or night), `?route=` pins how much of the route is drawn,
  * `?quality=` pins a quality level (0 is the top), `?debug` shows the
- * readouts and the ScrollTrigger markers.
+ * readouts and the ScrollTrigger markers. To look closely at one place,
+ * `?eye=lon,lat,km` with `?look=lon,lat` (and `?fov=`) hold the camera
+ * there instead of the flight.
  */
 
 const LIGHTS: readonly LightId[] = ["dawn", "campaign", "night"];
+
+/** Distance between the squadron's ships along the route, as a fraction of it. */
+const SQUADRON_SPACING = 0.016;
+
+/** A comma-separated list of numbers, or null. */
+function listParam(query: URLSearchParams, name: string): number[] | null {
+  const raw = query.get(name);
+  if (!raw) return null;
+  const values = raw.split(",").map(Number);
+  return values.every(Number.isFinite) ? values : null;
+}
 
 function numberParam(query: URLSearchParams, name: string): number | null {
   const raw = query.get(name);
@@ -55,6 +74,9 @@ export function ChartLab() {
         lightParam && LIGHTS.includes(lightParam) ? lightParam : null;
       const fixedRoute = numberParam(query, "route");
       const quality = numberParam(query, "quality") ?? undefined;
+      const fixedEye = listParam(query, "eye");
+      const fixedLook = listParam(query, "look");
+      const fixedFov = numberParam(query, "fov") ?? 40;
 
       const state: FlightState = { p: 0, light: 0, route: 0 };
       const tl = gsap.timeline({
@@ -136,6 +158,14 @@ export function ChartLab() {
         chart.add(rivers, rivers.mesh);
         const route = new engine.Route(chart.field, TOULON_TO_CADIZ);
         chart.add(route, route.mesh);
+        const glyphs = new engine.Glyphs(GLYPH_TYPES, [
+          ...LAB_MARKS,
+          ...ROUTE_SQUADRON,
+        ]);
+        chart.add(glyphs, glyphs.wakes, glyphs.ships);
+        chart.addGpuBytes(glyphs.atlas.gpuBytes);
+        const squadron = LAB_MARKS.length;
+        const head = { x: 0, y: 0, heading: 0 };
         const lettering = new engine.Lettering(chart.field, GAZETTEER);
         chart.add(lettering, lettering.batch);
         await lettering.ready;
@@ -143,10 +173,32 @@ export function ChartLab() {
         const rig = new engine.CameraRig(LAB_FLIGHT);
 
         const draw = (time: number) => {
-          chart.fly(rig, state.p);
+          if (fixedEye && fixedLook) {
+            chart.eye.set(
+              worldX(fixedEye[0]),
+              worldY(fixedEye[1]),
+              fixedEye[2] ?? 10,
+            );
+            chart.target.set(
+              worldX(fixedLook[0]),
+              worldY(fixedLook[1]),
+              fixedLook[2] ?? 0,
+            );
+            chart.setView(chart.eye, chart.target, fixedFov);
+          } else chart.fly(rig, state.p);
           if (fixedLight) chart.setLight(fixedLight, fixedLight, 0);
           else chart.setLight("dawn", "campaign", state.light);
-          route.setProgress(fixedRoute ?? state.route);
+          const drawn = fixedRoute ?? state.route;
+          route.setProgress(drawn);
+          // Villeneuve's squadron sails at the drawing head, in line astern.
+          for (let k = 0; k < ROUTE_SQUADRON.length; k++) {
+            route.pointAt(drawn - k * SQUADRON_SPACING, head);
+            glyphs.place(squadron + k, head.x, head.y, head.heading);
+            glyphs.setOpacity(
+              squadron + k,
+              Math.min(1, Math.max(0, (drawn - k * SQUADRON_SPACING) / 0.02)),
+            );
+          }
           chart.frame(time);
           reportProgress("flight", state.p);
         };

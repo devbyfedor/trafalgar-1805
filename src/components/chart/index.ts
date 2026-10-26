@@ -14,7 +14,13 @@ export {
   type FrameInfo,
 } from "./engine/Chart";
 export { QUALITY_LADDER } from "./engine/quality";
+export {
+  Glyphs,
+  type GlyphType,
+  type ShipMark,
+  type Side,
+} from "./glyphs/Glyphs";
 export { type Label, type LabelRole, Lettering } from "./lettering/Lettering";
 export { LIGHT_STATES, type LightId } from "./light/states";
 export { Rivers } from "./lines/Rivers";
-export { Route, type Waypoint } from "./lines/Route";
+export { Route, type RoutePoint, type Waypoint } from "./lines/Route";

@@ -32,7 +32,8 @@ export const BRITISH_74 = deriveSpec(VICTORY_1805, {
   seed: 74,
 });
 
-const ENEMY_TYPES: Record<string, ShipSpec> = {
+/** The enemy's ship types (also the chart's glyphs in scene 2). */
+export const ENEMY_TYPES: Record<string, ShipSpec> = {
   "french-74": deriveSpec(VICTORY_1805, {
     id: "french-74",
     name: "French 74",

@@ -132,18 +132,32 @@ export function exaggerationAt(altitudeKm: number): number {
 
 /**
  * The haze: the distance (km) at which it hides 63 % of the chart, for a
- * camera altitude. Low over the sea it is short, so the coast 20 nautical
- * miles off is lost in the dawn haze as it is in scene 1; it opens up in
- * proportion to altitude, as a haze layer near the ground does when seen
- * from above. The light state's density divides it.
+ * camera altitude (km). Low over the sea it is short, so the coast 20
+ * nautical miles off is lost in the dawn haze as it is in scene 1. A few
+ * kilometres up the camera has climbed out of the haze layer that lies on
+ * the sea, and looks down through it: the view opens quickly, so the coast
+ * is clear in the rising shot. Above that it opens in proportion to the
+ * altitude (17 km + 3.5 × altitude), as before. A monotone cubic through
+ * the anchors in log–log space; the light state's density divides it.
  */
-export const HAZE = { nearKm: 17, perAltitudeKm: 3.5 } as const;
+export const HAZE: readonly (readonly [number, number])[] = [
+  [0.05, 17.2],
+  [1, 24],
+  [9, 105],
+  [115, 420],
+  [1400, 4917],
+  [6000, 21017],
+];
 
 /** Past this many visibility distances the haze is opaque (99.5 %). */
 export const HAZE_OPAQUE = 2.3;
 
+const hazeCurve = monotoneCurve(
+  HAZE.map(([a, v]) => [Math.log(a), Math.log(v)] as const),
+);
+
 export function hazeVisibilityAt(altitudeKm: number): number {
-  return HAZE.nearKm + HAZE.perAltitudeKm * Math.max(altitudeKm, 0);
+  return Math.exp(hazeCurve(Math.log(Math.max(altitudeKm, 1e-3))));
 }
 
 /** A contour interval (m) and the blend toward its double (0..1). */

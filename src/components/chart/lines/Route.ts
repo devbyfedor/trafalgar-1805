@@ -1,4 +1,4 @@
-import { Mesh, type Vector3 } from "three";
+import { Mesh } from "three";
 import type { ChartLayer, FrameInfo } from "../engine/Chart";
 import { worldX, worldY } from "../geo/mercator";
 import type { TerrainField } from "../terrain/field";
@@ -13,6 +13,13 @@ import { RibbonMaterial, ribbonGeometry } from "./ribbon";
  */
 
 export type Waypoint = readonly [lon: number, lat: number];
+
+/** A point on a route (world km) and the heading there (radians from north, clockwise). */
+export interface RoutePoint {
+  x: number;
+  y: number;
+  heading: number;
+}
 
 /** Length of the straight pieces the curve is cut into, km. */
 const STEP_KM = 4;
@@ -116,11 +123,8 @@ export class Route implements ChartLayer {
     this.material.head = Math.min(1, Math.max(0, progress)) * this.length;
   }
 
-  /**
-   * The point at a fraction of the route (world km, on the sea surface),
-   * and the heading there in `out.z` (radians from north, clockwise).
-   */
-  pointAt(progress: number, out: Vector3): Vector3 {
+  /** The point at a fraction of the route, on the sea surface. */
+  pointAt(progress: number, out: RoutePoint): RoutePoint {
     const target = Math.min(1, Math.max(0, progress)) * this.length;
     const along = this.along;
     let lo = 0;
@@ -136,11 +140,10 @@ export class Route implements ChartLayer {
     const y0 = this.points[lo * 2 + 1];
     const x1 = this.points[hi * 2];
     const y1 = this.points[hi * 2 + 1];
-    return out.set(
-      x0 + (x1 - x0) * t,
-      y0 + (y1 - y0) * t,
-      Math.atan2(x1 - x0, y1 - y0),
-    );
+    out.x = x0 + (x1 - x0) * t;
+    out.y = y0 + (y1 - y0) * t;
+    out.heading = Math.atan2(x1 - x0, y1 - y0);
+    return out;
   }
 
   update(frame: FrameInfo): void {

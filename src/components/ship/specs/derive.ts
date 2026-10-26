@@ -18,7 +18,9 @@ export type SailSet =
   /** Courses, topsails, topgallants, royals, spanker, headsails. */
   | "full"
   /** Topsails, spanker and a headsail: easy sail, close-hauled. */
-  | "easy";
+  | "easy"
+  /** No sail set: a ship at anchor, bare masts and yards. */
+  | "furled";
 
 export interface DeriveOptions {
   id: string;
@@ -40,7 +42,9 @@ const scaleLine = <T extends { y: number; riseAft: number; riseFwd: number }>(
 
 function scaleYard(y: YardSpec, k: number, sailSet: SailSet): YardSpec {
   const keep =
-    sailSet === "full" ? true : y.id === "topsail" || y.id === "mizzenTopsail";
+    sailSet === "full"
+      ? true
+      : sailSet === "easy" && (y.id === "topsail" || y.id === "mizzenTopsail");
   return {
     ...y,
     y: y.y * k,
@@ -231,6 +235,7 @@ export function deriveSpec(ref: ShipSpec, o: DeriveOptions): ShipSpec {
       },
       spanker: {
         ...ref.rig.spanker,
+        set: ref.rig.spanker.set && o.sailSet !== "furled",
         gaffThroatY: ref.rig.spanker.gaffThroatY * k,
         gaffLength: ref.rig.spanker.gaffLength * k,
         boomY: ref.rig.spanker.boomY * k + tierShift,
@@ -238,7 +243,10 @@ export function deriveSpec(ref: ShipSpec, o: DeriveOptions): ShipSpec {
       },
       headsails: ref.rig.headsails.map((h) => ({
         ...h,
-        set: o.sailSet === "full" ? h.set : h.id === "foreTopmastStaysail",
+        set:
+          o.sailSet === "full"
+            ? h.set
+            : o.sailSet === "easy" && h.id === "foreTopmastStaysail",
       })),
     },
     flags: [],

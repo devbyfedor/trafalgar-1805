@@ -5,6 +5,7 @@ The full research behind `docs/history-notes.md`, written during session 1 and f
 - `victory-hull.md`: Victory's hull as of October 1805.
 - `victory-rig.md`: masts, spars, sails, rigging and flags.
 - `dawn-setting.md`: positions, sun, moon, weather and both fleets, with a fact-check of 54 claims.
+- `scene-02/`: the research for scene 2 (the 1805 campaign, Boulogne to Cádiz, signals, period chart style, three.js and troika), with independent fact-check reports; its README says what is checked and what is not yet.
 
 ## What belongs here
 

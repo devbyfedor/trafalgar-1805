@@ -46,8 +46,8 @@ export interface ChartManifest {
   rivers: { file: string; bytes: number; count: number; points: number };
 }
 
-/** The manifest layout these types describe. */
-const MANIFEST_VERSION = 3;
+/** The manifest layout these types describe (4: rivers carry their flow). */
+const MANIFEST_VERSION = 4;
 
 /** Where the chart's assets are served from (same origin, public/chart/). */
 export const CHART_BASE = "/chart/";

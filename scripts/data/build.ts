@@ -16,7 +16,7 @@ import { coastField, type Ring } from "./lib/coast.ts";
 import { encodeDistance, encodeHeight, packTexel } from "./lib/encode.ts";
 import { readEtopoBands } from "./lib/etopo.ts";
 import { resampleToTile, type TileGrid, tileGrid } from "./lib/grid.ts";
-import { extractRivers, packRivers } from "./lib/rivers.ts";
+import { extractRivers, measureFlow, packRivers } from "./lib/rivers.ts";
 
 /**
  * Builds the chart's assets in public/chart/ from the raw downloads:
@@ -27,7 +27,8 @@ import { extractRivers, packRivers } from "./lib/rivers.ts";
  * - lowres.bin (gzip): the highest land (one byte, LOWRES_STEP_M steps) per cell of the
  *   surround's grid, for the CPU: where the terrain needs detail, and
  *   placing lettering on the relief.
- * - rivers.bin (gzip): Natural Earth rivers as world-space polylines.
+ * - rivers.bin (gzip): Natural Earth rivers as world-space polylines, each
+ *   from its source downstream, with every point's distance from the source.
  * - manifest.json: grids, encodings and files, read by the app.
  *
  * Run with `npm run data:build`, which downloads first.
@@ -116,6 +117,27 @@ async function buildTile(tile: TileConfig, landGroups: Ring[][]) {
   return { grid, heights, bytes: info.size, file };
 }
 
+/**
+ * The lowest height (m) within a cell of a world point, from a built grid:
+ * the floor of the valley a river runs in.
+ */
+function valleyFloor(grid: TileGrid, heights: Float32Array) {
+  return (x: number, y: number) => {
+    const c = Math.floor((x - grid.x0) / grid.cellKm);
+    const r = Math.floor((grid.yTop - y) / grid.cellKm);
+    let low = Number.POSITIVE_INFINITY;
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        const rr = r + dr;
+        const cc = c + dc;
+        if (rr < 0 || cc < 0 || rr >= grid.rows || cc >= grid.cols) continue;
+        low = Math.min(low, heights[rr * grid.cols + cc]);
+      }
+    }
+    return Number.isFinite(low) ? low : 0;
+  };
+}
+
 /** Height step of lowres.bin: 0 is sea, 1 or more is land, up to 5,100 m. */
 const LOWRES_STEP_M = 20;
 
@@ -194,6 +216,13 @@ async function main() {
       0.35,
     ),
   ];
+  const flow = measureFlow(
+    rivers,
+    valleyFloor(overview.grid, overview.heights),
+  );
+  console.log(
+    `  ${flow.reversed} turned to run downstream, ${flow.joined} carry on another`,
+  );
   const riverFile = "rivers.bin";
   const riverBytes = gzipSync(packRivers(rivers), { level: 9 });
   await writeFile(path.join(OUT_DIR, riverFile), riverBytes);
@@ -203,7 +232,7 @@ async function main() {
   );
 
   const manifest = {
-    version: 3,
+    version: 4,
     origin: ORIGIN,
     height: HEIGHT_CODE,
     sdf: SDF_CODE,

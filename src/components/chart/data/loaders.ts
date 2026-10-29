@@ -120,12 +120,15 @@ export function landIndex(
 export interface RiverData {
   /** Offsets into `points` (in points), count + 1 entries. */
   offsets: Uint32Array;
-  /** Interleaved world x, y, km. */
+  /** Interleaved world x, y, km, each river from its source downstream. */
   points: Float32Array;
+  /** Per point, the distance from the river's source along it, whole km. */
+  flow: Uint16Array;
   /** Natural Earth scalerank per river (0 = greatest). */
   ranks: Uint8Array;
 }
 
+/** rivers.bin: the layout scripts/data/lib/rivers.ts (packRivers) writes. */
 export async function loadRivers(
   manifest: ChartManifest,
   signal?: AbortSignal,
@@ -136,9 +139,10 @@ export async function loadRivers(
   const total = view.getUint32(4, true);
   const offsets = new Uint32Array(buffer.slice(8, 8 + (count + 1) * 4));
   const pointsStart = 8 + (count + 1) * 4;
-  const points = new Float32Array(
-    buffer.slice(pointsStart, pointsStart + total * 8),
-  );
-  const ranks = new Uint8Array(buffer, pointsStart + total * 8, count);
-  return { offsets, points, ranks: ranks.slice() };
+  const flowStart = pointsStart + total * 8;
+  const ranksStart = flowStart + total * 2;
+  const points = new Float32Array(buffer.slice(pointsStart, flowStart));
+  const flow = new Uint16Array(buffer.slice(flowStart, ranksStart));
+  const ranks = new Uint8Array(buffer, ranksStart, count);
+  return { offsets, points, flow, ranks: ranks.slice() };
 }

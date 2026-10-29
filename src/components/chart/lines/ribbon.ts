@@ -28,6 +28,8 @@ export interface Polyline {
   points: ArrayLike<number>;
   /** Pen width, CSS pixels. */
   width: number;
+  /** A pen width per point instead, CSS pixels (a tapering line). */
+  widths?: ArrayLike<number>;
   /** A value per line the material can thin out by (rivers: their rank). */
   tag?: number;
 }
@@ -70,7 +72,7 @@ export function ribbonGeometry(lines: readonly Polyline[]): BufferGeometry {
         prev.set([xy[p * 2], xy[p * 2 + 1]], v * 2);
         next.set([xy[q * 2], xy[q * 2 + 1]], v * 2);
         along[v] = distance;
-        width[v] = line.width;
+        width[v] = line.widths ? line.widths[i] : line.width;
         tag[v] = line.tag ?? 0;
         v++;
       }

@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "origin": {
     "lon": -6,
     "lat": 36
@@ -75,7 +75,7 @@
   },
   "rivers": {
     "file": "rivers.bin",
-    "bytes": 142322,
+    "bytes": 165888,
     "count": 412,
     "points": 20002
   },

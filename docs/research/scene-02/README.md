@@ -2,7 +2,7 @@
 
 Research for scene 2 ("The road to Trafalgar"), written by research agents in sessions 5 and 6 (25–26 October 2026) and moved here from the sessions' temporary folders so nothing lives only outside the repository. They follow the rules in `../README.md`: our own words with links; quotations from public-domain period sources only. When the notes were copied here (session 6), every quotation of 26 words or more was cut to its opening phrase with an ellipsis, keeping its citation.
 
-**Status: not yet the project's word.** `docs/history-notes.md` gets a "Scene 2" section written from these notes, the fact-check reports and the adjudications still to run. Until then, where a note and its fact-check disagree, the disagreement is open (see "How to use them").
+**Status: not yet the project's word.** `docs/history-notes.md` gets a "Scene 2" section written from these notes, the fact-check reports and the adjudications (`a-*.md`, session 7). It has not been written yet. Until then, read a note with its checks and their adjudication (see "How to use them").
 
 ## History (session 5), with independent fact-checks (session 6)
 
@@ -22,14 +22,31 @@ The corrections that change what the scene shows:
 - **James's dates.** Only the dates James converted from Republican documents run a day early (Toulon 29 March, Strait and Cádiz 8 April, Martinique 13 May and so on); his British dates are not shifted. The Strait was passed on 9 April by the British primary documents too (`v-h1a.md`, H1-02b, H1-05).
 - **Ulm.** The source the notes cite as "A&C" reads 13,600 muskets (fusils) on the page image, not 43,600 (`v-h2a.md`, H2-13d).
 
-## Not finished in session 6
+## Adjudications (session 7)
 
-- **Adjudication** of the contested points (a fresh check of each "corrected" and "disputed" verdict against the primary source) was running when the session was stopped; none finished. The script is `C:\Users\User\.claude\projects\d--dev-trafalgar-1805\43fa8065-09be-424a-8d60-8feee16ab4db\workflows\scripts\scene2-factcheck-wf_30289020-9d0.js`; its verify stage is done, so a rerun should skip to adjudication.
-- **The 1805 names (h4)** were being researched and are not written. The gazetteer in `src/scenes/02-road/gazetteer.ts` stays provisional.
+Each "corrected", "disputed" and scene-relevant "unverifiable" verdict of the session 6 checks was ruled on afresh against the primary or period source: notes right, checker right, both partly, or genuinely disputed (then each version with who holds it), with the statement `docs/history-notes.md` should use. These are the final word on the contested points.
 
-## Chart style (session 6)
+| Rulings | On the reports |
+| --- | --- |
+| `a-h1ac.md` | `v-h1a.md` and `v-h1c.md` (Toulon to the West Indies; Finisterre, Ferrol, Cádiz; waypoints) |
+| `a-h1b.md` | `v-h1b.md` (Nelson's pursuit; fleet sizes) |
+| `a-h2a.md` | `v-h2a.md` (Boulogne, the turn east, Ulm) |
+| `a-h2b.md` | `v-h2b.md` (Nelson off Cádiz, British strength, the station and the chain) |
+| `a-h2c.md` | `v-h2c.md` (orders, Rosily, the sortie, fleet sizes at Cádiz, positions for glyphs) |
+| `a-h3.md` | `v-h3a.md` and `v-h3b.md` (signals by day and by night, the relay of 19 October) |
 
-`t4-chart-style.md`: what sea charts of about 1785–1810 looked like (waterlining, coasts, depths, relief, rivers, town marks, lettering, tracks, paper and colour), as directives for the renderer, with links to chart pages. Its own independent check had not run when the session stopped.
+`draft-h3.md` is a drafter's version of the signals part of the "Scene 2" section of `docs/history-notes.md`, written from `h3`, its checks and `a-h3.md`; it has not been reviewed or merged. The drafts for `h1` and `h2` were being written when session 7 stopped and do not exist.
+
+## The 1805 names (session 7)
+
+- `h4-names.md`: the English forms a chart of about 1805 would letter (oceans and seas, capes, ports, islands, lands, rivers, ranges), from English charts, atlases and pilot books of 1795–1810, with a final table and the lettering conventions.
+- `v-h4.md`: its independent check. **The adjudication of the names it contests did not run**, so the gazetteer (`src/scenes/02-road/gazetteer.ts`) still letters the provisional forms.
+
+## Chart style (sessions 6 and 7)
+
+- `t4-chart-style.md` (session 6): what sea charts of about 1785–1810 looked like (waterlining, coasts, depths, relief, rivers, town marks, lettering, tracks, paper and colour), as directives for the renderer, with links to chart pages.
+- `v-t4.md` (session 7): an independent expert check against other plates and engravers (the Ordnance Survey's Kent and Devon maps of 1801–1809, Arrowsmith and Hall 1817, Thomson and Wyld, Faden 1807, López, the SDUK), with measured profiles.
+- `a-t4.md` (session 7): rulings on what the check contested, and the settled directives for the renderer, most important first. The engine follows them as `docs/decisions.md` ("Scene 2, Stage A") records, and says there which it does not yet follow.
 
 ## Technical (sessions 4 and 5)
 
@@ -39,4 +56,4 @@ The corrections that change what the scene shows:
 
 ## How to use them
 
-Read a note together with its fact-check reports. A "confirmed" verdict can be used as it stands; a "corrected" or "disputed" one needs the adjudication (or a look at the primary source it cites) before it goes into `docs/history-notes.md`, where every remaining disagreement is written down with who holds each version.
+Read a note together with its fact-check reports and their adjudication. A "confirmed" verdict can be used as it stands; for a "corrected" or "disputed" one the adjudication's final statement is what goes into `docs/history-notes.md`, where every remaining disagreement is written down with who holds each version. When the session 7 files were copied here, every quotation of 26 words or more was cut to its opening phrase (six of them); downloaded page crops and texts stayed outside the repository.

@@ -2,20 +2,25 @@
 
 Live checklist. A later session picks up from here. The briefs are `docs/scene-01-brief.md` and `docs/scene-02-brief.md`; decisions and deviations are in `docs/decisions.md`.
 
-## Scene 2, Stage A: engine, data and look (sessions 4 to 6, 25–26 October 2026)
+## Scene 2, Stage A: engine, data and look (sessions 4 to 7, 25–29 October 2026)
 
 Stage A builds the chart engine, its data and its look, proven by one camera flight on `/lab/chart`, then stops for the owner's performance check on his GPU. Stage B (the full scene) waits for his approval.
 
 **The owner's verdict before session 6.** He looked at `/lab/chart` in dev mode and loves it: the look, and the flight from Cádiz onward. Keep this direction; the fixes refine it, they don't change it.
 
-**Session 7 (29 October 2026), in progress.** Resumed from a clean tree; lint, typecheck and the lettering check passed; nothing was left running.
-- Research, two workflows in the background, writing only to this session's scratchpad (`C:\Users\User\AppData\Local\Temp\claude\d--dev-trafalgar-1805\ff8b9f97-a497-42fd-91fd-249d772d747a\scratchpad\research\`): (1) adjudication of every contested verdict in `v-h1a` … `v-h3b` (`a-*.md`), then a draft of each track's part of the "Scene 2" history notes (`draft-h1.md`, `draft-h2.md`, `draft-h3.md`); (2) the 1805 names (`h4-names.md`, `v-h4.md`, `a-h4.md`) and an independent check of `t4` (`v-t4.md`, `a-t4.md`). If the session stops, move what exists there into `docs/research/scene-02/` under the same rules.
-- Done: the waterlining after Hall (no more target rings); see "Taken in session 7" below.
+**Where it stopped (session 7, 29 October 2026, about 23:05).** The owner stopped the session deliberately. Everything is committed and the working tree is clean. Nothing is left running: both research workflows and the dev server were stopped, and no project process remains.
+- **Done in session 7** (details under "Taken in session 7" and in `docs/decisions.md`, "Scene 2, Stage A"):
+  - every item of the owner's look list: the waterlining (the period profile; soft small halos for lone islands; no targets), town marks with names beside them, lettering sizes, caps and roles (Cádiz shows close up), tapering rivers in a lighter ink, cast shadows that no longer blotch the lowland, and with that the Gulf's tile edge;
+  - two refinements from the chart-style adjudication: isobaths of one weight, the 200-fathom line faint;
+  - the design plan in `docs/decisions.md`, reviewed against the brief and both avoid-lists;
+  - research, all moved into `docs/research/scene-02/` (its README says what each file is): the adjudications of every contested verdict on h1–h3 (`a-h1ac`, `a-h1b`, `a-h2a`, `a-h2b`, `a-h2c`, `a-h3`); the 1805 names researched and checked (`h4-names`, `v-h4`); the chart-style check and its adjudication (`v-t4`, `a-t4`); a draft of the signals part of the history notes (`draft-h3`).
+- **Stopped half-way:**
+  - the history workflow's drafting stage: `draft-h3.md` exists; the drafts of the h1 and h2 parts were being written and left nothing;
+  - the names workflow's last stage: the adjudication of the names `v-h4.md` contests did not run, so the gazetteer still letters the provisional forms.
+- **Not started:** the "Scene 2" section of `history-notes.md`; applying it (the Toulon–Cádiz waypoints, the 1805 names, the glyph positions: the anchored fleet still stands on the bay's shore); the screenshots for the owner; the credits line and README notes; the full `npm run check`.
+- **Not verified in session 7:** no `next build` and no Playwright run after this session's changes, so the chart tests, scene 1's regression check and the chart chunk's size are as of session 6 (scene 1's code is untouched; the lab now makes 8 draw calls, well inside the test's 1–150). Lint, typecheck and the lettering check pass. Frame rate on the owner's GPU is unmeasured; this session added work per frame (the terrain reads a land mask per vertex; the waterlining evaluates four line sets instead of two). The context-loss restore now also rebuilds the land masks (it runs in `decode`), still untested.
 
-**Where it stopped (session 6, 26 October 2026, about 23:50).** The owner stopped the session deliberately, while the tests were being finished. Everything is committed and the working tree is clean. Nothing is left running: the research workflow, the dev server and the static server were stopped.
-- **Done in session 6:** the ship glyphs; a clear rising shot (new haze curve); the Atlantic view now reaches the West Indies; end-to-end tests for `/lab/chart`; a regression check of scene 1 against its approved screenshots; a test that scene 1's `?debug` overlay is unchanged; the first `next build` of the chart code; the research notes moved into the repository (`docs/research/scene-02/`) with independent fact-checks of h1–h3 and the new period-chart notes (t4).
-- **Stopped half-way:** the research workflow's last stages. Its fact-checks of h1–h3 finished (eight reports, saved). The adjudication of contested points and the 1805 names (h4) were still running and left nothing. The check of t4 never started.
-- **Not started:** the "Scene 2" section of `history-notes.md`; the design plan in `decisions.md`; the look fixes (waterlining round islands, town marks, rivers, label sizes, the Cádiz label); the screenshots for the owner; the credits line and README notes.
+**Session 6 (26 October 2026)**, for reference: the ship glyphs; a clear rising shot; the Atlantic view out to the West Indies; end-to-end tests for `/lab/chart`; the regression check of scene 1; the first `next build` of the chart code; the research notes moved into the repository with independent fact-checks of h1–h3 and the period-chart notes (t4).
 
 **Verified in session 6** (at commit `868f33d` plus the test and doc commits that follow it):
 - `tsc --noEmit` and `biome check`: clean.
@@ -34,24 +39,24 @@ Stage A builds the chart engine, its data and its look, proven by one camera fli
      - context restore: render targets come back empty; `field.restore()` rebakes them, but it is untested;
      - `renderer.info` counting when other passes render in the same tick;
      - troika: in-plane arcs for names along coasts (its section 5.3, a `customRewriter`), and the readiness sequence with `initTexture` on the glyph atlas (its section 7).
-   - [~] History (`h1-campaign.md`, `h2-boulogne-cadiz.md`, `h3-signals.md`, session 5): independently fact-checked in session 6 (`v-h1a.md` … `v-h3b.md`). The corrections that change the scene are summarised in `docs/research/scene-02/README.md`. **The adjudication of the "corrected" and "disputed" verdicts has not run.**
-   - [ ] The 1805 names (h4): not written. The gazetteer stays provisional.
-   - [~] Period chart conventions (`t4-chart-style.md`, session 6): written; its independent check has not run; not applied yet.
-   - [ ] The "Scene 2" section of `history-notes.md`: not written.
-2. [ ] Design plan in decisions.md, reviewed against the brief and both avoid-lists: **not written**. All decisions taken so far are listed below.
+   - [x] History (`h1-campaign.md`, `h2-boulogne-cadiz.md`, `h3-signals.md`, session 5): independently fact-checked in session 6 (`v-h1a.md` … `v-h3b.md`); every contested verdict adjudicated against the primary sources in session 7 (`a-h1ac.md`, `a-h1b.md`, `a-h2a.md`, `a-h2b.md`, `a-h2c.md`, `a-h3.md`). The corrections that change the scene are summarised in `docs/research/scene-02/README.md`.
+   - [~] The 1805 names (h4, session 7): researched (`h4-names.md`) and checked (`v-h4.md`); **the adjudication of the contested names has not run**. The gazetteer stays provisional.
+   - [x] Period chart conventions (`t4-chart-style.md`, session 6): checked (`v-t4.md`) and adjudicated (`a-t4.md`) in session 7, and applied as `decisions.md` records.
+   - [ ] The "Scene 2" section of `history-notes.md`: not written. A draft of its signals part exists (`draft-h3.md`, not reviewed).
+2. [x] Design plan in decisions.md ("Scene 2, Stage A"), reviewed against the brief and both avoid-lists (session 7). The detailed log of decisions stays below.
 3. Data pipeline
    - [x] `npm run data:build`: built in session 4 (`b4cb148`) and revised in session 5 (`5ce1c8b`).
      - ETOPO 2022 overview (3′ cells, 72° W–20° E, 5–57° N).
      - Gulf of Cádiz tile (15″, 9.6–4.3° W, 34.9–37.8° N).
      - Surround tile (12′, 110° W–60° E, 10° S–72° N).
      - Natural Earth 5.1.2 land, minor islands and rivers.
-     - 4.28 MB in `public/chart/`: overview 2.29 MB, Cádiz 0.97 MB, surround 0.72 MB, land grid 159 kB, rivers 142 kB, plus the manifest (version 3).
+     - 4.31 MB in `public/chart/`: overview 2.29 MB, Cádiz 0.97 MB, surround 0.72 MB, land grid 159 kB, rivers 166 kB (with each point's distance from its source since session 7), plus the manifest (version 4).
      - Raw downloads in git-ignored `data/raw/`.
      - `scripts/data/preview.ts` renders a CPU preview of the tiles.
 4. Engine and the chart's look (`src/components/chart/`)
    - [x] Terrain, sea, isobaths, waterlining, coast, relief, shadows, contours, sky and haze, rivers, the Toulon–Cádiz route and the lettering (sessions 4 and 5).
    - [x] **Ship glyphs (session 6, `868f33d`)**: `glyphs/atlas.ts` and `glyphs/Glyphs.ts`; the lab's ships in `src/scenes/02-road/fleets.ts`. See the decisions below.
-     - Positions are **provisional**. The fact-check found that the suggested anchorage centre (36.550 N, 6.300 W) sits beside the Las Puercas reef: move the anchored glyphs into open water north or north-west of it (`v-h2c.md`, H2-36d, H2-40a).
+     - Positions are **provisional**. The fact-check found that the suggested anchorage centre (36.550 N, 6.300 W) sits beside the Las Puercas reef: move the anchored glyphs into open water north or north-west of it (`v-h2c.md`, H2-36d, H2-40a; ruled in `a-h2c.md`). On screen they now stand on the bay's north shore in the Gulf views.
    - [x] **The rising shot is clear (session 6)**: the haze now clears quickly as the camera climbs out of the sea-level layer; the dawn frame and the higher views are as before.
    - [ ] Known look problems, still to fix (the owner's list first):
      - [x] waterlining round small islands reads as target rings (worst on the Atlantic view: the Azores, Madeira, the Canaries, the Cape Verde Islands, Bermuda, the Lesser Antilles; also the Channel Islands). Fixed in session 7;
@@ -60,18 +65,20 @@ Stage A builds the chart engine, its data and its look, proven by one camera fli
      - [x] rivers look uniform and mechanical and can read as borders (northern France at p = 1). Fixed in session 7;
      - [x] in the Gulf close-up the relief beyond the Cádiz tile (inland Andalusia) is visibly coarser: frame around it. Settled in session 7 by the shadow fix: the contrast came from the detail tile's shadow-speckled lowland against the smooth overview; with that gone the seam at 37.8° N no longer shows at p = 0.24, so the approved framing stays;
      - [x] at dawn light the low sun's cast shadows on the Andalusian lowlands read as dark blotches at close range (seen at 30 km altitude). Fixed in session 7.
-   - Ideas for the target rings, not yet tried: make the waterlines' reach depend on the size of the nearest land, either from a field baked at build time (for each sea texel, the inscribed radius of the nearest landmass, from the coast transform's nearest-seed labels, in the free alpha channel of the tile WebP) or from a few samples inland along the distance field's gradient in the shader. Check `t4-chart-style.md` first for how engravers handled small islands.
+   - [ ] Not yet looked at: the glyph colours against the owner's taste.
+   - Optional refinements from `a-t4.md`, not done: the waterlines' hand (spacing jitter, a slow wobble, dashed outer hairlines: directive 3), the 100-fathom line as a stippled bank edge (7), a coastal fringe of stipple and cliff strokes (8), a river meander (6). Route styling (a dotted hairline under a wash, day circles and numerals: 10), shoals, battle marks and an anchor at the Cádiz anchorage belong to Stage B.
 5. [x] The `/lab/chart` flight (`4f45b56`, keys retuned in session 6).
    - SmoothScroll (Lenis on the shared ticker) and a pinned ScrollTrigger (`id: "chart-lab"`, scrub 0.6, 8 viewport heights).
    - One duration-1 timeline drives the camera's progress, the light (dawn to campaign) and the route's drawing, with labels `dawn`, `gulf`, `atlantic` and `channel`.
    - Rendering stops off screen and in hidden tabs.
    - Query parameters: `?p` (jumps there with the scrub settled), `?light`, `?route`, `?quality`, `?debug`, and since session 6 `?eye=lon,lat,km` with `?look=lon,lat` (and `?fov=`) to hold the camera on one place.
-   - `?debug` shows the chart's draw calls (7 with the glyphs), triangles, textures, programs, quality level, render resolution, GPU memory (51 MB with the glyph atlas), altitude and exaggeration, plus fps and both progress values.
+   - `?debug` shows the chart's draw calls (8 with the glyphs and the town marks since session 7), triangles, textures, programs, quality level, render resolution, GPU memory (about 54 MB with the glyph atlas and the land masks), altitude and exaggeration, plus fps and both progress values.
+   - Since session 7 the lab exposes every name's size on screen and opacity (`window.__chart.labels()`); `LABELS=1 node scripts/dev/shot.mjs <dir> "p=0.42"` prints them with each screenshot.
 6. [x] Tests (session 6): `tests/e2e/chart.spec.ts` (projects `chart`, software, and `chart-gpu`), `tests/e2e/regression.spec.ts` with `tests/e2e/imageDiff.ts` (project `regression`), and the `?debug` overlay test in `tests/e2e/scene.spec.ts`. All are in `npm run test:e2e`.
 7. [ ] Screenshots of the flight at 1280×720 (scale 1.5) and 1920×1080 into `docs/screenshots/scene-02/`: not taken. Only scratch renders exist.
 8. [ ] Credits line, README notes, the full `npm run check`, commit, the report in Russian.
 
-### Decisions taken so far (to move into decisions.md)
+### Log of decisions (consolidated in `docs/decisions.md`, "Scene 2, Stage A")
 
 #### Taken in sessions 4 and 5
 - **Source grid.** Only the 15″ ETOPO grid is served by ERDDAP. The overview takes every fourth 15″ sample (1′) and the build tent-filters it to 3′ cells; the Cádiz tile uses every sample; the surround every 48th (12′).
@@ -169,7 +176,7 @@ Stage A builds the chart engine, its data and its look, proven by one camera fli
 - **Waterlining after Hall** (`t4-chart-style.md`, section 1; terrain/shaders.ts). Replaces the scheme whose spacing doubled each time the distance doubled, which drew few, wide, equally strong rings: a target round every small island.
   - Lines every 2.2 CSS px at the shore, the spacing opening smoothly about twofold across the band to a reach of 26 spacings (about 57 CSS px): four nested sets (s, 2s, 4s, 8s), the finest giving way at 0.45 of the reach and each coarser one reaching 0.45 farther, instead of a step. The period range is twofold (Hall 1817) to fourfold (the Ordnance Survey, 1801–1809), always smooth (`v-t4`). Each line stays put in the world as the camera zooms, and nothing jumps when the octave changes.
   - Strength falls as (1 − d/reach)^1.5; the first few lines about twice the middle ones' weight, a rim of tone at the shore; each line's weight and ink vary ±20 % and ±15 %, hashed from its distance from the coast so a line keeps its hand at every zoom.
-  - A small island far from other land keeps only a faint ripple (18 % strength), as Hall drew a soft small patch round an isolated rock. "Far from other land" is the share of land in a window round the water that reaches past its own coast distance by 0.3 reach: along any coast the window always holds land (above 0.11 out to the reach), round a speck almost none, even in a strait between two coasts (Alborán). The window follows the water, not its nearest coast, so halos meet without seams and islets close inshore (Ushant, the Channel Islands) leave the coast's band whole.
+  - A small island far from other land keeps a small, soft halo (55 % of the reach, 60 % strength, after `a-t4.md`, directive 4; a first try at full reach and 18 % strength kept a faint target's geometry), as Hall drew a soft small patch round an isolated rock. "Far from other land" is the share of land in a window round the water that reaches past its own coast distance by 0.3 reach: along any coast the window always holds land (above 0.11 out to the reach), round a speck almost none, even in a strait between two coasts (Alborán). The window follows the water, not its nearest coast, so halos meet without seams and islets close inshore (Ushant, the Channel Islands) leave the coast's band whole.
   - The share of land comes from a land mask per tile, baked on the GPU at load at half resolution and mipmapped (about 3 MB), read once per terrain vertex.
   - Tried and dropped: the share of land in a fixed window (a speck in a narrow sea such as Alborán got a full target); the mean coast distance in a window (a cluster such as the Azores averages like a coast, and the overview's distance range of 356 km caps it at ocean scale).
   - Isobaths give way where the waterlining is strong (from 0.2 to 0.55 of the reach).
@@ -183,30 +190,17 @@ Stage A builds the chart engine, its data and its look, proven by one camera fli
 - **Cast shadows** (terrain/shaders.ts, engine/Chart.ts): a shadow deepens with how far the relief rises above the sun's line (from the geometric edge over 0.04, or half the sun's tangent), so a low hill that barely clips a dawn sun casts a faint wash and a sierra its full shadow; and cast shadows come in with the camera's altitude, from nothing at 20 km to full at 160 km (about 75 % at the Gulf key). From a few dozen kilometres the lowland's hills had shredded it into blotches under the 4° dawn sun; the hill shading stays at every height. Trafalgar's name is set below the cape, clear of the fleets.
 
 ### Next steps, in order
-1. **Finish the research.** The saved workflow can't be resumed in a new session.
-   - Write a short one that:
-     - adjudicates every "corrected" and "disputed" verdict in `docs/research/scene-02/v-*.md` against the primary source;
-     - researches and checks the 1805 English names (h4, prompt in the session 6 script);
-     - checks `t4-chart-style.md` independently.
-   - Session 6's script, with every prompt: `C:\Users\User\.claude\projects\d--dev-trafalgar-1805\43fa8065-09be-424a-8d60-8feee16ab4db\workflows\scripts\scene2-factcheck-wf_30289020-9d0.js`. Agents write only to the scratchpad; move the results into `docs/research/scene-02/` under the same rules.
-2. **Write the "Scene 2" section of `history-notes.md`** (facts, dates, sources, doubts, fleet sizes, signals), then apply it:
-   - the route waypoints (`h1` table A, checked in `v-h1c.md`);
-   - the 1805 names in the gazetteer (`h4`), re-running `npm run check:lettering`;
-   - the glyph positions: the anchorage off Las Puercas into open water; the dawn positions near Cape Trafalgar.
-   - The brief's caption for beat 4 says "a chain of frigates"; the sources give frigates inshore and ships of the line in the chain. Record it for Stage B's copy.
-3. **Write the design plan in `decisions.md`** from the decisions listed here: palette, type roles, layer stack, how each feature is drawn, the camera rig, the quality ladder, the glyphs, the tests, and the `troika-three-utils` dependency. Review it against the brief and both avoid-lists, then commit.
-4. **Fix the look from `t4`**:
-   - waterlining round islands (target rings), first;
-   - town marks;
-   - the rivers and the isobaths' style;
-   - label sizes and the Cádiz label's place;
-   - the Gulf view kept within the Cádiz tile.
-   - Look at the glyph colours against the owner's taste.
-5. **Screenshots** of the flight at 1280×720 (scale 1.5) and 1920×1080 into `docs/screenshots/scene-02/`. Look at each one and fix what is off (`scripts/dev/shot.mjs` against `npm run dev` or `npm run preview`).
-6. **Close Stage A.**
+1. **Settle the 1805 names.** Adjudicate the names `v-h4.md` contests against `h4-names.md` (each against English charts and pilot books of about 1795–1810), then set the gazetteer's forms (`src/scenes/02-road/gazetteer.ts`) and run `npm run check:lettering`. Session 7's script has the prompts (names research, check and adjudication): `C:\Users\User\.claude\projects\d--dev-trafalgar-1805\ff8b9f97-a497-42fd-91fd-249d772d747a\workflows\scripts\scene2-names-and-chart-style-wf_da553d6b-ef3.js`. A workflow can't be resumed in a new session, but its prompts can be reused; agents write only to the scratchpad, and results move into `docs/research/scene-02/` under the same rules.
+2. **Write the "Scene 2" section of `history-notes.md`** (facts, dates, sources, doubts, fleet sizes, signals) in the file's style, from the notes `h1`–`h3`, their checks `v-*.md` and the adjudications `a-*.md` (the final word on contested points), with `draft-h3.md` as a start for the signals part. Session 7's drafting prompts (headings per track, style rules, the scene data to return): `C:\Users\User\.claude\projects\d--dev-trafalgar-1805\ff8b9f97-a497-42fd-91fd-249d772d747a\workflows\scripts\scene2-history-adjudicate-draft-wf_8de816a1-760.js`. Then apply it:
+   - the Toulon–Cádiz waypoints (`h1` table A as refined in `v-h1c.md` and `a-h1ac.md`: row 5 in the open sea south of the Gulf of Lion, row 6 south-east of Barcelona, the 4 p.m. point of 9 April off Cape Trafalgar rather than Conil), in `src/scenes/02-road/routes.ts`;
+   - the glyph positions in `src/scenes/02-road/fleets.ts`: the combined fleet at anchor in open water north or north-west of Las Puercas (`a-h2c.md`), and the dawn positions off Cape Trafalgar;
+   - the brief's caption for beat 4 says "a chain of frigates"; the sources give frigates inshore and ships of the line in the chain: record it for Stage B's copy.
+3. **Look, the last items:** check the glyph colours against the owner's taste; optionally the `a-t4.md` refinements listed under step 4 above.
+4. **Screenshots** of the flight at 1280×720 (scale 1.5) and 1920×1080 into `docs/screenshots/scene-02/`, from the production preview (`npm run build`, `npm run preview`, then `BASE=http://127.0.0.1:4173 node scripts/dev/shot.mjs ...`). Look at each one and fix what is off.
+5. **Close Stage A.**
    - The credits line on the site and in README: "Relief: NOAA NCEI ETOPO 2022. Coastlines and rivers: Natural Earth."
    - README notes on `/lab/chart`, `npm run data:build`, `npm run check:lettering` and `scripts/dev/`.
-   - The full `npm run check`, a commit, then the short report in Russian, and stop for the owner's GPU check.
+   - The full `npm run check` (with `next build` and every Playwright project, scene 1's regression check included), a commit, then the short report in Russian, and stop for the owner's GPU check.
 
 ## Scene 1
 
@@ -219,7 +213,8 @@ Legend: `[x]` done, `[~]` built but not yet reviewed or finished, `[ ]` not star
 - Session 3 (25 October 2026): a short follow-up round on the owner's review: the real fonts, his answers on the rig and flags, 15 lower-deck ports, a backlog for later scenes, and public-repository hygiene. See "Follow-up round" below.
 - Session 4 (25 October 2026): scene 2 Stage A begun. ERDDAP research, the data pipeline, and the engine core written but never run; stopped by the owner mid-step 4.
 - Session 5 (25 October 2026): the engine type-checked, run and proven on `/lab/chart`; first-run defects fixed (12-bit coast distance, the surround tile, a flat-sea LOD with skirts, the haze model); restrained relief; rivers, the route, the scroll flight, the debug readouts and the lettering. The research was re-run in parallel and stopped with the session. Stopped deliberately by the owner after the lettering commit.
-- Session 6 (26 October 2026): ship glyphs, a clear rising shot, the Atlantic view out to the West Indies, the chart lab's tests and scene 1's regression check, the first `next build` of the chart; the history notes fact-checked and all research moved into `docs/research/scene-02/`. Stopped deliberately by the owner while the research's last stages ran; see "Where it stopped" above.
+- Session 6 (26 October 2026): ship glyphs, a clear rising shot, the Atlantic view out to the West Indies, the chart lab's tests and scene 1's regression check, the first `next build` of the chart; the history notes fact-checked and all research moved into `docs/research/scene-02/`. Stopped deliberately by the owner while the research's last stages ran.
+- Session 7 (29 October 2026): the owner's look list done (waterlining, town marks, lettering, rivers, shadows, the Gulf's tile edge), isobaths of one weight, and the design plan in `decisions.md`; the history adjudicated, the 1805 names researched and checked, the chart style checked and adjudicated, all moved into the repository. Stopped deliberately by the owner while the history drafts and the names adjudication ran; see "Where it stopped" above.
 
 ## 0. Setup
 - [x] Node 24.15.0 and git 2.55 checked; git user configured

@@ -3,14 +3,15 @@ import { BatchedText, configureTextBuilder, Text } from "troika-three-text";
 import { createDerivedMaterial } from "troika-three-utils";
 import type { ChartLayer, FrameInfo } from "../engine/Chart";
 import { worldX, worldY } from "../geo/mercator";
-import { GLSL_FIELD, GLSL_GEO } from "../shaders/common";
 import type { TerrainField } from "../terrain/field";
+import { DRAPE } from "./drape";
 import {
   DEFAULT_FONT_FILE,
   FONT_FILES,
   fontUrl,
   type LabelRole,
 } from "./fonts";
+import { MARK_HALF_EM, MARK_RING_EM, type MarkKind, Marks } from "./marks";
 
 /**
  * Lettering lying on the chart and tilting with it, as on a real chart
@@ -19,9 +20,14 @@ import {
  * italic. Every name is a troika Text in one BatchedText, so all of them
  * are one draw call. The batch's base material drapes each glyph on the
  * exaggerated relief and pulls it a little toward the camera, as the ink
- * lines are. A name shows while its letters are a readable size on screen,
- * fading in and out at either end of that band, as the chart is foreshortened
- * toward the horizon, and with the haze.
+ * lines are. A name shows once its letters are a readable size on screen.
+ * Close up, a place's or a cape's name stops growing at a size of its own
+ * and stays, as a chart of a smaller area letters its towns again; the
+ * names of oceans, seas and countries fade out instead. Names fade as the
+ * chart is foreshortened toward the horizon, and with the haze.
+ *
+ * A town can have a mark on its site (marks.ts), with its name set beside
+ * it; mark and name scale and fade together.
  *
  * Fonts come only from this site (fonts.ts). troika fetches a fallback
  * font from a CDN for any character neither a label's font nor the default
@@ -31,12 +37,15 @@ import {
  * holds a character its font lacks.
  */
 
-export type { LabelRole };
+export type { LabelRole, MarkKind };
 
 export interface Label {
   text: string;
   role: LabelRole;
-  /** Where the label's centre lies, degrees. */
+  /**
+   * Degrees: the site (a town, a cape) when the label has a mark or a
+   * side, otherwise the label's centre.
+   */
   lon: number;
   lat: number;
   /** Em size on the chart, world km. */
@@ -47,6 +56,23 @@ export interface Label {
   tracking?: number;
   /** The on-screen em size band (CSS px) in which the label shows. */
   showPx?: readonly [number, number];
+  /** A mark on the site, with the name beside it. */
+  mark?: MarkKind;
+  /**
+   * Where the name sits against its site (and mark), in the label's own
+   * frame; "right" when it has a mark and no side.
+   */
+  side?: "right" | "left" | "above" | "below";
+  /**
+   * Close up, the name stops growing at this em size on screen (CSS px)
+   * and stays; 0 fades it out instead. Defaults by role, and for capitals.
+   */
+  capPx?: number;
+  /**
+   * The ink: pale for a name lying on the sea, dark on land. Defaults by
+   * role (places and lands dark, the rest pale).
+   */
+  ink?: "dark" | "pale";
 }
 
 /**
@@ -59,6 +85,30 @@ const SDF_GLYPH_SIZE = 128;
 /** Default readable band, CSS px of em size on screen. */
 const SHOW_PX: readonly [number, number] = [9, 46];
 
+/**
+ * Where names stop growing close up (CSS px of em); 0: they fade out
+ * instead, as the names of large areas do. A capital's cap is
+ * CAPITAL_CAP_PX: the period hierarchy is about 1.4 for capitals to 1.2
+ * for ports and 1 for minor names (docs/research/scene-02/t4-chart-style.md,
+ * section 7).
+ */
+const CAP_PX: Record<LabelRole, number> = {
+  ocean: 0,
+  sea: 0,
+  water: 0,
+  land: 0,
+  cape: 18,
+  island: 18,
+  place: 19,
+};
+const CAPITAL_CAP_PX = 22;
+
+/** The roles whose names lie on the land, in dark ink. */
+const DARK_ROLES: ReadonlySet<LabelRole> = new Set(["place", "land"]);
+
+/** The gap between a mark's ring and its name, in ems. */
+const MARK_GAP_EM = 0.2;
+
 let configured = false;
 
 /** troika's global settings, before the first text is made. */
@@ -68,38 +118,38 @@ function configureFonts(): void {
   configureTextBuilder({ defaultFontURL: fontUrl(DEFAULT_FONT_FILE) });
 }
 
-const DRAPE = /* glsl */ `
-${GLSL_GEO}
-${GLSL_FIELD}
-uniform float uExag;
-uniform vec3 uTexelKm;
-uniform float uLodK;
-uniform float uPull;
-
-// A glyph corner (world km: the batch sits at the origin) laid on the
-// relief, read where the terrain mesh reads it, and pulled toward the camera.
-vec3 chartDrape(vec3 p) {
-  float cellKm = max(length(vec3(p.xy - cameraPosition.xy, cameraPosition.z)) / uLodK, 1e-3);
-  vec4 f = sampleFieldLod(p.xy, max(vec3(0.0), log2(cellKm / uTexelKm)));
-  float taper = smoothstep(0.0, cellKm, -f.y);
-  vec3 w = vec3(p.xy, max(f.x, 0.0) * 0.001 * secLat(p.y) * uExag * taper);
-  return w + (cameraPosition - w) * uPull;
-}
-`;
-
 interface Placed {
   label: Label;
   text: Text;
-  /** World position of the label's centre (z on the sea). */
+  /** World position of the site or the label's centre (z on the sea). */
   at: Vector3;
   band: readonly [number, number];
+  cap: number;
+  /** Dark ink (on land) or pale (on the sea). */
+  dark: boolean;
+  /** The name's offset from its site, ems, in the chart's frame (east, north). */
+  offset: readonly [number, number];
+  /** Index of its mark, or -1. */
+  mark: number;
   /** Half the typeset block's diagonal, world km (known after sync). */
   radius: number;
   opacity: number;
+  /** This frame's em size on screen (CSS px) and scale on the chart. */
+  emPx: number;
+  scale: number;
+}
+
+/** A name's state in the last frame, for development and tests. */
+export interface LabelState {
+  text: string;
+  emPx: number;
+  opacity: number;
+  scale: number;
 }
 
 export class Lettering implements ChartLayer {
   readonly batch: BatchedText;
+  readonly marks: Marks;
   /** Resolves once every name has been typeset. */
   readonly ready: Promise<void>;
   private readonly placed: Placed[] = [];
@@ -135,6 +185,7 @@ export class Lettering implements ChartLayer {
     this.batch.frustumCulled = false;
     this.batch.renderOrder = 30;
 
+    const kinds: MarkKind[] = [];
     const syncs: Promise<void>[] = [];
     for (const label of labels) {
       const text = new Text();
@@ -144,13 +195,44 @@ export class Lettering implements ChartLayer {
       // In ems: troika 0.52.5 multiplies it by fontSize (its README says
       // local units).
       text.letterSpacing = label.tracking ?? 0;
-      text.anchorX = "center";
-      text.anchorY = "middle";
       text.whiteSpace = "nowrap";
       text.sdfGlyphSize = SDF_GLYPH_SIZE;
+      const angle = ((label.angle ?? 0) * Math.PI) / 180;
+      text.rotation.z = angle;
+      let offset: readonly [number, number] = [0, 0];
+      let mark = -1;
+      if (label.mark) {
+        mark = kinds.length;
+        kinds.push(label.mark);
+      }
+      if (label.mark || label.side) {
+        const side = label.side ?? "right";
+        const away = (label.mark ? MARK_RING_EM : 0) + MARK_GAP_EM;
+        const [ex, ey] =
+          side === "right"
+            ? [away, 0]
+            : side === "left"
+              ? [-away, 0]
+              : side === "above"
+                ? [0, away]
+                : [0, -away];
+        const c = Math.cos(angle);
+        const s = Math.sin(angle);
+        offset = [ex * c - ey * s, ex * s + ey * c];
+        text.anchorX =
+          side === "right" ? "left" : side === "left" ? "right" : "center";
+        text.anchorY =
+          side === "above" ? "bottom" : side === "below" ? "top" : "middle";
+      } else {
+        text.anchorX = "center";
+        text.anchorY = "middle";
+      }
       const at = new Vector3(worldX(label.lon), worldY(label.lat), 0);
-      text.position.copy(at);
-      text.rotation.z = ((label.angle ?? 0) * Math.PI) / 180;
+      text.position.set(
+        at.x + offset[0] * label.size,
+        at.y + offset[1] * label.size,
+        0,
+      );
       text.fillOpacity = 0;
       this.batch.add(text);
       this.placed.push({
@@ -158,8 +240,18 @@ export class Lettering implements ChartLayer {
         text,
         at,
         band: label.showPx ?? SHOW_PX,
+        cap:
+          label.capPx ??
+          (label.mark === "capital" ? CAPITAL_CAP_PX : CAP_PX[label.role]),
+        dark:
+          (label.ink ?? (DARK_ROLES.has(label.role) ? "dark" : "pale")) ===
+          "dark",
+        offset,
+        mark,
         radius: 0,
         opacity: 0,
+        emPx: 0,
+        scale: 1,
       });
       const placed = this.placed[this.placed.length - 1];
       syncs.push(
@@ -172,6 +264,7 @@ export class Lettering implements ChartLayer {
         ),
       );
     }
+    this.marks = new Marks(field, kinds, this.uniforms, this.inkDark);
     this.ready = Promise.all(syncs).then(() => undefined);
   }
 
@@ -190,30 +283,54 @@ export class Lettering implements ChartLayer {
       // Too small where the centre is; too big where its nearest letters
       // are (a long name seen from close to one end).
       const near = Math.max(dist - p.radius, eye.z, 1e-3);
-      const emPx = (p.label.size * cssPerRadian) / dist;
-      const emPxNear = (p.label.size * cssPerRadian) / near;
+      const size = p.label.size;
+      const emPx = (size * cssPerRadian) / dist;
+      const emPxNear = (size * cssPerRadian) / near;
       const [lo, hi] = p.band;
+      // Close up, a capped name shrinks on the chart to stay at its cap.
+      const scale = p.cap > 0 ? Math.min(1, p.cap / emPxNear) : 1;
       const inBand =
         smooth(lo * 0.8, lo * 1.1, emPx) *
-        (1 - smooth(hi * 0.85, hi * 1.2, emPxNear));
+        (p.cap > 0 ? 1 : 1 - smooth(hi * 0.85, hi * 1.2, emPxNear));
       // Toward the horizon the chart is foreshortened past reading.
       const tilt = smooth(0.1, 0.25, eye.z / dist);
       const x = dist / frame.hazeVisibility;
       const clear = Math.exp(-x * x);
       p.opacity = inBand * tilt * clear;
-      p.text.fillOpacity = p.opacity;
+      p.emPx = emPx * scale;
+      p.scale = scale;
+      const text = p.text;
+      text.fillOpacity = p.opacity;
+      text.scale.setScalar(scale);
+      const em = size * scale;
+      text.position.set(
+        p.at.x + p.offset[0] * em,
+        p.at.y + p.offset[1] * em,
+        0,
+      );
       // Names on the sea in pale ink, on the land in dark ink.
-      const ink =
-        p.label.role === "place" || p.label.role === "land"
-          ? this.inkDark
-          : this.inkPale;
-      p.text.color = colorHex(ink);
+      text.color = colorHex(p.dark ? this.inkDark : this.inkPale);
+      if (p.mark >= 0) {
+        this.marks.set(p.mark, p.at.x, p.at.y, MARK_HALF_EM * em, p.opacity);
+      }
     }
+    this.marks.commit();
+  }
+
+  /** Every name's state in the last frame (development and tests). */
+  snapshot(): LabelState[] {
+    return this.placed.map((p) => ({
+      text: p.label.text,
+      emPx: Math.round(p.emPx * 10) / 10,
+      opacity: Math.round(p.opacity * 100) / 100,
+      scale: Math.round(p.scale * 100) / 100,
+    }));
   }
 
   dispose(): void {
     for (const p of this.placed) p.text.dispose();
     this.batch.dispose();
+    this.marks.dispose();
   }
 }
 

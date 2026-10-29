@@ -20,7 +20,13 @@ export {
   type ShipMark,
   type Side,
 } from "./glyphs/Glyphs";
-export { type Label, type LabelRole, Lettering } from "./lettering/Lettering";
+export {
+  type Label,
+  type LabelRole,
+  type LabelState,
+  Lettering,
+  type MarkKind,
+} from "./lettering/Lettering";
 export { LIGHT_STATES, type LightId } from "./light/states";
 export { Rivers } from "./lines/Rivers";
 export { Route, type RoutePoint, type Waypoint } from "./lines/Route";

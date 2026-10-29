@@ -1,0 +1,24 @@
+import { GLSL_FIELD, GLSL_GEO } from "../shaders/common";
+
+/**
+ * Laying lettering and its marks on the chart: a point (world km) set on
+ * the exaggerated relief, read where the terrain mesh reads it (its cells
+ * are about distance / uLodK wide), and pulled a little toward the camera,
+ * as the ink lines are, so it stays in front of the surface it lies on.
+ */
+export const DRAPE = /* glsl */ `
+${GLSL_GEO}
+${GLSL_FIELD}
+uniform float uExag;
+uniform vec3 uTexelKm;
+uniform float uLodK;
+uniform float uPull;
+
+vec3 chartDrape(vec3 p) {
+  float cellKm = max(length(vec3(p.xy - cameraPosition.xy, cameraPosition.z)) / uLodK, 1e-3);
+  vec4 f = sampleFieldLod(p.xy, max(vec3(0.0), log2(cellKm / uTexelKm)));
+  float taper = smoothstep(0.0, cellKm, -f.y);
+  vec3 w = vec3(p.xy, max(f.x, 0.0) * 0.001 * secLat(p.y) * uExag * taper);
+  return w + (cameraPosition - w) * uPull;
+}
+`;

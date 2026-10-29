@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import type { ChartStats, LightId } from "@/components/chart";
+import type { ChartStats, LabelState, LightId } from "@/components/chart";
 import { worldX, worldY } from "@/components/chart/geo/mercator";
 import { DebugOverlay } from "@/components/experience/DebugOverlay";
 import { SmoothScroll } from "@/components/providers/SmoothScroll";
@@ -167,7 +167,7 @@ export function ChartLab() {
         const squadron = LAB_MARKS.length;
         const head = { x: 0, y: 0, heading: 0 };
         const lettering = new engine.Lettering(chart.field, GAZETTEER);
-        chart.add(lettering, lettering.batch);
+        chart.add(lettering, lettering.batch, lettering.marks.mesh);
         await lettering.ready;
         if (cancelled) return;
         const rig = new engine.CameraRig(LAB_FLIGHT);
@@ -227,7 +227,11 @@ export function ChartLab() {
         gsap.ticker.add(render);
         document.addEventListener("visibilitychange", onVisibility);
         unregister = registerChartReadout(() => chart.stats);
-        window.__chart = { stats: chart.stats, ready: true };
+        window.__chart = {
+          stats: chart.stats,
+          ready: true,
+          labels: () => lettering.snapshot(),
+        };
       };
       start().catch((error: unknown) => {
         if (!cancelled) console.error("chart:", error);
@@ -271,6 +275,11 @@ export function ChartLab() {
 declare global {
   interface Window {
     /** The lab's chart, for the end-to-end tests and screenshots. */
-    __chart?: { stats: ChartStats; ready: boolean };
+    __chart?: {
+      stats: ChartStats;
+      ready: boolean;
+      /** Each name's on-screen size and opacity, for development. */
+      labels?: () => LabelState[];
+    };
   }
 }

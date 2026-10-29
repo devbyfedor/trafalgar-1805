@@ -3,7 +3,8 @@
 // Each query becomes one PNG. Needs a server: `npm run dev` (the default
 // base, http://127.0.0.1:3000) or `npm run preview` with BASE=http://127.0.0.1:4173.
 // Environment: W, H and S set the viewport and device scale (1280, 720, 1.5);
-// WAIT the settle time in ms after the chart is ready (600).
+// WAIT the settle time in ms after the chart is ready (600); LABELS=1 also
+// prints each visible name's em size on screen and its opacity.
 import path from "node:path";
 import { chromium } from "@playwright/test";
 
@@ -45,6 +46,13 @@ for (const q of queries) {
   await page.screenshot({ path: file });
   console.log(`${q}: ${Date.now() - started} ms -> ${file}`);
   console.log(`  ${JSON.stringify(stats)}`);
+  if (process.env.LABELS) {
+    const labels = await page.evaluate(() => window.__chart?.labels?.() ?? []);
+    for (const l of labels.filter((l) => l.opacity > 0.02))
+      console.log(
+        `  ${l.text}: ${l.emPx} px, opacity ${l.opacity}, scale ${l.scale}`,
+      );
+  }
 }
 if (logs.length) console.log(logs.join("\n"));
 await browser.close();

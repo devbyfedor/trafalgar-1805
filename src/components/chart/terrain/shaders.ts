@@ -118,10 +118,13 @@ vec2 reliefLight(vec3 n, vec3 L, float horizonTan, float on) {
   float tanSun = L.z / max(length(L.xy), 1e-4);
   // Shadows take a capped exaggeration: at continental scale a low sun
   // would otherwise throw shadows a hundred kilometres long across plains.
-  // The penumbra grows with the sun's height, soft as a wash.
+  // A shadow deepens with how far the relief rises above the sun's line,
+  // over a range that grows with the sun's height: a low hill that barely
+  // clips a dawn sun casts only a faint wash (at full strength the lowland
+  // read as dark blotches close up), a sierra its full long shadow.
   float rise = min(uExag, uShadowExag) * horizonTan - tanSun;
-  float soft = max(0.006, 0.3 * tanSun);
-  float shadow = smoothstep(-soft, soft, rise);
+  float soft = max(0.04, 0.5 * tanSun);
+  float shadow = smoothstep(0.0, soft, rise);
   float facing = max(dot(n, L), 0.0) / max(L.z, 0.02) - 1.0;
   return on * vec2(facing / (1.0 + abs(facing)), shadow);
 }

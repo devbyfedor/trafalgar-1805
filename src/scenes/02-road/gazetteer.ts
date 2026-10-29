@@ -57,14 +57,15 @@ export const GAZETTEER: readonly Label[] = [
     size: 3.6,
     angle: 6,
   },
-  // Capes: the name ends at the cape, on the sea.
+  // Capes: the name ends at the cape, on the sea (Trafalgar's below it,
+  // clear of the fleets to the west).
   {
     text: "C. Trafalgar",
     role: "cape",
     lon: -6.034,
     lat: 36.183,
     size: 4,
-    side: "left",
+    side: "below",
   },
   {
     text: "C. St Vincent",

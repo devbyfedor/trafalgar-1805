@@ -79,6 +79,15 @@ export interface ChartStats {
   nodes: number;
 }
 
+/** Camera altitudes (km) over which cast shadows come in. */
+const SHADOW_FROM_KM = 20;
+const SHADOW_FULL_KM = 160;
+
+function smooth(e0: number, e1: number, x: number): number {
+  const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
+  return t * t * (3 - 2 * t);
+}
+
 export interface ChartOptions {
   canvas: HTMLCanvasElement;
   /** Called when the chart can't go on (WebGL lost for good). */
@@ -267,7 +276,14 @@ export class Chart {
     u.uHazeVisibility.value = visibility;
     u.uContourInterval.value = contours.interval;
     u.uContourBlend.value = contours.blend;
-    u.uShadowStrength.value = level.effects ? this.light.shadowStrength : 0;
+    // Cast shadows come in as the camera climbs: from a few dozen
+    // kilometres the hills of a lowland would shred it into blotches under
+    // a low sun, while from higher up the sierras' long shadows carry the
+    // drama (the hill shading stays at every height).
+    u.uShadowStrength.value = level.effects
+      ? this.light.shadowStrength *
+        smooth(SHADOW_FROM_KM, SHADOW_FULL_KM, this.eye.z)
+      : 0;
     info.width = this.renderer.domElement.width;
     info.height = this.renderer.domElement.height;
     info.hazeVisibility = visibility;

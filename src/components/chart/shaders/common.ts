@@ -39,6 +39,9 @@ uniform float uSatB;
 uniform float uHasB;
 uniform sampler2D uHorizonA;
 uniform sampler2D uHorizonB;
+uniform sampler2D uLandC;
+uniform sampler2D uLandA;
+uniform sampler2D uLandB;
 
 vec2 tileUv(vec2 p, vec4 rect) {
   return vec2((p.x - rect.x) / rect.z, (rect.y - p.y) / rect.w);
@@ -90,6 +93,18 @@ vec4 sampleFieldLod(vec2 p, vec3 lod) {
     textureLod(uFieldA, tileUv(p, uRectA), lod.x),
     textureLod(uFieldB, tileUv(p, uRectB), lod.y)
   );
+}
+
+// The share of land around a point (0..1), from each layer's land mask read
+// at levels (overview, detail, surround) whose texels are as wide as the
+// window. Beyond the surround there is only open sea.
+float landShare(vec2 p, vec3 lod) {
+  float c = textureLod(uLandC, tileUv(p, uRectC), lod.z).r;
+  float a = textureLod(uLandA, tileUv(p, uRectA), lod.x).r;
+  float b = textureLod(uLandB, tileUv(p, uRectB), lod.y).r;
+  float f = insideKm(tileUv(p, uRectC), uRectC) > 0.0 ? c : 0.0;
+  f = mix(f, a, cover(p, uRectA, uFadeA));
+  return mix(f, b, uHasB * cover(p, uRectB, uFadeB));
 }
 
 // Horizon tangents toward the two lighting states' suns (true scale). The

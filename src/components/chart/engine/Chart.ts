@@ -263,6 +263,7 @@ export class Chart {
     this.terrain.update(this.eye, this.frustum, exaggeration, dpr);
     const contours = contourIntervalAt(this.eye.z, this.contours);
     const u = this.terrain.uniforms;
+    u.uPxPerRad.value = info.pxPerRadian;
     u.uHazeVisibility.value = visibility;
     u.uContourInterval.value = contours.interval;
     u.uContourBlend.value = contours.blend;

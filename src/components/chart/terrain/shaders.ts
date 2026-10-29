@@ -15,7 +15,13 @@ uniform float uGridN;
 uniform float uExag;
 uniform vec3 uEye;
 uniform vec3 uTexelKm;
+uniform float uDpr;
+uniform float uPxPerRad;
+uniform float uWaterSpacingPx;
+uniform float uWaterReach;
+uniform float uWaterWindow;
 out vec3 vWorld;
+out float vLandShare;
 
 void main() {
   float cell = node.z / uGridN;
@@ -33,6 +39,13 @@ void main() {
   // Skirt vertices (position.z = 1) hang below the patch's edge.
   z -= position.z * cell * 0.5;
   vWorld = vec3(p, z);
+  // The share of land in a window round this water, reaching past its coast
+  // distance by a share of the waterlining's reach (seen face on; a mask
+  // texel is two field cells), for the waterlines' strength (waterAlone).
+  // It varies slowly enough to be read per vertex.
+  float reachKm = uWaterReach * uWaterSpacingPx * uDpr * dist / uPxPerRad;
+  float windowKm = 2.0 * (max(f.y, 0.0) + uWaterWindow * reachKm);
+  vLandShare = landShare(p, max(vec3(0.0), log2(windowKm / (2.0 * uTexelKm))));
   gl_Position = projectionMatrix * viewMatrix * vec4(vWorld, 1.0);
 }
 `;
@@ -44,6 +57,7 @@ ${GLSL_FIELD}
 ${GLSL_LINES}
 ${GLSL_SKY}
 in vec3 vWorld;
+in float vLandShare;
 out vec4 fragColor;
 
 uniform float uExag;
@@ -76,7 +90,9 @@ uniform float uContourInterval;
 uniform float uContourBlend;
 uniform float uWaterSpacingPx;
 uniform float uWaterBand;
-uniform float uWaterExtent;
+uniform float uWaterReach;
+uniform vec2 uWaterAlone;
+uniform float uWaterAloneStrength;
 uniform float uIsobathDeepest;
 uniform float uSmoothBias;
 uniform float uHazeVisibility;
@@ -110,29 +126,69 @@ vec2 reliefLight(vec3 n, vec3 L, float horizonTan, float on) {
   return on * vec2(facing / (1.0 + abs(facing)), shadow);
 }
 
-// One waterlining set at spacing s: multiples of s near the coast, the
-// spacing doubling each time the distance doubles beyond 2·band·s. A set at
-// 2s is a subset of the set at s, so octaves nest as the camera zooms.
-float waterSet(float d, float s, float pxKm, float widthPx) {
-  float sigma = s * exp2(max(0.0, ceil(log2(d / (2.0 * uWaterBand * s)))));
-  float m = d / sigma;
-  return lineCov(abs(m - floor(m + 0.5)) * sigma / pxKm, widthPx);
+// Waterlining, after the engraved waterlining of Arrowsmith and Hall
+// (docs/research/scene-02/t4-chart-style.md, section 1): many fine lines
+// whose spacing grows only twofold across the band, fading in strength
+// outward, so a halo reads as a tonal ripple and never as a target.
+//
+// The nearest line of one set at spacing s: lines every s out to
+// uWaterBand·s, every 2s beyond. The set at 2s is a subset of the set at s
+// (uWaterBand is even), so octaves nest as the camera zooms. Returns the
+// distance to that line and the line's own distance from the coast, km.
+vec2 waterLine(float d, float s) {
+  float edge = uWaterBand * s;
+  float a = min(floor(d / s + 0.5), uWaterBand) * s;
+  float b = edge + floor(max(d - edge, 0.0) / (2.0 * s) + 0.5) * 2.0 * s;
+  return abs(d - a) <= abs(d - b) ? vec2(abs(d - a), a) : vec2(abs(d - b), b);
 }
 
-float waterlines(float d, float pxKm) {
+// An engraver's hand: each line's weight differs a little from the next.
+// Hashed from the line's distance from the coast, so a line keeps its
+// weight in every octave it appears in.
+float lineHand(float lineKm) {
+  uint n = uint(lineKm * 1000.0 + 0.5);
+  n = (n ^ 61u) ^ (n >> 16u);
+  n *= 9u;
+  n ^= n >> 4u;
+  n *= 0x27d4eb2du;
+  n ^= n >> 15u;
+  return float(n & 0xffffu) / 65535.0;
+}
+
+// How alone the nearest land is (0..1): a small island far from other land
+// gets only a faint, small ripple, as Hall drew a soft small patch round an
+// isolated rock, while a coast keeps its band. From the share of land in a
+// window round the water that reaches past its own coast distance by a
+// share of the reach (vLandShare): along any coast, however far out in the
+// band, the window holds a good share of land; round a speck, even one in
+// a strait between two coasts, almost none. The window follows the water,
+// not its nearest coast, so halos meet without seams and an islet close
+// inshore leaves the coast's band whole.
+float waterAlone() {
+  return 1.0 - smoothstep(uWaterAlone.x, uWaterAlone.y, vLandShare);
+}
+
+// d: the coast distance, km; reach: the band's reach, km (constant on
+// screen); alone: waterAlone().
+float waterlines(float d, float pxKm, float reach, float alone) {
+  if (d < 0.0 || d >= reach) return 0.0;
   float Z = log2(uWaterSpacingPx * uDpr * pxKm / 0.001);
   float zf = floor(Z);
   float z = Z - zf;
   float s = 0.001 * exp2(zf);
-  float sCont = 0.001 * exp2(Z);
-  float reach = d / sCont;
-  // Lines thin and fade outward.
-  float w = mix(1.05, 0.6, smoothstep(0.0, uWaterExtent, reach)) * uDpr;
-  float fine = waterSet(d, s, pxKm, w);
-  float coarse = waterSet(d, 2.0 * s, pxKm, w);
-  float cov = max(coarse, fine * (1.0 - smoothstep(0.0, 1.0, z)));
-  float fade = 1.0 - smoothstep(uWaterExtent * 0.45, uWaterExtent, reach);
-  return cov * fade * step(0.0, d);
+  float u = d / reach;
+  // Full strength at the coast, nothing at the reach; the inner lines are
+  // about twice the weight of the middle ones.
+  float strength = pow(1.0 - u, 1.5) * mix(1.0, uWaterAloneStrength, alone);
+  float w = mix(1.2, 0.55, u) * uDpr;
+  vec2 fine = waterLine(d, s);
+  vec2 coarse = waterLine(d, 2.0 * s);
+  float hf = lineHand(fine.y);
+  float hc = lineHand(coarse.y);
+  float cf = lineCov(fine.x / pxKm, w * (0.8 + 0.4 * hf)) * (0.85 + 0.3 * hf);
+  float cc = lineCov(coarse.x / pxKm, w * (0.8 + 0.4 * hc)) * (0.85 + 0.3 * hc);
+  float cov = max(cc, cf * (1.0 - smoothstep(0.0, 1.0, z)));
+  return cov * strength;
 }
 
 // Clear near the camera, closing smoothly to opaque at the far distance.
@@ -179,11 +235,10 @@ void main() {
     float w = (fm == 100.0 ? 1.15 : 0.8) * dpr;
     iso = max(iso, lineCov(abs(sounding - L) / dPx, w) * crowd);
   }
-  // Keep the coast clean: soundings give way to the waterlining.
-  float waterReach = sdf / (uWaterSpacingPx * dpr * pxKm);
-  iso *= smoothstep(2.0, 6.0, waterReach);
-
-  float water = waterlines(sdf, pxKm);
+  // Soundings give way to the waterlining where it is strong.
+  float reach = uWaterReach * uWaterSpacingPx * dpr * pxKm;
+  iso *= smoothstep(0.2, 0.55, sdf / reach);
+  float water = waterlines(sdf, pxKm, reach, waterAlone());
 
   // The sea reflects the sky at grazing angles, as scene 1's sea does.
   float grazing = 1.0 - clamp(-view.z, 0.0, 1.0);

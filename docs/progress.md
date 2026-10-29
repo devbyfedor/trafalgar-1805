@@ -8,6 +8,10 @@ Stage A builds the chart engine, its data and its look, proven by one camera fli
 
 **The owner's verdict before session 6.** He looked at `/lab/chart` in dev mode and loves it: the look, and the flight from Cádiz onward. Keep this direction; the fixes refine it, they don't change it.
 
+**Session 7 (29 October 2026), in progress.** Resumed from a clean tree; lint, typecheck and the lettering check passed; nothing was left running.
+- Research, two workflows in the background, writing only to this session's scratchpad (`C:\Users\User\AppData\Local\Temp\claude\d--dev-trafalgar-1805\ff8b9f97-a497-42fd-91fd-249d772d747a\scratchpad\research\`): (1) adjudication of every contested verdict in `v-h1a` … `v-h3b` (`a-*.md`), then a draft of each track's part of the "Scene 2" history notes (`draft-h1.md`, `draft-h2.md`, `draft-h3.md`); (2) the 1805 names (`h4-names.md`, `v-h4.md`, `a-h4.md`) and an independent check of `t4` (`v-t4.md`, `a-t4.md`). If the session stops, move what exists there into `docs/research/scene-02/` under the same rules.
+- Done: the waterlining after Hall (no more target rings); see "Taken in session 7" below.
+
 **Where it stopped (session 6, 26 October 2026, about 23:50).** The owner stopped the session deliberately, while the tests were being finished. Everything is committed and the working tree is clean. Nothing is left running: the research workflow, the dev server and the static server were stopped.
 - **Done in session 6:** the ship glyphs; a clear rising shot (new haze curve); the Atlantic view now reaches the West Indies; end-to-end tests for `/lab/chart`; a regression check of scene 1 against its approved screenshots; a test that scene 1's `?debug` overlay is unchanged; the first `next build` of the chart code; the research notes moved into the repository (`docs/research/scene-02/`) with independent fact-checks of h1–h3 and the new period-chart notes (t4).
 - **Stopped half-way:** the research workflow's last stages. Its fact-checks of h1–h3 finished (eight reports, saved). The adjudication of contested points and the 1805 names (h4) were still running and left nothing. The check of t4 never started.
@@ -50,7 +54,7 @@ Stage A builds the chart engine, its data and its look, proven by one camera fli
      - Positions are **provisional**. The fact-check found that the suggested anchorage centre (36.550 N, 6.300 W) sits beside the Las Puercas reef: move the anchored glyphs into open water north or north-west of it (`v-h2c.md`, H2-36d, H2-40a).
    - [x] **The rising shot is clear (session 6)**: the haze now clears quickly as the camera climbs out of the sea-level layer; the dawn frame and the higher views are as before.
    - [ ] Known look problems, still to fix (the owner's list first):
-     - waterlining round small islands reads as target rings (worst on the Atlantic view: the Azores, Madeira, the Canaries, the Cape Verde Islands, Bermuda, the Lesser Antilles; also the Channel Islands);
+     - [x] waterlining round small islands reads as target rings (worst on the Atlantic view: the Azores, Madeira, the Canaries, the Cape Verde Islands, Bermuda, the Lesser Antilles; also the Channel Islands). Fixed in session 7;
      - no town marks beside place names; the "Cadiz" label sits inland, east of the bay, away from the town;
      - label sizes only roughly tuned; names fade out when the camera comes close (Cádiz at 30 km altitude shows none);
      - rivers look uniform and mechanical and can read as borders (northern France at p = 1);
@@ -160,6 +164,15 @@ Stage A builds the chart engine, its data and its look, proven by one camera fli
 - **Scene 1's `?debug` overlay** is tested: exactly two lines (fps, the dawn progress), and the chart's readout block empty and zero pixels tall.
 - **Research notes in the repository.** All research notes, with the fact-check reports, are in `docs/research/scene-02/`. On copying, every quotation of 26 words or more was cut to its opening phrase (20 of them, all from public-domain period sources).
 - **Dev tooling in the repository.** `scripts/dev/shot.mjs` takes screenshots of `/lab/chart`; `scripts/dev/sheet.mjs` makes contact sheets and crops. Both are development aids, not part of the site.
+
+#### Taken in session 7
+- **Waterlining after Hall** (`t4-chart-style.md`, section 1; terrain/shaders.ts). Replaces the scheme whose spacing doubled each time the distance doubled, which drew few, wide, equally strong rings: a target round every small island.
+  - Lines every 2.4 CSS px out to 12 spacings, every other one beyond, out to a reach of 22 spacings (about 53 CSS px): the spacing grows only twofold across the band, as on Arrowsmith and Hall's plates. The sets still nest across octaves, so zooming never pops.
+  - Strength falls as (1 − d/reach)^1.5; the inner lines are about twice the middle ones' weight; each line's weight and ink vary ±20 % and ±15 %, hashed from its distance from the coast so a line keeps its hand at every zoom.
+  - A small island far from other land keeps only a faint ripple (18 % strength), as Hall drew a soft small patch round an isolated rock. "Far from other land" is the share of land in a window round the water that reaches past its own coast distance by 0.3 reach: along any coast the window always holds land (above 0.11 out to the reach), round a speck almost none, even in a strait between two coasts (Alborán). The window follows the water, not its nearest coast, so halos meet without seams and islets close inshore (Ushant, the Channel Islands) leave the coast's band whole.
+  - The share of land comes from a land mask per tile, baked on the GPU at load at half resolution and mipmapped (about 3 MB), read once per terrain vertex.
+  - Tried and dropped: the share of land in a fixed window (a speck in a narrow sea such as Alborán got a full target); the mean coast distance in a window (a cluster such as the Azores averages like a coast, and the overview's distance range of 356 km caps it at ocean scale).
+  - Isobaths give way where the waterlining is strong (from 0.2 to 0.55 of the reach).
 
 ### Next steps, in order
 1. **Finish the research.** The saved workflow can't be resumed in a new session.

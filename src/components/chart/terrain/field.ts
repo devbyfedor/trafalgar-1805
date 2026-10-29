@@ -9,6 +9,7 @@ import {
   Mesh,
   NearestFilter,
   OrthographicCamera,
+  RedFormat,
   RGBAFormat,
   RGFormat,
   Scene,
@@ -45,6 +46,11 @@ import { GLSL_FIELD, GLSL_GEO } from "../shaders/common";
  * is in shadow when exaggeration × that tangent exceeds the tangent of the
  * sun's elevation. The surround, seen only from far off, casts none.
  *
+ * Each tile also gets a land mask at half its resolution, mipmapped, so a
+ * mip level is the share of land around a point at that scale (GLSL_FIELD's
+ * landShare; the waterlining reads it to tell a small island far from
+ * other land).
+ *
  * Everything here is GPU state that a lost WebGL context destroys; `restore`
  * rebuilds it from the bitmaps, which are kept.
  */
@@ -54,6 +60,7 @@ interface FieldTile {
   bitmap: ImageBitmap;
   field: WebGLRenderTarget;
   horizon: WebGLRenderTarget | null;
+  land: WebGLRenderTarget;
   rect: Vector4;
 }
 
@@ -131,6 +138,28 @@ void main() {
 }
 `;
 
+const LAND = /* glsl */ `
+precision highp float;
+uniform sampler2D uField;
+uniform float uCellKm;
+out vec4 fragColor;
+
+// A mask texel covers 2 × 2 field texels: the share of them on land, each
+// anti-aliased across the coast by its distance.
+void main() {
+  ivec2 p = ivec2(gl_FragCoord.xy) * 2;
+  ivec2 last = textureSize(uField, 0) - 1;
+  float land = 0.0;
+  for (int j = 0; j < 2; j++) {
+    for (int i = 0; i < 2; i++) {
+      float d = texelFetch(uField, min(p + ivec2(i, j), last), 0).y;
+      land += clamp(0.5 - d / uCellKm, 0.0, 1.0);
+    }
+  }
+  fragColor = vec4(0.25 * land, 0.0, 0.0, 1.0);
+}
+`;
+
 const HORIZON = /* glsl */ `
 precision highp float;
 ${GLSL_GEO}
@@ -199,6 +228,9 @@ export class TerrainField {
     uHasB: { value: 0 },
     uHorizonA: { value: null as Texture | null },
     uHorizonB: { value: null as Texture | null },
+    uLandC: { value: null as Texture | null },
+    uLandA: { value: null as Texture | null },
+    uLandB: { value: null as Texture | null },
   };
   /** Cell sizes of the overview, detail and surround tiles, km. */
   readonly texelKm = new Vector3(1, 1, 1);
@@ -209,6 +241,7 @@ export class TerrainField {
   private readonly passScene = new Scene();
   private readonly passCamera = new OrthographicCamera();
   private readonly decodeMaterial: ShaderMaterial;
+  private readonly landMaterial: ShaderMaterial;
   private readonly horizonMaterial: ShaderMaterial;
   /** A 1 × 1 stand-in for a layer that is missing or not loaded yet. */
   private readonly blank = new WebGLRenderTarget(1, 1, { type: HalfFloatType });
@@ -231,6 +264,17 @@ export class TerrainField {
         uSdfRange: { value: 1 },
         uCellKm: { value: 1 },
         uMercTop: { value: 0 },
+      },
+      depthTest: false,
+      depthWrite: false,
+    });
+    this.landMaterial = new ShaderMaterial({
+      glslVersion: GLSL3,
+      vertexShader: VERTEX,
+      fragmentShader: LAND,
+      uniforms: {
+        uField: { value: null },
+        uCellKm: { value: 1 },
       },
       depthTest: false,
       depthWrite: false,
@@ -258,6 +302,9 @@ export class TerrainField {
     this.uniforms.uFieldB.value = blank;
     this.uniforms.uHorizonA.value = blank;
     this.uniforms.uHorizonB.value = blank;
+    this.uniforms.uLandC.value = blank;
+    this.uniforms.uLandA.value = blank;
+    this.uniforms.uLandB.value = blank;
     const tile = (role: TileRole) =>
       manifest.tiles.find((t) => t.role === role);
     this.texelKm.set(
@@ -315,6 +362,7 @@ export class TerrainField {
       bytes += t.info.cols * t.info.rows * 8 * (4 / 3);
       const h = t.horizon;
       if (h) bytes += h.width * h.height * 2 * (4 / 3);
+      bytes += t.land.width * t.land.height * 2 * (4 / 3);
     }
     return Math.round(bytes);
   }
@@ -323,12 +371,14 @@ export class TerrainField {
     for (const tile of this.tiles) {
       tile.field.dispose();
       tile.horizon?.dispose();
+      tile.land.dispose();
       tile.bitmap.close();
     }
     this.tiles = [];
     this.blank.dispose();
     this.pass.geometry.dispose();
     this.decodeMaterial.dispose();
+    this.landMaterial.dispose();
     this.horizonMaterial.dispose();
   }
 
@@ -367,11 +417,26 @@ export class TerrainField {
             },
           )
         : null;
+    const land = new WebGLRenderTarget(
+      Math.ceil(info.cols / 2),
+      Math.ceil(info.rows / 2),
+      {
+        type: HalfFloatType,
+        format: RedFormat,
+        minFilter: LinearMipmapLinearFilter,
+        magFilter: LinearFilter,
+        wrapS: ClampToEdgeWrapping,
+        wrapT: ClampToEdgeWrapping,
+        generateMipmaps: true,
+        depthBuffer: false,
+      },
+    );
     return {
       info,
       bitmap,
       field,
       horizon,
+      land,
       rect: new Vector4(...tileRect(info)),
     };
   }
@@ -401,6 +466,11 @@ export class TerrainField {
     // The packed copy is only needed for this pass.
     packed.dispose();
     u.uPacked.value = null;
+    const l = this.landMaterial.uniforms;
+    l.uField.value = tile.field.texture;
+    l.uCellKm.value = tile.info.cellKm;
+    this.run(this.landMaterial, tile.land);
+    l.uField.value = null;
   }
 
   private bake(tile: FieldTile) {
@@ -425,18 +495,21 @@ export class TerrainField {
       case "surround":
         u.uFieldC.value = texture;
         u.uRectC.value.copy(tile.rect);
+        u.uLandC.value = tile.land.texture;
         break;
       case "overview":
         u.uFieldA.value = texture;
         u.uRectA.value.copy(tile.rect);
         u.uSatA.value = saturation(tile.info);
         if (tile.horizon) u.uHorizonA.value = tile.horizon.texture;
+        u.uLandA.value = tile.land.texture;
         break;
       case "detail":
         u.uFieldB.value = texture;
         u.uRectB.value.copy(tile.rect);
         u.uSatB.value = saturation(tile.info);
         if (tile.horizon) u.uHorizonB.value = tile.horizon.texture;
+        u.uLandB.value = tile.land.texture;
         u.uHasB.value = 1;
         break;
     }

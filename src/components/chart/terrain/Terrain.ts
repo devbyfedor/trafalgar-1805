@@ -69,6 +69,8 @@ export class Terrain {
         uEye: { value: this.eye },
         uTexelKm: { value: field.texelKm },
         uDpr: { value: 1 },
+        // Device pixels per radian of view, vertically.
+        uPxPerRad: { value: 1000 },
         // Sky (shared chunk).
         uSkyStops: { value: [] as Vector3[] },
         uSunDir: { value: new Vector3(0, 1, 0) },
@@ -103,9 +105,19 @@ export class Terrain {
         // Chart style.
         uContourInterval: { value: 200 },
         uContourBlend: { value: 0 },
-        uWaterSpacingPx: { value: 2.6 },
-        uWaterBand: { value: 3 },
-        uWaterExtent: { value: 12 },
+        // Waterlining (terrain/shaders.ts): spacing at the coast, CSS px;
+        // lines at that spacing (even); reach of the band, in spacings.
+        uWaterSpacingPx: { value: 2.4 },
+        uWaterBand: { value: 12 },
+        uWaterReach: { value: 22 },
+        // A small island far from other land (terrain/shaders.ts,
+        // waterAlone): how far its window reaches past the coast distance
+        // (in reaches), the share of land in it over which land stops being
+        // alone (a straight coast keeps above 0.11 out to the reach), and
+        // the strength left round such an island.
+        uWaterWindow: { value: 0.3 },
+        uWaterAlone: { value: [0.02, 0.08] },
+        uWaterAloneStrength: { value: 0.18 },
         uIsobathDeepest: { value: 200 },
         uSmoothBias: { value: 1.5 },
         uHazeVisibility: { value: 100 },

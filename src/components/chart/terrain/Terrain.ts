@@ -106,10 +106,12 @@ export class Terrain {
         uContourInterval: { value: 200 },
         uContourBlend: { value: 0 },
         // Waterlining (terrain/shaders.ts): spacing at the coast, CSS px;
-        // lines at that spacing (even); reach of the band, in spacings.
-        uWaterSpacingPx: { value: 2.4 },
-        uWaterBand: { value: 12 },
-        uWaterReach: { value: 22 },
+        // where (as a share of the reach) the lines at the spacing on
+        // screen give way to every other one, and how much farther each
+        // coarser set reaches; the reach of the band, in spacings.
+        uWaterSpacingPx: { value: 2.2 },
+        uWaterOpen: { value: [0.45, 0.45] },
+        uWaterReach: { value: 26 },
         // A small island far from other land (terrain/shaders.ts,
         // waterAlone): how far its window reaches past the coast distance
         // (in reaches), the share of land in it over which land stops being

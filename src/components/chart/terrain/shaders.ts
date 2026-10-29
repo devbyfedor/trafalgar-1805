@@ -89,7 +89,7 @@ uniform vec3 uSlotB;
 uniform float uContourInterval;
 uniform float uContourBlend;
 uniform float uWaterSpacingPx;
-uniform float uWaterBand;
+uniform vec2 uWaterOpen;
 uniform float uWaterReach;
 uniform vec2 uWaterAlone;
 uniform float uWaterAloneStrength;
@@ -126,20 +126,19 @@ vec2 reliefLight(vec3 n, vec3 L, float horizonTan, float on) {
   return on * vec2(facing / (1.0 + abs(facing)), shadow);
 }
 
-// Waterlining, after the engraved waterlining of Arrowsmith and Hall
-// (docs/research/scene-02/t4-chart-style.md, section 1): many fine lines
-// whose spacing grows only twofold across the band, fading in strength
-// outward, so a halo reads as a tonal ripple and never as a target.
+// Waterlining, after the engraved waterlining of the Ordnance Survey
+// (1801-1809) and of Arrowsmith and Hall (1817): many fine lines whose
+// spacing opens smoothly about twofold across the band, fading in strength
+// outward, so a band reads as tone (docs/research/scene-02/t4-chart-style.md,
+// section 1, and the independent check v-t4.md).
 //
-// The nearest line of one set at spacing s: lines every s out to
-// uWaterBand·s, every 2s beyond. The set at 2s is a subset of the set at s
-// (uWaterBand is even), so octaves nest as the camera zooms. Returns the
-// distance to that line and the line's own distance from the coast, km.
+// The nearest line of the set at spacing s (lines at every multiple of s
+// from the coast): the distance to it and its own distance from the coast,
+// km. Sets at s, 2s, 4s and 8s nest, and each line stays where it is in
+// the world as the camera zooms.
 vec2 waterLine(float d, float s) {
-  float edge = uWaterBand * s;
-  float a = min(floor(d / s + 0.5), uWaterBand) * s;
-  float b = edge + floor(max(d - edge, 0.0) / (2.0 * s) + 0.5) * 2.0 * s;
-  return abs(d - a) <= abs(d - b) ? vec2(abs(d - a), a) : vec2(abs(d - b), b);
+  float line = floor(d / s + 0.5) * s;
+  return vec2(abs(d - line), line);
 }
 
 // An engraver's hand: each line's weight differs a little from the next.
@@ -177,17 +176,23 @@ float waterlines(float d, float pxKm, float reach, float alone) {
   float z = Z - zf;
   float s = 0.001 * exp2(zf);
   float u = d / reach;
-  // Full strength at the coast, nothing at the reach; the inner lines are
-  // about twice the weight of the middle ones.
+  // Full strength at the coast, nothing at the reach; the first few lines
+  // about twice the weight of the middle ones, a rim of tone at the shore.
   float strength = pow(1.0 - u, 1.5) * mix(1.0, uWaterAloneStrength, alone);
-  float w = mix(1.2, 0.55, u) * uDpr;
-  vec2 fine = waterLine(d, s);
-  vec2 coarse = waterLine(d, 2.0 * s);
-  float hf = lineHand(fine.y);
-  float hc = lineHand(coarse.y);
-  float cf = lineCov(fine.x / pxKm, w * (0.8 + 0.4 * hf)) * (0.85 + 0.3 * hf);
-  float cc = lineCov(coarse.x / pxKm, w * (0.8 + 0.4 * hc)) * (0.85 + 0.3 * hc);
-  float cov = max(cc, cf * (1.0 - smoothstep(0.0, 1.0, z)));
+  float w = (0.55 + 0.75 * (1.0 - smoothstep(0.08, 0.4, u))) * uDpr;
+  float cov = 0.0;
+  for (int i = 0; i < 4; i++) {
+    vec2 line = waterLine(d, s * exp2(float(i)));
+    // The set's level against the spacing on screen (r): the finest set
+    // fades as the camera pulls back, and each coarser set reaches farther
+    // out, so the spacing opens smoothly instead of in a step. The coarsest
+    // set reaches past the band, so nothing jumps when the octave changes.
+    float r = float(i) - z;
+    float edge = uWaterOpen.x + uWaterOpen.y * r;
+    float shown = (1.0 - smoothstep(edge - 0.12, edge + 0.12, u)) * (i == 0 ? 1.0 - smoothstep(0.0, 1.0, z) : 1.0);
+    float hand = lineHand(line.y);
+    cov = max(cov, lineCov(line.x / pxKm, w * (0.8 + 0.4 * hand)) * (0.85 + 0.3 * hand) * shown);
+  }
   return cov * strength;
 }
 

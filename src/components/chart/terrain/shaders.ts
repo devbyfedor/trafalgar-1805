@@ -92,6 +92,7 @@ uniform float uWaterSpacingPx;
 uniform vec2 uWaterOpen;
 uniform float uWaterReach;
 uniform vec2 uWaterAlone;
+uniform float uWaterAloneReach;
 uniform float uWaterAloneStrength;
 uniform float uIsobathDeepest;
 uniform float uSmoothBias;
@@ -158,8 +159,10 @@ float lineHand(float lineKm) {
 }
 
 // How alone the nearest land is (0..1): a small island far from other land
-// gets only a faint, small ripple, as Hall drew a soft small patch round an
-// isolated rock, while a coast keeps its band. From the share of land in a
+// gets a small, soft halo, as Hall drew a soft small patch round an isolated
+// rock (full-size faint rings would keep a target's geometry), while a
+// coast keeps its band (docs/research/scene-02/a-t4.md, directive 4). From
+// the share of land in a
 // window round the water that reaches past its own coast distance by a
 // share of the reach (vLandShare): along any coast, however far out in the
 // band, the window holds a good share of land; round a speck, even one in
@@ -170,9 +173,10 @@ float waterAlone() {
   return 1.0 - smoothstep(uWaterAlone.x, uWaterAlone.y, vLandShare);
 }
 
-// d: the coast distance, km; reach: the band's reach, km (constant on
-// screen); alone: waterAlone().
-float waterlines(float d, float pxKm, float reach, float alone) {
+// d: the coast distance, km; band: the band's reach, km (constant on
+// screen); alone: waterAlone(), which shrinks and softens the band.
+float waterlines(float d, float pxKm, float band, float alone) {
+  float reach = band * mix(1.0, uWaterAloneReach, alone);
   if (d < 0.0 || d >= reach) return 0.0;
   float Z = log2(uWaterSpacingPx * uDpr * pxKm / 0.001);
   float zf = floor(Z);
@@ -229,7 +233,10 @@ void main() {
   vec3 sea = mix(uSeaShallow, uSeaDeep, shelf);
 
   // Isobaths in fathoms, on the shelf and its edge only: deep water was
-  // unsounded in 1805 and stays blank.
+  // unsounded in 1805 and stays blank. All of one weight, as Buache drew
+  // them (no index line); the 200-fathom line, past the edge of soundings
+  // of the period's lead, only faintly (docs/research/scene-02/a-t4.md,
+  // directive 7).
   float sounding = max(-fs.x, 0.0);
   float dPx = max(length(vec2(dFdx(sounding), dFdy(sounding))), 1e-5);
   float iso = 0.0;
@@ -240,8 +247,8 @@ void main() {
     float L = fm * 1.8288;
     float gap = (i < 5 ? levels[i + 1] - fm : fm) * 1.8288;
     float crowd = smoothstep(2.0 * dpr, 7.0 * dpr, gap / dPx);
-    float w = (fm == 100.0 ? 1.15 : 0.8) * dpr;
-    iso = max(iso, lineCov(abs(sounding - L) / dPx, w) * crowd);
+    float ink = fm > 100.0 ? 0.35 : 1.0;
+    iso = max(iso, lineCov(abs(sounding - L) / dPx, 0.8 * dpr) * crowd * ink);
   }
   // Soundings give way to the waterlining where it is strong.
   float reach = uWaterReach * uWaterSpacingPx * dpr * pxKm;

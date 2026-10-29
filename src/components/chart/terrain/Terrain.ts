@@ -116,10 +116,11 @@ export class Terrain {
         // waterAlone): how far its window reaches past the coast distance
         // (in reaches), the share of land in it over which land stops being
         // alone (a straight coast keeps above 0.11 out to the reach), and
-        // the strength left round such an island.
+        // the share of the reach and of the strength its halo keeps.
         uWaterWindow: { value: 0.3 },
         uWaterAlone: { value: [0.02, 0.08] },
-        uWaterAloneStrength: { value: 0.18 },
+        uWaterAloneReach: { value: 0.55 },
+        uWaterAloneStrength: { value: 0.6 },
         uIsobathDeepest: { value: 200 },
         uSmoothBias: { value: 1.5 },
         uHazeVisibility: { value: 100 },

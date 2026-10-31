@@ -2,11 +2,27 @@
 
 Live checklist. A later session picks up from here. The briefs are `docs/scene-01-brief.md` and `docs/scene-02-brief.md`; decisions and deviations are in `docs/decisions.md`.
 
-## Scene 2, Stage A: engine, data and look (sessions 4 to 7, 25–29 October 2026)
+## Scene 2, Stage A: engine, data and look (sessions 4 to 8, 25–31 October 2026)
 
 Stage A builds the chart engine, its data and its look, proven by one camera flight on `/lab/chart`, then stops for the owner's performance check on his GPU. Stage B (the full scene) waits for his approval.
 
 **The owner's verdict before session 6.** He looked at `/lab/chart` in dev mode and loves it: the look, and the flight from Cádiz onward. Keep this direction; the fixes refine it, they don't change it.
+
+**The owner's answers before session 8** (on session 7's look work): keep the new wide, softly fading waterline band, as on the engravings; keep the small soft halo round lone islands; the ships at anchor off Cádiz stand on the shore, fix that first; settle the contested 1805 names from the sources and record the doubts in `history-notes.md`; measure the frame load before closing the stage and leave headroom, since 60 fps on his laptop stays a hard requirement; close Stage A fully (names, the "Scene 2" history section, the credits line, README, `next build` and every browser test, screenshots looked at and fixed).
+
+**Session 8 (31 October 2026), in progress.** Started from a clean tree at `d736d6c`; no project process was running. Lint, typecheck and the lettering check passed before any change.
+- Done and committed:
+  - the anchored fleet is on the water (a glyph's `room` in confined water; the anchorage of `a-h2c.md`): `8a58e85`;
+  - frame timing on the GPU from the lab (`window.__chart.bench`, `scripts/dev/bench.mjs`): `ef4843c`; measured, and guarded by the `chart-frames` test project: `6a03587` (see "Budgets" in `decisions.md`: at most 8.8 ms of GPU a frame at the worst point, on battery);
+  - the credits line on the site and the README: `4c828d5`;
+  - a test that the chart comes back after a lost WebGL context (it does, pixel for pixel, on the GPU and in SwiftShader): `5a35b92`;
+  - the lettering's ink follows the ground under the letters; Gibraltar's name moved onto the sea: `829d879`;
+  - the Toulon–Cádiz track from table A as ruled: `fdc304c`;
+  - the 1805 names as adjudicated (`a-h4`, four changes): `5f8032f`;
+  - the fleets' dawn positions and headings: `aa7a358`;
+  - the chart's screenshots as their own project (`npm run screenshots:chart`): `c285ec9`.
+- Running: the research workflow (the names adjudication `a-h4`, the drafts of the h1 and h2 parts of the "Scene 2" history section, the revised h3 part, and an independent check of each), writing to the session's scratchpad.
+- Still to do: merge the history section from the checked drafts and move the research files in; apply the h1 draft's refined Toulon–Cádiz table; the screenshots, looked at and fixed; the full `npm run check`; the report.
 
 **Where it stopped (session 7, 29 October 2026, about 23:05).** The owner stopped the session deliberately. Everything is committed and the working tree is clean. Nothing is left running: both research workflows and the dev server were stopped, and no project process remains.
 - **Done in session 7** (details under "Taken in session 7" and in `docs/decisions.md`, "Scene 2, Stage A"):

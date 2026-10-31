@@ -10,19 +10,30 @@ Stage A builds the chart engine, its data and its look, proven by one camera fli
 
 **The owner's answers before session 8** (on session 7's look work): keep the new wide, softly fading waterline band, as on the engravings; keep the small soft halo round lone islands; the ships at anchor off Cádiz stand on the shore, fix that first; settle the contested 1805 names from the sources and record the doubts in `history-notes.md`; measure the frame load before closing the stage and leave headroom, since 60 fps on his laptop stays a hard requirement; close Stage A fully (names, the "Scene 2" history section, the credits line, README, `next build` and every browser test, screenshots looked at and fixed).
 
-**Session 8 (31 October 2026), in progress.** Started from a clean tree at `d736d6c`; no project process was running. Lint, typecheck and the lettering check passed before any change.
-- Done and committed:
-  - the anchored fleet is on the water (a glyph's `room` in confined water; the anchorage of `a-h2c.md`): `8a58e85`;
-  - frame timing on the GPU from the lab (`window.__chart.bench`, `scripts/dev/bench.mjs`): `ef4843c`; measured, and guarded by the `chart-frames` test project: `6a03587` (see "Budgets" in `decisions.md`: at most 8.8 ms of GPU a frame at the worst point, on battery);
-  - the credits line on the site and the README: `4c828d5`;
-  - a test that the chart comes back after a lost WebGL context (it does, pixel for pixel, on the GPU and in SwiftShader): `5a35b92`;
-  - the lettering's ink follows the ground under the letters; Gibraltar's name moved onto the sea: `829d879`;
-  - the Toulon–Cádiz track from table A as ruled: `fdc304c`;
-  - the 1805 names as adjudicated (`a-h4`, four changes): `5f8032f`;
-  - the fleets' dawn positions and headings: `aa7a358`;
-  - the chart's screenshots as their own project (`npm run screenshots:chart`): `c285ec9`.
-- Running: the research workflow (the names adjudication `a-h4`, the drafts of the h1 and h2 parts of the "Scene 2" history section, the revised h3 part, and an independent check of each), writing to the session's scratchpad.
-- Still to do: merge the history section from the checked drafts and move the research files in; apply the h1 draft's refined Toulon–Cádiz table; the screenshots, looked at and fixed; the full `npm run check`; the report.
+**Where it stopped (session 8, 31 October 2026, about 23:00).** The owner stopped the session deliberately while the "Scene 2" history section was being assembled. Everything is committed and the working tree is clean. Nothing is left running: the research workflow (its last three checks), the dev server and the preview server were stopped, and no project process remains. Session 8 started from a clean tree at `d736d6c`; lint, typecheck and the lettering check passed before any change, and after every commit.
+- **Done in session 8, committed:**
+  - the anchored fleet off Cádiz is on the water: a glyph in confined water has a `room` on the chart and shrinks with the bay when seen from farther off; the anchorage follows `a-h2c.md` (`8a58e85`);
+  - frame timing on the GPU from the lab (`window.__chart.bench`, `scripts/dev/bench.mjs`; `ef4843c`), measured on the owner's laptop on battery: at most 8.8 ms of GPU a frame at the worst point of the flight (95th percentile), CPU at most 2.5 ms, no long tasks while scrolling; guarded by the `chart-frames` test project, which runs after all the others (`6a03587`; "Budgets" in `decisions.md`);
+  - the credits line after the scenes and on the lab, and the README rewritten for scene 2's engine (`4c828d5`; `c285ec9` adds the warning that `npm run screenshots` rewrites scene 1's approved frames);
+  - a test that the chart comes back after a lost WebGL context: it does, pixel for pixel, on the GPU and in SwiftShader (`5a35b92`);
+  - the lettering's ink follows the ground under each letter, switching at the coast within a pixel (Cádiz's name had stayed pale on its isthmus close up); Gibraltar's name moved onto the open sea east of the Rock (`829d879`);
+  - Villeneuve's Toulon–Cádiz track from table A as ruled, checked against the coastline (`fdc304c`);
+  - the 1805 names as adjudicated (`a-h4.md`): English Channel, C. St. Vincent, Azores or Western Islands, Martinique; West Indies a regional label that fades out close up (`5f8032f`);
+  - the fleets at dawn on 21 October: the British in loose order in two groups strung north and south, on 047° true (the course after bearing up at about 6.45; in a column on that course they stacked into one pile at the Gulf key); the combined fleet standing south at 180–195° (`aa7a358`);
+  - `npm run screenshots:chart` and the `docs-chart` project (`c285ec9`), not yet run;
+  - the research moved into `docs/research/scene-02/` (this commit): `a-h4.md`, `draft-h1.md`, `draft-h2.md`, the revised `draft-h3.md` with its check `v-draft-h3.md`, the lead's parts `draft-lead.md`, `routes-draft.json` (every route's waypoints, for Stage B) and `drafts-data.json`; its README says what each is.
+- **Half-done:**
+  - the "Scene 2" section of `history-notes.md`: every part is drafted (above), none is merged. The independent checks of `draft-h1.md`, `draft-h2.md` and `a-h4.md` were stopped before they reported. Of `v-draft-h3.md`'s 28 points, some are applied and the rest are listed in the research README.
+  - the Toulon–Cádiz route: `routes.ts` draws table A with the adjudicated 4 p.m. point. `draft-h1.md`'s table refines it (the start in the middle of the Grande Rade, 43°05.5′ N 5°59.4′ E; a point in the offing of Cádiz, 36°25′ N 6°22′ W, keeping the line 3 nm off the shore; three estimated points dropped) and is not applied.
+- **Not started:** the screenshots for the owner (`npm run screenshots:chart`, then a look at each and fixes); the full `npm run check`; the report.
+- **Verified in session 8:** `next build` passes (last built after `fdc304c`). Playwright on those builds: `chart-gpu`, all 3 tests (the flight, the frames, the context restore); `chart` (SwiftShader), the context test; `chart-frames`, both tests. **Not run:** `laptop`, `desktop-1080` (with the new credits-line check in `scene.spec.ts`), `phone`, `perf`, `regression` (scene 1's code is untouched; the page gained the credits line after the placeholder), the full `chart` project, `docs-chart`, and anything after `fdc304c` (the names and the dawn positions, data only). The chart chunk's size was not measured.
+- **Next steps, in order:**
+  1. Run the stopped checks of `draft-h1.md`, `draft-h2.md` and `a-h4.md` (session 8's script, with the prompts: `C:\Users\User\.claude\projects\d--dev-trafalgar-1805\3e5770fc-9e19-4fc6-aa58-37980a54d14f\workflows\scripts\scene2-names-and-history-drafts-wf_cb84ee3e-304.js`; reports go to the scratchpad, then into `docs/research/scene-02/`). Apply what holds, to the names too if `a-h4` falls on any.
+  2. Merge the section into `docs/history-notes.md`, after the scene 1 sections, as "## Scene 2: the road to Trafalgar", in this order: `draft-lead.md`'s opening and brief table; `draft-h1.md` from "Dates and conventions" to "Ferrol, the turn south and Cádiz"; `draft-h2.md` from "Boulogne" to "Orders, Rosily and the sortie"; the lead's "Fleet sizes at each stage"; the three parts of `draft-h3.md`; `draft-h2.md`'s "Positions on the chart" without its table of 19 October (`draft-h3.md`'s tables replace it); `draft-h1.md`'s "Routes on the chart"; the lead's "The names on the chart", "Open doubts" and "Key sources". Apply the rest of `v-draft-h3.md` and the other checks' fixes; in the brief table's relay row say "with guns", not "counted guns" (counted guns with each hoist are logged only on the 20th). Note at the top of the file that scene 2's facts follow scene 1's.
+  3. Apply `draft-h1.md`'s Toulon–Cádiz table to `src/scenes/02-road/routes.ts` if its check holds.
+  4. Screenshots: `npm run screenshots:chart`; look at every one (and close crops); fix what is off.
+  5. The full `npm run check`, then the report in Russian, and stop for the owner's GPU check.
+- **For the report:** the drafters' questions for the owner are in `drafts-data.json` ("ownerQuestions"); the ones worth asking: the British heading at the handoff to scene 3 (350° true at sunrise, or the later course as a licence); whether the beat 4 caption becomes "a chain of frigates and ships of the line"; how far Nelson's return line runs (Gibraltar, or on to Ushant).
 
 **Where it stopped (session 7, 29 October 2026, about 23:05).** The owner stopped the session deliberately. Everything is committed and the working tree is clean. Nothing is left running: both research workflows and the dev server were stopped, and no project process remains.
 - **Done in session 7** (details under "Taken in session 7" and in `docs/decisions.md`, "Scene 2, Stage A"):
@@ -56,9 +67,9 @@ Stage A builds the chart engine, its data and its look, proven by one camera fli
      - `renderer.info` counting when other passes render in the same tick;
      - troika: in-plane arcs for names along coasts (its section 5.3, a `customRewriter`), and the readiness sequence with `initTexture` on the glyph atlas (its section 7).
    - [x] History (`h1-campaign.md`, `h2-boulogne-cadiz.md`, `h3-signals.md`, session 5): independently fact-checked in session 6 (`v-h1a.md` … `v-h3b.md`); every contested verdict adjudicated against the primary sources in session 7 (`a-h1ac.md`, `a-h1b.md`, `a-h2a.md`, `a-h2b.md`, `a-h2c.md`, `a-h3.md`). The corrections that change the scene are summarised in `docs/research/scene-02/README.md`.
-   - [~] The 1805 names (h4, session 7): researched (`h4-names.md`) and checked (`v-h4.md`); **the adjudication of the contested names has not run**. The gazetteer stays provisional.
+   - [x] The 1805 names: researched (`h4-names.md`) and checked (`v-h4.md`) in session 7, adjudicated (`a-h4.md`) and applied to the gazetteer in session 8 (`5f8032f`). The check of the adjudication was stopped before it reported.
    - [x] Period chart conventions (`t4-chart-style.md`, session 6): checked (`v-t4.md`) and adjudicated (`a-t4.md`) in session 7, and applied as `decisions.md` records.
-   - [ ] The "Scene 2" section of `history-notes.md`: not written. A draft of its signals part exists (`draft-h3.md`, not reviewed).
+   - [~] The "Scene 2" section of `history-notes.md`: every part drafted in session 8 (`draft-h1.md`, `draft-h2.md`, `draft-h3.md` with its check, `draft-lead.md`), not merged; see "Where it stopped (session 8)".
 2. [x] Design plan in decisions.md ("Scene 2, Stage A"), reviewed against the brief and both avoid-lists (session 7). The detailed log of decisions stays below.
 3. Data pipeline
    - [x] `npm run data:build`: built in session 4 (`b4cb148`) and revised in session 5 (`5ce1c8b`).
@@ -94,7 +105,7 @@ Stage A builds the chart engine, its data and its look, proven by one camera fli
    - Since session 7 the lab exposes every name's size on screen and opacity (`window.__chart.labels()`); `LABELS=1 node scripts/dev/shot.mjs <dir> "p=0.42"` prints them with each screenshot.
 6. [x] Tests (session 6): `tests/e2e/chart.spec.ts` (projects `chart`, software, and `chart-gpu`), `tests/e2e/regression.spec.ts` with `tests/e2e/imageDiff.ts` (project `regression`), and the `?debug` overlay test in `tests/e2e/scene.spec.ts`. All are in `npm run test:e2e`.
 7. [ ] Screenshots of the flight at 1280×720 (scale 1.5) and 1920×1080 into `docs/screenshots/scene-02/`: not taken. Only scratch renders exist.
-8. [ ] Credits line, README notes, the full `npm run check`, commit, the report in Russian.
+8. [~] Credits line and README notes: done in session 8 (`4c828d5`). The full `npm run check` and the report in Russian: not done.
 
 ### Log of decisions (consolidated in `docs/decisions.md`, "Scene 2, Stage A")
 
@@ -208,17 +219,7 @@ Stage A builds the chart engine, its data and its look, proven by one camera fli
 - **Cast shadows** (terrain/shaders.ts, engine/Chart.ts): a shadow deepens with how far the relief rises above the sun's line (from the geometric edge over 0.04, or half the sun's tangent), so a low hill that barely clips a dawn sun casts a faint wash and a sierra its full shadow; and cast shadows come in with the camera's altitude, from nothing at 20 km to full at 160 km (about 75 % at the Gulf key). From a few dozen kilometres the lowland's hills had shredded it into blotches under the 4° dawn sun; the hill shading stays at every height. Trafalgar's name is set below the cape, clear of the fleets.
 
 ### Next steps, in order
-1. **Settle the 1805 names.** Adjudicate the names `v-h4.md` contests against `h4-names.md` (each against English charts and pilot books of about 1795–1810), then set the gazetteer's forms (`src/scenes/02-road/gazetteer.ts`) and run `npm run check:lettering`. Session 7's script has the prompts (names research, check and adjudication): `C:\Users\User\.claude\projects\d--dev-trafalgar-1805\ff8b9f97-a497-42fd-91fd-249d772d747a\workflows\scripts\scene2-names-and-chart-style-wf_da553d6b-ef3.js`. A workflow can't be resumed in a new session, but its prompts can be reused; agents write only to the scratchpad, and results move into `docs/research/scene-02/` under the same rules.
-2. **Write the "Scene 2" section of `history-notes.md`** (facts, dates, sources, doubts, fleet sizes, signals) in the file's style, from the notes `h1`–`h3`, their checks `v-*.md` and the adjudications `a-*.md` (the final word on contested points), with `draft-h3.md` as a start for the signals part. Session 7's drafting prompts (headings per track, style rules, the scene data to return): `C:\Users\User\.claude\projects\d--dev-trafalgar-1805\ff8b9f97-a497-42fd-91fd-249d772d747a\workflows\scripts\scene2-history-adjudicate-draft-wf_8de816a1-760.js`. Then apply it:
-   - the Toulon–Cádiz waypoints (`h1` table A as refined in `v-h1c.md` and `a-h1ac.md`: row 5 in the open sea south of the Gulf of Lion, row 6 south-east of Barcelona, the 4 p.m. point of 9 April off Cape Trafalgar rather than Conil), in `src/scenes/02-road/routes.ts`;
-   - the glyph positions in `src/scenes/02-road/fleets.ts`: the combined fleet at anchor in open water north or north-west of Las Puercas (`a-h2c.md`), and the dawn positions off Cape Trafalgar;
-   - the brief's caption for beat 4 says "a chain of frigates"; the sources give frigates inshore and ships of the line in the chain: record it for Stage B's copy.
-3. **Look, the last items:** check the glyph colours against the owner's taste; optionally the `a-t4.md` refinements listed under step 4 above.
-4. **Screenshots** of the flight at 1280×720 (scale 1.5) and 1920×1080 into `docs/screenshots/scene-02/`, from the production preview (`npm run build`, `npm run preview`, then `BASE=http://127.0.0.1:4173 node scripts/dev/shot.mjs ...`). Look at each one and fix what is off.
-5. **Close Stage A.**
-   - The credits line on the site and in README: "Relief: NOAA NCEI ETOPO 2022. Coastlines and rivers: Natural Earth."
-   - README notes on `/lab/chart`, `npm run data:build`, `npm run check:lettering` and `scripts/dev/`.
-   - The full `npm run check` (with `next build` and every Playwright project, scene 1's regression check included), a commit, then the short report in Russian, and stop for the owner's GPU check.
+See "Where it stopped (session 8)" at the top of this section: session 7's list here was worked through in session 8 (the names, the drafts of the history section, the waypoints, the glyph positions, the credits line and README), and what remains is listed there.
 
 ## Scene 1
 
@@ -232,6 +233,7 @@ Legend: `[x]` done, `[~]` built but not yet reviewed or finished, `[ ]` not star
 - Session 4 (25 October 2026): scene 2 Stage A begun. ERDDAP research, the data pipeline, and the engine core written but never run; stopped by the owner mid-step 4.
 - Session 5 (25 October 2026): the engine type-checked, run and proven on `/lab/chart`; first-run defects fixed (12-bit coast distance, the surround tile, a flat-sea LOD with skirts, the haze model); restrained relief; rivers, the route, the scroll flight, the debug readouts and the lettering. The research was re-run in parallel and stopped with the session. Stopped deliberately by the owner after the lettering commit.
 - Session 6 (26 October 2026): ship glyphs, a clear rising shot, the Atlantic view out to the West Indies, the chart lab's tests and scene 1's regression check, the first `next build` of the chart; the history notes fact-checked and all research moved into `docs/research/scene-02/`. Stopped deliberately by the owner while the research's last stages ran.
+- Session 8 (31 October 2026): the anchored fleet on the water; the frame load measured on the owner's laptop (about half a 60 fps frame at the worst point) and guarded by a test; the context-loss restore tested; the lettering's ink by the ground under it; the 1805 names adjudicated and applied; Villeneuve's Toulon–Cádiz track and the dawn positions from the research; the credits line and README; the history section drafted and partly checked. Stopped deliberately by the owner while the section was being assembled; see "Where it stopped (session 8)".
 - Session 7 (29 October 2026): the owner's look list done (waterlining, town marks, lettering, rivers, shadows, the Gulf's tile edge), isobaths of one weight, and the design plan in `decisions.md`; the history adjudicated, the 1805 names researched and checked, the chart style checked and adjudicated, all moved into the repository. Stopped deliberately by the owner while the history drafts and the names adjudication ran; see "Where it stopped" above.
 
 ## 0. Setup

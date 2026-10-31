@@ -1,0 +1,965 @@
+[
+  {
+    "id": "villeneuve-toulon-cadiz",
+    "title": "Villeneuve, Toulon to Cádiz, 30 March to 9 April 1805 (the leg Stage A draws)",
+    "confidence": "medium",
+    "note": "Table A of research/scene-02/h1-campaign.md, section 7, as checked in v-h1c.md (H1-35) and ruled in a-h1ac.md (H1-35e). The Atlas's noon latitudes are firm; her longitudes exist only for 1-3 and 10 April, so the other longitudes keep the line in the channels the sources name (est.). Refinements: start in the middle of the Grande Rade (the notes' 43°06'N 5°56'E falls in the inner road on the chart's coast); row 5 lies in the open sea south of the Gulf of Lion and row 6 SE (not SSE) of Barcelona; the Strait at about 11 a.m., not noon; the 4 p.m. point just past Cape Trafalgar, off Conil, at the adjudicated 36°14'N 6°11'W (the task text says 'off Cape Trafalgar rather than off Conil': a-h1ac's final statement puts it just past the cape, off Conil, the same water); an estimated point in the offing keeps the line about 3 nm off Cádiz's rocky west shore; the anchoring in open water about 3.2 nm west of Las Puercas and 2.5 nm west of the Los Cochinos buoy, outside the entrance shoals (Corbett: 'outside the bay'), not in the outer-bay berth of August-October. Dropped as adding nothing to the shape: the notes' estimated points east of Cabo de la Nao, off Garrucha and south of Málaga (the line keeps at least 3.5 nm off those coasts without them). Checked against Natural Earth 10m: the drawn curve keeps 2.2 nm or more from every cape (Cap Cépet 2.2, the coast east of Cartagena 2.5, Punta Cires about 2.5, Tarifa 4.1, Cape Trafalgar 4.9, Europa Point 6.4, Cape Spartel 10, Las Puercas 3.2, Cádiz west shore 2.8); only the leg out of Toulon road runs within 1 nm of the shore, as any exit from the road must.",
+    "waypoints": [
+      {
+        "lon": 5.99,
+        "lat": 43.092,
+        "date": "30 March, weighed about 4 p.m.",
+        "note": "Toulon road, middle of the Grande Rade (berths not recorded; est.). Desbrière 1907, p. 7"
+      },
+      {
+        "lon": 6.0,
+        "lat": 43.045,
+        "date": "30 March, about 7 p.m.",
+        "note": "a league SE of Cap Sépet: the Atlas's log has the cape NW 1/4 N, one league; computed with gufm1's 19.8° W variation"
+      },
+      {
+        "lon": 5.833,
+        "lat": 42.55,
+        "date": "31 March, 8 a.m.",
+        "note": "first seen by Active and Phoebe, Cape Sicié N by E 10 leagues (Nicolas VI 398); compass or true not stated, the two readings differ by 10 nm east-west, so the mean (est.)"
+      },
+      {
+        "lon": 5.6,
+        "lat": 42.067,
+        "date": "31 March, 8 p.m.",
+        "note": "Cape Sicié N by E (true) 20 leagues: the frigates' position, close to the fleet (Nicolas VI 396)"
+      },
+      {
+        "lon": 4.517,
+        "lat": 41.65,
+        "date": "1 April, noon",
+        "note": "Atlas's log, open sea south of the Gulf of Lion"
+      },
+      {
+        "lon": 2.55,
+        "lat": 41.067,
+        "date": "2 April, noon",
+        "note": "Atlas's log, about 25 nm SE of Barcelona"
+      },
+      {
+        "lon": 1.233,
+        "lat": 40.0,
+        "date": "3 April, noon",
+        "note": "Atlas's log, east of the Columbretes"
+      },
+      {
+        "lon": 0.75,
+        "lat": 38.983,
+        "date": "4 April, noon",
+        "note": "Atlas's latitude; longitude est., mid-channel between Ibiza and Cabo de la Nao (20 nm from Ibiza)"
+      },
+      {
+        "lon": 0.167,
+        "lat": 38.45,
+        "date": "5 April, noon",
+        "note": "Atlas's latitude; longitude est., about 20 nm off Benidorm"
+      },
+      {
+        "lon": -0.333,
+        "lat": 37.717,
+        "date": "6 April, noon",
+        "note": "Atlas's latitude; longitude est., about 20 nm off the Mar Menor"
+      },
+      {
+        "lon": -0.633,
+        "lat": 37.5,
+        "date": "6-7 April",
+        "note": "est., about 8 nm south of Cabo de Palos and the Hormigas"
+      },
+      {
+        "lon": -1.0,
+        "lat": 37.5,
+        "date": "7 April",
+        "note": "becalmed off Cartagena (Atlas's noon latitude; Desbrière 1907, p. 8; Corbett 1910, p. 61); longitude est., about 5 nm off the harbour mouth"
+      },
+      {
+        "lon": -2.2,
+        "lat": 36.583,
+        "date": "night of 7-8 April",
+        "note": "est., about 8 nm south of Cabo de Gata"
+      },
+      {
+        "lon": -2.833,
+        "lat": 36.083,
+        "date": "8 April, noon",
+        "note": "Atlas's latitude; longitude est., NE of Alborán Island"
+      },
+      {
+        "lon": -5.25,
+        "lat": 36.017,
+        "date": "9 April, about 9 a.m.",
+        "note": "entering the Strait in two columns, frigates ahead (Desbrière 1907, p. 9); position est."
+      },
+      {
+        "lon": -5.583,
+        "lat": 35.933,
+        "date": "9 April, about 11 a.m.",
+        "note": "mid-Strait off Tarifa (est.; a-h1ac.md, H1-35e)"
+      },
+      {
+        "lon": -6.0,
+        "lat": 36.0,
+        "date": "9 April, early afternoon",
+        "note": "west mouth, mid-channel between Cape Trafalgar and Cape Spartel (est.)"
+      },
+      {
+        "lon": -6.183,
+        "lat": 36.233,
+        "date": "9 April, about 4 p.m.",
+        "note": "just past Cape Trafalgar, off Conil, when the frigates signalled Orde's six (a-h1ac.md, H1-35e; no source gives the position)"
+      },
+      {
+        "lon": -6.36,
+        "lat": 36.42,
+        "date": "9 April, evening",
+        "note": "est., in the offing; keeps the line about 3 nm off Sancti Petri and the rocks off Cádiz"
+      },
+      {
+        "lon": -6.37,
+        "lat": 36.55,
+        "date": "9 April, about 7.45-8 p.m., to 1.30-2 a.m. on 10 April",
+        "note": "anchored outside the bay (Desbrière 1907, pp. 9, 26 n.; Corbett 1910, p. 68); position est., 3.2 nm W of Las Puercas"
+      }
+    ]
+  },
+  {
+    "id": "villeneuve-crossing",
+    "title": "Villeneuve, Cádiz to Martinique, 10 April to 14 May 1805",
+    "confidence": "medium",
+    "note": "Table B: the Atlas's 32 dead-reckoning noon positions (Desbrière 1907, p. 26 n.), checked against the page image in v-h1c.md. Their dating is disputed (printed date or the day after; a-h1ac.md, H1-07), so no day marks: the dates below are the printed ones. Dropped: 8 May (16°00'N 46°23'W, 55 nm south of the line between 7 and 9 May) and 11 May (14°36'N 56°23'W, an impossible run of about 330 nm in a day). The last reckoning point lies about 1°50' east of the truth (36 leagues at the landfall); the line then runs to the landfall seven leagues east of Martinique, through the St Lucia Channel and up the lee coast past Diamond Rock (not in Natural Earth) to Fort-de-France. Main body 14 ships; four Spaniards crossed apart. All open-sea segments 2 nm or more from land.",
+    "waypoints": [
+      {
+        "lon": -6.37,
+        "lat": 36.55,
+        "date": "10 April, 1.30-2 a.m.",
+        "note": "weighed from the anchorage outside Cádiz bay"
+      },
+      {
+        "lon": -7.25,
+        "lat": 36.15,
+        "date": "10 April, noon",
+        "note": "Atlas's log (table A, last row)"
+      },
+      { "lon": -8.167, "lat": 35.45, "date": "11 April (printed)" },
+      { "lon": -9.167, "lat": 34.717, "date": "12 April (printed)" },
+      { "lon": -9.7, "lat": 33.917, "date": "13 April (printed)" },
+      { "lon": -10.217, "lat": 33.0, "date": "14 April (printed)" },
+      {
+        "lon": -10.15,
+        "lat": 32.75,
+        "date": "15 April (printed)",
+        "note": "off Cape Cantin, where the fleet turned west"
+      },
+      { "lon": -11.783, "lat": 32.033, "date": "16 April (printed)" },
+      { "lon": -13.917, "lat": 31.133, "date": "17 April (printed)" },
+      {
+        "lon": -16.25,
+        "lat": 30.317,
+        "date": "18 April (printed)",
+        "note": "close to the Salvages (Nelson's diary, Nicolas VI 468)"
+      },
+      { "lon": -19.767, "lat": 29.317, "date": "19 April (printed)" },
+      { "lon": -22.033, "lat": 28.067, "date": "20 April (printed)" },
+      { "lon": -24.1, "lat": 26.917, "date": "21 April (printed)" },
+      { "lon": -26.233, "lat": 25.867, "date": "22 April (printed)" },
+      { "lon": -28.367, "lat": 24.6, "date": "23 April (printed)" },
+      { "lon": -30.367, "lat": 24.233, "date": "24 April (printed)" },
+      { "lon": -31.217, "lat": 23.8, "date": "25 April (printed)" },
+      {
+        "lon": -32.117,
+        "lat": 23.3,
+        "date": "26 April (printed)",
+        "note": "westerlies force a run SSW until 2 May"
+      },
+      { "lon": -32.433, "lat": 22.883, "date": "27 April (printed)" },
+      { "lon": -33.033, "lat": 21.75, "date": "28 April (printed)" },
+      { "lon": -33.617, "lat": 20.9, "date": "29 April (printed)" },
+      { "lon": -33.667, "lat": 19.967, "date": "30 April (printed)" },
+      { "lon": -34.017, "lat": 19.567, "date": "1 May (printed)" },
+      { "lon": -34.8, "lat": 19.033, "date": "2 May (printed)" },
+      { "lon": -35.75, "lat": 18.733, "date": "3 May (printed)" },
+      { "lon": -37.45, "lat": 18.433, "date": "4 May (printed)" },
+      { "lon": -39.183, "lat": 18.183, "date": "5 May (printed)" },
+      { "lon": -42.1, "lat": 17.933, "date": "6 May (printed)" },
+      { "lon": -44.35, "lat": 17.383, "date": "7 May (printed)" },
+      { "lon": -48.35, "lat": 16.467, "date": "9 May (printed)" },
+      { "lon": -50.8, "lat": 15.933, "date": "10 May (printed)" },
+      {
+        "lon": -58.65,
+        "lat": 14.567,
+        "date": "12 May (printed)",
+        "note": "reckoning; about 1°50' too far east"
+      },
+      {
+        "lon": -60.47,
+        "lat": 14.583,
+        "date": "13 May, 1 p.m.",
+        "note": "land signalled seven leagues to the west (Villeneuve's journal, Desbrière 1907, p. 26 n.); est."
+      },
+      {
+        "lon": -60.917,
+        "lat": 14.25,
+        "date": "14 May, daybreak",
+        "note": "entering the St Lucia Channel (Desbrière 1907, p. 25); mid-channel, est."
+      },
+      {
+        "lon": -61.085,
+        "lat": 14.43,
+        "date": "14 May",
+        "note": "est., about 2.8 nm W of Diamond Rock, which fired on the fleet as it passed"
+      },
+      {
+        "lon": -61.165,
+        "lat": 14.52,
+        "note": "est., off Cap Salomon, keeping 2 nm off the coast"
+      },
+      {
+        "lon": -61.08,
+        "lat": 14.59,
+        "date": "14 May",
+        "note": "anchored off Fort-de-France (Fort Royal); est. berth in the bay"
+      }
+    ]
+  },
+  {
+    "id": "villeneuve-west-indies",
+    "title": "Villeneuve in the West Indies, 5 to 10 June 1805",
+    "confidence": "medium",
+    "note": "Table C: the places named in Reille's journal and Villeneuve's report (Desbrière 1907, pp. 40-41), the passages between them estimated, keeping 2 nm or more off the coasts of Martinique, Dominica, the Saintes and Guadeloupe. Ends at the turn for Europe read off Corbett's chart (leaf n180).",
+    "waypoints": [
+      {
+        "lon": -61.08,
+        "lat": 14.59,
+        "date": "5 June, 5 a.m.",
+        "note": "sailed from Fort-de-France"
+      },
+      { "lon": -61.16, "lat": 14.57, "note": "est., out of the bay" },
+      { "lon": -61.29, "lat": 14.8, "note": "est., off NW Martinique" },
+      {
+        "lon": -61.47,
+        "lat": 15.25,
+        "note": "est., under the lee of Dominica"
+      },
+      {
+        "lon": -61.545,
+        "lat": 15.58,
+        "date": "6 June",
+        "note": "off Prince Rupert's Bay (a British convoy lay there, left alone)"
+      },
+      {
+        "lon": -61.783,
+        "lat": 16.0,
+        "date": "6 June, 3-9 p.m.",
+        "note": "off Basse-Terre, Guadeloupe: troops and pilots embarked"
+      },
+      {
+        "lon": -61.88,
+        "lat": 16.35,
+        "note": "est., north along Guadeloupe's lee"
+      },
+      {
+        "lon": -62.0,
+        "lat": 17.083,
+        "date": "night of 7-8 June",
+        "note": "under the lee of Antigua (est.)"
+      },
+      {
+        "lon": -62.083,
+        "lat": 17.75,
+        "date": "8 June, 10 a.m. to evening",
+        "note": "convoy of 15 sighted to leeward of Barbuda, 14 taken (est.)"
+      },
+      {
+        "lon": -61.733,
+        "lat": 19.233,
+        "date": "10 June",
+        "note": "turn for Europe, NNE for the Azores (Corbett's chart, read at ±0.3°)"
+      }
+    ]
+  },
+  {
+    "id": "villeneuve-return",
+    "title": "Villeneuve, return to Europe, Cape Finisterre and Vigo, 10 June to 28 July 1805",
+    "confidence": "medium",
+    "note": "Table D: Corbett's chart after Desbrière (±0.3°) with the Sally's noon position (British DR). Daily marks stop on 24 June; the line then runs straight to Corvo (2 July, Reille). Left out: the Curieux's 19 June position (the British report's 33°12'N 58°W lies two days ahead of the chart's marks; the chart's circle 30°13'N 58°06'W is on the line), James's 30 June point NE of Corvo (it would double back before Reille's 2 July sighting), the doubtful noon of 23 July (journal 43°41'N, 12°48' from Paris) and the '40 leagues WSW of Finisterre' of 27 July (a hairpin). The Z of 9-20 July is real, not reckoning noise: a NE gale on the 9th, the nearest approach west of Oporto on the 12th, then four days driven back west (Corbett 1910, p. 195); drop 12 and 16 July for a plain line. The action point is a-h1ac's smoke position. The entry to Vigo is by the south mouth of the ría (est.; the Cíes are not in Natural Earth); inside the ría the line runs 1-2 nm from the shore. Open-sea segments 2 nm or more from land (Corvo 13 nm, Cape Finisterre 38 nm).",
+    "waypoints": [
+      {
+        "lon": -61.733,
+        "lat": 19.233,
+        "date": "10 June",
+        "note": "turn for Europe"
+      },
+      {
+        "lon": -60.967,
+        "lat": 27.467,
+        "date": "15 June, 7 p.m.",
+        "note": "the American schooner Sally sees about 22 sail; her noon position (Nicolas VI 463, 474)"
+      },
+      {
+        "lon": -59.05,
+        "lat": 28.667,
+        "date": "17 June",
+        "note": "Corbett's chart"
+      },
+      {
+        "lon": -58.15,
+        "lat": 29.217,
+        "date": "18 June",
+        "note": "Corbett's chart"
+      },
+      {
+        "lon": -57.95,
+        "lat": 31.733,
+        "date": "20 June",
+        "note": "Corbett's chart"
+      },
+      {
+        "lon": -57.083,
+        "lat": 33.117,
+        "date": "21 June",
+        "note": "Corbett's chart"
+      },
+      {
+        "lon": -55.883,
+        "lat": 33.717,
+        "date": "22-23 June",
+        "note": "Corbett's chart, the corner"
+      },
+      {
+        "lon": -55.6,
+        "lat": 34.817,
+        "date": "24 June",
+        "note": "Corbett's chart; last daily mark"
+      },
+      {
+        "lon": -31.433,
+        "lat": 39.883,
+        "date": "2 July",
+        "note": "Corvo sighted (Reille, Desbrière 1907, p. 57; chart)"
+      },
+      {
+        "lon": -26.5,
+        "lat": 41.283,
+        "date": "5 July",
+        "note": "Corbett's chart"
+      },
+      {
+        "lon": -25.533,
+        "lat": 41.733,
+        "date": "6 July",
+        "note": "Corbett's chart"
+      },
+      {
+        "lon": -22.017,
+        "lat": 42.083,
+        "date": "7 July",
+        "note": "Corbett's chart"
+      },
+      {
+        "lon": -21.167,
+        "lat": 42.267,
+        "date": "8 July",
+        "note": "Corbett's chart"
+      },
+      {
+        "lon": -20.317,
+        "lat": 42.433,
+        "date": "9 July",
+        "note": "NE gale; Indomptable loses her main topmast"
+      },
+      {
+        "lon": -16.733,
+        "lat": 40.85,
+        "date": "12 July",
+        "note": "nearest approach, about 300 miles west of Oporto"
+      },
+      {
+        "lon": -19.5,
+        "lat": 43.983,
+        "date": "16 July",
+        "note": "Corbett's chart, after four days driven back west"
+      },
+      {
+        "lon": -16.983,
+        "lat": 43.283,
+        "date": "20 July",
+        "note": "Corbett's chart; running east from the 19th"
+      },
+      {
+        "lon": -11.667,
+        "lat": 43.583,
+        "date": "22 July",
+        "note": "the action (a-h1ac.md, H1-26: 43°35'N 11°40'W)"
+      },
+      {
+        "lon": -10.167,
+        "lat": 43.0,
+        "date": "25 July, noon",
+        "note": "the Didon sights Cape Finisterre ESE (Desbrière 1907, p. 67); est."
+      },
+      { "lon": -8.98, "lat": 42.18, "note": "est., SW of the Cíes" },
+      {
+        "lon": -8.88,
+        "lat": 42.18,
+        "note": "est., the south mouth of the Ría de Vigo"
+      },
+      { "lon": -8.8, "lat": 42.24, "note": "est., in the ría" },
+      {
+        "lon": -8.75,
+        "lat": 42.25,
+        "date": "28 July, nightfall",
+        "note": "anchored in Vigo Bay (Desbrière 1907, pp. 68-69)"
+      }
+    ]
+  },
+  {
+    "id": "villeneuve-vigo-coruna",
+    "title": "Vigo to A Coruña, 31 July to 2 August 1805",
+    "confidence": "low",
+    "note": "Estimated course: out by the south mouth of the ría, north outside Ons and Sálvora, round Cape Finisterre about 8 nm off (Desbrière 1907, p. 86: doubled in the evening of 1 August), round the Sisargas and Torre de Hércules into the ría of A Coruña. Open-sea segments 3.5 nm or more from land (Finisterre 6.5, Toriñana 6.5); the ría legs run 1-2 nm from the shore.",
+    "waypoints": [
+      {
+        "lon": -8.75,
+        "lat": 42.25,
+        "date": "31 July",
+        "note": "sailed from Vigo Bay with 15 of the line"
+      },
+      { "lon": -8.8, "lat": 42.24, "note": "est." },
+      { "lon": -8.88, "lat": 42.18, "note": "est., south mouth" },
+      { "lon": -9.0, "lat": 42.2, "note": "est., west of the Cíes" },
+      { "lon": -9.12, "lat": 42.45, "note": "est., outside Ons and Sálvora" },
+      { "lon": -9.25, "lat": 42.7, "note": "est." },
+      {
+        "lon": -9.45,
+        "lat": 42.883,
+        "date": "1 August, evening",
+        "note": "doubling Cape Finisterre, about 8 nm off (est.)"
+      },
+      {
+        "lon": -9.4,
+        "lat": 43.12,
+        "note": "est., off Cape Toriñana and Cape Villano"
+      },
+      { "lon": -9.0, "lat": 43.38, "note": "est., outside the Sisargas" },
+      { "lon": -8.55, "lat": 43.44, "note": "est." },
+      {
+        "lon": -8.42,
+        "lat": 43.44,
+        "note": "est., north of the Torre de Hércules"
+      },
+      { "lon": -8.375, "lat": 43.395, "note": "est., entering the ría" },
+      {
+        "lon": -8.365,
+        "lat": 43.375,
+        "date": "2 August",
+        "note": "the 13 French anchored at A Coruña (Desbrière 1907, p. 86); est. berth"
+      }
+    ]
+  },
+  {
+    "id": "combined-ferrol-cadiz",
+    "title": "Combined fleet, Ferrol to Cádiz, 13 to 20 August 1805",
+    "confidence": "low",
+    "note": "Table E: one British fix (the Iris, 14 August, Corbett 1910, p. 259 n.) and Reille's noon of the 15th (40 leagues WNW of Finisterre, about 43°39'N 11°48'W, 12 nm south of the line), the rest estimates. The 6 p.m.-2 a.m. stand towards Cape Prior on 13-14 August is left out (a hook). The turning point is an estimate (Reille's noon plus an afternoon's run). From 10 a.m. on 20 August the line runs straight into Cádiz bay, leaving out the morning's chase of Collingwood towards the Strait; it enters by the channel between Las Puercas and the El Diamante shoal (0.2-0.4 nm from the buoys, as the fairway is) to the berth in the outer bay of a-h2c.md, H2-36d. Open-sea segments 2 nm or more from land (Cape St Vincent 15-20 nm).",
+    "waypoints": [
+      {
+        "lon": -8.3,
+        "lat": 43.42,
+        "date": "10-13 August",
+        "note": "assembled in the outer bay off Ares (the Golfo Ártabro); est."
+      },
+      { "lon": -8.37, "lat": 43.44, "note": "est., the bay's mouth" },
+      {
+        "lon": -8.62,
+        "lat": 43.52,
+        "date": "13 August, afternoon",
+        "note": "est., running west"
+      },
+      {
+        "lon": -9.433,
+        "lat": 44.283,
+        "date": "14 August, about 2 p.m.",
+        "note": "the Iris's report: course W by N 1/2 N (British DR; the frigate's or the fleet's position)"
+      },
+      {
+        "lon": -12.33,
+        "lat": 43.75,
+        "date": "15 August, nightfall",
+        "note": "turned for Cádiz (Villeneuve's letter); position est., low"
+      },
+      {
+        "lon": -11.75,
+        "lat": 41.5,
+        "date": "16 August",
+        "note": "est., running south out of sight of land"
+      },
+      { "lon": -11.25, "lat": 38.667, "date": "17 August", "note": "est." },
+      {
+        "lon": -9.333,
+        "lat": 36.833,
+        "date": "17 or 18 August",
+        "note": "off Cape St Vincent, three merchantmen burnt (est. position)"
+      },
+      { "lon": -7.667, "lat": 36.5, "date": "19 August", "note": "est." },
+      {
+        "lon": -6.7,
+        "lat": 36.217,
+        "date": "20 August, 10 a.m.",
+        "note": "Cádiz NE about nine leagues (James III 375), as a true bearing; as a compass bearing about 36°07'N 6°32'W"
+      },
+      { "lon": -6.42, "lat": 36.5, "note": "est., approach" },
+      {
+        "lon": -6.34,
+        "lat": 36.5545,
+        "note": "west end of the channel between Las Puercas and El Diamante"
+      },
+      { "lon": -6.278, "lat": 36.5545, "note": "east end of the channel" },
+      {
+        "lon": -6.272,
+        "lat": 36.563,
+        "date": "20 August, evening",
+        "note": "anchored in Cádiz road: the outer-bay berth of a-h2c.md, H2-36d"
+      }
+    ]
+  },
+  {
+    "id": "nelson-mediterranean",
+    "title": "Nelson, Sardinia to Cape St Vincent, 3 April to 11 May 1805",
+    "confidence": "medium",
+    "note": "Table F, corrected by a-h1b.md (Palmas 26-30 March, Pula 31 March-3 April, off Palermo 9-10 April not Ustica on the 7th, Lagos 9-11 May, the bear-away point SE of the cape). The line starts at Pula: the Palmas-Pula-Toro moves would double back along Sardinia's south coast. It loops to Palermo and back (two control points north of Capo San Vito keep the curve 8 nm or more off the cape; without them it crossed the cape). No positions were recorded on the beat west of 19-30 April (est.). Tetuan is entered and left as anchorages are; at Gibraltar the line touches the mouth of the bay (Nelson anchored there from 2 to 6 p.m. on 6 May), about 2 nm from Europa Point and Punta Carnero. Open-sea segments 2 nm or more from land.",
+    "waypoints": [
+      {
+        "lon": 9.033,
+        "lat": 38.967,
+        "date": "31 March to 3 April, 5.30 a.m.",
+        "note": "Pula Roads (Nicolas VI 390, 392)"
+      },
+      { "lon": 8.88, "lat": 38.83, "note": "est., south of Capo Spartivento" },
+      { "lon": 8.62, "lat": 38.8, "note": "est., south of Capo Teulada" },
+      {
+        "lon": 8.065,
+        "lat": 38.725,
+        "date": "4 April, about 10 a.m.",
+        "note": "the Phoebe joins with the news; Toro E 3/4 N 6 leagues at noon, computed by compass with 18.5° W"
+      },
+      {
+        "lon": 8.75,
+        "lat": 38.167,
+        "date": "4-6 April",
+        "note": "between Sardinia and Galita, 48 hours (est.)"
+      },
+      {
+        "lon": 12.55,
+        "lat": 38.33,
+        "note": "control point north of Capo San Vito, outbound"
+      },
+      {
+        "lon": 13.22,
+        "lat": 38.27,
+        "date": "9-10 April",
+        "note": "off Palermo (Nicolas VI 402, 408)"
+      },
+      {
+        "lon": 12.6,
+        "lat": 38.45,
+        "note": "control point north of Capo San Vito, homebound"
+      },
+      {
+        "lon": 8.3,
+        "lat": 38.8,
+        "date": "16-18 April",
+        "note": "off Toro (est.)"
+      },
+      {
+        "lon": 7.77,
+        "lat": 38.86,
+        "date": "19 April",
+        "note": "ten leagues west of Toro"
+      },
+      {
+        "lon": 4.0,
+        "lat": 37.75,
+        "date": "about 23 April",
+        "note": "est., beating west"
+      },
+      {
+        "lon": 0.5,
+        "lat": 37.0,
+        "date": "about 27 April",
+        "note": "est., beating west"
+      },
+      {
+        "lon": -4.5,
+        "lat": 36.167,
+        "date": "30 April",
+        "note": "Gibraltar Rock in sight (est.)"
+      },
+      {
+        "lon": -5.25,
+        "lat": 35.63,
+        "date": "4-5 May",
+        "note": "Tetuan (Mazari) Bay off the mouth of the Martil, watering (a-h2c.md, H2-39)"
+      },
+      { "lon": -5.2, "lat": 35.92, "note": "est., east of Ceuta" },
+      {
+        "lon": -5.33,
+        "lat": 36.04,
+        "note": "est., 4 nm south of Europa Point"
+      },
+      {
+        "lon": -5.386,
+        "lat": 36.093,
+        "date": "6 May, 2-6 p.m.",
+        "note": "mouth of Gibraltar Bay"
+      },
+      { "lon": -5.395, "lat": 36.03, "note": "est." },
+      { "lon": -5.55, "lat": 35.97, "note": "est., through the Gut" },
+      { "lon": -5.62, "lat": 35.95, "note": "est., off Tarifa" },
+      { "lon": -6.0, "lat": 36.0, "note": "est., west mouth" },
+      { "lon": -8.58, "lat": 37.02, "note": "est., approach to Lagos Bay" },
+      {
+        "lon": -8.62,
+        "lat": 37.09,
+        "date": "9 May, 9 p.m., to 11 May, 9.10 a.m.",
+        "note": "Lagos Bay (Nicolas VI 429, 433)"
+      },
+      { "lon": -8.66, "lat": 37.02, "note": "est., out of the bay" },
+      {
+        "lon": -8.683,
+        "lat": 36.783,
+        "date": "11 May, 6.50 p.m.",
+        "note": "bore up for the West Indies, Cape St Vincent NW by N 7 leagues (a-h1b.md, S3-11MAY; ±5 nm)"
+      }
+    ]
+  },
+  {
+    "id": "nelson-outward",
+    "title": "Nelson, Cape St Vincent to Barbados, 11 May to 4 June 1805",
+    "confidence": "medium",
+    "note": "Table G: the daily marks of Faden's chart of 1807 ('copied from his Lordship's original MS.') as Corbett redrew them, read at ±0.3°; the 14 May mark fits 'thirty-eight leagues from Madeira' (Nicolas VI 436). The last two points take the line round Barbados's south point into Carlisle Bay. All open-sea segments 3.6 nm or more from land (Madeira 26 nm).",
+    "waypoints": [
+      { "lon": -8.683, "lat": 36.783, "date": "11 May, 6.50 p.m." },
+      { "lon": -9.917, "lat": 35.533, "date": "12 May" },
+      { "lon": -12.733, "lat": 34.45, "date": "13 May" },
+      {
+        "lon": -14.817,
+        "lat": 33.017,
+        "date": "14 May",
+        "note": "38 leagues from Madeira"
+      },
+      {
+        "lon": -17.15,
+        "lat": 31.5,
+        "date": "15 May",
+        "note": "Madeira in sight"
+      },
+      { "lon": -18.967, "lat": 30.25, "date": "16 May" },
+      { "lon": -20.983, "lat": 29.117, "date": "17 May" },
+      { "lon": -22.567, "lat": 28.367, "date": "18 May" },
+      { "lon": -23.45, "lat": 27.533, "date": "19 May" },
+      { "lon": -25.6, "lat": 25.333, "date": "20 May" },
+      { "lon": -28.833, "lat": 24.05, "date": "21 May" },
+      { "lon": -31.35, "lat": 23.0, "date": "22 May" },
+      { "lon": -34.133, "lat": 21.633, "date": "23 May" },
+      { "lon": -36.4, "lat": 20.55, "date": "24 May" },
+      { "lon": -38.083, "lat": 19.75, "date": "25 May" },
+      { "lon": -39.983, "lat": 18.8, "date": "26 May" },
+      { "lon": -41.283, "lat": 18.2, "date": "27 May" },
+      { "lon": -42.933, "lat": 17.383, "date": "28 May" },
+      {
+        "lon": -45.4,
+        "lat": 16.183,
+        "date": "29 May",
+        "note": "Amazon sent ahead"
+      },
+      { "lon": -47.7, "lat": 15.017, "date": "30 May" },
+      { "lon": -50.417, "lat": 14.917, "date": "31 May" },
+      { "lon": -52.883, "lat": 14.583, "date": "1 June" },
+      { "lon": -54.967, "lat": 13.8, "date": "2 June" },
+      { "lon": -57.183, "lat": 13.3, "date": "3 June" },
+      {
+        "lon": -59.3,
+        "lat": 13.05,
+        "note": "est., Barbados in sight at 6 a.m. on 4 June"
+      },
+      { "lon": -59.53, "lat": 12.99, "note": "est., south of South Point" },
+      {
+        "lon": -59.62,
+        "lat": 13.08,
+        "date": "4 June, 4.50 p.m.",
+        "note": "anchored in Carlisle Bay (Nicolas VI 445)"
+      }
+    ]
+  },
+  {
+    "id": "nelson-west-indies",
+    "title": "Nelson in the West Indies, 5 to 12 June 1805",
+    "confidence": "medium",
+    "note": "Table H: the places in the Victory's log and Nelson's letters (Nicolas VI 445-456); the passages between them estimated. The line goes in and out of the Gulf of Paria by the Boca Grande (a spur), passes south and west of Montserrat (the log's 'under Montserrat'; a straight line from Guadeloupe crossed the island) and approaches Antigua from the north-west, where the log puts the fleet at 6 a.m. on 12 June. Open-sea segments 2.3 nm or more from land (Redonda 3.5 nm); the anchorages at Carlisle Bay, the Gulf of Paria, St George's Bay and St John's Road are approached as harbours.",
+    "waypoints": [
+      {
+        "lon": -59.62,
+        "lat": 13.08,
+        "date": "5 June, 9.30 a.m.",
+        "note": "weighed from Carlisle Bay, steering south"
+      },
+      { "lon": -59.72, "lat": 12.95, "note": "est." },
+      {
+        "lon": -60.87,
+        "lat": 11.23,
+        "date": "6 June, noon",
+        "note": "off Great Courland Bay, Tobago"
+      },
+      {
+        "lon": -60.92,
+        "lat": 11.1,
+        "date": "6 June, 6.10 p.m.",
+        "note": "off Sandy Point: the schooner's false signal 'enemy at Trinidad'"
+      },
+      {
+        "lon": -61.4,
+        "lat": 10.85,
+        "note": "est., along Trinidad's north coast"
+      },
+      { "lon": -61.72, "lat": 10.8, "note": "est." },
+      {
+        "lon": -61.81,
+        "lat": 10.705,
+        "date": "7 June",
+        "note": "the Boca Grande (Dragon's Mouth)"
+      },
+      { "lon": -61.81, "lat": 10.66, "note": "est." },
+      {
+        "lon": -61.72,
+        "lat": 10.625,
+        "date": "7 June, 5.30 p.m., to 8 June, 7 a.m.",
+        "note": "anchored in the Gulf of Paria near the west Boca (est. berth)"
+      },
+      { "lon": -61.81, "lat": 10.66, "note": "est." },
+      { "lon": -61.81, "lat": 10.705, "note": "out by the Boca Grande" },
+      { "lon": -61.8, "lat": 10.8, "note": "est." },
+      { "lon": -61.87, "lat": 11.97, "note": "est., SW of Point Salines" },
+      {
+        "lon": -61.8,
+        "lat": 12.045,
+        "date": "9 June, noon",
+        "note": "hove to in St George's Bay, Grenada"
+      },
+      { "lon": -61.85, "lat": 12.15, "note": "est." },
+      {
+        "lon": -61.88,
+        "lat": 16.37,
+        "date": "11 June, noon",
+        "note": "Basse-Terre S 21° E, 8 leagues (computed)"
+      },
+      { "lon": -62.22, "lat": 16.63, "note": "est., south-west of Montserrat" },
+      { "lon": -62.3, "lat": 16.72, "note": "est., under Montserrat" },
+      {
+        "lon": -62.304,
+        "lat": 16.805,
+        "date": "11 June, 6.50 p.m.",
+        "note": "north end of Montserrat E 1/2 N, 6 miles (computed)"
+      },
+      {
+        "lon": -62.15,
+        "lat": 17.32,
+        "date": "12 June, 6 a.m.",
+        "note": "Antigua SE by E 7-8 leagues (computed by compass with 2.3° E; est.)"
+      },
+      {
+        "lon": -61.885,
+        "lat": 17.135,
+        "date": "12 June, 7 p.m.",
+        "note": "anchored in St John's Road, Antigua"
+      }
+    ]
+  },
+  {
+    "id": "nelson-homeward",
+    "title": "Nelson, Antigua to Gibraltar, 13 June to 19 July 1805",
+    "confidence": "medium",
+    "note": "Table I: Faden's daily marks as Corbett redrew them (±0.3°), which agree with the log fixes of 29 June and 1 July within 0.3°. North of the Azores the 8 July log fix (São Miguel ESE by compass, 17½ leagues, computed with 21.1° W) replaces the chart's mark, and a-h1b's control point at 37°58'N 26°05'W keeps the line 3.3 nm off São Miguel's north coast (the route went through the islands, north of São Miguel). Dropped as zigzags: 24 June (31°43'N 52°56'W, a doubling back 70 nm west of the line) and 4 and 6 July (wobbles of 14-28 nm in the calms). The 13 July signal-log bearing does not fit and is not used. The last points take the line through the Strait, south of Punta Carnero, into Gibraltar Bay.",
+    "waypoints": [
+      {
+        "lon": -61.885,
+        "lat": 17.135,
+        "date": "13 June, 11.50 a.m.",
+        "note": "weighed from St John's Road for Europe"
+      },
+      { "lon": -62.433, "lat": 19.483, "date": "14 June" },
+      { "lon": -62.483, "lat": 21.767, "date": "15 June" },
+      { "lon": -61.8, "lat": 24.167, "date": "16 June" },
+      {
+        "lon": -60.767,
+        "lat": 25.133,
+        "date": "17 June",
+        "note": "boarded the Sally"
+      },
+      { "lon": -59.283, "lat": 26.517, "date": "18 June" },
+      { "lon": -57.75, "lat": 27.917, "date": "19 June" },
+      { "lon": -55.783, "lat": 28.75, "date": "20 June" },
+      { "lon": -53.717, "lat": 29.483, "date": "21 June" },
+      { "lon": -52.317, "lat": 29.917, "date": "22 June" },
+      { "lon": -51.817, "lat": 30.667, "date": "23 June" },
+      { "lon": -51.15, "lat": 33.367, "date": "25 June" },
+      { "lon": -48.5, "lat": 34.133, "date": "26 June" },
+      { "lon": -45.283, "lat": 35.0, "date": "27 June" },
+      { "lon": -41.333, "lat": 35.75, "date": "28 June" },
+      {
+        "lon": -37.967,
+        "lat": 35.917,
+        "date": "29 June",
+        "note": "log fix about 36°03'N 38°07'W"
+      },
+      { "lon": -36.817, "lat": 36.483, "date": "30 June" },
+      {
+        "lon": -35.75,
+        "lat": 37.117,
+        "date": "1 July",
+        "note": "log fix about 37°07'N 36°03'W"
+      },
+      { "lon": -34.517, "lat": 37.1, "date": "2 July" },
+      { "lon": -32.817, "lat": 37.033, "date": "3 July" },
+      { "lon": -29.267, "lat": 37.183, "date": "5 July" },
+      { "lon": -28.267, "lat": 37.333, "date": "7 July" },
+      {
+        "lon": -26.96,
+        "lat": 37.88,
+        "date": "8 July, 11.30 a.m.",
+        "note": "log fix: São Miguel ESE by compass, 17½ leagues (Nicolas VI 468)"
+      },
+      {
+        "lon": -26.083,
+        "lat": 37.967,
+        "note": "control point (a-h1b.md, scene impact 5)"
+      },
+      {
+        "lon": -25.5,
+        "lat": 37.967,
+        "date": "9 July",
+        "note": "north of São Miguel"
+      },
+      { "lon": -23.417, "lat": 37.917, "date": "10 July" },
+      { "lon": -21.05, "lat": 36.95, "date": "11 July" },
+      { "lon": -19.05, "lat": 36.1, "date": "12 July" },
+      { "lon": -17.4, "lat": 36.233, "date": "13 July" },
+      { "lon": -14.583, "lat": 36.467, "date": "14 July" },
+      { "lon": -12.067, "lat": 36.683, "date": "15 July" },
+      { "lon": -10.917, "lat": 36.733, "date": "16 July" },
+      {
+        "lon": -9.767,
+        "lat": 36.683,
+        "date": "17 July",
+        "note": "Cape St Vincent in sight"
+      },
+      {
+        "lon": -6.65,
+        "lat": 35.95,
+        "date": "18 July, noon",
+        "note": "Cape Spartel S 75° E, 12 leagues, as a true bearing (Nicolas VI 471)"
+      },
+      { "lon": -5.62, "lat": 35.96, "note": "est., off Tarifa" },
+      { "lon": -5.395, "lat": 36.03, "note": "est., south of Punta Carnero" },
+      { "lon": -5.386, "lat": 36.093, "note": "mouth of Gibraltar Bay" },
+      {
+        "lon": -5.365,
+        "lat": 36.123,
+        "date": "19 July, 7.30 a.m.",
+        "note": "anchored in Rosia Bay (Nicolas VI 473)"
+      }
+    ]
+  },
+  {
+    "id": "nelson-ushant-spithead",
+    "title": "Nelson, Gibraltar to Ushant and Spithead, 22 July to 18 August 1805",
+    "confidence": "medium",
+    "note": "Table J: estimates to Cape St Vincent, then Faden's marks as Corbett redrew them, with the diary's positions of 3 and 7 August (Desbrière 1907, pp. 74-75, read on the page images). Dropped as zigzags: 2, 4, 5 and 6 August (tacks against the northerlies, up to 30 nm either side of the line between the two diary positions). Left out: the Tetuan call of 22-25 July (a 25-nm spur). The Channel legs are estimates round St Catherine's Point and the east end of the Isle of Wight to Spithead. Open-sea segments 2 nm or more from land.",
+    "waypoints": [
+      { "lon": -5.365, "lat": 36.123, "date": "22 July", "note": "Rosia Bay" },
+      { "lon": -5.386, "lat": 36.093, "note": "mouth of Gibraltar Bay" },
+      { "lon": -5.395, "lat": 36.03, "note": "est." },
+      { "lon": -5.55, "lat": 35.97, "note": "est." },
+      {
+        "lon": -5.62,
+        "lat": 35.96,
+        "date": "25 July, about 3.30-4 a.m.",
+        "note": "off Tarifa: the Termagant brings news of the Curieux's sighting"
+      },
+      { "lon": -6.0, "lat": 36.0, "note": "est., west mouth" },
+      {
+        "lon": -9.25,
+        "lat": 36.917,
+        "date": "27 July, daylight",
+        "note": "off Cape St Vincent (diary; est.)"
+      },
+      {
+        "lon": -12.55,
+        "lat": 36.967,
+        "date": "29 July",
+        "note": "chart; '143 miles from Cape St Vincent' (diary)"
+      },
+      { "lon": -14.917, "lat": 36.967, "date": "30 July" },
+      { "lon": -15.25, "lat": 37.7, "date": "31 July" },
+      { "lon": -15.35, "lat": 38.317, "date": "1 August" },
+      {
+        "lon": -16.0,
+        "lat": 39.017,
+        "date": "3 August",
+        "note": "diary, 39°1'N 16°W"
+      },
+      {
+        "lon": -18.233,
+        "lat": 41.133,
+        "date": "7 August",
+        "note": "diary, 41°8'N 18°14'W"
+      },
+      { "lon": -18.05, "lat": 42.067, "date": "8 August" },
+      { "lon": -17.383, "lat": 43.95, "date": "9 August" },
+      { "lon": -17.05, "lat": 44.95, "date": "10 August" },
+      { "lon": -16.417, "lat": 45.767, "date": "11 August" },
+      {
+        "lon": -14.367,
+        "lat": 47.6,
+        "date": "12 August",
+        "note": "spoke the Niobe"
+      },
+      {
+        "lon": -11.717,
+        "lat": 49.333,
+        "date": "13 August",
+        "note": "chart (diary latitude 49°7')"
+      },
+      { "lon": -8.817, "lat": 49.183, "date": "14 August" },
+      {
+        "lon": -5.75,
+        "lat": 48.5,
+        "date": "15 August, 3 p.m.",
+        "note": "Ushant SE by E 8-9 leagues, by compass with 24.7° W (computed); joins Cornwallis at 6 p.m."
+      },
+      {
+        "lon": -1.3,
+        "lat": 50.5,
+        "note": "est., south of St Catherine's Point"
+      },
+      {
+        "lon": -1.15,
+        "lat": 50.6,
+        "date": "17 August, 10.15 p.m.",
+        "note": "anchored at Dunnose"
+      },
+      { "lon": -0.99, "lat": 50.65, "note": "est." },
+      { "lon": -0.99, "lat": 50.715, "note": "est., east of the Foreland" },
+      {
+        "lon": -1.1,
+        "lat": 50.765,
+        "date": "18 August, 8.30 a.m.",
+        "note": "anchored at Spithead"
+      }
+    ]
+  }
+]

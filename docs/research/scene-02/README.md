@@ -2,7 +2,7 @@
 
 Research for scene 2 ("The road to Trafalgar"), written by research agents in sessions 5 and 6 (25–26 October 2026) and moved here from the sessions' temporary folders so nothing lives only outside the repository. They follow the rules in `../README.md`: our own words with links; quotations from public-domain period sources only. When the notes were copied here (session 6), every quotation of 26 words or more was cut to its opening phrase with an ellipsis, keeping its citation.
 
-**Status: not yet the project's word.** `docs/history-notes.md` gets a "Scene 2" section written from these notes, the fact-check reports and the adjudications (`a-*.md`, session 7). It has not been written yet. Until then, read a note with its checks and their adjudication (see "How to use them").
+**Status: not yet the project's word.** `docs/history-notes.md` gets a "Scene 2" section written from these notes, the fact-check reports and the adjudications (`a-*.md`, sessions 7 and 8). Session 8 drafted it (below); it has not been merged yet. Until then, read a note with its checks and their adjudication (see "How to use them").
 
 ## History (session 5), with independent fact-checks (session 6)
 
@@ -37,10 +37,23 @@ Each "corrected", "disputed" and scene-relevant "unverifiable" verdict of the se
 
 `draft-h3.md` is a drafter's version of the signals part of the "Scene 2" section of `docs/history-notes.md`, written from `h3`, its checks and `a-h3.md`; it has not been reviewed or merged. The drafts for `h1` and `h2` were being written when session 7 stopped and do not exist.
 
-## The 1805 names (session 7)
+## The 1805 names (sessions 7 and 8)
 
 - `h4-names.md`: the English forms a chart of about 1805 would letter (oceans and seas, capes, ports, islands, lands, rivers, ranges), from English charts, atlases and pilot books of 1795–1810, with a final table and the lettering conventions.
-- `v-h4.md`: its independent check. **The adjudication of the names it contests did not run**, so the gazetteer (`src/scenes/02-road/gazetteer.ts`) still letters the provisional forms.
+- `v-h4.md`: its independent check.
+- `a-h4.md` (session 8): the adjudication of every name and convention `v-h4.md` contests, from charts the adjudicator read (Faden 1807 first, Heather 1800, Laurie & Whittle 1794, Cary 1801–1805, Arrowsmith 1802–1803), with the settled table of every name and the doubts for the history notes. The final word on the names; the gazetteer follows it (four changes, commit `5f8032f`). Its own check (`v-a-h4`) was stopped before it reported.
+
+## The "Scene 2" section of the history notes (session 8, not yet merged)
+
+Drafts of the section `docs/history-notes.md` still lacks, written in session 8 by a workflow from the notes, the checks and the adjudications above. The section has not been merged; `docs/progress.md` says in what order the parts go.
+
+- `draft-h1.md`: the chase (dates and conventions; Toulon to the West Indies; Nelson's pursuit; Cape Finisterre; Ferrol, the turn south and Cádiz; routes on the chart, with Stage A's Toulon–Cádiz table). Its independent check was stopped before it reported.
+- `draft-h2.md`: Boulogne and the invasion army; the turn east and Ulm; Nelson off Cádiz; orders, Rosily and the sortie; positions on the chart (the anchorage checked against Faden's plan of the harbour, 1797, after Tofiño). Its check was stopped before it reported.
+- `draft-h3.md`: signals by day and by night, the signal chain of 19–21 October, how the chart shows them. It replaces session 7's draft: revised against `a-h3.md`, then checked (`v-draft-h3.md`). Of that check's 28 points, these are applied: 1–5, 7 (the table row), 8, 10, 12 (the table row), 13, 14, 16, 17, 20 (in part), 21 (in part), 22 and 28. Still to apply in the merge: 6 (the URLs, which go to "Key sources"), 7 and 12 in "The ends", 9, 11, 15, 18, 19, 23 and 26; 24, 25 and 27 concern the structured data and the brief rows.
+- `v-draft-h3.md`: the independent check of `draft-h3.md`, with every fix ready to paste.
+- `draft-lead.md`: the lead's own parts: the section's opening and its "Where the sources changed the brief" table, the fleet sizes at each stage, the names on the chart, the open doubts and the key sources.
+- `routes-draft.json`: every route as waypoints (Villeneuve's five legs, the combined fleet from Ferrol to Cádiz, Nelson's five legs), each point with its date and source note, checked by the h1 drafter against Natural Earth's coastline. For Stage B; Stage A draws the Toulon–Cádiz leg.
+- `drafts-data.json`: the drafters' structured results (dates with their display forms, positions in decimal degrees, routes, fleet rows, brief rows, doubts, the questions for the owner) and the names adjudication's settled table.
 
 ## Chart style (sessions 6 and 7)
 

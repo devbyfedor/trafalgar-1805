@@ -82,63 +82,68 @@ const ROOM_NARROWS = 1.5;
  * the true cables, as the glyphs are, so the ships read one by one.
  */
 export const LAB_MARKS: readonly ShipMark[] = [
-  // The British: the weather column forming astern of Victory, the lee
-  // column to the south.
+  // The British, some 20 nm west of Cape Trafalgar, still in loose order
+  // (the columns formed over the next two hours) in two groups strung
+  // north and south, Victory's and Collingwood's, on the course they
+  // steered from bearing up for the enemy at about 6.45: ENE by compass,
+  // about 047° true (history notes, "Scene 2"; scene 1, "The setting").
   {
     type: "victory",
     side: "british",
-    lon: -6.47,
-    lat: 36.17,
-    heading: 68,
-    underWay: true,
-  },
-  {
-    type: "british-98",
-    side: "british",
-    lon: -6.53,
-    lat: 36.15,
-    heading: 68,
-    underWay: true,
-  },
-  {
-    type: "british-98",
-    side: "british",
-    lon: -6.59,
-    lat: 36.13,
-    heading: 68,
-    underWay: true,
-  },
-  {
-    type: "british-74",
-    side: "british",
-    lon: -6.65,
-    lat: 36.11,
-    heading: 68,
+    lon: -6.467,
+    lat: 36.133,
+    heading: 47,
     underWay: true,
   },
   {
     type: "british-98",
     side: "british",
     lon: -6.5,
-    lat: 36.07,
-    heading: 70,
+    lat: 36.172,
+    heading: 47,
+    underWay: true,
+  },
+  {
+    type: "british-98",
+    side: "british",
+    lon: -6.438,
+    lat: 36.19,
+    heading: 47,
     underWay: true,
   },
   {
     type: "british-74",
     side: "british",
-    lon: -6.56,
-    lat: 36.05,
-    heading: 70,
+    lon: -6.522,
+    lat: 36.104,
+    heading: 47,
     underWay: true,
   },
-  // The combined fleet, strung north to south, standing south.
+  {
+    type: "british-98",
+    side: "british",
+    lon: -6.475,
+    lat: 36.035,
+    heading: 47,
+    underWay: true,
+  },
+  {
+    type: "british-74",
+    side: "british",
+    lon: -6.418,
+    lat: 36.008,
+    heading: 47,
+    underWay: true,
+  },
+  // The combined fleet, its centre 9–12 nm east of Victory, in a ragged
+  // line strung north to south, standing south on the starboard tack
+  // (180–195° true) under easy sail.
   {
     type: "french-74",
     side: "combined",
     lon: -6.25,
     lat: 36.27,
-    heading: 178,
+    heading: 186,
     underWay: true,
   },
   {
@@ -146,7 +151,7 @@ export const LAB_MARKS: readonly ShipMark[] = [
     side: "combined",
     lon: -6.22,
     lat: 36.21,
-    heading: 182,
+    heading: 190,
     underWay: true,
   },
   {
@@ -154,7 +159,7 @@ export const LAB_MARKS: readonly ShipMark[] = [
     side: "combined",
     lon: -6.24,
     lat: 36.16,
-    heading: 176,
+    heading: 183,
     underWay: true,
   },
   {
@@ -162,7 +167,7 @@ export const LAB_MARKS: readonly ShipMark[] = [
     side: "combined",
     lon: -6.21,
     lat: 36.11,
-    heading: 180,
+    heading: 188,
     underWay: true,
   },
   {
@@ -170,15 +175,15 @@ export const LAB_MARKS: readonly ShipMark[] = [
     side: "combined",
     lon: -6.23,
     lat: 36.05,
-    heading: 184,
+    heading: 192,
     underWay: true,
   },
   {
     type: "french-74",
     side: "combined",
     lon: -6.2,
-    lat: 36.0,
-    heading: 179,
+    lat: 36,
+    heading: 185,
     underWay: true,
   },
   // At anchor off Cádiz, out of range of the city's guns: a line strung
@@ -190,8 +195,8 @@ export const LAB_MARKS: readonly ShipMark[] = [
   {
     type: "french-80-anchored",
     side: "combined",
-    lon: -6.29,
-    lat: 36.5585,
+    lon: -6.2867,
+    lat: 36.5617,
     heading: 294,
     underWay: false,
     room: ROOM_OUTER_BAY,

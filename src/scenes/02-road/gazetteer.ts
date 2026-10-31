@@ -33,7 +33,7 @@ export const GAZETTEER: readonly Label[] = [
   // Waters: they fade out close up, where they would be too large.
   { text: "Bay of Biscay", role: "water", lon: -5.2, lat: 45.6, size: 44 },
   {
-    text: "The Channel",
+    text: "English Channel",
     role: "water",
     lon: -2.4,
     lat: 49.95,
@@ -68,7 +68,7 @@ export const GAZETTEER: readonly Label[] = [
     side: "below",
   },
   {
-    text: "C. St Vincent",
+    text: "C. St. Vincent",
     role: "cape",
     lon: -8.997,
     lat: 37.023,
@@ -233,15 +233,16 @@ export const GAZETTEER: readonly Label[] = [
     size: 24,
   },
   {
-    text: "Western Islands",
+    text: "Azores or Western Islands",
     role: "island",
     lon: -28.0,
     lat: 40.3,
     size: 34,
   },
-  { text: "West Indies", role: "island", lon: -70, lat: 15.5, size: 100 },
+  // A region, lettered like a land: it fades out close up.
+  { text: "West Indies", role: "land", lon: -70, lat: 15.5, size: 100 },
   {
-    text: "Martinico",
+    text: "Martinique",
     role: "island",
     lon: -60.85,
     lat: 14.65,

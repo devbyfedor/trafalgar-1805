@@ -89,11 +89,17 @@ test.describe("scene 1 on desktop", () => {
     await scrollToProgress(page, 0.5);
     expect((await scene.boundingBox())?.y).toBeCloseTo(0, 0);
 
-    // Past the pin: the scene scrolls away and the placeholder comes in.
+    // Past the pin: the scene scrolls away and the placeholder comes in,
+    // with the credits line for the chart's data after it.
     await scrollToProgress(page, 1.3);
     await settleFrames(page, 4);
     expect((await scene.boundingBox())?.y ?? 0).toBeLessThan(-10);
     await expect(page.getByText("Chapter II follows")).toBeInViewport();
+    await expect(
+      page.getByText(
+        "Relief: NOAA NCEI ETOPO 2022. Coastlines and rivers: Natural Earth.",
+      ),
+    ).toBeInViewport();
 
     await scrollToProgress(page, 0);
     expect((await scene.boundingBox())?.y).toBeCloseTo(0, 0);

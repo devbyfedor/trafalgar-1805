@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import type { ChartStats, LabelState, LightId } from "@/components/chart";
 import { worldX, worldY } from "@/components/chart/geo/mercator";
+import { Credits } from "@/components/experience/Credits";
 import { DebugOverlay } from "@/components/experience/DebugOverlay";
 import { SmoothScroll } from "@/components/providers/SmoothScroll";
 import { registerChartReadout, reportProgress } from "@/lib/debug";
@@ -279,6 +280,7 @@ export function ChartLab() {
         <div className="flex h-screen items-center justify-center text-ink">
           <p>End of the flight.</p>
         </div>
+        <Credits />
       </main>
       <DebugOverlay progress={["scroll", "flight"]} />
     </SmoothScroll>

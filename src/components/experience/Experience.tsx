@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { SmoothScroll } from "@/components/providers/SmoothScroll";
 import { ScrollTrigger } from "@/lib/gsap";
 import { scenes } from "@/scenes/registry";
+import { Credits } from "./Credits";
 import { DebugOverlay } from "./DebugOverlay";
 import { Fallback } from "./Fallback";
 
@@ -36,6 +37,7 @@ export function Experience() {
           {scenes.map(({ id, Component }) => (
             <Component key={id} />
           ))}
+          <Credits />
         </div>
         <Fallback />
       </main>

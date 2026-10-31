@@ -31,8 +31,9 @@ export type { GlyphType };
  * turns toward or away from the camera, the way a ship seen from ahead
  * shows less of her side. Its size is a chart convention, not true scale:
  * scene 1's size low over the sea, larger over the Gulf of Cádiz, smaller
- * again over the whole ocean (`GLYPH_PX`). Glyphs are sorted back to front
- * each frame, so a crowded anchorage overlaps correctly.
+ * again over the whole ocean (`GLYPH_PX`); in a bay, no larger than the
+ * bay can hold (`ShipMark.room`). Glyphs are sorted back to front each
+ * frame, so a crowded anchorage overlaps correctly.
  */
 
 export type Side = "british" | "combined";
@@ -51,6 +52,14 @@ export interface ShipMark {
   size?: number;
   /** Starting opacity (default 1). */
   opacity?: number;
+  /**
+   * In confined water, such as an anchorage in a bay: the most of the chart
+   * the glyph may stand on, as its height in km. Seen from farther off it
+   * keeps that size on the chart and shrinks on screen with the bay, so its
+   * hull stays on the water: a bay a few pixels across can't hold a glyph
+   * of the open sea's size, and one would stand on the shore beyond.
+   */
+  room?: number;
 }
 
 /**
@@ -71,13 +80,28 @@ const glyphPx = monotoneCurve(
 
 const SIDES: Record<Side, number> = { british: 0, combined: 1 };
 
+/**
+ * A glyph's height on screen, device px: nearer glyphs a little larger,
+ * within the view's own range; in confined water no taller than its room
+ * on the chart (ShipMark.room) seen from here.
+ */
+const GLSL_GLYPH_HEIGHT = /* glsl */ `
+float glyphHeight(float dist, float size, float room) {
+  float h = uSizePx * pow(clamp(uSizeRef / dist, 0.55, 1.8), 0.35) * size;
+  return room > 0.0 ? min(h, room * uPxPerRadian / dist) : h;
+}
+`;
+
 const SHIP_VERTEX = /* glsl */ `
 precision highp float;
 in vec4 iPos;
 in vec4 iStyle;
+in float iRoom;
 uniform vec2 uViewport;
 uniform float uSizePx;
 uniform float uSizeRef;
+uniform float uPxPerRadian;
+uniform float uDpr;
 uniform float uAspect;
 uniform vec2 uGrid;
 uniform float uPull;
@@ -85,14 +109,13 @@ out vec2 vUv;
 out float vSide;
 out float vAlpha;
 out float vDist;
-
+${GLSL_GLYPH_HEIGHT}
 void main() {
   vec3 base = vec3(iPos.xy, 0.0);
   float dist = length(base - cameraPosition);
   vec3 w = base + (cameraPosition - base) * uPull;
   vec4 clip = projectionMatrix * viewMatrix * vec4(w, 1.0);
-  // Nearer glyphs a little larger, within the view's own range.
-  float h = uSizePx * pow(clamp(uSizeRef / dist, 0.55, 1.8), 0.35) * iPos.w;
+  float h = glyphHeight(dist, iPos.w, iRoom);
   // Bow toward the heading's side of the screen, narrower end-on.
   vec3 right = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]);
   float facing = dot(vec2(sin(iPos.z), cos(iPos.z)), normalize(right.xy + 1e-6));
@@ -104,7 +127,8 @@ void main() {
   vec2 origin = vec2(mod(cell, uGrid.x), floor(cell / uGrid.x));
   vUv = (origin + vec2(position.x + 0.5, 1.0 - position.y)) / uGrid;
   vSide = iStyle.y;
-  vAlpha = iStyle.z;
+  // A glyph shrunk to its room fades out before it is too small to read.
+  vAlpha = iStyle.z * smoothstep(5.0, 9.0, h / uDpr);
   vDist = dist;
 }
 `;
@@ -139,6 +163,7 @@ const WAKE_VERTEX = /* glsl */ `
 precision highp float;
 in vec4 iPos;
 in vec4 iStyle;
+in float iRoom;
 uniform float uSizePx;
 uniform float uSizeRef;
 uniform float uPxPerRadian;
@@ -148,11 +173,11 @@ out vec2 vLocal;
 out float vLen;
 out float vAlpha;
 out float vDist;
-
+${GLSL_GLYPH_HEIGHT}
 void main() {
   vec3 base = vec3(iPos.xy, 0.0);
   float dist = length(base - cameraPosition);
-  float h = uSizePx * pow(clamp(uSizeRef / dist, 0.55, 1.8), 0.35) * iPos.w;
+  float h = glyphHeight(dist, iPos.w, iRoom);
   // The glyph's height in km at its distance; the wake is a few of those.
   float len = uWakeLength * h / uPxPerRadian * dist;
   vec2 ahead = vec2(sin(iPos.z), cos(iPos.z));
@@ -220,8 +245,11 @@ export class Glyphs implements ChartLayer {
   private readonly pos: Float32Array;
   /** Per mark: atlas cell, side, opacity, under way (0/1). */
   private readonly style: Float32Array;
+  /** Per mark: its room on the chart, km (0 for none). */
+  private readonly room: Float32Array;
   private readonly iPos: InstancedBufferAttribute;
   private readonly iStyle: InstancedBufferAttribute;
+  private readonly iRoom: InstancedBufferAttribute;
   private readonly order: Int32Array;
   private readonly depth: Float32Array;
   private readonly count: number;
@@ -234,6 +262,7 @@ export class Glyphs implements ChartLayer {
     this.count = n;
     this.pos = new Float32Array(n * 4);
     this.style = new Float32Array(n * 4);
+    this.room = new Float32Array(n);
     this.order = new Int32Array(n);
     this.depth = new Float32Array(n);
     marks.forEach((m, i) => {
@@ -252,16 +281,20 @@ export class Glyphs implements ChartLayer {
         [cell, SIDES[m.side], m.opacity ?? 1, m.underWay ? 1 : 0],
         i * 4,
       );
+      this.room[i] = m.room ?? 0;
       this.order[i] = i;
     });
 
     const ships = glyphQuad();
     this.iPos = new InstancedBufferAttribute(new Float32Array(n * 4), 4);
     this.iStyle = new InstancedBufferAttribute(new Float32Array(n * 4), 4);
+    this.iRoom = new InstancedBufferAttribute(new Float32Array(n), 1);
     this.iPos.setUsage(DynamicDrawUsage);
     this.iStyle.setUsage(DynamicDrawUsage);
+    this.iRoom.setUsage(DynamicDrawUsage);
     ships.setAttribute("iPos", this.iPos);
     ships.setAttribute("iStyle", this.iStyle);
+    ships.setAttribute("iRoom", this.iRoom);
     ships.instanceCount = n;
     const common = {
       uViewport: { value: new Vector2(1, 1) },
@@ -307,6 +340,7 @@ export class Glyphs implements ChartLayer {
     wakes.setIndex([0, 1, 2, 0, 2, 3]);
     wakes.setAttribute("iPos", this.iPos);
     wakes.setAttribute("iStyle", this.iStyle);
+    wakes.setAttribute("iRoom", this.iRoom);
     wakes.instanceCount = n;
     this.wakes = new Mesh(
       wakes,
@@ -384,15 +418,18 @@ export class Glyphs implements ChartLayer {
     }
     const outPos = this.iPos.array as Float32Array;
     const outStyle = this.iStyle.array as Float32Array;
+    const outRoom = this.iRoom.array as Float32Array;
     for (let i = 0; i < n; i++) {
       const k = order[i] * 4;
       for (let c = 0; c < 4; c++) {
         outPos[i * 4 + c] = pos[k + c];
         outStyle[i * 4 + c] = this.style[k + c];
       }
+      outRoom[i] = this.room[order[i]];
     }
     this.iPos.needsUpdate = true;
     this.iStyle.needsUpdate = true;
+    this.iRoom.needsUpdate = true;
   }
 
   /** The sides' colours under the current light. */

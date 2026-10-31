@@ -64,14 +64,22 @@ export const GLYPH_TYPES: readonly GlyphType[] = [
 ];
 
 /**
+ * How much of the chart a glyph at anchor may stand on, km: in the outer
+ * bay of Cádiz, between the entrance shoals and the shore of El Puerto,
+ * and in the narrows between Puntal and Matagorda. Seen from farther off,
+ * the anchored ships shrink with the bay, so they stay on its water.
+ */
+const ROOM_OUTER_BAY = 3.6;
+const ROOM_NARROWS = 1.5;
+
+/**
  * Stage A's proof: the fleets near Cape Trafalgar at dawn on 21 October
  * (the British in loose order about 20 nautical miles west of the cape,
  * the combined fleet in its ragged line between them and the coast,
  * heading south), and the combined fleet at anchor off Cádiz as it lay
- * before the sortie, head to the westerlies of mid-October. The lab shows
- * both moments at once; Stage B gives each its beat. Spacing within each
- * group is opened up a few times over the true cables, as the glyphs are,
- * so the ships read one by one.
+ * before the sortie. The lab shows both moments at once; Stage B gives
+ * each its beat. Spacing within each group is opened up a few times over
+ * the true cables, as the glyphs are, so the ships read one by one.
  */
 export const LAB_MARKS: readonly ShipMark[] = [
   // The British: the weather column forming astern of Victory, the lee
@@ -173,46 +181,65 @@ export const LAB_MARKS: readonly ShipMark[] = [
     heading: 179,
     underWay: true,
   },
-  // At anchor in the bay of Cádiz, heads to the west-north-west.
+  // At anchor off Cádiz, out of range of the city's guns: a line strung
+  // WNW–ESE in the outer bay north-east of the entrance shoals (Las Puercas,
+  // El Diamante), the outermost ship toward the entrance roads, and one
+  // still in the narrows between Puntal and Matagorda. Moored with anchors
+  // to the SE and NW by compass, heads to the NW, about 294° true
+  // (a-h2c.md, H2-36c–e, H2-40b).
   {
     type: "french-80-anchored",
     side: "combined",
-    lon: -6.3,
-    lat: 36.552,
-    heading: 292,
+    lon: -6.29,
+    lat: 36.5585,
+    heading: 294,
     underWay: false,
+    room: ROOM_OUTER_BAY,
+  },
+  {
+    type: "french-74-anchored",
+    side: "combined",
+    lon: -6.284,
+    lat: 36.5665,
+    heading: 294,
+    underWay: false,
+    room: ROOM_OUTER_BAY,
   },
   {
     type: "santisima-trinidad-anchored",
     side: "combined",
-    lon: -6.276,
-    lat: 36.56,
-    heading: 292,
+    lon: -6.2765,
+    lat: 36.5645,
+    heading: 294,
     underWay: false,
-  },
-  {
-    type: "french-74-anchored",
-    side: "combined",
-    lon: -6.322,
-    lat: 36.565,
-    heading: 292,
-    underWay: false,
+    room: ROOM_OUTER_BAY,
   },
   {
     type: "spanish-74-anchored",
     side: "combined",
-    lon: -6.262,
-    lat: 36.545,
-    heading: 292,
+    lon: -6.2685,
+    lat: 36.562,
+    heading: 294,
     underWay: false,
+    room: ROOM_OUTER_BAY,
   },
   {
     type: "french-74-anchored",
     side: "combined",
-    lon: -6.296,
-    lat: 36.575,
-    heading: 292,
+    lon: -6.2605,
+    lat: 36.5598,
+    heading: 294,
     underWay: false,
+    room: ROOM_OUTER_BAY,
+  },
+  {
+    type: "french-74-anchored",
+    side: "combined",
+    lon: -6.2488,
+    lat: 36.5178,
+    heading: 294,
+    underWay: false,
+    room: ROOM_NARROWS,
   },
 ];
 

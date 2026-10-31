@@ -21,7 +21,10 @@ import { defineConfig, devices } from "@playwright/test";
  *   uses the GPU meanwhile
  * - regression: scene 1's frames against its approved screenshots, rendered
  *   as they were (the new headless mode, on the GPU)
- * - docs: screenshots for docs/screenshots (run with `npm run screenshots`)
+ * - docs: scene 1's screenshots, docs/screenshots/scene-01 (`npm run
+ *   screenshots`), which the regression project uses as the approved frames
+ * - docs-chart: the chart lab's, docs/screenshots/scene-02 (`npm run
+ *   screenshots:chart`)
  */
 
 const PORT = 4174;
@@ -144,6 +147,15 @@ export default defineConfig({
         channel: "chromium",
         viewport: { width: 1280, height: 720 },
         deviceScaleFactor: 1.5,
+      },
+    },
+    {
+      name: "docs-chart",
+      testMatch: /screenshots-chart.spec.ts/,
+      use: {
+        ...desktop,
+        channel: "chromium",
+        trace: "off",
       },
     },
     {

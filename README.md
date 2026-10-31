@@ -47,7 +47,8 @@ npm run preview                   # then open http://127.0.0.1:4173/lab/chart/?d
 | `npm run check:lettering` | Checks that every character of every name on the chart is in its font (troika would otherwise fetch a fallback font from a CDN) |
 | `npm run test:e2e` | A fresh build, then Playwright against the served export (see "Tests") |
 | `npm run check` | Lint, typecheck, the lettering check and the end-to-end tests |
-| `npm run screenshots` | A fresh build, then the screenshots in `docs/screenshots/scene-01/` |
+| `npm run screenshots` | A fresh build, then the screenshots in `docs/screenshots/scene-01/`. The `regression` tests hold scene 1 against these as its approved frames, so run this only to approve a new look |
+| `npm run screenshots:chart` | A fresh build, then the chart lab's flight and close views in `docs/screenshots/scene-02/` |
 | `npm run data:download` | Downloads the chart's raw data into `data/raw/` (git-ignored), skipping what is already there |
 | `npm run data:build` | Downloads, then builds the chart's assets in `public/chart/` |
 | `npm run deploy` | Build, then `wrangler deploy` to Cloudflare Workers (static assets, `wrangler.jsonc`) |
@@ -78,8 +79,9 @@ Playwright runs against the served export, in Chromium:
 - `laptop` (1280×720 at scale 1.5) and `desktop-1080`: scene 1, its fonts, reduced motion and the `?debug` overlay;
 - `phone`: the fallback screen;
 - `perf`: one scripted scroll-through with video and long-task recording;
-- `chart` and `chart-gpu`: the chart lab's flight and back with no errors and same-origin requests only, and sampled frames of sea, land and sky; once in software WebGL (SwiftShader) and once on the machine's GPU;
-- `regression`: scene 1 at p = 0, 0.5 and 0.75 against its approved screenshots.
+- `chart` and `chart-gpu`: the chart lab's flight and back with no errors and same-origin requests only, sampled frames of sea, land and sky, and a lost WebGL context coming back; once in software WebGL (SwiftShader) and once on the machine's GPU;
+- `regression`: scene 1 at p = 0, 0.5 and 0.75 against its approved screenshots;
+- `chart-frames`, after all the others so nothing else uses the GPU: the chart's frames timed on the GPU along the whole flight (on the owner's Intel Arc graphics each must stay under 11 ms at the 95th percentile, a third below a 60 fps frame), and no long tasks while the flight is scrolled with the wheel. Run it alone with `npx playwright test --project=chart-frames --no-deps` after a build.
 
 ## Structure
 

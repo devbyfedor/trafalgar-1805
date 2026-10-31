@@ -299,6 +299,9 @@ Device pixel ratio 1.5, 1.25 and 1.0, then 0.85 with the optional effects (cast 
 - The chart chunk (three, troika and the engine) loads by dynamic import, never in the initial bundle; 189 KB gzipped at session 6's build (budget about 300 KB).
 - GPU memory about 51 MB of textures at session 6, plus about 3 MB of land masks (budget about 256 MB).
 - Assets 4.31 MB (budget about 10 MB); the overview alone, 2.29 MB, shows a whole chart.
+- **Frame time, measured on the owner's laptop (session 8).** The GPU's time for each frame, from `EXT_disjoint_timer_query_webgl2` (which Chromium offers on ANGLE's Direct3D 11), at the owner's viewport (1920×1080 device pixels, the top quality level), along the whole flight in steps of 0.02, on the production build, on battery: 1.5 ms over the sea at dawn, 4–6 ms over the ocean, 7–8 ms at the worst points (rising into the Gulf at p ≈ 0.16, and the Channel), the 95th percentile at most 8.8 ms and the slowest single frame 9.1 ms: about half of a 60 fps frame. The CPU's share (the layers' updates and three's render calls) is at most 2.2 ms. Where the time goes: the terrain (700,000–770,000 triangles at the worst points). Not counted: the compositor's own pass and the multisample resolve, about a millisecond. No long tasks while the flight is scrolled with the wheel, down and back.
+  - **How.** The lab's `window.__chart.bench(frames, p)` and `scripts/dev/bench.mjs`; the `chart-frames` test project repeats it after every other project, so nothing else uses the GPU, and fails on the owner's GPU family above 11 ms. Other work on the machine distorts the numbers by a factor of two or three, even in the background (on battery the CPU and GPU share one power limit; a Playwright trace captures the screen; two tests drawing at once), so each point keeps the best of three sweeps.
+  - Only the owner's look at `?debug` in a real browser confirms 60 fps.
 
 ### Tests
 

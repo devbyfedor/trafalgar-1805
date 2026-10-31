@@ -16,6 +16,9 @@ import { defineConfig, devices } from "@playwright/test";
  *   shell, which renders WebGL in software (SwiftShader, 2.4 to 5 s a frame
  *   at the laptop's 1920×1080 device pixels, so it gets a quarter of them),
  *   and in the new headless mode on the GPU at the owner's viewport
+ * - chart-frames: the chart's frames timed on the GPU and long tasks while
+ *   the flight is scrolled, after every other project, so nothing else
+ *   uses the GPU meanwhile
  * - regression: scene 1's frames against its approved screenshots, rendered
  *   as they were (the new headless mode, on the GPU)
  * - docs: screenshots for docs/screenshots (run with `npm run screenshots`)
@@ -115,6 +118,27 @@ export default defineConfig({
     {
       name: "regression",
       testMatch: /regression.spec.ts/,
+      use: {
+        ...desktop,
+        channel: "chromium",
+        viewport: { width: 1280, height: 720 },
+        deviceScaleFactor: 1.5,
+      },
+    },
+    {
+      // Last and alone: the GPU must be the chart's only work while its
+      // frames are timed. Run it by itself with --no-deps.
+      name: "chart-frames",
+      testMatch: /chart-frames.spec.ts/,
+      dependencies: [
+        "laptop",
+        "desktop-1080",
+        "phone",
+        "perf",
+        "chart",
+        "chart-gpu",
+        "regression",
+      ],
       use: {
         ...desktop,
         channel: "chromium",

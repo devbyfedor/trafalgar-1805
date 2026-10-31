@@ -15,6 +15,7 @@ import {
 } from "@/scenes/02-road/fleets";
 import { GAZETTEER } from "@/scenes/02-road/gazetteer";
 import { TOULON_TO_CADIZ } from "@/scenes/02-road/routes";
+import { type BenchResult, benchFrames } from "./bench";
 import {
   buildFlight,
   FLIGHT_LENGTH,
@@ -208,21 +209,23 @@ export function ChartLab() {
         await chart.warm();
         if (cancelled) return;
 
-        if (jumpTo !== null) {
-          // Straight to a point of the flight, the scrub settled at once.
+        // Straight to a point of the flight, the scrub settled at once.
+        const jump = (p: number) => {
           const st = tl.scrollTrigger;
-          if (st) {
-            const y =
-              st.start + Math.min(1, Math.max(0, jumpTo)) * (st.end - st.start);
-            if (window.__lenis)
-              window.__lenis.scrollTo(y, { immediate: true, force: true });
-            else window.scrollTo(0, y);
-            ScrollTrigger.update();
-            st.getTween()?.progress(1);
-          }
-        }
+          if (!st) return;
+          const y =
+            st.start + Math.min(1, Math.max(0, p)) * (st.end - st.start);
+          if (window.__lenis)
+            window.__lenis.scrollTo(y, { immediate: true, force: true });
+          else window.scrollTo(0, y);
+          ScrollTrigger.update();
+          st.getTween()?.progress(1);
+        };
+        if (jumpTo !== null) jump(jumpTo);
+        // Held while a bench draws its own frames.
+        let held = false;
         render = (time: number) => {
-          if (inView && !document.hidden) draw(time);
+          if (inView && !document.hidden && !held) draw(time);
         };
         gsap.ticker.add(render);
         document.addEventListener("visibilitychange", onVisibility);
@@ -231,6 +234,16 @@ export function ChartLab() {
           stats: chart.stats,
           ready: true,
           labels: () => lettering.snapshot(),
+          bench: async (frames, p) => {
+            if (p !== undefined) jump(p);
+            held = true;
+            try {
+              const gl = chart.renderer.getContext() as WebGL2RenderingContext;
+              return await benchFrames(gl, draw, frames);
+            } finally {
+              held = false;
+            }
+          },
         };
       };
       start().catch((error: unknown) => {
@@ -280,6 +293,11 @@ declare global {
       ready: boolean;
       /** Each name's on-screen size and opacity, for development. */
       labels?: () => LabelState[];
+      /**
+       * Draws `frames` frames, at progress `p` if given, and times each on
+       * the GPU and the CPU, for development (scripts/dev/bench.mjs).
+       */
+      bench?: (frames: number, p?: number) => Promise<BenchResult>;
     };
   }
 }

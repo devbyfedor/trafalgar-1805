@@ -237,16 +237,17 @@ Ship glyphs take scene 1's two tones: the British canvas `#ebe2ce` with hulls `#
 
 ### Type roles
 
-| Role | Face | Ink | Close up |
+| Role | Face | Lies on | Close up |
 | --- | --- | --- | --- |
-| Oceans | Bodoni Moda 28 pt, capitals tracked 0.32 em (the brief's one exception to the spaced-capitals rule) | pale | fades out |
-| Seas | Baskervville italic capitals, tracked 0.22 em | pale | fades out |
-| Waters (gulfs, bays, straits, the Channel) | Baskervville italic | pale | fades out |
-| Capes | Baskervville italic, the name ending at the cape | pale | stops at 18 px |
-| Islands and island groups | Baskervville roman | pale (they lie on the sea) | stops at 18 px |
-| Towns, with a ring on the site (capitals ⊙) | Baskervville roman, beside the mark | dark (pale where the name lies on the sea: Cádiz) | stops at 19 px, capitals 22 |
-| Countries and regions | Baskervville roman | dark | fades out |
+| Oceans | Bodoni Moda 28 pt, capitals tracked 0.32 em (the brief's one exception to the spaced-capitals rule) | the sea | fades out |
+| Seas | Baskervville italic capitals, tracked 0.22 em | the sea | fades out |
+| Waters (gulfs, bays, straits, the Channel) | Baskervville italic | the sea | fades out |
+| Capes | Baskervville italic, the name ending at the cape | the sea | stops at 18 px |
+| Islands and island groups | Baskervville roman | the sea beside them | stops at 18 px |
+| Towns, with a ring on the site (capitals ⊙) | Baskervville roman, beside the mark | the land, or the sea where a port's name fits there better (Cádiz, Gibraltar) | stops at 19 px, capitals 22 |
+| Countries and regions | Baskervville roman | the land | fades out |
 
+- **The ink follows the ground under the letters (session 8):** pale on the sea, dark on the land's paper, switching at the coast within a pixel, as the coastline is drawn. A name keeps its contrast at every scale even where the ground under it changes: Cádiz's lies on the sea west of the town from afar and on its isthmus close up, and had been pale on the land there. Names are placed so they don't straddle a coast in the views that matter; Gibraltar's moved from above the Rock, where it lay half on the land, to the open sea east of it.
 - One troika `BatchedText` for every name (one draw call), one SDF size (128), glyphs draped on the relief and pulled toward the camera; fonts only from this site (`public/fonts/3d/`), with `npm run check:lettering` failing on any glyph a font lacks, because troika would fetch a fallback from a CDN.
 - Sizes are world km, each name about 12 CSS px at the farthest view of the flight where it matters; the period hierarchy (capital 1.4 : port 1.2 : minor 1, `t4`, section 7) sets the caps. Names fade in once readable, with foreshortening and with the haze.
 - Not adopted from the period sources: countries and capitals in spaced roman capitals (Faden, Hall). The brief allows spaced capitals for oceans and seas only, so they stay in upper and lower case, and the ring with a dot and the larger cap carry a capital's rank.

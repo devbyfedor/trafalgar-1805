@@ -84,7 +84,8 @@ export const GAZETTEER: readonly Label[] = [
     side: "left",
   },
   // Towns, on their sites. Cádiz stands at the tip of its isthmus, with
-  // water on every side, so its name lies on the open sea to the west.
+  // water on every side: its name lies on the open sea to the west from
+  // afar, and on the isthmus close up, where the ink turns dark with it.
   {
     text: "Cadiz",
     role: "place",
@@ -93,9 +94,10 @@ export const GAZETTEER: readonly Label[] = [
     size: 21,
     mark: "town",
     side: "left",
-    ink: "pale",
     capPx: 20,
   },
+  // On the open Mediterranean east of the Rock: above the mark, the name
+  // lay half on the land and half on the sea.
   {
     text: "Gibraltar",
     role: "place",
@@ -103,7 +105,7 @@ export const GAZETTEER: readonly Label[] = [
     lat: 36.141,
     size: 18,
     mark: "town",
-    side: "above",
+    side: "right",
   },
   {
     text: "Tangier",

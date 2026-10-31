@@ -4,7 +4,7 @@ import { createDerivedMaterial } from "troika-three-utils";
 import type { ChartLayer, FrameInfo } from "../engine/Chart";
 import { worldX, worldY } from "../geo/mercator";
 import type { TerrainField } from "../terrain/field";
-import { DRAPE } from "./drape";
+import { DRAPE, GROUND } from "./drape";
 import {
   DEFAULT_FONT_FILE,
   FONT_FILES,
@@ -68,11 +68,6 @@ export interface Label {
    * and stays; 0 fades it out instead. Defaults by role, and for capitals.
    */
   capPx?: number;
-  /**
-   * The ink: pale for a name lying on the sea, dark on land. Defaults by
-   * role (places and lands dark, the rest pale).
-   */
-  ink?: "dark" | "pale";
 }
 
 /**
@@ -103,8 +98,19 @@ const CAP_PX: Record<LabelRole, number> = {
 };
 const CAPITAL_CAP_PX = 22;
 
-/** The roles whose names lie on the land, in dark ink. */
-const DARK_ROLES: ReadonlySet<LabelRole> = new Set(["place", "land"]);
+/**
+ * The ink follows the ground under the letters: pale on the sea, dark on
+ * the land's paper, so a name reads at every scale even where the ground
+ * under it changes (Cádiz's name lies on the sea from afar, on its isthmus
+ * close up). It switches at the coast within a pixel, as the coastline is
+ * drawn, so a letter that crosses a coast keeps its contrast on both
+ * sides; names are placed so that they don't, in the views that matter.
+ */
+const INK_FRAGMENT = /* glsl */ `
+${GROUND}
+uniform vec3 uInkPale;
+uniform vec3 uInkDark;
+`;
 
 /** The gap between a mark's ring and its name, in ems. */
 const MARK_GAP_EM = 0.2;
@@ -125,8 +131,6 @@ interface Placed {
   at: Vector3;
   band: readonly [number, number];
   cap: number;
-  /** Dark ink (on land) or pale (on the sea). */
-  dark: boolean;
   /** The name's offset from its site, ems, in the chart's frame (east, north). */
   offset: readonly [number, number];
   /** Index of its mark, or -1. */
@@ -174,9 +178,15 @@ export class Lettering implements ChartLayer {
           ...field.uniforms,
           uTexelKm: { value: field.texelKm },
           ...this.uniforms,
+          uInkPale: { value: this.inkPale },
+          uInkDark: { value: this.inkDark },
         },
-        vertexDefs: DRAPE,
-        vertexTransform: "position = chartDrape(position);",
+        vertexDefs: `${DRAPE}\nvarying vec2 vChartXY;`,
+        vertexTransform:
+          "vChartXY = position.xy; position = chartDrape(position);",
+        fragmentDefs: INK_FRAGMENT,
+        fragmentColorTransform:
+          "gl_FragColor.rgb = mix(uInkPale, uInkDark, chartGround());",
       },
     );
     this.batch = new BatchedText();
@@ -243,9 +253,6 @@ export class Lettering implements ChartLayer {
         cap:
           label.capPx ??
           (label.mark === "capital" ? CAPITAL_CAP_PX : CAP_PX[label.role]),
-        dark:
-          (label.ink ?? (DARK_ROLES.has(label.role) ? "dark" : "pale")) ===
-          "dark",
         offset,
         mark,
         radius: 0,
@@ -308,8 +315,6 @@ export class Lettering implements ChartLayer {
         p.at.y + p.offset[1] * em,
         0,
       );
-      // Names on the sea in pale ink, on the land in dark ink.
-      text.color = colorHex(p.dark ? this.inkDark : this.inkPale);
       if (p.mark >= 0) {
         this.marks.set(p.mark, p.at.x, p.at.y, MARK_HALF_EM * em, p.opacity);
       }
@@ -337,12 +342,4 @@ export class Lettering implements ChartLayer {
 function smooth(e0: number, e1: number, x: number): number {
   const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
   return t * t * (3 - 2 * t);
-}
-
-/** An sRGB colour (components 0..1) as a hex number, as troika takes it. */
-function colorHex(c: Vector3): number {
-  const r = Math.round(c.x * 255);
-  const g = Math.round(c.y * 255);
-  const b = Math.round(c.z * 255);
-  return (r << 16) | (g << 8) | b;
 }

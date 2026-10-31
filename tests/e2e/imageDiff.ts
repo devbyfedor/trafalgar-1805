@@ -55,7 +55,7 @@ const BLOCK = 20;
 
 export async function compareImages(
   actual: Buffer,
-  approved: string,
+  approved: Buffer | string,
 ): Promise<ImageDiff> {
   const a = await halved(actual);
   const b = await halved(approved);

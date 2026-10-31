@@ -1,6 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 import sharp from "sharp";
 import { collectErrors, collectRequests, settleFrames } from "./helpers";
+import { compareImages } from "./imageDiff";
 
 /**
  * The chart engine on /lab/chart (docs/scene-02-brief.md, stage A, item 6):
@@ -8,6 +9,8 @@ import { collectErrors, collectRequests, settleFrames } from "./helpers";
  * sampled, not blank), and every request is same-origin. troika's glyph
  * worker runs from a blob: URL, which is the page's own; nothing may go to
  * a CDN (troika falls back to jsDelivr for a character no font covers).
+ * A WebGL context the browser takes away and gives back is restored
+ * (the brief's "performance" rules).
  *
  * Runs twice: in the default headless shell, which renders WebGL in
  * software (SwiftShader), and in Chromium's new headless mode, which
@@ -160,6 +163,39 @@ test.describe("the chart lab", () => {
     const atlantic = await sample(await page.screenshot());
     expect(atlantic.sea, "atlantic: sea").toBeGreaterThan(0.3);
     expect(atlantic.paper, "atlantic: land").toBeGreaterThan(0.08);
+    expect(errors).toEqual([]);
+  });
+
+  test("comes back as it was after the browser takes its WebGL context away", async ({
+    page,
+  }) => {
+    test.setTimeout(240_000);
+    const errors = collectErrors(page);
+    // The quality level is pinned, so the frames compare at one resolution.
+    await openLab(page, "?p=0.24&quality=0");
+    await page.waitForTimeout(SCRUB_SETTLE_MS);
+    const before = await page.screenshot();
+
+    // Lost, then given back: everything on the GPU is rebuilt, the decoded
+    // fields, the land masks and the horizon maps from the kept bitmaps.
+    await page.evaluate(() => {
+      const canvas = document.querySelector<HTMLCanvasElement>(
+        "[data-chart-stage] canvas",
+      );
+      const lose = canvas
+        ?.getContext("webgl2")
+        ?.getExtension("WEBGL_lose_context");
+      if (!lose) throw new Error("no WEBGL_lose_context");
+      lose.loseContext();
+      window.setTimeout(() => lose.restoreContext(), 300);
+    });
+    await page.waitForTimeout(1200);
+    await settleFrames(page, 3);
+    const diff = await compareImages(await page.screenshot(), before);
+    console.log(`chart context restore ${JSON.stringify(diff)}`);
+    expect(diff.moved, "pixels with no match nearby, %").toBeLessThan(0.3);
+    expect(diff.blockMedian, "median block difference").toBeLessThan(0.5);
+    expect(diff.blockP99, "99th percentile block").toBeLessThan(4);
     expect(errors).toEqual([]);
   });
 });

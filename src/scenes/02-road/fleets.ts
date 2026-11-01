@@ -64,13 +64,11 @@ export const GLYPH_TYPES: readonly GlyphType[] = [
 ];
 
 /**
- * How much of the chart a glyph at anchor may stand on, km: in the outer
- * bay of Cádiz, between the entrance shoals and the shore of El Puerto,
- * and in the narrows between Puntal and Matagorda. Seen from farther off,
- * the anchored ships shrink with the bay, so they stay on its water.
+ * The open water beyond the British ships toward the coast to the north-east,
+ * where the flight looks from, map km (ShipMark.room): the least of the
+ * group's.
  */
-const ROOM_OUTER_BAY = 3.6;
-const ROOM_NARROWS = 1.5;
+const BRITISH_ROOM = 38;
 
 /**
  * Stage A's proof: the fleets near Cape Trafalgar at dawn on 21 October
@@ -80,6 +78,14 @@ const ROOM_NARROWS = 1.5;
  * before the sortie. The lab shows both moments at once; Stage B gives
  * each its beat. Spacing within each group is opened up a few times over
  * the true cables, as the glyphs are, so the ships read one by one.
+ *
+ * Each ship's room is the open water beyond her toward the north-east,
+ * where the flight looks from (along 40°, map km, to Natural Earth's coast,
+ * which the chart draws; the glyph's cell leaves 8 % clear above the
+ * masts), so no glyph stands on the shore. Seen from far off, each
+ * group gives way to its lead (Victory, Collingwood's group's lead, and the
+ * combined fleet's flagship, the Bucentaure, an 80): the others' spacing is
+ * their distance from the next ship toward the lead.
  */
 export const LAB_MARKS: readonly ShipMark[] = [
   // The British, some 20 nm west of Cape Trafalgar, still in loose order
@@ -94,6 +100,7 @@ export const LAB_MARKS: readonly ShipMark[] = [
     lat: 36.133,
     heading: 47,
     underWay: true,
+    room: BRITISH_ROOM,
   },
   {
     type: "british-98",
@@ -102,6 +109,8 @@ export const LAB_MARKS: readonly ShipMark[] = [
     lat: 36.172,
     heading: 47,
     underWay: true,
+    room: BRITISH_ROOM,
+    spacing: 6.5,
   },
   {
     type: "british-98",
@@ -110,6 +119,8 @@ export const LAB_MARKS: readonly ShipMark[] = [
     lat: 36.19,
     heading: 47,
     underWay: true,
+    room: BRITISH_ROOM,
+    spacing: 8.5,
   },
   {
     type: "british-74",
@@ -118,6 +129,8 @@ export const LAB_MARKS: readonly ShipMark[] = [
     lat: 36.104,
     heading: 47,
     underWay: true,
+    room: BRITISH_ROOM,
+    spacing: 7.3,
   },
   {
     type: "british-98",
@@ -126,6 +139,8 @@ export const LAB_MARKS: readonly ShipMark[] = [
     lat: 36.035,
     heading: 47,
     underWay: true,
+    room: BRITISH_ROOM,
+    spacing: 13.5,
   },
   {
     type: "british-74",
@@ -134,6 +149,8 @@ export const LAB_MARKS: readonly ShipMark[] = [
     lat: 36.008,
     heading: 47,
     underWay: true,
+    room: BRITISH_ROOM,
+    spacing: 7.4,
   },
   // The combined fleet, its centre 9–12 nm east of Victory, in a ragged
   // line strung north to south, standing south on the starboard tack
@@ -145,6 +162,8 @@ export const LAB_MARKS: readonly ShipMark[] = [
     lat: 36.27,
     heading: 186,
     underWay: true,
+    room: 13.6,
+    spacing: 8.9,
   },
   {
     type: "spanish-112",
@@ -153,6 +172,8 @@ export const LAB_MARKS: readonly ShipMark[] = [
     lat: 36.21,
     heading: 190,
     underWay: true,
+    room: 15,
+    spacing: 7.2,
   },
   {
     type: "french-80",
@@ -161,6 +182,7 @@ export const LAB_MARKS: readonly ShipMark[] = [
     lat: 36.16,
     heading: 183,
     underWay: true,
+    room: 22,
   },
   {
     type: "santisima-trinidad",
@@ -169,6 +191,8 @@ export const LAB_MARKS: readonly ShipMark[] = [
     lat: 36.11,
     heading: 188,
     underWay: true,
+    room: 23,
+    spacing: 7.7,
   },
   {
     type: "spanish-74",
@@ -177,6 +201,8 @@ export const LAB_MARKS: readonly ShipMark[] = [
     lat: 36.05,
     heading: 192,
     underWay: true,
+    room: 29.5,
+    spacing: 8.6,
   },
   {
     type: "french-74",
@@ -185,13 +211,17 @@ export const LAB_MARKS: readonly ShipMark[] = [
     lat: 36,
     heading: 185,
     underWay: true,
+    room: 33,
+    spacing: 7.6,
   },
   // At anchor off Cádiz, out of range of the city's guns: a line strung
   // WNW–ESE in the outer bay north-east of the entrance shoals (Las Puercas,
   // El Diamante), the outermost ship toward the entrance roads, and one
   // still in the narrows between Puntal and Matagorda. Moored with anchors
   // to the SE and NW by compass, heads to the NW, about 294° true
-  // (a-h2c.md, H2-36c–e, H2-40b).
+  // (a-h2c.md, H2-36c–e, H2-40b). The bay is a few kilometres deep, so
+  // from the Gulf the ships stand small in it: 3.6–5.4 km of water beyond
+  // the line toward the shore of El Puerto, 3.2 in the narrows.
   {
     type: "french-80-anchored",
     side: "combined",
@@ -199,7 +229,7 @@ export const LAB_MARKS: readonly ShipMark[] = [
     lat: 36.5617,
     heading: 294,
     underWay: false,
-    room: ROOM_OUTER_BAY,
+    room: 5.4,
   },
   {
     type: "french-74-anchored",
@@ -208,7 +238,7 @@ export const LAB_MARKS: readonly ShipMark[] = [
     lat: 36.5665,
     heading: 294,
     underWay: false,
-    room: ROOM_OUTER_BAY,
+    room: 4.7,
   },
   {
     type: "santisima-trinidad-anchored",
@@ -217,7 +247,7 @@ export const LAB_MARKS: readonly ShipMark[] = [
     lat: 36.5645,
     heading: 294,
     underWay: false,
-    room: ROOM_OUTER_BAY,
+    room: 4.3,
   },
   {
     type: "spanish-74-anchored",
@@ -226,7 +256,7 @@ export const LAB_MARKS: readonly ShipMark[] = [
     lat: 36.562,
     heading: 294,
     underWay: false,
-    room: ROOM_OUTER_BAY,
+    room: 4,
   },
   {
     type: "french-74-anchored",
@@ -235,7 +265,7 @@ export const LAB_MARKS: readonly ShipMark[] = [
     lat: 36.5598,
     heading: 294,
     underWay: false,
-    room: ROOM_OUTER_BAY,
+    room: 3.6,
   },
   {
     type: "french-74-anchored",
@@ -244,11 +274,16 @@ export const LAB_MARKS: readonly ShipMark[] = [
     lat: 36.5178,
     heading: 294,
     underWay: false,
-    room: ROOM_NARROWS,
+    room: 3.2,
   },
 ];
 
-/** Villeneuve's squadron sailing at the drawing head of the Toulon–Cádiz route. */
+/**
+ * Villeneuve's squadron sailing at the drawing head of the Toulon–Cádiz
+ * route. Each ship's room is the water round her where she is, so passing
+ * the Strait seen from far off the squadron draws small rather than on the
+ * shore.
+ */
 export const ROUTE_SQUADRON: readonly ShipMark[] = [
   {
     type: "french-80",
@@ -258,6 +293,7 @@ export const ROUTE_SQUADRON: readonly ShipMark[] = [
     heading: 0,
     underWay: true,
     opacity: 0,
+    room: "coast",
   },
   {
     type: "french-74",
@@ -267,6 +303,7 @@ export const ROUTE_SQUADRON: readonly ShipMark[] = [
     heading: 0,
     underWay: true,
     opacity: 0,
+    room: "coast",
   },
   {
     type: "french-74",
@@ -276,5 +313,6 @@ export const ROUTE_SQUADRON: readonly ShipMark[] = [
     heading: 0,
     underWay: true,
     opacity: 0,
+    room: "coast",
   },
 ];

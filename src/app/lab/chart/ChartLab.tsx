@@ -160,7 +160,7 @@ export function ChartLab() {
         chart.add(rivers, rivers.mesh);
         const route = new engine.Route(chart.field, TOULON_TO_CADIZ);
         chart.add(route, route.mesh);
-        const glyphs = new engine.Glyphs(GLYPH_TYPES, [
+        const glyphs = new engine.Glyphs(chart.field, GLYPH_TYPES, [
           ...LAB_MARKS,
           ...ROUTE_SQUADRON,
         ]);

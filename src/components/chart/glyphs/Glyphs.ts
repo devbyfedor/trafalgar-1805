@@ -13,7 +13,8 @@ import {
 import { monotoneCurve } from "@/lib/curve";
 import type { ChartLayer, FrameInfo } from "../engine/Chart";
 import { worldX, worldY } from "../geo/mercator";
-import { GLSL_LINES } from "../shaders/common";
+import { GLSL_FIELD, GLSL_GEO, GLSL_LINES } from "../shaders/common";
+import type { TerrainField } from "../terrain/field";
 import { buildGlyphAtlas, type GlyphAtlas, type GlyphType } from "./atlas";
 
 export type { GlyphType };
@@ -31,8 +32,10 @@ export type { GlyphType };
  * turns toward or away from the camera, the way a ship seen from ahead
  * shows less of her side. Its size is a chart convention, not true scale:
  * scene 1's size low over the sea, larger over the Gulf of Cádiz, smaller
- * again over the whole ocean (`GLYPH_PX`); in a bay, no larger than the
- * bay can hold (`ShipMark.room`). Glyphs are sorted back to front each
+ * again over the whole ocean (`GLYPH_PX`); never so large that it stands
+ * on the land beyond it (`ShipMark.room`). Seen from far off, a group of
+ * ships gives way to its lead, as a chart of a larger area shows a fleet
+ * by one ship (`ShipMark.spacing`). Glyphs are sorted back to front each
  * frame, so a crowded anchorage overlaps correctly.
  */
 
@@ -53,13 +56,23 @@ export interface ShipMark {
   /** Starting opacity (default 1). */
   opacity?: number;
   /**
-   * In confined water, such as an anchorage in a bay: the most of the chart
-   * the glyph may stand on, as its height in km. Seen from farther off it
-   * keeps that size on the chart and shrinks on screen with the bay, so its
-   * hull stays on the water: a bay a few pixels across can't hold a glyph
-   * of the open sea's size, and one would stand on the shore beyond.
+   * The open water beyond the ship, map km: how much of the chart behind
+   * her the glyph may cover on screen, toward the land the camera looks
+   * at from beyond her. Seen from farther off or from lower down, that
+   * water shrinks on screen, foreshortened, and the glyph with it, so it
+   * never stands on the shore: a bay a few pixels deep can't hold a glyph
+   * of the open sea's size. From low over the sea a ship stands against
+   * the sky instead, and keeps her size. "coast" for a ship that moves:
+   * her distance from the nearest coast, read from the chart where she is,
+   * so in a strait seen from far off she draws small.
    */
-  room?: number;
+  room?: number | "coast";
+  /**
+   * A ship of a group: her distance from the group's lead, map km. Once
+   * that is narrower on screen than a glyph, she fades and the lead (a
+   * mark with no spacing) stands for the group.
+   */
+  spacing?: number;
 }
 
 /**
@@ -82,13 +95,37 @@ const SIDES: Record<Side, number> = { british: 0, combined: 1 };
 
 /**
  * A glyph's height on screen, device px: nearer glyphs a little larger,
- * within the view's own range; in confined water no taller than its room
- * on the chart (ShipMark.room) seen from here.
+ * within the view's own range, and no taller than the water beyond it
+ * (ShipMark.room) seen from here: the angle between the glyph's foot and
+ * the chart that much farther on. How much of it shows: a glyph shrunk to
+ * its room fades out before it is too small to read, and a ship of a group
+ * gives way to the group's lead once her spacing (ShipMark.spacing) is
+ * narrower on screen than the glyph.
  */
 const GLSL_GLYPH_HEIGHT = /* glsl */ `
-float glyphHeight(float dist, float size, float room) {
+${GLSL_GEO}
+${GLSL_FIELD}
+uniform vec3 uTexelKm;
+// A moving ship's room (a negative room): her distance from the nearest
+// coast, where the chart's field is smooth over a couple of kilometres.
+float coastRoom(vec2 p) {
+  return max(sampleFieldLod(p, max(vec3(0.0), log2(2.0 / uTexelKm))).y, 0.0);
+}
+float glyphHeight(vec2 at, float dist, float size, float room) {
   float h = uSizePx * pow(clamp(uSizeRef / dist, 0.55, 1.8), 0.35) * size;
-  return room > 0.0 ? min(h, room * uPxPerRadian / dist) : h;
+  if (room == 0.0) return h;
+  if (room < 0.0) room = coastRoom(at);
+  float z = max(cameraPosition.z, 1e-3);
+  float d = length(at - cameraPosition.xy);
+  float fit = (atan(z, d) - atan(z, d + room)) * uPxPerRadian;
+  // From low over the sea the glyph stands against the sky, not the chart.
+  return mix(h, min(h, fit), smoothstep(0.03, 0.08, z / dist));
+}
+float glyphShow(float dist, float h, float spacing) {
+  float show = smoothstep(3.5, 6.5, h / uDpr);
+  if (spacing > 0.0)
+    show *= smoothstep(0.3, 0.5, spacing * uPxPerRadian / dist / (h * uAspect));
+  return show;
 }
 `;
 
@@ -96,7 +133,7 @@ const SHIP_VERTEX = /* glsl */ `
 precision highp float;
 in vec4 iPos;
 in vec4 iStyle;
-in float iRoom;
+in vec2 iFit;
 uniform vec2 uViewport;
 uniform float uSizePx;
 uniform float uSizeRef;
@@ -115,7 +152,7 @@ void main() {
   float dist = length(base - cameraPosition);
   vec3 w = base + (cameraPosition - base) * uPull;
   vec4 clip = projectionMatrix * viewMatrix * vec4(w, 1.0);
-  float h = glyphHeight(dist, iPos.w, iRoom);
+  float h = glyphHeight(iPos.xy, dist, iPos.w, iFit.x);
   // Bow toward the heading's side of the screen, narrower end-on.
   vec3 right = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]);
   float facing = dot(vec2(sin(iPos.z), cos(iPos.z)), normalize(right.xy + 1e-6));
@@ -127,8 +164,7 @@ void main() {
   vec2 origin = vec2(mod(cell, uGrid.x), floor(cell / uGrid.x));
   vUv = (origin + vec2(position.x + 0.5, 1.0 - position.y)) / uGrid;
   vSide = iStyle.y;
-  // A glyph shrunk to its room fades out before it is too small to read.
-  vAlpha = iStyle.z * smoothstep(5.0, 9.0, h / uDpr);
+  vAlpha = iStyle.z * glyphShow(dist, h, iFit.y);
   vDist = dist;
 }
 `;
@@ -163,10 +199,12 @@ const WAKE_VERTEX = /* glsl */ `
 precision highp float;
 in vec4 iPos;
 in vec4 iStyle;
-in float iRoom;
+in vec2 iFit;
 uniform float uSizePx;
 uniform float uSizeRef;
 uniform float uPxPerRadian;
+uniform float uDpr;
+uniform float uAspect;
 uniform float uWakeLength;
 uniform float uPull;
 out vec2 vLocal;
@@ -177,7 +215,7 @@ ${GLSL_GLYPH_HEIGHT}
 void main() {
   vec3 base = vec3(iPos.xy, 0.0);
   float dist = length(base - cameraPosition);
-  float h = glyphHeight(dist, iPos.w, iRoom);
+  float h = glyphHeight(iPos.xy, dist, iPos.w, iFit.x);
   // The glyph's height in km at its distance; the wake is a few of those.
   float len = uWakeLength * h / uPxPerRadian * dist;
   vec2 ahead = vec2(sin(iPos.z), cos(iPos.z));
@@ -189,7 +227,7 @@ void main() {
   gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.0);
   vLocal = vec2(position.x, position.y * 0.8) * len;
   vLen = len;
-  vAlpha = iStyle.z * iStyle.w;
+  vAlpha = iStyle.z * iStyle.w * glyphShow(dist, h, iFit.y);
   vDist = dist;
 }
 `;
@@ -245,24 +283,28 @@ export class Glyphs implements ChartLayer {
   private readonly pos: Float32Array;
   /** Per mark: atlas cell, side, opacity, under way (0/1). */
   private readonly style: Float32Array;
-  /** Per mark: its room on the chart, km (0 for none). */
-  private readonly room: Float32Array;
+  /** Per mark: its room and its spacing, map km (0 for none). */
+  private readonly fit: Float32Array;
   private readonly iPos: InstancedBufferAttribute;
   private readonly iStyle: InstancedBufferAttribute;
-  private readonly iRoom: InstancedBufferAttribute;
+  private readonly iFit: InstancedBufferAttribute;
   private readonly order: Int32Array;
   private readonly depth: Float32Array;
   private readonly count: number;
   private readonly canvas = [new Vector3(), new Vector3()];
   private readonly hull = [new Vector3(), new Vector3()];
 
-  constructor(types: readonly GlyphType[], marks: readonly ShipMark[]) {
+  constructor(
+    field: TerrainField,
+    types: readonly GlyphType[],
+    marks: readonly ShipMark[],
+  ) {
     this.atlas = buildGlyphAtlas(types);
     const n = marks.length;
     this.count = n;
     this.pos = new Float32Array(n * 4);
     this.style = new Float32Array(n * 4);
-    this.room = new Float32Array(n);
+    this.fit = new Float32Array(n * 2);
     this.order = new Int32Array(n);
     this.depth = new Float32Array(n);
     marks.forEach((m, i) => {
@@ -281,28 +323,32 @@ export class Glyphs implements ChartLayer {
         [cell, SIDES[m.side], m.opacity ?? 1, m.underWay ? 1 : 0],
         i * 4,
       );
-      this.room[i] = m.room ?? 0;
+      const room = m.room === "coast" ? -1 : (m.room ?? 0);
+      this.fit.set([room, m.spacing ?? 0], i * 2);
       this.order[i] = i;
     });
 
     const ships = glyphQuad();
     this.iPos = new InstancedBufferAttribute(new Float32Array(n * 4), 4);
     this.iStyle = new InstancedBufferAttribute(new Float32Array(n * 4), 4);
-    this.iRoom = new InstancedBufferAttribute(new Float32Array(n), 1);
+    this.iFit = new InstancedBufferAttribute(new Float32Array(n * 2), 2);
     this.iPos.setUsage(DynamicDrawUsage);
     this.iStyle.setUsage(DynamicDrawUsage);
-    this.iRoom.setUsage(DynamicDrawUsage);
+    this.iFit.setUsage(DynamicDrawUsage);
     ships.setAttribute("iPos", this.iPos);
     ships.setAttribute("iStyle", this.iStyle);
-    ships.setAttribute("iRoom", this.iRoom);
+    ships.setAttribute("iFit", this.iFit);
     ships.instanceCount = n;
     const common = {
+      ...field.uniforms,
+      uTexelKm: { value: field.texelKm },
       uViewport: { value: new Vector2(1, 1) },
       uSizePx: { value: 30 },
       uSizeRef: { value: 100 },
       uPxPerRadian: { value: 1000 },
       uPull: { value: 0.003 },
       uDpr: { value: 1 },
+      uAspect: { value: this.atlas.aspect },
       uHazeVisibility: { value: 100 },
     };
     this.ships = new Mesh(
@@ -319,7 +365,6 @@ export class Glyphs implements ChartLayer {
         uniforms: {
           ...common,
           uAtlas: { value: this.atlas.texture },
-          uAspect: { value: this.atlas.aspect },
           uGrid: { value: new Vector2(this.atlas.cols, this.atlas.rows) },
           uCanvas: { value: this.canvas },
           uHull: { value: this.hull },
@@ -340,7 +385,7 @@ export class Glyphs implements ChartLayer {
     wakes.setIndex([0, 1, 2, 0, 2, 3]);
     wakes.setAttribute("iPos", this.iPos);
     wakes.setAttribute("iStyle", this.iStyle);
-    wakes.setAttribute("iRoom", this.iRoom);
+    wakes.setAttribute("iFit", this.iFit);
     wakes.instanceCount = n;
     this.wakes = new Mesh(
       wakes,
@@ -418,18 +463,19 @@ export class Glyphs implements ChartLayer {
     }
     const outPos = this.iPos.array as Float32Array;
     const outStyle = this.iStyle.array as Float32Array;
-    const outRoom = this.iRoom.array as Float32Array;
+    const outFit = this.iFit.array as Float32Array;
     for (let i = 0; i < n; i++) {
       const k = order[i] * 4;
       for (let c = 0; c < 4; c++) {
         outPos[i * 4 + c] = pos[k + c];
         outStyle[i * 4 + c] = this.style[k + c];
       }
-      outRoom[i] = this.room[order[i]];
+      outFit[i * 2] = this.fit[order[i] * 2];
+      outFit[i * 2 + 1] = this.fit[order[i] * 2 + 1];
     }
     this.iPos.needsUpdate = true;
     this.iStyle.needsUpdate = true;
-    this.iRoom.needsUpdate = true;
+    this.iFit.needsUpdate = true;
   }
 
   /** The sides' colours under the current light. */

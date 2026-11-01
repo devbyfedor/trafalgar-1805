@@ -13,6 +13,9 @@ Live checklist. A later session picks up from here. The briefs are `docs/scene-0
 
 **Where it is (session 10).** Started from a clean tree at `6845eba`; lint and typecheck pass. The owner's order: first check the merged "Scene 2" history section independently and move it into `history-notes.md`, then Stage B to its definition of done, then a report in Russian and a stop.
 - **Running:** the workflow `scene2-history-check` (four adversarial checks of the merged section by part, a ruling on each, an editor who applies them and the owner's answers, a final re-check). It writes to the session's scratchpad, `history/`; the reports move into `docs/research/scene-02/` when it ends.
+- **Running:** the workflow `scene2-layers`: four agents, each in its own git worktree and branch, build a self-contained layer and prove it on `/lab/chart?demo=<name>`, each followed by an independent review: `detail` (the Channel tile; detail tiles sharing one slot), `signals` (smoke puffs, night lights: `fx/`), `boulogne` (the camps, small-craft glyphs), `tracks` (route patterns, day circles, numerals and legends, the army's dashed line). Their branches are merged into main when they land; screenshots go to the scratchpad, `agents/`.
+- **Done in session 10:** the Stage B design plan in `decisions.md` (`a8fd6ac`); the glyphs' size on screen shared in `glyphs/height.ts` (the Gulf frame unchanged, mean difference 0.08 of a level) and `?demo=` in the lab (`dba5a5a`).
+- **Next (in the main tree, while they run):** the scene itself: `src/scenes/02-road/Scene02Road.tsx` with its content, timeline and camera; the handoff from scene 1 (overlapping pins); the fleets per beat; all routes from `routes-draft.json` with the rulings.
 
 ## Scene 2, Stage A: engine, data and look (sessions 4 to 9, 25 October – 1 November 2026)
 

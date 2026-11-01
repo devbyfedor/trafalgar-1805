@@ -91,8 +91,10 @@ export const LAB_MARKS: readonly ShipMark[] = [
   // The British, some 20 nm west of Cape Trafalgar, still in loose order
   // (the columns formed over the next two hours) in two groups strung
   // north and south, Victory's and Collingwood's, on the course they
-  // steered from bearing up for the enemy at about 6.45: ENE by compass,
-  // about 047° true (history notes, "Scene 2"; scene 1, "The setting").
+  // steered once they bore up for the enemy after the signal of 6.50:
+  // ENE by compass, about 047° true, a licence for continuity with scene
+  // 1 (they steered N by E, about 350° true, at sunrise; history notes,
+  // "Scene 2"; decisions.md, "The dawn fleets are spread out").
   {
     type: "victory",
     side: "british",

@@ -2,7 +2,7 @@
 
 A scroll-driven, cinematic telling of the Battle of Trafalgar, 21 October 1805, as a sequence of scenes. Scene 1, "Dawn", is built: dawn breaks off Cape Trafalgar, the haze lifts, HMS Victory comes in under full sail, the title assembles, and the enemy fleet appears on the eastern horizon.
 
-Scene 2, "The road to Trafalgar", is in progress. Its engine is built: a three-dimensional sea chart of the Atlantic and western Europe, drawn like a chart of 1805 (waterlined coasts, soundings, relief lit by a low sun, lettering lying on the chart, small ships of scene 1's drawing) and filmed by a camera driven by scroll. For now it flies on a lab page, `/lab/chart/`; the scene itself comes next.
+Scene 2, "The road to Trafalgar", is in progress. Its engine is built: a three-dimensional sea chart of the Atlantic and western Europe, drawn like a chart of 1805 (waterlined coasts, soundings, relief lit by a low sun, lettering lying on the chart, small ships of scene 1's drawing) and filmed by a camera driven by scroll. For now it flies on a lab page, `/lab/chart/` (screenshots of the flight in `docs/screenshots/scene-02/`); the scene itself comes next.
 
 Desktop only: below 1024 px wide, or with a coarse pointer, visitors get a single static screen instead. With reduced motion the scene shows its hero frame without a pin.
 

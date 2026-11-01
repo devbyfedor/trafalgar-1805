@@ -217,11 +217,13 @@ export const LAB_MARKS: readonly ShipMark[] = [
   // At anchor off Cádiz, out of range of the city's guns: a line strung
   // WNW–ESE in the outer bay north-east of the entrance shoals (Las Puercas,
   // El Diamante), the outermost ship toward the entrance roads, and one
-  // still in the narrows between Puntal and Matagorda. Moored with anchors
+  // still at the outer end of the narrows between the Puntal and Matagorda
+  // forts, in 8 m today (Natural Earth draws no Matagorda shore, so the
+  // chart shows no narrows there; a-v-draft-h2.md, A1). Moored with anchors
   // to the SE and NW by compass, heads to the NW, about 294° true
   // (a-h2c.md, H2-36c–e, H2-40b). The bay is a few kilometres deep, so
   // from the Gulf the ships stand small in it: 3.6–5.4 km of water beyond
-  // the line toward the shore of El Puerto, 3.2 in the narrows.
+  // the line toward the shore of El Puerto, 4.1 beyond the narrows ship.
   {
     type: "french-80-anchored",
     side: "combined",
@@ -270,11 +272,11 @@ export const LAB_MARKS: readonly ShipMark[] = [
   {
     type: "french-74-anchored",
     side: "combined",
-    lon: -6.2488,
-    lat: 36.5178,
+    lon: -6.2535,
+    lat: 36.5165,
     heading: 294,
     underWay: false,
-    room: 3.2,
+    room: 4.1,
   },
 ];
 

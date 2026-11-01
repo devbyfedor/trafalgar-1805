@@ -333,3 +333,59 @@ The plan and the built lab were checked against `docs/scene-02-brief.md` and the
   - an index-weighted 100-fathom contour, a modern habit: now isobaths of one weight;
   - one spline for the camera's height, which overshot its keys: now separate monotone curves;
   - a haze that hid the coast in the rising shot: now a sea-level layer the camera climbs out of.
+
+## Scene 2, Stage B: design plan (session 10, 1 November 2026)
+
+The owner approved Stage A on 1 November 2026: a steady 60 fps on his laptop with `?debug` on the production preview. Stage B builds the full scene on that engine. His answers before this stage: the dawn fleets at their true spacing (about five miles), even if the Gulf view then shows one flagship per fleet, with a last frame close enough for the formation to read; the British heading 047° at dawn kept as a deliberate licence; beat 4's caption "a chain of frigates and ships of the line".
+
+### Scroll and beats
+
+Scene 2 is pinned for about 30 viewport heights and scrubbed (0.6 s), fully reversible; its timeline lasts 1, so a position on it is the scene's progress p. At a relaxed wheel pace (about 0.45 viewport heights a second) that is about 65 s, inside the brief's 60–90 s. First lengths, to be tuned by feel and recorded:
+
+| Beat | p | Viewport heights | Date line | Light |
+| --- | --- | --- | --- | --- |
+| 0 Transition in | 0–0.085 | 2.5 | (scene 1's dateline fades) | dawn |
+| 1 Boulogne | 0.085–0.235 | 4.5 | August 1805 | dawn to campaign |
+| 2 The chase | 0.235–0.50 | 8 | 30 March to 22 July, day by day | campaign |
+| 3 Finisterre and the turn | 0.50–0.65 | 4.5 | 22 July to September | campaign |
+| 4 Cádiz | 0.65–0.82 | 5 | 28 September to 20 October | campaign to morning (the relay at 7–9.30 a.m.) |
+| 5 Night and descent | 0.82–1 | 5.5 | 20 October to 21 October 1805 | night, then dawn |
+
+Each caption fades in once its beat's camera has settled and holds long enough to read at that pace (about 8–12 s, 4–5 viewport heights), then gives way to the next; text moves by opacity only.
+
+### The transition from scene 1 (beat 0)
+
+The brief wants no cut: scene 2 starts from scene 1's last frame. The chart's dawn key already matches scene 1's horizon (61 %), sky and sun (Stage A). The handoff:
+- **Overlapping pins.** Scene 1's pin is extended by the handoff's length (2.5 viewport heights) after its own choreography ends at p = 1; its timeline gains an empty tail, so its p still maps to the same scroll as before (its tests and approved frames are untouched). Scene 2's wrapper is pulled up by a negative margin so its pin starts exactly where scene 1's p reaches 1. For those 2.5 viewport heights both stages are pinned, scene 1 above scene 2 (its wrapper has the higher z-index), and scene 2's chart, already drawing the dawn key, lies under scene 1's frame.
+- **The crossfade.** Scene 2's beat 0 owns a few of scene 1's wrappers for the handoff (exported selectors in `src/scenes/handoff.ts`): the sky, the sun, the enemy fleet, the seas, the haze and glitter canvases and the text fade out, revealing the chart; the chapter marker changes from "I. Dawn" to "II. The road to Trafalgar" in the same place. The camera holds still while the painted sea becomes the chart's sea, so the two horizons never part.
+- **Victory becomes a glyph.** Scene 1's own Victory stays on screen (no copy, so her heave and flags never jump), clipped at her waterline from the first frame (the front sea hides that line at that moment). As the camera rises off the sea and turns to look north-north-east, her box is moved and scaled each frame to where the chart puts her glyph, until she is glyph-sized; then she crossfades into her glyph. Turning matters: a ship heading 047° faces left on screen from a camera heading 77.5° (the dawn key's), and faces right, as scene 1's Victory does, once the camera heads less than about 30°.
+- After the handoff scene 1 is transparent and unpins under scene 2.
+
+### Camera
+
+One rig (`CameraRig`, Stage A) with keys per beat: the dawn key (eye 0.05 km up, about 875 m west-south-west of Victory's glyph, heading 77.5°, pitched 4.6° up: her waterline and the horizon where scene 1 draws them); rising and turning; the Gulf from the south-south-west (heading about 25°, so both fleets' glyphs face right, as in scene 1); north over Iberia and France to the Channel (Boulogne from over the Channel to its west, England across the water at the top left, the sea under the caption); the western Mediterranean (Toulon); the whole Atlantic; the West Indies; the return; Finisterre; Iberia and France; down to the Gulf of Cádiz (the harbour and the chain to the west); up and east to Ulm and back; down toward Cape Trafalgar to the last frame. The last frame looks north-north-east from south-south-west of the fleets, a few kilometres up and close enough that both formations read: the British on the left (west), the combined fleet's ragged line receding to the north on the right (east), as scene 1 has them. Light: dawn, campaign, morning, night, dawn (`LightBlend`, Stage A's three states; the morning of 19 October uses the dawn state's low eastern sun).
+
+### What each beat draws
+
+- **Routes, as period track charts drew them** (`a-t4.md`, directive 10): Nelson's (and Calder's) track a dotted pale-ink hairline under a thin translucent carmine wash 1.5–2.5 CSS px wide, slightly uneven like a hand wash; the combined fleet's a dash-dot pale-ink line with a faint slate-violet wash. Small open day circles at the dated noon positions (none on Villeneuve's crossing, whose dating is disputed), day-of-month numerals off the line, the month at its start and at key points, a short italic legend. Dashes keep their place on the chart and their size on screen (octave-blended, as the waterlines are). No glow. The drawing head rests at a day circle where the scroll rests.
+- **Squadrons at the drawing heads** show their size at each stage (`history-notes.md`, "Fleet sizes at each stage"): a squadron is its lead glyph at the head and the others in a compact formation astern of it, spaced in screen units (a chart convention, as the glyphs' size is), so 11, 18 or 29 ships read as that many at any zoom.
+- **Boulogne:** rows of small huts along camp streets on the plateaus either side of the Liane, at Wimereux, Ambleteuse and Étaples (marks in contour ink, draped on the relief); the flotilla as a double line of small rigged craft (prames, brigs, luggers) in the road outside the pier (`history-notes.md`, "Positions on the chart", Boulogne). A Channel detail tile (ETOPO 2022 at 15″) gives the coast its detail.
+- **Finisterre:** engraved puffs of smoke between Villeneuve's 20 and Calder's 15 at 43°35′ N 11°40′ W; two Spanish glyphs leave the allied formation for the British.
+- **The army's march:** a dashed dark-ink line on the relief from Boulogne (28 August) by Metz, Bitche and the Rhine at Speyer (25–30 September), Heilbronn, Nördlingen and the Danube at Donauwörth (7 October) to Ulm (20 October); in beat 3 it leaves Boulogne for the Rhine, and in beat 5's cut-away it reaches Ulm.
+- **Cádiz:** the combined fleet at anchor (33 ready, the main group in the outer bay north-east of the entrance shoals, a few in the narrows), Blackwood's frigates inshore, the chain of ships of the line to the west (Defence and Agamemnon, Colossus and Mars), Nelson's main body some 50 nm west, out of sight of the port. The relay of 19 October in daylight: at each link two or three tiny hand-tinted flag dabs at the masthead and a counted pair or three of white gun puffs at her side, then a pause; hoists stay up until the answer runs back; 7 a.m. at Cádiz to 9.30 at the Victory. Seven of the line come out that day, the rest on the 20th.
+- **Night of 20–21 October:** the chart in night light; the combined fleet's stern and top lanterns along a line about six miles long; the British dark but for the admiral's lights and answers; the short night chain with paired blue lights at the frigates, gold rockets and counted gun flashes (`history-notes.md`, "How the chart shows the signals"). No glowing line between ships, no red or green lights, no moon until the crescent at 5.20 a.m.
+- **Dawn of 21 October:** both fleets at the sources' spacing (the owner's decision): the combined fleet's ragged line about five miles long north to south, centred about 36°09′ N 6°14′ W, heading 180–195° under easy sail, Gravina's squadron to windward of the van; the British in two loose groups, Nelson's round the Victory at 36°08′ N 6°28′ W and Collingwood's to the south, heading 047° (the owner's licence), the Africa apart to the north.
+
+### Text
+
+HTML over the canvas: the chapter marker "II. The road to Trafalgar" top left, as scene 1's; the captions in scene 1's title-card place and size; the date line in the place of scene 1's dateline, above the caption, Baskervville, `aria-hidden`, running day by day while routes draw. Contrast: a scrim as scene 1's, and camera framings that keep the sea under the card; measured over the rendered chart at every 0.01 of p (WCAG AA, 4.5:1).
+
+### Fallbacks, loading, performance
+
+- **Stills** (reduced motion, no WebGL, a context that does not come back): one still per beat, rendered from the scene itself by a Playwright script at 1920×1080 or larger and stored as WebP (about 1.5 MB in all). Reduced motion stacks them with their captions, unpinned; a WebGL failure crossfades them inside the pinned stage as the timeline runs. Mounted on the client only when used, so phones never download them.
+- **Loading:** on desktop with motion, the chart chunk is imported and the chart created while scene 1 plays (idle time first), its setup staged so no main-thread task runs over 50 ms; shaders are compiled and one hidden frame is drawn before the handoff. Phones and the fallback load nothing of scene 2.
+- **Budgets:** about 20 draw calls; the frame time measured on the owner's laptop along the whole scene (the `chart-frames` method, Stage A), 95th percentile under 11 ms of GPU; the chunk under 300 KB gzipped; assets under 10 MB.
+
+### Built in parallel
+
+Self-contained engine layers are built in parallel by agents in their own git worktrees, each proven on `/lab/chart` before it is merged: the Channel tile with detail tiles that share one slot (the field binds the one nearest the camera's target); engraved smoke puffs; night lights; Boulogne's camps and small craft; track styles (washes, dots and dashes, day circles, numerals and legends, the army's dashed line). The scene itself (its component, timeline, camera, fleets, transition, text, stills and tests) is built in the main tree and takes them in as they land.

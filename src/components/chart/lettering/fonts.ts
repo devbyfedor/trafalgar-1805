@@ -7,7 +7,8 @@
 
 /**
  * ocean; sea; water (gulfs, bays, straits, channels); cape; island (and
- * island groups); place (towns); land (countries and regions).
+ * island groups); place (towns); land (countries and regions); note (a
+ * track's dates and legends).
  */
 export type LabelRole =
   | "ocean"
@@ -16,13 +17,15 @@ export type LabelRole =
   | "cape"
   | "island"
   | "place"
-  | "land";
+  | "land"
+  | "note";
 
 export const FONT_DIR = "/fonts/3d/";
 
 /**
  * Oceans in Bodoni Moda; waters and capes in Baskervville italic; places,
- * islands and lands in roman.
+ * islands and lands in roman; notes in small italic, as the period's track
+ * charts wrote their dates and legends.
  */
 export const FONT_FILES: Record<LabelRole, string> = {
   ocean: "BodoniModa-28pt-Regular.woff",
@@ -32,6 +35,7 @@ export const FONT_FILES: Record<LabelRole, string> = {
   island: "Baskervville-Regular.woff",
   place: "Baskervville-Regular.woff",
   land: "Baskervville-Regular.woff",
+  note: "Baskervville-Italic.woff",
 };
 
 /**

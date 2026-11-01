@@ -54,3 +54,12 @@ export {
 export { LIGHT_STATES, type LightId } from "./light/states";
 export { Rivers } from "./lines/Rivers";
 export { Route, type RoutePoint, type Waypoint } from "./lines/Route";
+export {
+  type LabelSide,
+  Track,
+  type TrackLegend,
+  type TrackPoint,
+  type TrackSpec,
+  type TrackStyle,
+  Tracks,
+} from "./lines/Track";

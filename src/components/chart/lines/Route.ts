@@ -28,8 +28,15 @@ function knot(ax: number, ay: number, bx: number, by: number): number {
   return Math.max(1e-6, Math.hypot(bx - ax, by - ay) ** 0.5);
 }
 
-/** The curve through world points, as interleaved x, y every STEP_KM or so. */
-export function smoothPath(xy: readonly number[]): Float32Array {
+/**
+ * The curve through world points, as interleaved x, y every STEP_KM or so.
+ * It passes through every point; `indices`, if given, receives each
+ * point's index among the curve's.
+ */
+export function smoothPath(
+  xy: readonly number[],
+  indices?: number[],
+): Float32Array {
   const n = xy.length / 2;
   const out: number[] = [];
   const at = (i: number) => {
@@ -37,6 +44,7 @@ export function smoothPath(xy: readonly number[]): Float32Array {
     return [xy[j * 2], xy[j * 2 + 1]] as const;
   };
   for (let i = 0; i < n - 1; i++) {
+    if (indices) indices[i] = out.length / 2;
     const [x1, y1] = at(i);
     const [x2, y2] = at(i + 1);
     // Phantom end points continue the first and last legs.
@@ -69,6 +77,7 @@ export function smoothPath(xy: readonly number[]): Float32Array {
     }
   }
   const [xn, yn] = at(n - 1);
+  if (indices) indices[n - 1] = out.length / 2;
   out.push(xn, yn);
   return new Float32Array(out);
 }

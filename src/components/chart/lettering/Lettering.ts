@@ -1,17 +1,11 @@
-import { InstancedBufferAttribute, MeshBasicMaterial, Vector3 } from "three";
-import { BatchedText, configureTextBuilder, Text } from "troika-three-text";
-import { createDerivedMaterial } from "troika-three-utils";
+import { InstancedBufferAttribute, Vector3 } from "three";
+import { BatchedText, Text } from "troika-three-text";
 import type { ChartLayer, FrameInfo } from "../engine/Chart";
 import { worldX, worldY } from "../geo/mercator";
 import type { TerrainField } from "../terrain/field";
-import { DRAPE, GROUND } from "./drape";
-import {
-  DEFAULT_FONT_FILE,
-  FONT_FILES,
-  fontUrl,
-  type LabelRole,
-} from "./fonts";
+import { FONT_FILES, fontUrl, type LabelRole } from "./fonts";
 import { MARK_HALF_EM, MARK_RING_EM, type MarkKind, Marks } from "./marks";
+import { chartTextMaterial, configureFonts } from "./material";
 
 /**
  * Lettering lying on the chart and tilting with it, as on a real chart
@@ -42,7 +36,8 @@ import { MARK_HALF_EM, MARK_RING_EM, type MarkKind, Marks } from "./marks";
  * font covers, and pointing its fallback at this site doesn't stop that (it
  * retries on the CDN). So every label sets its font, the default font is
  * one of ours, and scripts/check-lettering.ts fails the check if any name
- * holds a character its font lacks.
+ * holds a character its font lacks. The ink follows the ground under the
+ * letters, pale on the sea and dark on the land (material.ts).
  */
 
 export type { LabelRole, MarkKind };
@@ -106,25 +101,12 @@ const CAP_PX: Record<LabelRole, number> = {
   sea: 0,
   water: 0,
   land: 0,
+  note: 0,
   cape: 18,
   island: 18,
   place: 19,
 };
 const CAPITAL_CAP_PX = 22;
-
-/**
- * The ink follows the ground under the letters: pale on the sea, dark on
- * the land's paper, so a name reads at every scale even where the ground
- * under it changes (Cádiz's name lies on the sea from afar, on its isthmus
- * close up). It switches at the coast within a pixel, as the coastline is
- * drawn, so a letter that crosses a coast keeps its contrast on both
- * sides; names are placed so that they don't, in the views that matter.
- */
-const INK_FRAGMENT = /* glsl */ `
-${GROUND}
-uniform vec3 uInkPale;
-uniform vec3 uInkDark;
-`;
 
 /** The gap between a mark's ring and its name, in ems. */
 const MARK_GAP_EM = 0.2;
@@ -136,15 +118,6 @@ const MARK_GAP_EM = 0.2;
  * a ghost crowding its neighbour.
  */
 const YIELD_PX: readonly [number, number] = [4, 10];
-
-let configured = false;
-
-/** troika's global settings, before the first text is made. */
-function configureFonts(): void {
-  if (configured) return;
-  configured = true;
-  configureTextBuilder({ defaultFontURL: fontUrl(DEFAULT_FONT_FILE) });
-}
 
 interface Placed {
   label: Label;
@@ -198,27 +171,11 @@ export class Lettering implements ChartLayer {
 
   constructor(field: TerrainField, labels: readonly Label[]) {
     configureFonts();
-    const base = createDerivedMaterial(
-      new MeshBasicMaterial({
-        transparent: true,
-        depthWrite: false,
-        toneMapped: false,
-      }),
-      {
-        uniforms: {
-          ...field.uniforms,
-          uTexelKm: { value: field.texelKm },
-          ...this.uniforms,
-          uInkPale: { value: this.inkPale },
-          uInkDark: { value: this.inkDark },
-        },
-        vertexDefs: `${DRAPE}\nvarying vec2 vChartXY;`,
-        vertexTransform:
-          "vChartXY = position.xy; position = chartDrape(position);",
-        fragmentDefs: INK_FRAGMENT,
-        fragmentColorTransform:
-          "gl_FragColor.rgb = mix(uInkPale, uInkDark, chartGround());",
-      },
+    const base = chartTextMaterial(
+      field,
+      this.uniforms,
+      this.inkPale,
+      this.inkDark,
     );
     this.batch = new BatchedText();
     this.batch.name = "lettering";

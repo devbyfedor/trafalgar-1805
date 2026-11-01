@@ -57,15 +57,18 @@ export const GAZETTEER: readonly Label[] = [
     size: 3.6,
     angle: 6,
   },
-  // Capes: the name ends at the cape, on the sea (Trafalgar's below it,
-  // clear of the fleets to the west).
+  // Capes: the name ends at the cape, on the sea. Trafalgar's starts there
+  // and runs along the coast to the south-east, clear of the fleets to the
+  // west: set below the cape, its first letters lay on the combined
+  // fleet's masts at the Gulf key.
   {
     text: "C. Trafalgar",
     role: "cape",
-    lon: -6.034,
-    lat: 36.183,
+    lon: -6.02,
+    lat: 36.168,
     size: 4,
-    side: "below",
+    side: "right",
+    angle: -25,
   },
   {
     text: "C. St. Vincent",

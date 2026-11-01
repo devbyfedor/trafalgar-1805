@@ -1,0 +1,174 @@
+
+===== villeneuve-toulon-cadiz (20 points)
+  pt 1 43°05.5′ N 5°59.4′ E 30 March, weighed about 4 p.m.:  coast 0.62 nm | Toulon road, middle of the Grande Rade (berths not recorded; est.). Desbrière 1907, p. 7
+  seg 1->2 (2.9 nm): min coast 0.62 nm at 43°05.5′ N 5°59.4′ E; nearest extra Isla della Vacca 273.38 nm
+  curve: min coast 0.62 nm at 43°05.5′ N 5°59.4′ E (span 1); on land: no
+    curve span 1->2 within 2 nm: 0.62 at 43°05.5′ N 5°59.4′ E
+
+===== villeneuve-crossing (37 points)
+  pt 37 14°35.4′ N 61°04.8′ W 14 May:  coast 0.90 nm | anchored off Fort-de-France (Fort Royal); est. berth in the bay
+  seg 36->37 (6.5 nm): min coast 0.90 nm at 14°35.4′ N 61°04.8′ W; nearest extra Diamond Rock 8.12 nm
+  curve: min coast 0.90 nm at 14°35.4′ N 61°04.8′ W (span 37); on land: no
+    curve span 36->37 within 2 nm: 0.99 at 14°35.3′ N 61°04.9′ W
+    curve span 37->38 within 2 nm: 0.90 at 14°35.4′ N 61°04.8′ W
+    curve vs Diamond Rock: 2.43 nm (edge) at 14°25.1′ N 61°04.5′ W
+
+===== villeneuve-west-indies (10 points)
+  pt 1 14°35.4′ N 61°04.8′ W 5 June, 5 a.m.:  coast 0.90 nm | sailed from Fort-de-France
+  seg 1->2 (4.8 nm): min coast 0.90 nm at 14°35.4′ N 61°04.8′ W; nearest extra Diamond Rock 9.02 nm
+  curve: min coast 0.90 nm at 14°35.4′ N 61°04.8′ W (span 1); on land: no
+    curve span 1->2 within 2 nm: 0.90 at 14°35.4′ N 61°04.8′ W
+
+===== villeneuve-return (23 points)
+  pt 21 42°10.8′ N 8°52.8′ W :  coast 1.86 nm | est., the south mouth of the Ría de Vigo
+  pt 22 42°14.4′ N 8°48.0′ W :  coast 1.11 nm | est., in the ría
+  pt 23 42°15.0′ N 8°45.0′ W 28 July, nightfall:  coast 0.72 nm | anchored in Vigo Bay (Desbrière 1907, pp. 68-69)
+  seg 20->21 (4.4 nm): min coast 1.86 nm at 42°10.8′ N 8°52.8′ W; nearest extra Cies (San Martino S) -0.48 nm
+  seg 21->22 (5.1 nm): min coast 1.11 nm at 42°14.4′ N 8°48.0′ W; nearest extra Cies (San Martino S) 0.17 nm
+  seg 22->23 (2.3 nm): min coast 0.72 nm at 42°15.0′ N 8°45.0′ W; nearest extra Cies (Monteagudo N) 4.05 nm
+  curve: min coast 0.72 nm at 42°15.0′ N 8°45.0′ W (span 23); on land: no
+    curve span 20->21 within 2 nm: 1.92 at 42°10.8′ N 8°52.9′ W
+    curve span 21->22 within 2 nm: 1.16 at 42°14.4′ N 8°48.1′ W
+    curve span 22->23 within 2 nm: 0.76 at 42°15.0′ N 8°45.1′ W
+    curve span 23->24 within 2 nm: 0.72 at 42°15.0′ N 8°45.0′ W
+    curve vs Cies (Monteagudo N): 2.72 nm (edge) at 42°12.1′ N 8°50.8′ W
+    curve vs Cies (San Martino S): -0.26 nm (edge) at 42°10.6′ N 8°53.6′ W
+
+===== villeneuve-vigo-coruna (13 points)
+  pt 1 42°15.0′ N 8°45.0′ W 31 July:  coast 0.72 nm | sailed from Vigo Bay with 15 of the line
+  pt 2 42°14.4′ N 8°48.0′ W :  coast 1.11 nm | est.
+  pt 3 42°10.8′ N 8°52.8′ W :  coast 1.86 nm | est., south mouth
+  pt 12 43°23.7′ N 8°22.5′ W :  coast 0.80 nm | est., entering the ría
+  pt 13 43°22.5′ N 8°21.9′ W 2 August:  coast 0.79 nm | the 13 French anchored at A Coruña (Desbrière 1907, p. 86); est. berth
+  seg 1->2 (2.3 nm): min coast 0.72 nm at 42°15.0′ N 8°45.0′ W; nearest extra Cies (Monteagudo N) 4.05 nm
+  seg 2->3 (5.1 nm): min coast 1.11 nm at 42°14.4′ N 8°48.0′ W; nearest extra Cies (San Martino S) 0.17 nm
+  seg 3->4 (5.5 nm): min coast 1.86 nm at 42°10.8′ N 8°52.8′ W; nearest extra Cies (San Martino S) -0.35 nm
+  seg 11->12 (3.3 nm): min coast 0.80 nm at 43°23.7′ N 8°22.5′ W; nearest extra Sisargas 18.53 nm
+  seg 12->13 (1.3 nm): min coast 0.73 nm at 43°23.4′ N 8°22.4′ W; nearest extra Sisargas 19.99 nm
+  curve: min coast 0.72 nm at 42°15.0′ N 8°45.0′ W (span 1); on land: no
+    curve span 1->2 within 2 nm: 0.72 at 42°15.0′ N 8°45.0′ W
+    curve span 2->3 within 2 nm: 1.11 at 42°14.4′ N 8°48.0′ W
+    curve span 3->4 within 2 nm: 1.86 at 42°10.8′ N 8°52.8′ W
+    curve span 11->12 within 2 nm: 0.83 at 43°23.8′ N 8°22.6′ W
+    curve span 12->13 within 2 nm: 0.76 at 43°23.5′ N 8°22.3′ W
+    curve span 13->14 within 2 nm: 0.79 at 43°22.5′ N 8°21.9′ W
+    curve vs Cies (Monteagudo N): 2.78 nm (edge) at 42°12.1′ N 8°50.6′ W
+    curve vs Cies (San Martino S): -0.36 nm (edge) at 42°10.7′ N 8°53.6′ W
+    curve vs Sisargas: 2.92 nm (edge) at 43°24.8′ N 8°51.4′ W
+
+===== combined-ferrol-cadiz (14 points)
+  pt 1 43°25.2′ N 8°18.0′ W 10-13 August:  coast 1.11 nm | assembled in the outer bay off Ares (the Golfo Ártabro); est.
+  pt 12 36°33.3′ N 6°20.4′ W :  coast 1.89 nm | west end of the channel between Las Puercas and El Diamante
+  pt 13 36°33.3′ N 6°16.7′ W :  coast 1.17 nm | east end of the channel
+  pt 14 36°33.8′ N 6°16.3′ W 20 August, evening:  coast 1.75 nm | anchored in Cádiz road: the outer-bay berth of a-h2c.md, H2-36d
+  seg 1->2 (3.3 nm): min coast 1.11 nm at 43°25.2′ N 8°18.1′ W; nearest extra Sisargas 20.64 nm
+  seg 11->12 (5.1 nm): min coast 1.89 nm at 36°33.3′ N 6°20.4′ W; nearest extra Las Puercas reef 1.83 nm
+  seg 12->13 (3.0 nm): min coast 0.94 nm at 36°33.3′ N 6°17.9′ W; nearest extra El Diamante (box centre) 0.09 nm
+  seg 13->14 (0.6 nm): min coast 1.17 nm at 36°33.3′ N 6°16.7′ W; nearest extra El Diamante (box centre) 0.24 nm
+  curve: min coast 0.93 nm at 36°33.2′ N 6°17.8′ W (span 12); on land: no
+    curve span 1->2 within 2 nm: 1.11 at 43°25.2′ N 8°18.1′ W
+    curve span 11->12 within 2 nm: 1.95 at 36°33.2′ N 6°20.5′ W
+    curve span 12->13 within 2 nm: 0.93 at 36°33.2′ N 6°17.8′ W
+    curve span 13->14 within 2 nm: 1.17 at 36°33.3′ N 6°16.7′ W
+    curve span 14->15 within 2 nm: 1.75 at 36°33.8′ N 6°16.3′ W
+    curve vs Las Puercas reef: 0.41 nm (edge) at 36°33.3′ N 6°18.1′ W
+    curve vs El Diamante (box centre): 0.14 nm (edge) at 36°33.2′ N 6°17.5′ W
+
+===== nelson-mediterranean (25 points)
+  pt 1 38°58.0′ N 9°02.0′ E 31 March to 3 April, 5.30 a.m.:  coast 1.59 nm | Pula Roads (Nicolas VI 390, 392)
+  pt 14 35°37.8′ N 5°15.0′ W 4-5 May:  coast 0.85 nm | Tetuan (Mazari) Bay off the mouth of the Martil, watering (a-h2c.md, H2-39)
+  pt 23 37°05.4′ N 8°37.2′ W 9 May, 9 p.m., to 11 May, 9.10 a.m.:  coast 1.89 nm | Lagos Bay (Nicolas VI 429, 433)
+  seg 1->2 (10.9 nm): min coast 1.59 nm at 38°58.0′ N 9°02.0′ E; nearest extra Isla della Vacca 20.84 nm
+  seg 13->14 (48.7 nm): min coast 0.85 nm at 35°37.8′ N 5°15.0′ W; nearest extra Isla Perejil 17.98 nm
+  seg 14->15 (17.6 nm): min coast 0.85 nm at 35°37.8′ N 5°15.0′ W; nearest extra Isla Perejil 10.24 nm
+  seg 17->18 (3.8 nm): min coast 1.97 nm at 36°04.6′ N 5°23.3′ W; nearest extra Isla Perejil 6.85 nm
+  seg 22->23 (4.6 nm): min coast 1.89 nm at 37°05.4′ N 8°37.2′ W; nearest extra El Diamante (box centre) 112.75 nm
+  seg 23->24 (4.6 nm): min coast 1.89 nm at 37°05.4′ N 8°37.2′ W; nearest extra El Diamante (box centre) 115.63 nm
+  curve: min coast 0.59 nm at 35°38.4′ N 5°15.5′ W (span 14); on land: no
+    curve span 1->2 within 2 nm: 1.59 at 38°58.0′ N 9°02.0′ E
+    curve span 13->14 within 2 nm: 0.87 at 35°37.8′ N 5°15.0′ W
+    curve span 14->15 within 2 nm: 0.59 at 35°38.4′ N 5°15.5′ W
+    curve span 17->18 within 2 nm: 1.90 at 36°04.9′ N 5°23.4′ W
+    curve span 22->23 within 2 nm: 1.90 at 37°05.4′ N 8°37.1′ W
+    curve span 23->24 within 2 nm: 1.88 at 37°05.4′ N 8°37.3′ W
+
+===== nelson-outward (27 points)
+  pt 27 13°04.8′ N 59°37.2′ W 4 June, 4.50 p.m.:  coast 0.63 nm | anchored in Carlisle Bay (Nicolas VI 445)
+  seg 26->27 (7.5 nm): min coast 0.63 nm at 13°04.8′ N 59°37.2′ W; nearest extra Diamond Rock 116.25 nm
+  curve: min coast 0.63 nm at 13°04.8′ N 59°37.2′ W (span 27); on land: no
+    curve span 26->27 within 2 nm: 0.66 at 13°04.7′ N 59°37.1′ W
+    curve span 27->28 within 2 nm: 0.63 at 13°04.8′ N 59°37.2′ W
+
+===== nelson-west-indies (21 points)
+  pt 1 13°04.8′ N 59°37.2′ W 5 June, 9.30 a.m.:  coast 0.63 nm | weighed from Carlisle Bay, steering south
+  pt 21 17°08.1′ N 61°53.1′ W 12 June, 7 p.m.:  coast 1.39 nm | anchored in St John's Road, Antigua
+  seg 1->2 (9.7 nm): min coast 0.63 nm at 13°04.8′ N 59°37.2′ W; nearest extra Diamond Rock 116.25 nm
+  seg 8->9 (5.7 nm): min coast 1.50 nm at 10°38.8′ N 61°46.5′ W; nearest extra Diamond Rock 231.32 nm
+  seg 9->10 (5.7 nm): min coast 1.50 nm at 10°38.8′ N 61°46.5′ W; nearest extra Diamond Rock 231.32 nm
+  seg 13->14 (6.1 nm): min coast 1.89 nm at 12°01.8′ N 61°48.9′ W; nearest extra Diamond Rock 150.47 nm
+  seg 20->21 (18.8 nm): min coast 1.39 nm at 17°08.1′ N 61°53.1′ W; nearest extra Diamond Rock 168.63 nm
+  curve: min coast 0.63 nm at 13°04.8′ N 59°37.2′ W (span 1); on land: no
+    curve span 1->2 within 2 nm: 0.63 at 13°04.8′ N 59°37.2′ W
+    curve span 8->9 within 2 nm: 1.82 at 10°38.4′ N 61°46.5′ W
+    curve span 9->10 within 2 nm: 1.82 at 10°38.4′ N 61°46.5′ W
+    curve span 13->14 within 2 nm: 1.64 at 12°01.7′ N 61°48.6′ W
+    curve span 20->21 within 2 nm: 1.53 at 17°08.2′ N 61°53.2′ W
+    curve span 21->22 within 2 nm: 1.39 at 17°08.1′ N 61°53.1′ W
+
+===== nelson-homeward (38 points)
+  pt 1 17°08.1′ N 61°53.1′ W 13 June, 11.50 a.m.:  coast 1.39 nm | weighed from St John's Road for Europe
+  pt 38 36°07.4′ N 5°21.9′ W 19 July, 7.30 a.m.:  coast 0.62 nm | anchored in Rosia Bay (Nicolas VI 473)
+  seg 1->2 (144.3 nm): min coast 1.39 nm at 17°08.1′ N 61°53.1′ W; nearest extra Diamond Rock 168.63 nm
+  seg 36->37 (3.8 nm): min coast 1.97 nm at 36°04.6′ N 5°23.3′ W; nearest extra Isla Perejil 6.85 nm
+  seg 37->38 (2.1 nm): min coast 0.62 nm at 36°07.4′ N 5°21.9′ W; nearest extra Isla Perejil 10.65 nm
+  curve: min coast 0.62 nm at 36°07.4′ N 5°21.9′ W (span 38); on land: no
+    curve span 1->2 within 2 nm: 1.39 at 17°08.1′ N 61°53.1′ W
+    curve span 36->37 within 2 nm: 1.98 at 36°04.9′ N 5°23.3′ W
+    curve span 37->38 within 2 nm: 0.71 at 36°07.3′ N 5°22.0′ W
+    curve span 38->39 within 2 nm: 0.62 at 36°07.4′ N 5°21.9′ W
+
+===== nelson-ushant-spithead (26 points)
+  pt 1 36°07.4′ N 5°21.9′ W 22 July:  coast 0.62 nm | Rosia Bay
+  pt 23 50°36.0′ N 1°09.0′ W 17 August, 10.15 p.m.:  coast 0.73 nm | anchored at Dunnose
+  pt 26 50°45.9′ N 1°06.0′ W 18 August, 8.30 a.m.:  coast 1.16 nm | anchored at Spithead
+  seg 1->2 (2.1 nm): min coast 0.62 nm at 36°07.4′ N 5°21.9′ W; nearest extra Isla Perejil 10.65 nm
+  seg 2->3 (3.8 nm): min coast 1.97 nm at 36°04.6′ N 5°23.3′ W; nearest extra Isla Perejil 6.85 nm
+  seg 22->23 (8.3 nm): min coast 0.65 nm at 50°35.7′ N 1°09.4′ W; nearest extra Sisargas 527.78 nm
+  seg 23->24 (6.8 nm): min coast 0.73 nm at 50°36.0′ N 1°09.0′ W; nearest extra Sisargas 536.07 nm
+  seg 25->26 (5.1 nm): min coast 1.16 nm at 50°45.9′ N 1°06.0′ W; nearest extra Sisargas 545.02 nm
+  curve: min coast 0.60 nm at 50°35.8′ N 1°09.5′ W (span 22); on land: no
+    curve span 1->2 within 2 nm: 0.62 at 36°07.4′ N 5°21.9′ W
+    curve span 2->3 within 2 nm: 1.97 at 36°04.8′ N 5°23.3′ W
+    curve span 22->23 within 2 nm: 0.60 at 50°35.8′ N 1°09.5′ W
+    curve span 23->24 within 2 nm: 0.73 at 50°36.0′ N 1°09.0′ W
+    curve span 25->26 within 2 nm: 1.17 at 50°45.8′ N 1°05.9′ W
+    curve span 26->27 within 2 nm: 1.16 at 50°45.9′ N 1°06.0′ W
+
+===== positions
+toulon-road          43°05.5′ N 5°59.4′ E sea coast 0.62 nm
+nelson-palmas        38°58.0′ N 8°33.0′ E sea coast 1.35 nm
+nelson-pula          38°58.0′ N 9°02.0′ E sea coast 1.59 nm
+phoebe-news          38°43.5′ N 8°03.9′ E sea coast 21.50 nm
+off-palermo          38°16.2′ N 13°13.2′ E sea coast 3.88 nm
+strait-entry         36°01.0′ N 5°15.0′ W sea coast 6.52 nm
+orde-9apr            36°27.0′ N 6°27.0′ W sea coast 8.43 nm
+cadiz-9apr           36°33.0′ N 6°22.2′ W sea coast 3.04 nm
+fort-de-france       14°35.4′ N 61°04.8′ W sea coast 0.90 nm
+nelson-boreaway      36°47.0′ N 8°41.0′ W sea coast 17.63 nm
+carlisle-bay         13°04.8′ N 59°37.2′ W sea coast 0.63 nm
+villeneuve-turn      19°14.0′ N 61°44.0′ W sea coast >40 nm
+nelson-antigua       17°08.1′ N 61°53.1′ W sea coast 1.39 nm
+curieux-sighting     33°12.0′ N 58°00.0′ W sea coast >40 nm
+nelson-gibraltar     36°07.4′ N 5°21.9′ W sea coast 0.62 nm
+calder-noon          43°30.0′ N 11°17.0′ W sea coast >40 nm
+allies-noon          43°15.0′ N 11°25.2′ W sea coast >40 nm
+finisterre-smoke     43°35.0′ N 11°40.0′ W sea coast >40 nm
+vigo                 42°15.0′ N 8°45.0′ W sea coast 0.72 nm
+coruna               43°22.5′ N 8°21.9′ W sea coast 0.79 nm
+ferrol               43°28.0′ N 8°15.0′ W sea coast 0.09 nm
+ares-assembly        43°25.2′ N 8°18.0′ W sea coast 1.11 nm
+turn-south           43°45.0′ N 12°19.8′ W sea coast >40 nm
+collingwood-20aug    36°09.0′ N 6°36.0′ W sea coast 23.27 nm
+cadiz-road-20aug     36°33.8′ N 6°16.3′ W sea coast 1.75 nm
+nelson-ushant        48°30.0′ N 5°45.0′ W sea coast 24.63 nm
+nelson-spithead      50°45.9′ N 1°06.0′ W sea coast 1.16 nm

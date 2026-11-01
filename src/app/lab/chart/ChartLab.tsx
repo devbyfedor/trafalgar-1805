@@ -17,6 +17,7 @@ import {
 import { GAZETTEER } from "@/scenes/02-road/gazetteer";
 import { TOULON_TO_CADIZ } from "@/scenes/02-road/routes";
 import { type BenchResult, benchFrames } from "./bench";
+import { LAB_DEMOS, type LabDemo } from "./demos";
 import {
   buildFlight,
   FLIGHT_LENGTH,
@@ -141,12 +142,14 @@ export function ChartLab() {
         const observer = new ResizeObserver(resize);
         let render: ((time: number) => void) | null = null;
         let unregister = () => {};
+        let demo: LabDemo | null = null;
         const onVisibility = () => chart.pause();
         dispose = () => {
           if (render) gsap.ticker.remove(render);
           document.removeEventListener("visibilitychange", onVisibility);
           observer.disconnect();
           unregister();
+          demo?.dispose?.();
           chart.dispose();
           window.__chart = undefined;
         };
@@ -172,6 +175,13 @@ export function ChartLab() {
         chart.add(lettering, lettering.batch, lettering.marks.mesh);
         await lettering.ready;
         if (cancelled) return;
+        const loadDemo = LAB_DEMOS[query.get("demo") ?? ""];
+        if (loadDemo) {
+          const module = await loadDemo();
+          if (cancelled) return;
+          demo = await module.default({ chart, query });
+          if (cancelled) return;
+        }
         const rig = new engine.CameraRig(LAB_FLIGHT);
 
         const draw = (time: number) => {
@@ -201,6 +211,7 @@ export function ChartLab() {
               Math.min(1, Math.max(0, (drawn - k * SQUADRON_SPACING) / 0.02)),
             );
           }
+          demo?.update?.(time, state.p);
           chart.frame(time);
           reportProgress("flight", state.p);
         };

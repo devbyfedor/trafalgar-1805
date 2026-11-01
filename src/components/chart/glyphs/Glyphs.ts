@@ -10,12 +10,17 @@ import {
   Vector2,
   Vector3,
 } from "three";
-import { monotoneCurve } from "@/lib/curve";
 import type { ChartLayer, FrameInfo } from "../engine/Chart";
 import { worldX, worldY } from "../geo/mercator";
-import { GLSL_FIELD, GLSL_GEO, GLSL_LINES } from "../shaders/common";
+import { GLSL_LINES } from "../shaders/common";
 import type { TerrainField } from "../terrain/field";
 import { buildGlyphAtlas, type GlyphAtlas, type GlyphType } from "./atlas";
+import {
+  GLSL_GLYPH_HEIGHT,
+  GLYPH_PX,
+  glyphSizeUniforms,
+  updateGlyphSize,
+} from "./height";
 
 export type { GlyphType };
 
@@ -75,59 +80,9 @@ export interface ShipMark {
   spacing?: number;
 }
 
-/**
- * A glyph cell's height on screen (CSS px) for the camera's altitude (km):
- * scene 1's ships on the horizon at the start, chart symbols above.
- */
-export const GLYPH_PX: readonly (readonly [number, number])[] = [
-  [0.05, 22],
-  [9, 28],
-  [120, 34],
-  [1400, 21],
-  [6000, 14],
-];
-
-const glyphPx = monotoneCurve(
-  GLYPH_PX.map(([a, px]) => [Math.log(a), px] as const),
-);
+export { GLYPH_PX };
 
 const SIDES: Record<Side, number> = { british: 0, combined: 1 };
-
-/**
- * A glyph's height on screen, device px: nearer glyphs a little larger,
- * within the view's own range, and no taller than the water beyond it
- * (ShipMark.room) seen from here: the angle between the glyph's foot and
- * the chart that much farther on. How much of it shows: a glyph shrunk to
- * its room fades out before it is too small to read, and a ship of a group
- * gives way to the group's lead once her spacing (ShipMark.spacing) is
- * narrower on screen than the glyph.
- */
-const GLSL_GLYPH_HEIGHT = /* glsl */ `
-${GLSL_GEO}
-${GLSL_FIELD}
-uniform vec3 uTexelKm;
-// A moving ship's room (a negative room): her distance from the nearest
-// coast, where the chart's field is smooth over a couple of kilometres.
-float coastRoom(vec2 p) {
-  return max(sampleFieldLod(p, max(vec3(0.0), log2(2.0 / uTexelKm))).y, 0.0);
-}
-float glyphHeight(vec2 at, float dist, float size, float room) {
-  float h = uSizePx * pow(clamp(uSizeRef / dist, 0.55, 1.8), 0.35) * size;
-  if (room == 0.0) return h;
-  if (room < 0.0) room = coastRoom(at);
-  float z = max(cameraPosition.z, 1e-3);
-  float d = length(at - cameraPosition.xy);
-  float fit = (atan(z, d) - atan(z, d + room)) * uPxPerRadian;
-  // From low over the sea the glyph stands against the sky, not the chart.
-  return mix(h, min(h, fit), smoothstep(0.03, 0.08, z / dist));
-}
-float glyphShow(float dist, float h, float spacing) {
-  float show = smoothstep(3.5, 6.5, h / uDpr);
-  if (spacing > 0.0)
-    show *= smoothstep(0.3, 0.5, spacing * uPxPerRadian / dist / (h * uAspect));
-  return show;
-}
-`;
 
 const SHIP_VERTEX = /* glsl */ `
 precision highp float;
@@ -135,11 +90,6 @@ in vec4 iPos;
 in vec4 iStyle;
 in vec2 iFit;
 uniform vec2 uViewport;
-uniform float uSizePx;
-uniform float uSizeRef;
-uniform float uPxPerRadian;
-uniform float uDpr;
-uniform float uAspect;
 uniform vec2 uGrid;
 uniform float uPull;
 out vec2 vUv;
@@ -200,11 +150,6 @@ precision highp float;
 in vec4 iPos;
 in vec4 iStyle;
 in vec2 iFit;
-uniform float uSizePx;
-uniform float uSizeRef;
-uniform float uPxPerRadian;
-uniform float uDpr;
-uniform float uAspect;
 uniform float uWakeLength;
 uniform float uPull;
 out vec2 vLocal;
@@ -293,6 +238,7 @@ export class Glyphs implements ChartLayer {
   private readonly count: number;
   private readonly canvas = [new Vector3(), new Vector3()];
   private readonly hull = [new Vector3(), new Vector3()];
+  private readonly size: ReturnType<typeof glyphSizeUniforms>;
 
   constructor(
     field: TerrainField,
@@ -339,17 +285,12 @@ export class Glyphs implements ChartLayer {
     ships.setAttribute("iStyle", this.iStyle);
     ships.setAttribute("iFit", this.iFit);
     ships.instanceCount = n;
+    // One set of size uniforms, shared by both materials.
+    this.size = glyphSizeUniforms(field, this.atlas.aspect);
     const common = {
       ...field.uniforms,
-      uTexelKm: { value: field.texelKm },
-      uViewport: { value: new Vector2(1, 1) },
-      uSizePx: { value: 30 },
-      uSizeRef: { value: 100 },
-      uPxPerRadian: { value: 1000 },
+      ...this.size,
       uPull: { value: 0.003 },
-      uDpr: { value: 1 },
-      uAspect: { value: this.atlas.aspect },
-      uHazeVisibility: { value: 100 },
     };
     this.ships = new Mesh(
       ships,
@@ -421,23 +362,7 @@ export class Glyphs implements ChartLayer {
 
   update(frame: FrameInfo): void {
     const eye = frame.eye;
-    const sizePx = glyphPx(Math.log(Math.max(eye.z, 0.01))) * frame.dpr;
-    // The distance at which glyphs take their nominal size: about where
-    // the camera's view of the chart is centred.
-    const sizeRef = Math.hypot(
-      frame.target.x - eye.x,
-      frame.target.y - eye.y,
-      eye.z,
-    );
-    for (const m of [this.ships.material, this.wakes.material]) {
-      const u = m.uniforms;
-      u.uViewport.value.set(frame.width, frame.height);
-      u.uSizePx.value = sizePx;
-      u.uSizeRef.value = sizeRef;
-      u.uPxPerRadian.value = frame.pxPerRadian;
-      u.uDpr.value = frame.dpr;
-      u.uHazeVisibility.value = frame.hazeVisibility;
-    }
+    updateGlyphSize(this.size, frame);
     this.colours(frame);
     this.wakes.material.uniforms.uInk.value.copy(frame.light.inkPale);
 

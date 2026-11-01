@@ -64,6 +64,12 @@ const LIGHT: readonly (readonly [
 const RISE: readonly [number, number] = [0.024, 0.07];
 const SWAP: readonly [number, number] = [0.068, 0.08];
 
+/** The least room a squadron's block keeps near a coast, map km. */
+const SQUADRON_ROOM_KM = 45;
+
+/** How far off a port a squadron's block stands while it lies there, map km. */
+const ROADS_KM = 22;
+
 /** The atlas draws a ship's waterline this far above its cell's foot. */
 const CELL_FOOT = 16 / 192;
 
@@ -179,7 +185,9 @@ export function squadronMarks(): ShipMark[] {
         heading: 0,
         underWay: true,
         opacity: 0,
-        room: "coast",
+        // A symbol: small in a strait seen from far off, but legible by an
+        // island or in the roads off a port.
+        room: { coast: SQUADRON_ROOM_KM },
       });
     }
   }
@@ -350,6 +358,24 @@ export class RoadDirector {
       let clock = clocks[0];
       for (const c of clocks) if (c.first <= d) clock = c;
       clock.route.pointAt(legProgress(clock, d), this.head);
+      // In port the squadron's block stands in the roads off it, out along
+      // its way in: a symbol drawn in the open water by the port, as the
+      // period's charts set a fleet, not on the town.
+      const w = clock.leg.waypoints;
+      const inPort = d < clock.first || d > clock.last;
+      if (inPort) {
+        const end = d < clock.first ? 0 : w.length - 1;
+        const next = d < clock.first ? 1 : w.length - 2;
+        const ex = worldX(w[end].lon);
+        const ey = worldY(w[end].lat);
+        const dx = worldX(w[next].lon) - ex;
+        const dy = worldY(w[next].lat) - ey;
+        const len = Math.hypot(dx, dy) || 1;
+        const off = Math.min(1, ROADS_KM / len);
+        this.head.x = ex + dx * off;
+        this.head.y = ey + dy * off;
+        this.head.heading = Math.atan2(-dx, -dy);
+      }
       return this.head;
     }
     // Squadrons without a drawn route keep a station.

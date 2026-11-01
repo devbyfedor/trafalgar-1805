@@ -69,9 +69,11 @@ export interface ShipMark {
    * of the open sea's size. From low over the sea a ship stands against
    * the sky instead, and keeps her size. "coast" for a ship that moves:
    * her distance from the nearest coast, read from the chart where she is,
-   * so in a strait seen from far off she draws small.
+   * so in a strait seen from far off she draws small; `{ coast: km }` the
+   * same, but never less than that many km (a squadron's block, a symbol
+   * that must stay legible by an island).
    */
-  room?: number | "coast";
+  room?: Room;
   /**
    * A ship of a group: her distance from the group's lead, map km. Once
    * that is narrower on screen than a glyph, she fades and the lead (a
@@ -81,6 +83,17 @@ export interface ShipMark {
 }
 
 export { GLYPH_PX };
+
+/** A glyph's room: map km, the coast distance, or it with a floor. */
+export type Room = number | "coast" | { coast: number };
+
+/** The room as the shaders read it: negative for the coast, -1 - floor. */
+function encodeRoom(room: Room | undefined): number {
+  if (room === undefined) return 0;
+  if (room === "coast") return -1;
+  if (typeof room === "object") return -1 - room.coast;
+  return room;
+}
 
 const SIDES: Record<Side, number> = { british: 0, combined: 1 };
 
@@ -296,8 +309,7 @@ export class Glyphs implements ChartLayer {
         [cell, SIDES[m.side], m.opacity ?? 1, m.underWay ? 1 : 0],
         i * 4,
       );
-      const room = m.room === "coast" ? -1 : (m.room ?? 0);
-      this.fit.set([room, m.spacing ?? 0, 0, 0], i * 4);
+      this.fit.set([encodeRoom(m.room), m.spacing ?? 0, 0, 0], i * 4);
       this.order[i] = i;
     });
 
@@ -400,8 +412,8 @@ export class Glyphs implements ChartLayer {
   }
 
   /** A mark's room and spacing (ShipMark.room, ShipMark.spacing). */
-  setFit(index: number, room: number | "coast", spacing: number): void {
-    this.fit[index * 4] = room === "coast" ? -1 : room;
+  setFit(index: number, room: Room, spacing: number): void {
+    this.fit[index * 4] = encodeRoom(room);
     this.fit[index * 4 + 1] = spacing;
   }
 

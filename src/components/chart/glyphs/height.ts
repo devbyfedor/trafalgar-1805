@@ -55,15 +55,16 @@ uniform float uSizeRef;
 uniform float uPxPerRadian;
 uniform float uDpr;
 uniform float uAspect;
-// A moving ship's room (a negative room): her distance from the nearest
-// coast, where the chart's field is smooth over a couple of kilometres.
+// A moving ship's room (a negative room, -1 - floor): her distance from the
+// nearest coast, where the chart's field is smooth over a couple of
+// kilometres, but no less than the floor.
 float coastRoom(vec2 p) {
   return max(sampleFieldLod(p, max(vec3(0.0), log2(2.0 / uTexelKm))).y, 0.0);
 }
 float glyphHeight(vec2 at, float dist, float size, float room) {
   float h = uSizePx * pow(clamp(uSizeRef / dist, 0.55, 1.8), 0.35) * size;
   if (room == 0.0) return h;
-  if (room < 0.0) room = coastRoom(at);
+  if (room < 0.0) room = max(coastRoom(at), -room - 1.0);
   float z = max(cameraPosition.z, 1e-3);
   float d = length(at - cameraPosition.xy);
   float fit = (atan(z, d) - atan(z, d + room)) * uPxPerRadian;

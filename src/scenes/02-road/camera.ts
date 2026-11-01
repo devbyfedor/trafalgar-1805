@@ -29,6 +29,9 @@ const DAWN_EYE: Lla = offset(
   0.05,
 );
 
+/** The last frame's eye: west of the British, 6.5 km up. */
+const LAST_EYE: Lla = [-6.6, 36.1, 6.5];
+
 /** Rising off the sea beside her, turning north and pitching down. */
 const RISING_EYE: Lla = offset(
   VICTORY_AT_DAWN.lon,
@@ -56,9 +59,11 @@ export const ROAD_FLIGHT: readonly CameraKey[] = [
   // 1. North over Iberia and France to the Channel.
   { p: 0.12, eye: [-7.6, 33.6, 950], target: [-3.6, 44, 0] },
   { p: 0.165, eye: [-1.6, 45.2, 420], target: [1.2, 50.2, 0] },
-  // Boulogne from over the Channel to its west: England across the water.
-  { p: 0.2, eye: [1.0, 50.55, 25], target: [1.6, 50.73, 0] },
-  { p: 0.235, eye: [1.06, 50.57, 22], target: [1.61, 50.74, 0] },
+  // Boulogne from over the Channel to its south-west, looking up the
+  // Strait: the camps and the flotilla on the right, England across the
+  // water at the top left, the sea under the caption.
+  { p: 0.2, eye: [0.85, 50.5, 32], target: [1.5, 50.85, 0] },
+  { p: 0.235, eye: [0.92, 50.53, 28], target: [1.52, 50.86, 0] },
   // 2. The western Mediterranean: Toulon to Gibraltar and Cádiz.
   { p: 0.27, eye: [1.2, 30.5, 2000], target: [-1.2, 40, 0] },
   { p: 0.31, eye: [-12, 17, 4300], target: [-18, 33, 0], fov: 46 },
@@ -84,8 +89,11 @@ export const ROAD_FLIGHT: readonly CameraKey[] = [
   { p: 0.855, eye: [-1, 40, 1350], target: [5, 47, 0] },
   { p: 0.885, eye: [8.6, 46.6, 230], target: [10, 48.4, 0] },
   { p: 0.915, eye: [-3, 37, 950], target: [-6.3, 36.3, 0] },
-  { p: 0.95, eye: [-6.6, 35.84, 46], target: [-6.33, 36.24, 0] },
-  // The last frame, at dawn: the British on the left, the combined
-  // fleet's ragged line receding north on the right.
-  { p: 1, eye: [-6.43, 35.98, 4.5], target: [-6.3, 36.17, 0] },
+  { p: 0.95, eye: [-6.74, 35.94, 38], target: [-6.37, 36.17, 0] },
+  // The last frame, at dawn, as scene 1 began: looking east-north-east
+  // (77.5°) with the sun rising on the right, the British fleet in the
+  // foreground in its two bodies, the combined fleet's line strung across
+  // the water beyond them under the coast of Cape Trafalgar, the frigates
+  // between. Close enough, a few kilometres up, for both formations to read.
+  { p: 1, eye: LAST_EYE, target: aim(LAST_EYE, DAWN_HEADING, -13, 30) },
 ];

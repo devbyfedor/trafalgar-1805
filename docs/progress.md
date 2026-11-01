@@ -2,7 +2,19 @@
 
 Live checklist. A later session picks up from here. The briefs are `docs/scene-01-brief.md` and `docs/scene-02-brief.md`; decisions and deviations are in `docs/decisions.md`.
 
-## Scene 2, Stage A: engine, data and look (sessions 4 to 8, 25–31 October 2026)
+## Scene 2, Stage B: the full scene (from session 10, 1 November 2026)
+
+**Stage A is approved.** The owner checked `/lab/chart?debug` on the production preview on his laptop: a steady 60 fps. Owner-verified, 1 November 2026.
+
+**The owner's answers before session 10** (to session 9's questions):
+1. The dawn fleets go at their true spacing, about five miles. If the Gulf view shows only each fleet's flagship, that is intended; the scene's last frame must come close enough for the formation to read. The spread-out layout of the lab is no longer a licence.
+2. The British keep heading 047° at dawn, as in scene 1: a deliberate licence (the log has N by E, about 350° true, at sunrise).
+3. Beat 4's caption says "a chain of frigates and ships of the line".
+
+**Where it is (session 10).** Started from a clean tree at `6845eba`; lint and typecheck pass. The owner's order: first check the merged "Scene 2" history section independently and move it into `history-notes.md`, then Stage B to its definition of done, then a report in Russian and a stop.
+- **Running:** the workflow `scene2-history-check` (four adversarial checks of the merged section by part, a ruling on each, an editor who applies them and the owner's answers, a final re-check). It writes to the session's scratchpad, `history/`; the reports move into `docs/research/scene-02/` when it ends.
+
+## Scene 2, Stage A: engine, data and look (sessions 4 to 9, 25 October – 1 November 2026)
 
 Stage A builds the chart engine, its data and its look, proven by one camera flight on `/lab/chart`, then stops for the owner's performance check on his GPU. Stage B (the full scene) waits for his approval.
 

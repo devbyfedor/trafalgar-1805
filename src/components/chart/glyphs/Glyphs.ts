@@ -84,12 +84,28 @@ export { GLYPH_PX };
 
 const SIDES: Record<Side, number> = { british: 0, combined: 1 };
 
+/**
+ * A ship's place in a squadron's formation, device px from her lead: `form`
+ * is (steps along the heading as it runs on screen, rows up the screen) in
+ * glyph heights, so a squadron keeps its shape and count at any zoom.
+ */
+const GLSL_FORMATION = /* glsl */ `
+uniform vec2 uViewport;
+vec2 formationPx(vec3 w, vec4 clip, float heading, float dist, vec2 form, float h) {
+  if (form.x == 0.0 && form.y == 0.0) return vec2(0.0);
+  vec2 ahead = vec2(sin(heading), cos(heading)) * dist * 0.01;
+  vec4 c2 = projectionMatrix * viewMatrix * vec4(w + vec3(ahead, 0.0), 1.0);
+  vec2 d = (c2.xy / c2.w - clip.xy / clip.w) * uViewport;
+  vec2 dir = length(d) > 1e-4 ? normalize(d) : vec2(1.0, 0.0);
+  return (dir * form.x * uAspect + vec2(0.0, form.y)) * h;
+}
+`;
+
 const SHIP_VERTEX = /* glsl */ `
 precision highp float;
 in vec4 iPos;
 in vec4 iStyle;
-in vec2 iFit;
-uniform vec2 uViewport;
+in vec4 iFit;
 uniform vec2 uGrid;
 uniform float uPull;
 out vec2 vUv;
@@ -97,6 +113,7 @@ out float vSide;
 out float vAlpha;
 out float vDist;
 ${GLSL_GLYPH_HEIGHT}
+${GLSL_FORMATION}
 void main() {
   vec3 base = vec3(iPos.xy, 0.0);
   float dist = length(base - cameraPosition);
@@ -108,6 +125,7 @@ void main() {
   float facing = dot(vec2(sin(iPos.z), cos(iPos.z)), normalize(right.xy + 1e-6));
   float sx = (facing < 0.0 ? -1.0 : 1.0) * mix(0.4, 1.0, abs(facing));
   vec2 offset = vec2(position.x * uAspect * sx, position.y) * h;
+  offset += formationPx(w, clip, iPos.z, dist, iFit.zw, h);
   clip.xy += offset / (0.5 * uViewport) * clip.w;
   gl_Position = clip;
   float cell = iStyle.x;
@@ -149,7 +167,7 @@ const WAKE_VERTEX = /* glsl */ `
 precision highp float;
 in vec4 iPos;
 in vec4 iStyle;
-in vec2 iFit;
+in vec4 iFit;
 uniform float uWakeLength;
 uniform float uPull;
 out vec2 vLocal;
@@ -157,6 +175,7 @@ out float vLen;
 out float vAlpha;
 out float vDist;
 ${GLSL_GLYPH_HEIGHT}
+${GLSL_FORMATION}
 void main() {
   vec3 base = vec3(iPos.xy, 0.0);
   float dist = length(base - cameraPosition);
@@ -169,7 +188,12 @@ void main() {
   vec2 p = iPos.xy - ahead * len * (0.12 + position.x) + abeam * position.y * len * 0.8;
   vec3 w = vec3(p, 0.0);
   w += (cameraPosition - w) * uPull;
-  gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.0);
+  vec4 clip = projectionMatrix * viewMatrix * vec4(w, 1.0);
+  // A squadron's wakes keep their ships' places in the formation.
+  vec3 wb = base + (cameraPosition - base) * uPull;
+  vec4 cb = projectionMatrix * viewMatrix * vec4(wb, 1.0);
+  clip.xy += formationPx(wb, cb, iPos.z, dist, iFit.zw, h) / (0.5 * uViewport) * clip.w;
+  gl_Position = clip;
   vLocal = vec2(position.x, position.y * 0.8) * len;
   vLen = len;
   vAlpha = iStyle.z * iStyle.w * glyphShow(dist, h, iFit.y);
@@ -228,7 +252,10 @@ export class Glyphs implements ChartLayer {
   private readonly pos: Float32Array;
   /** Per mark: atlas cell, side, opacity, under way (0/1). */
   private readonly style: Float32Array;
-  /** Per mark: its room and its spacing, map km (0 for none). */
+  /**
+   * Per mark: its room and its spacing, map km (0 for none), and its place
+   * in a formation (steps along, rows up, in glyph heights).
+   */
   private readonly fit: Float32Array;
   private readonly iPos: InstancedBufferAttribute;
   private readonly iStyle: InstancedBufferAttribute;
@@ -250,7 +277,7 @@ export class Glyphs implements ChartLayer {
     this.count = n;
     this.pos = new Float32Array(n * 4);
     this.style = new Float32Array(n * 4);
-    this.fit = new Float32Array(n * 2);
+    this.fit = new Float32Array(n * 4);
     this.order = new Int32Array(n);
     this.depth = new Float32Array(n);
     marks.forEach((m, i) => {
@@ -270,14 +297,14 @@ export class Glyphs implements ChartLayer {
         i * 4,
       );
       const room = m.room === "coast" ? -1 : (m.room ?? 0);
-      this.fit.set([room, m.spacing ?? 0], i * 2);
+      this.fit.set([room, m.spacing ?? 0, 0, 0], i * 4);
       this.order[i] = i;
     });
 
     const ships = glyphQuad();
     this.iPos = new InstancedBufferAttribute(new Float32Array(n * 4), 4);
     this.iStyle = new InstancedBufferAttribute(new Float32Array(n * 4), 4);
-    this.iFit = new InstancedBufferAttribute(new Float32Array(n * 2), 2);
+    this.iFit = new InstancedBufferAttribute(new Float32Array(n * 4), 4);
     this.iPos.setUsage(DynamicDrawUsage);
     this.iStyle.setUsage(DynamicDrawUsage);
     this.iFit.setUsage(DynamicDrawUsage);
@@ -360,6 +387,35 @@ export class Glyphs implements ChartLayer {
     this.style[index * 4 + 2] = opacity;
   }
 
+  /** Changes a mark's ship type (GlyphType.id), as when a ship weighs. */
+  setType(index: number, type: string): void {
+    const cell = this.atlas.index.get(type);
+    if (cell === undefined) throw new Error(`glyphs: no type "${type}"`);
+    this.style[index * 4] = cell;
+  }
+
+  /** Under way (with a wake) or at anchor. */
+  setUnderWay(index: number, underWay: boolean): void {
+    this.style[index * 4 + 3] = underWay ? 1 : 0;
+  }
+
+  /** A mark's room and spacing (ShipMark.room, ShipMark.spacing). */
+  setFit(index: number, room: number | "coast", spacing: number): void {
+    this.fit[index * 4] = room === "coast" ? -1 : room;
+    this.fit[index * 4 + 1] = spacing;
+  }
+
+  /**
+   * A mark's place in a squadron's formation, on screen: `along` steps
+   * along its heading as it runs on screen (negative astern) and `up` rows
+   * up the screen, both in glyph heights, from the mark's own position,
+   * which is the lead's. (0, 0) for a ship on her own.
+   */
+  setFormation(index: number, along: number, up: number): void {
+    this.fit[index * 4 + 2] = along;
+    this.fit[index * 4 + 3] = up;
+  }
+
   update(frame: FrameInfo): void {
     const eye = frame.eye;
     updateGlyphSize(this.size, frame);
@@ -370,10 +426,12 @@ export class Glyphs implements ChartLayer {
     // nearly sorted already.
     const n = this.count;
     const pos = this.pos;
+    const fit = this.fit;
     for (let i = 0; i < n; i++) {
       const dx = pos[i * 4] - eye.x;
       const dy = pos[i * 4 + 1] - eye.y;
-      this.depth[i] = dx * dx + dy * dy;
+      // In a formation, rows higher on screen read as farther and draw first.
+      this.depth[i] = (dx * dx + dy * dy) * (1 + 0.001 * fit[i * 4 + 3]);
     }
     const order = this.order;
     for (let i = 1; i < n; i++) {
@@ -395,8 +453,7 @@ export class Glyphs implements ChartLayer {
         outPos[i * 4 + c] = pos[k + c];
         outStyle[i * 4 + c] = this.style[k + c];
       }
-      outFit[i * 2] = this.fit[order[i] * 2];
-      outFit[i * 2 + 1] = this.fit[order[i] * 2 + 1];
+      for (let c = 0; c < 4; c++) outFit[i * 4 + c] = fit[order[i] * 4 + c];
     }
     this.iPos.needsUpdate = true;
     this.iStyle.needsUpdate = true;

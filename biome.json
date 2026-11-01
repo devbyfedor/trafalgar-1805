@@ -16,6 +16,7 @@
       "!!**/playwright-report",
       "!!**/blob-report",
       "!!**/.wrangler",
+      "!!**/.claude",
       "!next-env.d.ts"
     ]
   },

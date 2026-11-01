@@ -1,10 +1,5 @@
+import { aim, type Lla } from "@/components/chart/camera/aim";
 import type { CameraKey } from "@/components/chart/camera/rig";
-import {
-  latOfWorldY,
-  lonOfWorldX,
-  worldX,
-  worldY,
-} from "@/components/chart/geo/mercator";
 
 /**
  * Stage A's proof flight (docs/scene-02-brief.md, stage A, item 5): low over
@@ -13,26 +8,6 @@ import {
  * Channel. The camera, the light and the route are tweened on one scrubbed
  * timeline of duration 1, so p is the scroll progress through the pin.
  */
-
-type Lla = readonly [lon: number, lat: number, altitudeKm: number];
-
-/**
- * The point `distance` world km from `eye` along a heading (degrees from
- * north, clockwise) and a pitch (degrees, up positive). Mercator is
- * conformal, so headings on the map are true headings.
- */
-function aim(
-  eye: Lla,
-  heading: number,
-  pitch: number,
-  distance: number,
-): [number, number, number] {
-  const h = (heading * Math.PI) / 180;
-  const v = (pitch * Math.PI) / 180;
-  const x = worldX(eye[0]) + distance * Math.cos(v) * Math.sin(h);
-  const y = worldY(eye[1]) + distance * Math.cos(v) * Math.cos(h);
-  return [lonOfWorldX(x), latOfWorldY(y), eye[2] + distance * Math.sin(v)];
-}
 
 /**
  * Scene 1's last frame, as the chart sees it: about 20 nautical miles west

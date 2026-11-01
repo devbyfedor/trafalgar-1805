@@ -1,10 +1,12 @@
 import type { ComponentType } from "react";
 import { Scene01Dawn } from "./01-dawn/Scene01Dawn";
-import { ChapterPlaceholder } from "./ChapterPlaceholder";
+import { Scene02Road } from "./02-road/Scene02Road";
+import { ChapterThree } from "./ChapterPlaceholder";
 
 /**
  * Scenes in story order. The Experience renders them one after another; each
- * scene owns its pin, timeline and idle loops. To add scene 2, replace the
+ * scene owns its pin, timeline and idle loops. Scene 1 hands over to scene 2
+ * through overlapping pins (scenes/handoff.ts). To add scene 3, replace the
  * placeholder entry with the real scene.
  */
 export interface SceneDefinition {
@@ -18,9 +20,15 @@ export interface SceneDefinition {
 export const scenes: readonly SceneDefinition[] = [
   { id: "dawn", chapter: "I", title: "Dawn", Component: Scene01Dawn },
   {
-    id: "chapter-2",
+    id: "road",
     chapter: "II",
-    title: "Chapter II follows",
-    Component: ChapterPlaceholder,
+    title: "The road to Trafalgar",
+    Component: Scene02Road,
+  },
+  {
+    id: "chapter-3",
+    chapter: "III",
+    title: "Chapter III follows",
+    Component: ChapterThree,
   },
 ];

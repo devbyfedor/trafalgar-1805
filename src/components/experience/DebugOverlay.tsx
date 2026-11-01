@@ -8,7 +8,8 @@ import { isDebug } from "@/lib/media";
 /**
  * `?debug` overlay: frames per second, measured on the shared GSAP ticker
  * and printed twice a second; the scroll progress of the scenes named in
- * `progress`; and, while a chart is running, its renderer readouts (draw
+ * `progress` (each line once its scene has reported, the first at once);
+ * and, while a chart is running, its renderer readouts (draw
  * calls, triangles, textures, quality level, render resolution). ScrollTrigger
  * markers are switched on by the scenes themselves when `?debug` is present.
  * Renders nothing on the server, so the static HTML is the same for everyone.
@@ -86,8 +87,8 @@ export function DebugOverlay({
       <div>
         fps <span ref={fpsRef}>–</span>
       </div>
-      {progress.map((id) => (
-        <div key={id}>
+      {progress.map((id, i) => (
+        <div key={id} hidden={i > 0}>
           {id} p{" "}
           <span
             ref={(el) => {

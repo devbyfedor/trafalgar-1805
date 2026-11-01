@@ -41,7 +41,7 @@ export function Experience() {
         </div>
         <Fallback />
       </main>
-      <DebugOverlay />
+      <DebugOverlay progress={["dawn", "road"]} />
     </SmoothScroll>
   );
 }

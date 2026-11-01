@@ -18,7 +18,11 @@ export function registerProgressSink(
 
 export function reportProgress(sceneId: string, progress: number): void {
   const el = sinks.get(sceneId);
-  if (el) el.textContent = progress.toFixed(3);
+  if (!el) return;
+  el.textContent = progress.toFixed(3);
+  // A scene's line shows once it has reported.
+  const line = el.parentElement;
+  if (line?.hidden) line.hidden = false;
 }
 
 /** What a WebGL chart reports (src/components/chart, ChartStats). */

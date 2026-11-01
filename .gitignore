@@ -55,3 +55,6 @@ next-env.d.ts
 
 # raw downloads for the chart data pipeline (scripts/data/): local only
 /data/raw/
+
+# agents' git worktrees and local Claude Code state
+/.claude/

@@ -6,6 +6,7 @@ import { HazeRenderer } from "@/components/fx/haze";
 import { reportProgress } from "@/lib/debug";
 import { gsap, ScrollTrigger, SplitText, useGSAP } from "@/lib/gsap";
 import { DESKTOP_QUERY, isDebug, REDUCED_MOTION_QUERY } from "@/lib/media";
+import { HANDOFF_LENGTH } from "../handoff";
 import {
   buildChoreography,
   buildIdle,
@@ -37,7 +38,14 @@ import { Victory } from "./layers/Victory";
  * (p = HERO_P) statically; in the fallback (small or touch screens) it
  * creates nothing, and its text stays available to assistive technology
  * while its art is not rendered.
+ *
+ * Its pin runs on for HANDOFF_LENGTH more viewport heights, holding its last
+ * frame, while scene 2's pinned chart takes over underneath it (scenes/
+ * handoff.ts): its wrapper stacks above scene 2's for that.
  */
+
+/** The pin's whole scroll, the handoff included, in viewport heights. */
+const PIN_SCROLL = PIN_LENGTH + HANDOFF_LENGTH;
 
 interface FxRenderers {
   resize: () => void;
@@ -149,17 +157,25 @@ export function Scene01Dawn() {
               id: "dawn",
               trigger: el,
               start: "top top",
-              end: () => `+=${window.innerHeight * PIN_LENGTH}`,
+              end: () => `+=${window.innerHeight * PIN_SCROLL}`,
               pin: true,
               pinSpacing: true,
               anticipatePin: 1,
               scrub: 0.6,
               invalidateOnRefresh: true,
               markers: isDebug(),
-              onUpdate: (self) => reportProgress("dawn", self.progress),
+              // The scene's own p: it reaches 1 where the handoff begins.
+              onUpdate: (self) =>
+                reportProgress(
+                  "dawn",
+                  Math.min(1, (self.progress * PIN_SCROLL) / PIN_LENGTH),
+                ),
             },
           });
           buildChoreography(tl, els, fx);
+          // An empty tail through the handoff, so p still maps to the same
+          // scroll as before: the scene holds its last frame.
+          tl.set({}, {}, PIN_SCROLL / PIN_LENGTH);
 
           // The title's letters, split once fonts are ready and split again
           // whenever a face finishes loading later or the window is resized:
@@ -264,7 +280,7 @@ export function Scene01Dawn() {
   }
 
   return (
-    <div ref={wrapper} data-scene-wrapper="dawn">
+    <div ref={wrapper} data-scene-wrapper="dawn" className="relative z-[2]">
       <section
         ref={root}
         id="dawn"

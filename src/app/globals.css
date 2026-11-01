@@ -81,6 +81,20 @@
   }
 }
 
+/*
+ * Scene 2's text starts transparent in motion mode too: its timeline
+ * fades it in after the handoff from scene 1.
+ */
+@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+  @media not all and (pointer: coarse) {
+    [data-scene="road"] [data-caption],
+    [data-scene="road"] [data-el="chapter"],
+    [data-scene="road"] [data-el="dateline"] {
+      opacity: 0;
+    }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   [data-scene="dawn"] [data-el="closing"],
   [data-scene="dawn"] [data-el="cue"] {

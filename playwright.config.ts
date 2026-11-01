@@ -101,7 +101,7 @@ export default defineConfig({
     },
     {
       name: "chart",
-      testMatch: /chart.spec.ts/,
+      testMatch: /[\\/]chart\.spec\.ts$/,
       use: {
         ...desktop,
         viewport: { width: 960, height: 540 },
@@ -110,7 +110,7 @@ export default defineConfig({
     },
     {
       name: "chart-gpu",
-      testMatch: /chart.spec.ts/,
+      testMatch: /[\\/]chart\.spec\.ts$/,
       use: {
         ...desktop,
         channel: "chromium",
@@ -120,7 +120,7 @@ export default defineConfig({
     },
     {
       name: "regression",
-      testMatch: /regression.spec.ts/,
+      testMatch: /[\\/]regression\.spec\.ts$/,
       use: {
         ...desktop,
         channel: "chromium",
@@ -132,7 +132,7 @@ export default defineConfig({
       // Last and alone: the GPU must be the chart's only work while its
       // frames are timed. Run it by itself with --no-deps.
       name: "chart-frames",
-      testMatch: /chart-frames.spec.ts/,
+      testMatch: /[\\/]chart-frames\.spec\.ts$/,
       dependencies: [
         "laptop",
         "desktop-1080",
@@ -151,7 +151,7 @@ export default defineConfig({
     },
     {
       name: "docs-chart",
-      testMatch: /screenshots-chart.spec.ts/,
+      testMatch: /[\\/]screenshots-chart\.spec\.ts$/,
       use: {
         ...desktop,
         channel: "chromium",
@@ -160,7 +160,7 @@ export default defineConfig({
     },
     {
       name: "docs",
-      testMatch: /screenshots\.spec\.ts/,
+      testMatch: /[\\/]screenshots\.spec\.ts$/,
       use: {
         ...desktop,
         channel: "chromium",

@@ -24,7 +24,8 @@ const FLIGHT_LENGTH = 8;
 /**
  * A third below a 60 fps frame. Measured on the owner's laptop on battery
  * (31 October 2026): 8.7 ms at the worst point of the flight, about half a
- * frame; CPU at most 2.5 ms.
+ * frame; CPU at most 2.5 ms. On mains power at the close of Stage A
+ * (1 November 2026): 8.6 ms, CPU at most 1.5 ms.
  */
 const FRAME_GPU_MS = 11;
 const FRAME_CPU_MS = 5;

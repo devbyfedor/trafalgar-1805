@@ -71,6 +71,7 @@ Each tile is a lossless WebP holding a 12-bit height and a 12-bit coast distance
 - `node scripts/dev/shot.mjs <dir> "p=0.24" "eye=-6.6,36.3,30&look=-6.3,36.55"`: a screenshot of `/lab/chart/` per query; `LABELS=1` also prints every visible name's size on screen.
 - `node scripts/dev/sheet.mjs <out.png> <columns> <width> <images...>`: a contact sheet; `--crop` enlarges one region.
 - `node scripts/dev/bench.mjs [step] [frames]`: times the chart's frames along the flight on this machine's GPU (median, 95th percentile and worst per point).
+- `coast-room.mjs`, `coast-distance.mjs` and `route-coast.mjs` (no server; they read Natural Earth in `data/raw/`, from `npm run data:download`): the open water beyond ships along a fan of bearings (a glyph's `room`), points' distance from the coast, and how near a route's drawn curve comes to land.
 
 ## Tests
 

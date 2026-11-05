@@ -2,6 +2,7 @@ import { Vector3 } from "three";
 import type { Chart } from "@/components/chart";
 import type { CameraRig } from "@/components/chart/camera/rig";
 import { worldX, worldY } from "@/components/chart/geo/mercator";
+import { FOOT } from "@/components/chart/glyphs/atlas";
 import type { Glyphs, ShipMark } from "@/components/chart/glyphs/Glyphs";
 import { glyphPxAt } from "@/components/chart/glyphs/height";
 import type { LightId } from "@/components/chart/light/states";
@@ -9,7 +10,7 @@ import type { Route } from "@/components/chart/lines/Route";
 import type { RibbonMaterial } from "@/components/chart/lines/ribbon";
 import { METRE_VH, VICTORY_X } from "@/scenes/01-dawn/composition";
 import { VICTORY_BOX } from "@/scenes/01-dawn/layers/Victory";
-import { BEATS, dayAt } from "./beats";
+import { BEATS, type BeatId, dayAt } from "./beats";
 import {
   BRITISH,
   COMBINED,
@@ -70,8 +71,34 @@ const SQUADRON_ROOM_KM = 45;
 /** How far off a port a squadron's block stands while it lies there, map km. */
 const ROADS_KM = 22;
 
-/** The atlas draws a ship's waterline this far above its cell's foot. */
-const CELL_FOOT = 16 / 192;
+/** A ship at anchor in Cádiz bay: the open water beyond her, map km. */
+const ANCHOR_ROOM_KM = 4.2;
+
+/**
+ * How much scroll (of p) a squadron takes to change: a ship joining or
+ * leaving it fades, one replaced crossfades, and the block slides from the
+ * roads off one leg's end to those off the next leg's start. Measured in
+ * scroll, not story days, which run at very different paces through the
+ * beats: about 130 px of scroll on the owner's screen.
+ */
+const CHANGE_P = 0.006;
+
+/** The progress p at which the story's clock reaches day d (dayAt is monotone within these beats). */
+function pOfDay(d: number, beats: readonly BeatId[]): number {
+  let lo: number = BEATS[beats[0]][0];
+  let hi: number = BEATS[beats[beats.length - 1]][1];
+  if (d <= dayAt(lo)) return lo;
+  if (d >= dayAt(hi - 1e-9)) return hi;
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2;
+    if (dayAt(mid) < d) lo = mid;
+    else hi = mid;
+  }
+  return hi;
+}
+
+/** The beats the squadrons sail in. */
+const SQUADRON_BEATS: readonly BeatId[] = ["chase", "finisterre"];
 
 const smooth = (e0: number, e1: number, x: number) => {
   const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
@@ -139,6 +166,70 @@ function legProgress(c: LegClock, d: number): number {
   return km / c.along[c.along.length - 1];
 }
 
+/** The legs each squadron sails, in order. */
+const SQUADRON_LEGS: Record<string, readonly string[]> = {
+  villeneuve: [
+    "villeneuve-toulon-cadiz",
+    "villeneuve-crossing",
+    "villeneuve-west-indies",
+    "villeneuve-return",
+    "villeneuve-vigo-coruna",
+    "combined-ferrol-cadiz",
+  ],
+  nelson: [
+    "nelson-mediterranean",
+    "nelson-outward",
+    "nelson-west-indies",
+    "nelson-homeward",
+    "nelson-ushant-spithead",
+  ],
+};
+
+/** Squadrons without a drawn route keep a station: lon, lat, heading. */
+const STATIONS: Record<string, readonly [number, number, number]> = {
+  // Orde off Cádiz, drawing off toward Lagos.
+  orde: [-6.55, 36.45, 280],
+  // Calder off Finisterre, to the north-north-east of the allies.
+  calder: [-11.55, 43.83, 245],
+  // Collingwood off Cádiz, chased toward the Strait.
+  collingwood: [-6.45, 36.3, 150],
+};
+
+/** A squadron as the director plays it. */
+interface Squad {
+  spec: SquadronSpec;
+  /** Its first glyph in the squadrons' layer, and how many it holds. */
+  first: number;
+  n: number;
+  /** The p at which each of its stages begins. */
+  stageP: number[];
+  /** The legs it sails, in order, and the p at which each begins. */
+  legs: LegClock[];
+  legP: number[];
+}
+
+/**
+ * A squadron's block on a leg at a share of it: the leg's own point, but
+ * never nearer its ends than the roads (ROADS_KM), so in port the block
+ * stands off the port on the route it came in or goes out by.
+ */
+function blockAt(
+  c: LegClock,
+  progress: number,
+  out: { x: number; y: number; heading: number },
+): void {
+  const len = c.along[c.along.length - 1] || 1;
+  const r0 = Math.min(0.5, ROADS_KM / len);
+  const r1 = Math.max(0.5, 1 - ROADS_KM / len);
+  c.route.pointAt(Math.min(r1, Math.max(r0, progress)), out);
+}
+
+/** A heading turned toward another by a share t, the short way round (radians). */
+function turnToward(from: number, to: number, t: number): number {
+  const d = Math.atan2(Math.sin(to - from), Math.cos(to - from));
+  return from + d * t;
+}
+
 /** The scene's layers, as the scene builds them. */
 export interface RoadLayers {
   chart: Chart;
@@ -201,10 +292,12 @@ export class RoadDirector {
     y: 0,
     heading: 0,
     anchored: false,
+    anchorage: 0,
   };
   private readonly clocks: LegClock[];
-  private readonly squads: { spec: SquadronSpec; first: number; n: number }[];
+  private readonly squads: Squad[];
   private readonly head = { x: 0, y: 0, heading: 0 };
+  private readonly next = { x: 0, y: 0, heading: 0 };
   private readonly victory = new Vector3(
     worldX(VICTORY_AT_DAWN.lon),
     worldY(VICTORY_AT_DAWN.lat),
@@ -221,7 +314,16 @@ export class RoadDirector {
     let first = 0;
     this.squads = SQUADRONS.map((spec) => {
       const n = Math.max(...spec.stages.map((x) => x.types.length));
-      const s = { spec, first, n };
+      const ids = SQUADRON_LEGS[spec.id] ?? [];
+      const legs = this.clocks.filter((c) => ids.includes(c.leg.id));
+      const s: Squad = {
+        spec,
+        first,
+        n,
+        stageP: spec.stages.map((x) => pOfDay(x.from, SQUADRON_BEATS)),
+        legs,
+        legP: legs.map((c) => pOfDay(c.first, SQUADRON_BEATS)),
+      };
       first += n;
       return s;
     });
@@ -277,22 +379,25 @@ export class RoadDirector {
           s.y = worldY(b.lat);
           s.heading = (b.heading * Math.PI) / 180;
           s.anchored = false;
+          s.anchorage = 0;
         }
       } else if (!shipAt(ship, d, s)) {
         glyphs.setOpacity(i, 0);
         return;
       }
       glyphs.place(i, s.x, s.y, s.heading);
-      const anchored = s.anchored && ship.rig.anchor !== undefined;
-      glyphs.setType(i, anchored ? (ship.rig.anchor as string) : ship.rig.sail);
-      glyphs.setUnderWay(i, !anchored);
-      // At anchor a ship's room is the bay beyond her (decisions.md, "No
-      // glyph stands on the shore"); at sea, her distance from the coast.
-      glyphs.setFit(
-        i,
-        anchored ? 4.2 : "coast",
-        anchored ? 0 : dawnSpacing(ship),
-      );
+      // As she weighs and makes sail, her furled glyph crossfades into her
+      // sailing one, her wake comes up, and her room passes from the bay
+      // beyond her (decisions.md, "No glyph stands on the shore") to her
+      // distance from the coast; coming to anchor, the reverse.
+      const anchor = ship.rig.anchor;
+      const k = anchor === undefined ? 0 : s.anchorage;
+      if (anchor !== undefined && k > 0)
+        glyphs.setType(i, ship.rig.sail, anchor, k);
+      else glyphs.setType(i, ship.rig.sail);
+      glyphs.setUnderWay(i, 1 - k);
+      glyphs.setRoomBlend(i, ANCHOR_ROOM_KM, 1 - k);
+      glyphs.setSpacing(i, dawnSpacing(ship));
       let opacity = Math.min(1, shown);
       // Her glyph takes over from scene 1's painted Victory.
       if (i === this.victoryIndex && p < 0.2)
@@ -309,85 +414,78 @@ export class RoadDirector {
       BEATS.finisterre[1] - 0.012,
       BEATS.finisterre[1],
     ]);
-    for (const { spec, first, n } of this.squads) {
+    for (const squad of this.squads) {
+      const { spec, first, n, stageP } = squad;
       const [from, to] = spec.shown;
       const visible =
         beat * smooth(from - 0.4, from, d) * (1 - smooth(to, to + 0.6, d));
-      const stage =
-        [...spec.stages].reverse().find((s) => s.from <= d) ?? spec.stages[0];
-      const where = this.squadronHead(spec, d);
+      // The stage in force and the one before it: a ship that joins fades
+      // in, one that leaves (or is taken) fades out, one replaced by
+      // another type crossfades.
+      let j = 0;
+      for (let k = 0; k < spec.stages.length; k++)
+        if (spec.stages[k].from <= d) j = k;
+      const cur = spec.stages[j].types;
+      const prev = j > 0 ? spec.stages[j - 1].types : null;
+      const t = prev ? smooth(stageP[j], stageP[j] + CHANGE_P, p) : 1;
+      const where = this.squadronHead(squad, d, p);
       for (let k = 0; k < n; k++) {
         const i = first + k;
-        const type = stage.types[k];
-        if (!where || !type || visible <= 0.001) {
+        const now = cur[k];
+        const before = prev?.[k];
+        if (!where || (!now && !before) || visible <= 0.001) {
           glyphs.setOpacity(i, 0);
           continue;
         }
         glyphs.place(i, where.x, where.y, where.heading);
-        glyphs.setType(i, type);
+        let opacity = visible;
+        if (now && before && now !== before) glyphs.setType(i, before, now, t);
+        else if (now) {
+          glyphs.setType(i, now);
+          if (!before) opacity *= t;
+        } else if (before) {
+          glyphs.setType(i, before);
+          opacity *= 1 - t;
+        }
         const [along, up] = formationSlot(k);
         glyphs.setFormation(i, along, up);
-        glyphs.setOpacity(i, visible);
+        glyphs.setOpacity(i, opacity);
       }
     }
   }
 
-  /** Where a squadron's lead is at a day: the head of its route, or its station. */
-  private squadronHead(spec: SquadronSpec, d: number) {
-    const ids: Record<string, readonly string[]> = {
-      villeneuve: [
-        "villeneuve-toulon-cadiz",
-        "villeneuve-crossing",
-        "villeneuve-west-indies",
-        "villeneuve-return",
-        "villeneuve-vigo-coruna",
-        "combined-ferrol-cadiz",
-      ],
-      nelson: [
-        "nelson-mediterranean",
-        "nelson-outward",
-        "nelson-west-indies",
-        "nelson-homeward",
-        "nelson-ushant-spithead",
-      ],
-    };
-    const legs = ids[spec.id];
-    if (legs) {
-      const clocks = this.clocks.filter((c) => legs.includes(c.leg.id));
-      // The leg in progress, or the last one finished (at anchor between legs).
-      let clock = clocks[0];
-      for (const c of clocks) if (c.first <= d) clock = c;
-      clock.route.pointAt(legProgress(clock, d), this.head);
-      // In port the squadron's block stands in the roads off it, out along
-      // its way in: a symbol drawn in the open water by the port, as the
-      // period's charts set a fleet, not on the town.
-      const w = clock.leg.waypoints;
-      const inPort = d < clock.first || d > clock.last;
-      if (inPort) {
-        const end = d < clock.first ? 0 : w.length - 1;
-        const next = d < clock.first ? 1 : w.length - 2;
-        const ex = worldX(w[end].lon);
-        const ey = worldY(w[end].lat);
-        const dx = worldX(w[next].lon) - ex;
-        const dy = worldY(w[next].lat) - ey;
-        const len = Math.hypot(dx, dy) || 1;
-        const off = Math.min(1, ROADS_KM / len);
-        this.head.x = ex + dx * off;
-        this.head.y = ey + dy * off;
-        this.head.heading = Math.atan2(-dx, -dy);
+  /**
+   * Where a squadron's lead is at a day: the head of its route, or its
+   * station. In port the block stands in the roads off it, on its route
+   * (ROADS_KM out along the way in or out): a symbol drawn in the open
+   * water by the port, as the period's charts set a fleet, not on the town.
+   * Between two legs it slides from the roads off the one to the roads off
+   * the other just before the second begins, so it never jumps.
+   */
+  private squadronHead(squad: Squad, d: number, p: number) {
+    const { legs, legP } = squad;
+    if (legs.length > 0) {
+      // The leg in progress, or the last one begun (at anchor after it).
+      let k = 0;
+      for (let n = 0; n < legs.length; n++) if (legs[n].first <= d) k = n;
+      blockAt(legs[k], legProgress(legs[k], d), this.head);
+      if (k + 1 < legs.length) {
+        const t = smooth(legP[k + 1] - CHANGE_P, legP[k + 1], p);
+        if (t > 0) {
+          blockAt(legs[k + 1], 0, this.next);
+          this.head.x += (this.next.x - this.head.x) * t;
+          this.head.y += (this.next.y - this.head.y) * t;
+          this.head.heading = turnToward(
+            this.head.heading,
+            this.next.heading,
+            t,
+          );
+        }
       }
       return this.head;
     }
     // Squadrons without a drawn route keep a station.
-    const stations: Record<string, readonly [number, number, number]> = {
-      // Orde off Cádiz, drawing off toward Lagos.
-      orde: [-6.55, 36.45, 280],
-      // Calder off Finisterre, to the north-north-east of the allies.
-      calder: [-11.55, 43.83, 245],
-      // Collingwood off Cádiz, chased toward the Strait.
-      collingwood: [-6.45, 36.3, 150],
-    };
-    const st = stations[spec.id];
+    const st = STATIONS[squad.spec.id];
     if (!st) return null;
     this.head.x = worldX(st[0]);
     this.head.y = worldY(st[1]);
@@ -455,7 +553,7 @@ export class RoadDirector {
     );
     const gh =
       glyphPxAt(eye.z) * Math.min(1.8, Math.max(0.55, sizeRef / dist)) ** 0.35;
-    const gy = footY - CELL_FOOT * gh;
+    const gy = footY - FOOT * gh;
     // Her scale at the swap: a metre of the glyph against a metre of hers.
     const cellMetres = this.layers.fleets.atlas.cellMetres;
     const target = gh / cellMetres / ((METRE_VH * H) / 100);

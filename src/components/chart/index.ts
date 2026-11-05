@@ -15,6 +15,12 @@ export {
 } from "./engine/Chart";
 export { QUALITY_LADDER } from "./engine/quality";
 export {
+  buildGlyphAtlas,
+  FOOT,
+  type GlyphAtlas,
+  type GlyphSilhouette,
+} from "./glyphs/atlas";
+export {
   Glyphs,
   type GlyphType,
   type ShipMark,

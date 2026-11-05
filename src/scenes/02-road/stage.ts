@@ -1,12 +1,15 @@
 import {
+  buildGlyphAtlas,
   CameraRig,
   Chart,
+  type GlyphAtlas,
   Glyphs,
   Lettering,
   loadRivers,
   Rivers,
   Route,
 } from "@/components/chart";
+import { GlyphProbe } from "@/components/chart/glyphs/probe";
 import { ROAD_FLIGHT } from "./camera";
 import { fleetMarks, RoadDirector, squadronMarks } from "./director";
 import { GLYPH_TYPES } from "./fleets";
@@ -23,6 +26,11 @@ import { NELSON, VILLENEUVE } from "./routes";
 export interface RoadStage {
   chart: Chart;
   director: RoadDirector;
+  /**
+   * Draws the scene at p and reads back every glyph as drawn (GlyphProbe),
+   * both fleets ship by ship, then the squadrons: for tests and tuning.
+   */
+  sample(p: number): { fleets: Float32Array; squadrons: Float32Array };
   /** Sets the chart for progress p and draws a frame (gsap.ticker time). */
   draw(p: number, time: number): void;
   resize(width: number, height: number): void;
@@ -47,6 +55,7 @@ export async function createRoadStage(
     quality: options.quality,
     onFatal: options.onFatal,
   });
+  let atlas: GlyphAtlas | null = null;
   try {
     const riverData = await loadRivers(chart.manifest, options.signal);
     const rivers = new Rivers(chart.field, riverData);
@@ -64,12 +73,14 @@ export async function createRoadStage(
       r.setProgress(0);
       chart.add(r, r.mesh);
     }
-    const fleets = new Glyphs(chart.field, GLYPH_TYPES, fleetMarks());
+    // One atlas for both layers, drawn level by level between frames.
+    atlas = await buildGlyphAtlas(GLYPH_TYPES);
+    options.signal.throwIfAborted();
+    chart.addGpuBytes(atlas.gpuBytes);
+    const fleets = new Glyphs(chart.field, atlas, fleetMarks());
     chart.add(fleets, fleets.wakes, fleets.ships);
-    chart.addGpuBytes(fleets.atlas.gpuBytes);
-    const squadrons = new Glyphs(chart.field, GLYPH_TYPES, squadronMarks());
+    const squadrons = new Glyphs(chart.field, atlas, squadronMarks());
     chart.add(squadrons, squadrons.wakes, squadrons.ships);
-    chart.addGpuBytes(squadrons.atlas.gpuBytes);
     const lettering = new Lettering(chart.field, GAZETTEER);
     chart.add(lettering, lettering.batch, lettering.marks.mesh);
     await lettering.ready;
@@ -83,9 +94,18 @@ export async function createRoadStage(
       routes,
       legs,
     });
+    let probes: [GlyphProbe, GlyphProbe] | null = null;
     const stage: RoadStage = {
       chart,
       director,
+      sample(p) {
+        probes ??= [new GlyphProbe(fleets), new GlyphProbe(squadrons)];
+        director.apply(p);
+        chart.frame(performance.now() / 1000);
+        const read = (probe: GlyphProbe) =>
+          probe.read(chart.renderer, chart.camera).values.slice();
+        return { fleets: read(probes[0]), squadrons: read(probes[1]) };
+      },
       draw(p, time) {
         director.apply(p);
         chart.frame(time);
@@ -95,12 +115,15 @@ export async function createRoadStage(
       },
       dispose() {
         director.dispose();
+        for (const probe of probes ?? []) probe.dispose();
         chart.dispose();
+        atlas?.texture.dispose();
       },
     };
     return stage;
   } catch (error) {
     chart.dispose();
+    atlas?.texture.dispose();
     throw error;
   }
 }

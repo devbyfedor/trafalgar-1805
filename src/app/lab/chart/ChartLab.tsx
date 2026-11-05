@@ -143,6 +143,7 @@ export function ChartLab() {
         let render: ((time: number) => void) | null = null;
         let unregister = () => {};
         let demo: LabDemo | null = null;
+        let disposeAtlas = () => {};
         const onVisibility = () => chart.pause();
         dispose = () => {
           if (render) gsap.ticker.remove(render);
@@ -151,6 +152,7 @@ export function ChartLab() {
           unregister();
           demo?.dispose?.();
           chart.dispose();
+          disposeAtlas();
           window.__chart = undefined;
         };
 
@@ -163,12 +165,18 @@ export function ChartLab() {
         chart.add(rivers, rivers.mesh);
         const route = new engine.Route(chart.field, TOULON_TO_CADIZ);
         chart.add(route, route.mesh);
-        const glyphs = new engine.Glyphs(chart.field, GLYPH_TYPES, [
+        const atlas = await engine.buildGlyphAtlas(GLYPH_TYPES);
+        if (cancelled) {
+          atlas.texture.dispose();
+          return;
+        }
+        const glyphs = new engine.Glyphs(chart.field, atlas, [
           ...LAB_MARKS,
           ...ROUTE_SQUADRON,
         ]);
         chart.add(glyphs, glyphs.wakes, glyphs.ships);
-        chart.addGpuBytes(glyphs.atlas.gpuBytes);
+        chart.addGpuBytes(atlas.gpuBytes);
+        disposeAtlas = () => atlas.texture.dispose();
         const squadron = LAB_MARKS.length;
         const head = { x: 0, y: 0, heading: 0 };
         const lettering = new engine.Lettering(chart.field, GAZETTEER);

@@ -50,32 +50,76 @@ export const GLSL_GLYPH_HEIGHT = /* glsl */ `
 ${GLSL_GEO}
 ${GLSL_FIELD}
 uniform vec3 uTexelKm;
+uniform vec2 uViewport;
 uniform float uSizePx;
 uniform float uSizeRef;
 uniform float uPxPerRadian;
 uniform float uDpr;
 uniform float uAspect;
-// A moving ship's room (a negative room, -1 - floor): her distance from the
-// nearest coast, where the chart's field is smooth over a couple of
-// kilometres, but no less than the floor.
+// A moving ship's room: her distance from the nearest coast, where the
+// chart's field is smooth over a couple of kilometres.
 float coastRoom(vec2 p) {
   return max(sampleFieldLod(p, max(vec3(0.0), log2(2.0 / uTexelKm))).y, 0.0);
 }
-float glyphHeight(vec2 at, float dist, float size, float room) {
+// room: x, a fixed room (map km; 0 for none); y, how far the coast's
+// distance has taken over from it (0..1, so a ship weighing from a bay
+// passes smoothly from the one to the other); z, the least room by a coast.
+float glyphHeight(vec2 at, float dist, float size, vec3 room) {
   float h = uSizePx * pow(clamp(uSizeRef / dist, 0.55, 1.8), 0.35) * size;
-  if (room == 0.0) return h;
-  if (room < 0.0) room = max(coastRoom(at), -room - 1.0);
+  if (room.x <= 0.0 && room.y <= 0.0) return h;
+  float r = room.x;
+  if (room.y > 0.0) {
+    float coast = max(coastRoom(at), room.z);
+    r = room.x > 0.0 ? mix(room.x, coast, room.y) : coast;
+  }
   float z = max(cameraPosition.z, 1e-3);
   float d = length(at - cameraPosition.xy);
-  float fit = (atan(z, d) - atan(z, d + room)) * uPxPerRadian;
+  float fit = (atan(z, d) - atan(z, d + r)) * uPxPerRadian;
   // From low over the sea the glyph stands against the sky, not the chart.
   return mix(h, min(h, fit), smoothstep(0.03, 0.08, z / dist));
 }
-float glyphShow(float dist, float h, float spacing) {
+// weight: how much the group rule applies (0..1): not to a ship at anchor,
+// and smoothly as she weighs and joins her group under sail.
+float glyphShow(float dist, float h, float spacing, float weight) {
   float show = smoothstep(3.5, 6.5, h / uDpr);
   if (spacing > 0.0)
-    show *= smoothstep(0.3, 0.5, spacing * uPxPerRadian / dist / (h * uAspect));
+    show *= mix(1.0, smoothstep(0.25, 0.55, spacing * uPxPerRadian / dist / (h * uAspect)), weight);
   return show;
+}
+
+// A ship's place in a squadron's formation, device px from her lead: form
+// is (steps along the heading as it runs on screen, rows up the screen) in
+// glyph heights. Seen end-on the steps shorten with the heading's run on
+// screen, as a column seen from ahead closes up, instead of swinging round.
+vec2 formationPx(vec3 w, vec4 clip, float heading, float dist, vec2 form, float h) {
+  if (form.x == 0.0 && form.y == 0.0) return vec2(0.0);
+  vec2 ahead = vec2(sin(heading), cos(heading)) * dist * 0.01;
+  vec4 c2 = projectionMatrix * viewMatrix * vec4(w + vec3(ahead, 0.0), 1.0);
+  vec2 d = (c2.xy / c2.w - clip.xy / clip.w) * 0.5 * uViewport;
+  // A step of 1 % of the distance runs about 0.01 rad on screen when the
+  // heading crosses the view; under a third of that, the column closes up.
+  vec2 dir = d / max(length(d), 0.0035 * uPxPerRadian);
+  return (dir * form.x * uAspect + vec2(0.0, form.y)) * h;
+}
+
+// Where a ship stands on the sea: her mark's place, or, in a formation, the
+// sea under her place on screen. Kept at her lead's depth, a ship moved
+// down the screen would sink into the sea in front of her lead; set down on
+// the sea under her own foot, she stands on it at any angle.
+vec3 glyphFoot(vec3 base, float heading, float dist, vec2 form, float h) {
+  if (form.x == 0.0 && form.y == 0.0) return base;
+  vec4 clip = projectionMatrix * viewMatrix * vec4(base, 1.0);
+  vec2 ndc = clip.xy / clip.w + formationPx(base, clip, heading, dist, form, h) / (0.5 * uViewport);
+  vec3 ray = vec3(
+    (ndc.x + projectionMatrix[2][0]) / projectionMatrix[0][0],
+    (ndc.y + projectionMatrix[2][1]) / projectionMatrix[1][1],
+    -1.0
+  );
+  // The view's rotation is orthonormal: its transpose takes view to world.
+  vec3 dir = transpose(mat3(viewMatrix)) * ray;
+  // A place above the horizon (only ever in the sky at dawn): the lead's.
+  if (dir.z > -1e-6) return base;
+  return cameraPosition + dir * (-cameraPosition.z / dir.z);
 }
 `;
 

@@ -45,7 +45,8 @@ for (const v of values) {
   const vh = height;
   const y = p < 0 ? (SCENE1 + p * SCENE1) * vh : (SCENE1 + p * SCENE2) * vh;
   await page.evaluate((y) => {
-    if (window.__lenis) window.__lenis.scrollTo(y, { immediate: true, force: true });
+    if (window.__lenis)
+      window.__lenis.scrollTo(y, { immediate: true, force: true });
     else window.scrollTo(0, y);
   }, y);
   await page.waitForTimeout(Number(process.env.WAIT ?? 1800));

@@ -9,7 +9,7 @@ import {
   Vector3,
 } from "three";
 import type { FrameInfo } from "../engine/Chart";
-import { GLSL_FIELD, GLSL_GEO } from "../shaders/common";
+import { GLSL_FIELD, GLSL_GEO, GLSL_SURFACE } from "../shaders/common";
 import type { TerrainField } from "../terrain/field";
 
 /**
@@ -116,14 +116,14 @@ out float vAlong;
 out float vWidth;
 out float vDist;
 out float vFade;
+${GLSL_SURFACE}
 
 // A point on the relief, read where the terrain mesh reads it (its cells
 // are about cellKm wide here), or on the sea surface.
 vec3 lift(vec2 p, float cellKm) {
   if (uLift < 0.5) return vec3(p, 0.0);
   vec4 f = sampleFieldLod(p, max(vec3(0.0), log2(cellKm / uTexelKm)));
-  float taper = smoothstep(0.0, cellKm, -f.y);
-  return vec3(p, max(f.x, 0.0) * 0.001 * secLat(p.y) * uExag * taper);
+  return vec3(p, surfaceZ(p, cellKm, f));
 }
 
 vec2 screen(vec4 clip) {

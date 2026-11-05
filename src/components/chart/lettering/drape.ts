@@ -1,4 +1,4 @@
-import { GLSL_FIELD, GLSL_GEO } from "../shaders/common";
+import { GLSL_FIELD, GLSL_GEO, GLSL_SURFACE } from "../shaders/common";
 
 /**
  * Laying lettering and its marks on the chart: a point (world km) set on
@@ -13,12 +13,12 @@ uniform float uExag;
 uniform vec3 uTexelKm;
 uniform float uLodK;
 uniform float uPull;
+${GLSL_SURFACE}
 
 vec3 chartDrape(vec3 p) {
   float cellKm = max(length(vec3(p.xy - cameraPosition.xy, cameraPosition.z)) / uLodK, 1e-3);
   vec4 f = sampleFieldLod(p.xy, max(vec3(0.0), log2(cellKm / uTexelKm)));
-  float taper = smoothstep(0.0, cellKm, -f.y);
-  vec3 w = vec3(p.xy, max(f.x, 0.0) * 0.001 * secLat(p.y) * uExag * taper);
+  vec3 w = vec3(p.xy, surfaceZ(p.xy, cellKm, f));
   return w + (cameraPosition - w) * uPull;
 }
 `;

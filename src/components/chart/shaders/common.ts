@@ -119,6 +119,40 @@ vec2 sampleHorizon(vec2 p) {
 }
 `;
 
+/**
+ * The chart's surface, shared by the terrain mesh and everything laid on it
+ * (lettering, rivers, routes), so they rise and fall together. Needs
+ * GLSL_GEO and GLSL_FIELD, and the uniforms uExag and uTexelKm.
+ *
+ * Only land rises, easing to sea level within a mesh cell of the coast. The
+ * coast is read at a level four times finer than the mesh's: at the mesh's
+ * own level a bay or a strait a few cells wide averaged into land, and the
+ * mesh stood it up as a plateau over water the chart draws as sea.
+ */
+export const GLSL_SURFACE = /* glsl */ `
+float surfaceZ(vec2 p, float cellKm, vec4 f) {
+  float coast = sampleFieldLod(p, max(vec3(0.0), log2(0.25 * cellKm / uTexelKm))).y;
+  float rise = smoothstep(0.0, cellKm, -coast);
+  return max(f.x, 0.0) * 0.001 * secLat(p.y) * uExag * rise;
+}
+`;
+
+/**
+ * The depth of the sea's surface (z = 0) on the ray from the camera through
+ * a world point, as gl_FragDepth wants it; the point's own depth where the
+ * ray never comes down to the sea. Fragment shaders only.
+ */
+export const GLSL_SEA_DEPTH = /* glsl */ `
+uniform mat4 projectionMatrix;
+float seaDepthThrough(vec3 world) {
+  vec3 d = world - cameraPosition;
+  if (d.z > -1e-6 * length(d)) return gl_FragCoord.z;
+  vec3 s = cameraPosition - d * (cameraPosition.z / d.z);
+  vec4 c = projectionMatrix * (viewMatrix * vec4(s, 1.0));
+  return clamp(0.5 * c.z / c.w + 0.5, 0.0, 1.0);
+}
+`;
+
 /** Anti-aliased line coverage for a distance in pixels and a width in pixels. */
 export const GLSL_LINES = /* glsl */ `
 float lineCov(float distPx, float widthPx) {

@@ -389,3 +389,36 @@ HTML over the canvas: the chapter marker "II. The road to Trafalgar" top left, a
 ### Built in parallel
 
 Self-contained engine layers are built in parallel by agents in their own git worktrees, each proven on `/lab/chart` before it is merged: the Channel tile with detail tiles that share one slot (the field binds the one nearest the camera's target); engraved smoke puffs; night lights; Boulogne's camps and small craft; track styles (washes, dots and dashes, day circles, numerals and legends, the army's dashed line). The scene itself (its component, timeline, camera, fleets, transition, text, stills and tests) is built in the main tree and takes them in as they land.
+
+## Scene 2, Stage B: the owner's review of the ships (session 11, 5 November 2026)
+
+The owner looked at the site after session 10 and asked for four things before anything else: ships must never sink into the sea; glyphs must not jerk, flicker or jump in size as the camera pulls back; the ships must be sharper and finer, as scene 1's up close and a clean silhouette far off; and the chart must grow sharper and richer as the camera comes close, like an engraved pilot chart held to the eye.
+
+### Ships never sink: the causes and the fix
+
+Two faults, both in depth, put the sea in front of a ship's hull. A glyph is a billboard upright on screen at its foot's depth, tested against the terrain's depth and writing none of its own.
+- **The water's depth was not the sea's.** The terrain mesh is a grid whose triangles cross the coast; one with a land corner lifts the water near the coast toward the land's height, and from far off the land is exaggerated (8× at 1,000 km) and the cells are kilometres wide. Worse, the mesh read the coast at its own level: a level whose texels are a cell wide averages a bay or a strait a few cells across into land, and the mesh stood the whole bay up as a plateau, drawn as water (the fragment shader reads the coast at full resolution) but hundreds of metres above sea level in depth. Seen at a slant, the plateau in front of a ship hid her hull.
+- **Squadrons kept their lead's depth.** A squadron's ships are placed on screen around their lead (a block of so many glyphs, at any zoom); moved down the screen at the lead's depth, a ship's lower half lay behind the sea in front of the lead, and only her mastheads showed.
+- **The fix.** (1) Wherever the terrain draws water it writes the sea's own depth: the depth of z = 0 on that pixel's ray (`gl_FragDepth`, `GLSL_SEA_DEPTH`), never nearer than its own. Nothing standing on the sea (a ship, her wake, a route, a sounding) can sink into it at any height, angle or distance. The cost is early depth rejection on the terrain draw, which matters only where terrain hides terrain; measured below. (2) The mesh reads the coast at a level four times finer than its own before it lets land rise (`GLSL_SURFACE`, shared by the terrain, the lettering's drape and the ink ribbons, so they rise and fall together): bays and straits stay at sea level and the coast is drawn where the mesh puts it. (3) Every glyph stands on the sea under her own foot on screen: a squadron's ship is placed on screen by her formation, then set down on the sea under that point (`glyphFoot`), and her wake is laid round that point.
+
+### Smooth from near to far
+
+Every glyph property is now a continuous function of the scroll. What jumped, and what it does now:
+- a ship weighing (anchored to under way) swapped her furled glyph for her sailing one, switched her wake on and her room from the bay to the coast in one frame: now she crossfades between the two glyphs over three story hours (`WEIGH_DAYS`), her wake fades up, her room passes smoothly from the bay's 4.2 km to her distance from the coast (`setRoomBlend`), and the rule that a group gives way to its lead applies as she gets under way;
+- a squadron reaching port jumped 22 km into the roads: now its block stops in the roads on the route it came in by and waits there, and slides to the roads on the next leg's way out just before that leg begins;
+- a ship joining a squadron appeared, one taken or detached vanished, and one replaced by another type swapped: now they fade in, fade out or crossfade over a fixed stretch of scroll (`CHANGE_P`, about 130 px), not of story days, whose pace differs tenfold between beats;
+- a glyph mirrored at once when its heading crossed the line of sight: now the two facings crossfade over a narrow band, where the glyph is narrowest (30 % of its width), so the two images nearly coincide;
+- a squadron's formation swung from one side to the other when its heading crossed the line of sight: now its columns close up as the heading's run on screen shortens, as a column seen from ahead does;
+- one atlas drawing reduced by mipmaps changed its look with every mip level: now the glyph's two nearest drawn levels are blended by its size on screen.
+
+Verified by a probe that runs the glyph shader's own GLSL and reads every glyph's foot, height and opacity back (`glyphs/probe.ts`, `window.__road.sample(p)`), and a sweep of the whole scene that flags any change much larger than the changes on either side of it (`scripts/dev/glyph-sweep.mjs`).
+
+### Sharper ships: a ladder of drawings
+
+A glyph stands 12 to about 100 device pixels tall. One 192-px drawing reduced by mipmaps blurred its sails into one pale blot and lost its masts and yards. The atlas now draws every type at eight cell heights a factor of √2 apart (12 to 136 px, `LEVEL_PX`), each drawing made for its size from scene 1's geometry, as an engraver redraws a symbol for a smaller plate:
+- spars stroked so the thinnest reads as about 0.85 px at every size;
+- a hairline of daylight between sails that would run together when small;
+- the rigging only where its lines resolve (from about 0.45 px a metre), never under 0.4 px;
+- from about 30 px up, the lit and shaded cloths of scene 1's sails, the hull's ochre bands (Victory's 2015 paint research colour, `#c29a77`; the combined fleet's a lighter slate of its hull), and from about 70 px the port lids on the bands and the sails' inked edges;
+- the waterline on a whole pixel row at every level.
+The atlas holds coverage per channel (canvas, dark, bands, and the canvas's lit share), so the shader colours by side and light as before; it is drawn level by level between frames (no long task), shared by the fleets and the squadrons (one atlas, where there were two), 2048 × 1,288 texels, about 14 MB on the GPU with mipmaps. The shader blends the two levels nearest the glyph's height on screen, sampled with explicit gradients and anisotropic filtering, so a glyph narrowed end-on stays sharp. The quad, the foot (1/12 of the cell) and the scale (a cell drawn for the Santísima Trinidad's 66 m) are unchanged, so scene 1's Victory still hands over to her glyph at the same size.

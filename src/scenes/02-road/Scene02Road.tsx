@@ -185,7 +185,11 @@ export function Scene02Road() {
             unregister = registerChartReadout(() =>
               near && drawing ? s.chart.stats : null,
             );
-            window.__road = { ready: true, stats: s.chart.stats };
+            window.__road = {
+              ready: true,
+              stats: s.chart.stats,
+              sample: (p: number) => s.sample(p),
+            };
           };
           start().catch((error: unknown) => {
             if (controller.signal.aborted) return;
@@ -243,6 +247,11 @@ export function Scene02Road() {
 declare global {
   interface Window {
     /** Scene 2's chart, for the end-to-end tests. */
-    __road?: { ready: boolean; stats: import("@/components/chart").ChartStats };
+    __road?: {
+      ready: boolean;
+      stats: import("@/components/chart").ChartStats;
+      /** Draws the scene at p and reads back its glyphs (RoadStage.sample). */
+      sample: (p: number) => { fleets: Float32Array; squadrons: Float32Array };
+    };
   }
 }

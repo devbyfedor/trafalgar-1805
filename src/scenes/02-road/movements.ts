@@ -43,7 +43,16 @@ export interface ShipState {
   /** Radians from north, clockwise. */
   heading: number;
   anchored: boolean;
+  /**
+   * How far she is at anchor, 0..1: 1 riding at anchor, 0 under sail, and
+   * between them over WEIGH_DAYS as she weighs and makes sail or comes to
+   * and furls, so her glyph changes smoothly.
+   */
+  anchorage: number;
 }
+
+/** How long a ship takes to weigh and make sail, or to come to and furl, days. */
+const WEIGH_DAYS = 0.12;
 
 const at = (lon: number, lat: number): [number, number] => [
   worldX(lon),
@@ -299,6 +308,15 @@ export function shipAt(ship: Ship, d: number, out: ShipState): boolean {
   out.x = a.x + (b.x - a.x) * t;
   out.y = a.y + (b.y - a.y) * t;
   out.anchored = Boolean(a.anchored && (b.anchored || t === 0));
+  const into = (e0: number, e1: number, x: number) => {
+    const u = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
+    return u * u * (3 - 2 * u);
+  };
+  if (a.anchored && b.anchored) out.anchorage = 1;
+  else if (a.anchored) out.anchorage = 1 - into(a.day, a.day + WEIGH_DAYS, d);
+  else if (b.anchored && span > 0)
+    out.anchorage = into(b.day - Math.min(WEIGH_DAYS, span), b.day, d);
+  else out.anchorage = i === keys.length - 1 && a.anchored ? 1 : 0;
   // The leg's own course, unless a key gives one.
   const moving = Math.hypot(b.x - a.x, b.y - a.y) > 0.05;
   const leg = moving

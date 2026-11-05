@@ -1,4 +1,11 @@
-import { GLSL_FIELD, GLSL_GEO, GLSL_LINES, GLSL_SKY } from "../shaders/common";
+import {
+  GLSL_FIELD,
+  GLSL_GEO,
+  GLSL_LINES,
+  GLSL_SEA_DEPTH,
+  GLSL_SKY,
+  GLSL_SURFACE,
+} from "../shaders/common";
 
 /**
  * The chart's surface: one CDLOD mesh for land and sea, its look drawn
@@ -22,6 +29,7 @@ uniform float uWaterReach;
 uniform float uWaterWindow;
 out vec3 vWorld;
 out float vLandShare;
+${GLSL_SURFACE}
 
 void main() {
   float cell = node.z / uGridN;
@@ -33,9 +41,7 @@ void main() {
   p -= mod(grid, 2.0) * cell * morph;
   // Read the field at a mip level matching the mesh spacing.
   vec4 f = sampleFieldLod(p, max(vec3(0.0), log2(cell / uTexelKm)));
-  // Only land rises; it eases to sea level within a mesh cell of the coast.
-  float taper = smoothstep(0.0, cell, -f.y);
-  float z = max(f.x, 0.0) * 0.001 * secLat(p.y) * uExag * taper;
+  float z = surfaceZ(p, cell, f);
   // Skirt vertices (position.z = 1) hang below the patch's edge.
   z -= position.z * cell * 0.5;
   vWorld = vec3(p, z);
@@ -56,6 +62,7 @@ ${GLSL_GEO}
 ${GLSL_FIELD}
 ${GLSL_LINES}
 ${GLSL_SKY}
+${GLSL_SEA_DEPTH}
 in vec3 vWorld;
 in float vLandShare;
 out vec4 fragColor;
@@ -311,5 +318,10 @@ void main() {
   color = mix(mix(uSeaDeep, hazeCol, 0.25), color, stage);
   color = mix(color, hazeCol, hazeAmount(dist));
   fragColor = vec4(color, 1.0);
+  // Where the chart draws water, its depth is the sea's own. A mesh triangle
+  // that crosses a coast lifts the water near it toward the land's height
+  // (exaggerated, from far off, by hundreds of metres), and nothing that
+  // stands on the sea (a ship, her wake, a route) may ever sink into it.
+  gl_FragDepth = sdf > 0.0 ? max(gl_FragCoord.z, seaDepthThrough(vWorld)) : gl_FragCoord.z;
 }
 `;

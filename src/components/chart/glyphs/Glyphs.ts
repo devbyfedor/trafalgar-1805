@@ -9,12 +9,13 @@ import {
   ShaderMaterial,
   Vector2,
   Vector3,
+  Vector4,
 } from "three";
 import type { ChartLayer, FrameInfo } from "../engine/Chart";
 import { worldX, worldY } from "../geo/mercator";
 import { GLSL_LINES } from "../shaders/common";
 import type { TerrainField } from "../terrain/field";
-import { buildGlyphAtlas, type GlyphAtlas, type GlyphType } from "./atlas";
+import { type GlyphAtlas, type GlyphType, LEVEL_PX } from "./atlas";
 import {
   GLSL_GLYPH_HEIGHT,
   GLYPH_PX,
@@ -25,22 +26,26 @@ import {
 export type { GlyphType };
 
 /**
- * Ships on the chart: small upright side views of scene 1's silhouettes,
- * standing on the sea at their positions, bows toward their heading, in
- * the colours of their side, with ink wakes behind those under way
- * (docs/scene-02-brief.md, "concept"). Every ship is an instance of one
- * quad, so all of them are one draw call, and their wakes another.
+ * Ships on the chart: small upright side views of scene 1's ships, standing
+ * on the sea at their positions, bows toward their heading, in the colours
+ * of their side, with ink wakes behind those under way (docs/scene-02-
+ * brief.md, "concept"). Every ship is an instance of one quad, so all of
+ * them are one draw call, and their wakes another.
  *
- * A glyph is a billboard anchored at its waterline: it stays upright on
- * screen at any pitch, so a fleet still reads from high above. It faces
- * the side its heading points to on screen, and narrows as the heading
- * turns toward or away from the camera, the way a ship seen from ahead
- * shows less of her side. Its size is a chart convention, not true scale:
- * scene 1's size low over the sea, larger over the Gulf of Cádiz, smaller
- * again over the whole ocean (`GLYPH_PX`); never so large that it stands
- * on the land beyond it (`ShipMark.room`). Seen from far off, a group of
- * ships gives way to its lead, as a chart of a larger area shows a fleet
- * by one ship (`ShipMark.spacing`). Glyphs are sorted back to front each
+ * A glyph is a billboard standing on the sea at its foot: it stays upright
+ * on screen at any pitch, so a fleet still reads from high above, and its
+ * depth is the sea's at its foot, so it never sinks into the water (the
+ * terrain writes the sea's own depth wherever it draws water, and a ship
+ * placed on screen in a squadron's formation stands on the sea under her
+ * own place, not at her lead's depth). It faces the side its heading
+ * points to on screen and narrows as the heading turns toward or away from
+ * the camera, the way a ship seen from ahead shows less of her side; where
+ * it turns through end-on, the two facings crossfade. Its size is a chart
+ * convention, not true scale (`GLYPH_PX`); never so large that it stands on
+ * the land beyond it (`ShipMark.room`). Seen from far off, a group gives
+ * way to its lead (`ShipMark.spacing`). Its drawing is the atlas's level
+ * nearest its size on screen, blended with the next (atlas.ts), so the
+ * detail comes and goes smoothly. Glyphs are sorted back to front each
  * frame, so a crowded anchorage overlaps correctly.
  */
 
@@ -87,65 +92,53 @@ export { GLYPH_PX };
 /** A glyph's room: map km, the coast distance, or it with a floor. */
 export type Room = number | "coast" | { coast: number };
 
-/** The room as the shaders read it: negative for the coast, -1 - floor. */
-function encodeRoom(room: Room | undefined): number {
-  if (room === undefined) return 0;
-  if (room === "coast") return -1;
-  if (typeof room === "object") return -1 - room.coast;
-  return room;
+/** The room as the shaders read it: fixed km, how far the coast has taken over, the floor. */
+function roomOf(room: Room | undefined): [number, number, number] {
+  if (room === undefined) return [0, 0, 0];
+  if (room === "coast") return [0, 1, 0];
+  if (typeof room === "object") return [0, 1, room.coast];
+  return [room, 0, 0];
 }
 
 const SIDES: Record<Side, number> = { british: 0, combined: 1 };
-
-/**
- * A ship's place in a squadron's formation, device px from her lead: `form`
- * is (steps along the heading as it runs on screen, rows up the screen) in
- * glyph heights, so a squadron keeps its shape and count at any zoom.
- */
-const GLSL_FORMATION = /* glsl */ `
-uniform vec2 uViewport;
-vec2 formationPx(vec3 w, vec4 clip, float heading, float dist, vec2 form, float h) {
-  if (form.x == 0.0 && form.y == 0.0) return vec2(0.0);
-  vec2 ahead = vec2(sin(heading), cos(heading)) * dist * 0.01;
-  vec4 c2 = projectionMatrix * viewMatrix * vec4(w + vec3(ahead, 0.0), 1.0);
-  vec2 d = (c2.xy / c2.w - clip.xy / clip.w) * uViewport;
-  vec2 dir = length(d) > 1e-4 ? normalize(d) : vec2(1.0, 0.0);
-  return (dir * form.x * uAspect + vec2(0.0, form.y)) * h;
-}
-`;
 
 const SHIP_VERTEX = /* glsl */ `
 precision highp float;
 in vec4 iPos;
 in vec4 iStyle;
 in vec4 iFit;
-uniform vec2 uGrid;
+in vec4 iForm;
 uniform float uPull;
-out vec2 vUv;
+out vec2 vLocal;
+out vec3 vCells;
+out float vLevel;
+out float vRight;
 out float vSide;
 out float vAlpha;
 out float vDist;
 ${GLSL_GLYPH_HEIGHT}
-${GLSL_FORMATION}
 void main() {
   vec3 base = vec3(iPos.xy, 0.0);
-  float dist = length(base - cameraPosition);
-  vec3 w = base + (cameraPosition - base) * uPull;
+  float lead = length(base - cameraPosition);
+  float h = glyphHeight(iPos.xy, lead, iPos.w, iFit.xyz);
+  vec3 foot = glyphFoot(base, iPos.z, lead, iForm.xy, h);
+  float dist = length(foot - cameraPosition);
+  vec3 w = foot + (cameraPosition - foot) * uPull;
   vec4 clip = projectionMatrix * viewMatrix * vec4(w, 1.0);
-  float h = glyphHeight(iPos.xy, dist, iPos.w, iFit.x);
   // Bow toward the heading's side of the screen, narrower end-on.
   vec3 right = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]);
   float facing = dot(vec2(sin(iPos.z), cos(iPos.z)), normalize(right.xy + 1e-6));
-  float sx = (facing < 0.0 ? -1.0 : 1.0) * mix(0.4, 1.0, abs(facing));
+  float sx = mix(0.3, 1.0, abs(facing));
   vec2 offset = vec2(position.x * uAspect * sx, position.y) * h;
-  offset += formationPx(w, clip, iPos.z, dist, iFit.zw, h);
   clip.xy += offset / (0.5 * uViewport) * clip.w;
   gl_Position = clip;
-  float cell = iStyle.x;
-  vec2 origin = vec2(mod(cell, uGrid.x), floor(cell / uGrid.x));
-  vUv = (origin + vec2(position.x + 0.5, 1.0 - position.y)) / uGrid;
+  vLocal = vec2(position.x + 0.5, 1.0 - position.y);
+  vCells = vec3(iStyle.x, iForm.z, iForm.w);
+  // The ladder's levels are a factor of sqrt(2) apart from LEVEL_PX[0].
+  vLevel = 2.0 * log2(max(h, 1.0) / ${LEVEL_PX[0].toFixed(1)});
+  vRight = smoothstep(-0.14, 0.14, facing);
   vSide = iStyle.y;
-  vAlpha = iStyle.z * glyphShow(dist, h, iFit.y);
+  vAlpha = iStyle.z * glyphShow(lead, h, iFit.w, iFit.y);
   vDist = dist;
 }
 `;
@@ -153,26 +146,66 @@ void main() {
 const SHIP_FRAGMENT = /* glsl */ `
 precision highp float;
 uniform sampler2D uAtlas;
+uniform vec2 uAtlasSize;
+// Per level: (x, y, cell width, cell height) and (stride x, stride y, columns, -).
+uniform vec4 uLevelA[${LEVEL_PX.length}];
+uniform vec4 uLevelB[${LEVEL_PX.length}];
 uniform vec3 uCanvas[2];
+uniform vec3 uShade[2];
 uniform vec3 uHull[2];
+uniform vec3 uBand[2];
 uniform float uHazeVisibility;
-in vec2 vUv;
+in vec2 vLocal;
+in vec3 vCells;
+in float vLevel;
+in float vRight;
 in float vSide;
 in float vAlpha;
 in float vDist;
 out vec4 fragColor;
 
+vec4 cellAt(int level, float cell, vec2 local, vec2 dx, vec2 dy) {
+  vec4 a = uLevelA[level];
+  vec4 b = uLevelB[level];
+  vec2 rc = vec2(mod(cell, b.z), floor(cell / b.z));
+  vec2 texel = a.xy + rc * b.xy + local * a.zw;
+  vec2 k = a.zw / uAtlasSize;
+  return textureGrad(uAtlas, texel / uAtlasSize, dx * k, dy * k);
+}
+
+// A type's coverage at the glyph's size, its two facings blended where it
+// turns through end-on.
+vec4 coverage(int la, int lb, float t, float cell, vec2 dx, vec2 dy) {
+  vec2 mirrored = vec2(1.0 - vLocal.x, vLocal.y);
+  vec4 c = mix(cellAt(la, cell, vLocal, dx, dy), cellAt(lb, cell, vLocal, dx, dy), t);
+  if (vRight < 0.999) {
+    vec4 m = mix(cellAt(la, cell, mirrored, dx, dy), cellAt(lb, cell, mirrored, dx, dy), t);
+    c = mix(m, c, vRight);
+  }
+  return c;
+}
+
 void main() {
-  vec2 t = texture(uAtlas, vUv).rg;
-  float sail = t.r * (1.0 - t.g);
-  float dark = t.g;
-  int s = vSide < 0.5 ? 0 : 1;
+  // Derivatives outside any branch, for every sample.
+  vec2 dx = dFdx(vLocal);
+  vec2 dy = dFdy(vLocal);
+  float s = clamp(vLevel, 0.0, ${(LEVEL_PX.length - 1).toFixed(1)});
+  int la = int(floor(s));
+  int lb = min(la + 1, ${LEVEL_PX.length - 1});
+  float t = s - float(la);
+  vec4 c = coverage(la, lb, t, vCells.x, dx, dy);
+  // A ship changing type (weighing, a squadron changing) crossfades.
+  if (vCells.z > 0.001) c = mix(c, coverage(la, lb, t, vCells.y, dx, dy), vCells.z);
+  int side = vSide < 0.5 ? 0 : 1;
   float x = vDist / uHazeVisibility;
   float a = vAlpha * exp(-x * x);
-  float cover = (sail + dark) * a;
+  float sail = c.r;
+  float lit = c.a / max(c.r, 1.0 / 255.0);
+  vec3 canvas = mix(uShade[side], uCanvas[side], clamp(lit, 0.0, 1.0));
+  float cover = (c.r + c.g + c.b) * a;
   if (cover < 0.003) discard;
-  // Premultiplied: canvas where only canvas shows, the dark parts over it.
-  fragColor = vec4((uCanvas[s] * sail + uHull[s] * dark) * a, cover);
+  // Premultiplied: each part's colour by what shows of it.
+  fragColor = vec4((canvas * sail + uHull[side] * c.g + uBand[side] * c.b) * a, min(cover, 1.0));
 }
 `;
 
@@ -181,6 +214,7 @@ precision highp float;
 in vec4 iPos;
 in vec4 iStyle;
 in vec4 iFit;
+in vec4 iForm;
 uniform float uWakeLength;
 uniform float uPull;
 out vec2 vLocal;
@@ -188,28 +222,28 @@ out float vLen;
 out float vAlpha;
 out float vDist;
 ${GLSL_GLYPH_HEIGHT}
-${GLSL_FORMATION}
 void main() {
   vec3 base = vec3(iPos.xy, 0.0);
-  float dist = length(base - cameraPosition);
-  float h = glyphHeight(iPos.xy, dist, iPos.w, iFit.x);
+  float lead = length(base - cameraPosition);
+  float h = glyphHeight(iPos.xy, lead, iPos.w, iFit.xyz);
+  // On the sea under the ship's own foot, in a formation too.
+  vec3 foot = glyphFoot(base, iPos.z, lead, iForm.xy, h);
+  float dist = length(foot - cameraPosition);
   // The glyph's height in km at its distance; the wake is a few of those.
-  float len = uWakeLength * h / uPxPerRadian * dist;
+  // In a formation, the ships astern of her lead sail in her wake: theirs
+  // are short and faint, or they would run across the ships behind them.
+  float member = iForm.x != 0.0 || iForm.y != 0.0 ? 0.45 : 1.0;
+  float len = uWakeLength * h / uPxPerRadian * dist * member;
   vec2 ahead = vec2(sin(iPos.z), cos(iPos.z));
   vec2 abeam = vec2(ahead.y, -ahead.x);
   // position.x runs 0 (under the stern) to 1 (the wake's end), y across.
-  vec2 p = iPos.xy - ahead * len * (0.12 + position.x) + abeam * position.y * len * 0.8;
+  vec2 p = foot.xy - ahead * len * (0.12 + position.x) + abeam * position.y * len * 0.8;
   vec3 w = vec3(p, 0.0);
   w += (cameraPosition - w) * uPull;
-  vec4 clip = projectionMatrix * viewMatrix * vec4(w, 1.0);
-  // A squadron's wakes keep their ships' places in the formation.
-  vec3 wb = base + (cameraPosition - base) * uPull;
-  vec4 cb = projectionMatrix * viewMatrix * vec4(wb, 1.0);
-  clip.xy += formationPx(wb, cb, iPos.z, dist, iFit.zw, h) / (0.5 * uViewport) * clip.w;
-  gl_Position = clip;
+  gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.0);
   vLocal = vec2(position.x, position.y * 0.8) * len;
   vLen = len;
-  vAlpha = iStyle.z * iStyle.w * glyphShow(dist, h, iFit.y);
+  vAlpha = iStyle.z * iStyle.w * glyphShow(lead, h, iFit.w, iFit.y) * mix(0.6, 1.0, member);
   vDist = dist;
 }
 `;
@@ -243,7 +277,7 @@ void main() {
 }
 `;
 
-/** One quad per glyph: x across (-0.5..0.5), y up from the waterline (0..1). */
+/** One quad per glyph: x across (-0.5..0.5), y up from the cell's foot (0..1). */
 function glyphQuad(): InstancedBufferGeometry {
   const g = new InstancedBufferGeometry();
   g.setAttribute(
@@ -257,46 +291,61 @@ function glyphQuad(): InstancedBufferGeometry {
   return g;
 }
 
+/** Atlas levels as the ship shader reads them. */
+function levelUniforms(atlas: GlyphAtlas) {
+  return {
+    a: atlas.levels.map((l) => new Vector4(l.x, l.y, l.cellW, l.cellH)),
+    b: atlas.levels.map((l) => new Vector4(l.strideX, l.strideY, l.cols, l.px)),
+  };
+}
+
+const ATTRIBUTES = ["iPos", "iStyle", "iFit", "iForm"] as const;
+type AttributeName = (typeof ATTRIBUTES)[number];
+
 export class Glyphs implements ChartLayer {
   readonly ships: Mesh<InstancedBufferGeometry, ShaderMaterial>;
   readonly wakes: Mesh<InstancedBufferGeometry, ShaderMaterial>;
   readonly atlas: GlyphAtlas;
-  /** Per mark: world x, y, heading (rad), size. */
-  private readonly pos: Float32Array;
-  /** Per mark: atlas cell, side, opacity, under way (0/1). */
-  private readonly style: Float32Array;
   /**
-   * Per mark: its room and its spacing, map km (0 for none), and its place
-   * in a formation (steps along, rows up, in glyph heights).
+   * Per mark, four floats for each attribute:
+   * - iPos: world x, y, heading (rad), size;
+   * - iStyle: atlas cell, side, opacity, wake (0..1, under way);
+   * - iFit: room (fixed km), how far the coast's distance has taken over
+   *   (0..1), the least room by a coast (km), spacing (km);
+   * - iForm: place in a formation (steps along, rows up, in glyph heights),
+   *   a second cell and how far the glyph has turned into it (0..1).
    */
-  private readonly fit: Float32Array;
-  private readonly iPos: InstancedBufferAttribute;
-  private readonly iStyle: InstancedBufferAttribute;
-  private readonly iFit: InstancedBufferAttribute;
+  private readonly data: Record<AttributeName, Float32Array>;
+  private readonly attrs: Record<AttributeName, InstancedBufferAttribute>;
   private readonly order: Int32Array;
   private readonly depth: Float32Array;
   private readonly count: number;
   private readonly canvas = [new Vector3(), new Vector3()];
+  private readonly shade = [new Vector3(), new Vector3()];
   private readonly hull = [new Vector3(), new Vector3()];
+  private readonly band = [new Vector3(), new Vector3()];
   private readonly size: ReturnType<typeof glyphSizeUniforms>;
 
+  /** `atlas` from buildGlyphAtlas; several layers may share one. */
   constructor(
     field: TerrainField,
-    types: readonly GlyphType[],
+    atlas: GlyphAtlas,
     marks: readonly ShipMark[],
   ) {
-    this.atlas = buildGlyphAtlas(types);
+    this.atlas = atlas;
     const n = marks.length;
     this.count = n;
-    this.pos = new Float32Array(n * 4);
-    this.style = new Float32Array(n * 4);
-    this.fit = new Float32Array(n * 4);
+    this.data = {
+      iPos: new Float32Array(n * 4),
+      iStyle: new Float32Array(n * 4),
+      iFit: new Float32Array(n * 4),
+      iForm: new Float32Array(n * 4),
+    };
     this.order = new Int32Array(n);
     this.depth = new Float32Array(n);
     marks.forEach((m, i) => {
-      const cell = this.atlas.index.get(m.type);
-      if (cell === undefined) throw new Error(`glyphs: no type "${m.type}"`);
-      this.pos.set(
+      const cell = this.cellOf(m.type);
+      this.data.iPos.set(
         [
           worldX(m.lon),
           worldY(m.lat),
@@ -305,32 +354,32 @@ export class Glyphs implements ChartLayer {
         ],
         i * 4,
       );
-      this.style.set(
+      this.data.iStyle.set(
         [cell, SIDES[m.side], m.opacity ?? 1, m.underWay ? 1 : 0],
         i * 4,
       );
-      this.fit.set([encodeRoom(m.room), m.spacing ?? 0, 0, 0], i * 4);
+      this.data.iFit.set([...roomOf(m.room), m.spacing ?? 0], i * 4);
+      this.data.iForm.set([0, 0, cell, 0], i * 4);
       this.order[i] = i;
     });
 
     const ships = glyphQuad();
-    this.iPos = new InstancedBufferAttribute(new Float32Array(n * 4), 4);
-    this.iStyle = new InstancedBufferAttribute(new Float32Array(n * 4), 4);
-    this.iFit = new InstancedBufferAttribute(new Float32Array(n * 4), 4);
-    this.iPos.setUsage(DynamicDrawUsage);
-    this.iStyle.setUsage(DynamicDrawUsage);
-    this.iFit.setUsage(DynamicDrawUsage);
-    ships.setAttribute("iPos", this.iPos);
-    ships.setAttribute("iStyle", this.iStyle);
-    ships.setAttribute("iFit", this.iFit);
+    this.attrs = {} as Record<AttributeName, InstancedBufferAttribute>;
+    for (const name of ATTRIBUTES) {
+      const a = new InstancedBufferAttribute(new Float32Array(n * 4), 4);
+      a.setUsage(DynamicDrawUsage);
+      this.attrs[name] = a;
+      ships.setAttribute(name, a);
+    }
     ships.instanceCount = n;
     // One set of size uniforms, shared by both materials.
-    this.size = glyphSizeUniforms(field, this.atlas.aspect);
+    this.size = glyphSizeUniforms(field, atlas.aspect);
     const common = {
       ...field.uniforms,
       ...this.size,
       uPull: { value: 0.003 },
     };
+    const levels = levelUniforms(atlas);
     this.ships = new Mesh(
       ships,
       new ShaderMaterial({
@@ -340,14 +389,18 @@ export class Glyphs implements ChartLayer {
         transparent: true,
         premultipliedAlpha: true,
         depthWrite: false,
-        // A glyph facing left is the quad mirrored: both windings show.
+        // Facing either way, the quad is the same; both windings show.
         side: DoubleSide,
         uniforms: {
           ...common,
-          uAtlas: { value: this.atlas.texture },
-          uGrid: { value: new Vector2(this.atlas.cols, this.atlas.rows) },
+          uAtlas: { value: atlas.texture },
+          uAtlasSize: { value: new Vector2(atlas.width, atlas.height) },
+          uLevelA: { value: levels.a },
+          uLevelB: { value: levels.b },
           uCanvas: { value: this.canvas },
+          uShade: { value: this.shade },
           uHull: { value: this.hull },
+          uBand: { value: this.band },
         },
       }),
     );
@@ -363,9 +416,7 @@ export class Glyphs implements ChartLayer {
       ),
     );
     wakes.setIndex([0, 1, 2, 0, 2, 3]);
-    wakes.setAttribute("iPos", this.iPos);
-    wakes.setAttribute("iStyle", this.iStyle);
-    wakes.setAttribute("iFit", this.iFit);
+    for (const name of ATTRIBUTES) wakes.setAttribute(name, this.attrs[name]);
     wakes.instanceCount = n;
     this.wakes = new Mesh(
       wakes,
@@ -387,34 +438,73 @@ export class Glyphs implements ChartLayer {
     this.wakes.renderOrder = 22;
   }
 
+  /** How many marks the layer holds. */
+  get markCount(): number {
+    return this.count;
+  }
+
+  /** Which mark each drawn instance is, back to front (this frame's sort). */
+  get drawOrder(): Int32Array {
+    return this.order;
+  }
+
+  private cellOf(type: string): number {
+    const cell = this.atlas.index.get(type);
+    if (cell === undefined) throw new Error(`glyphs: no type "${type}"`);
+    return cell;
+  }
+
   /** Moves a mark (world km; heading in radians from north, clockwise). */
   place(index: number, x: number, y: number, heading: number): void {
+    const p = this.data.iPos;
     const i = index * 4;
-    this.pos[i] = x;
-    this.pos[i + 1] = y;
-    this.pos[i + 2] = heading;
+    p[i] = x;
+    p[i + 1] = y;
+    p[i + 2] = heading;
   }
 
   setOpacity(index: number, opacity: number): void {
-    this.style[index * 4 + 2] = opacity;
+    this.data.iStyle[index * 4 + 2] = opacity;
   }
 
-  /** Changes a mark's ship type (GlyphType.id), as when a ship weighs. */
-  setType(index: number, type: string): void {
-    const cell = this.atlas.index.get(type);
-    if (cell === undefined) throw new Error(`glyphs: no type "${type}"`);
-    this.style[index * 4] = cell;
+  /**
+   * A mark's ship type (GlyphType.id); with `next` and `t`, the glyph
+   * crossfading from `type` into `next` (0..1), as when a ship weighs and
+   * makes sail, or a squadron's ship is replaced.
+   */
+  setType(index: number, type: string, next?: string, t = 0): void {
+    const cell = this.cellOf(type);
+    this.data.iStyle[index * 4] = cell;
+    this.data.iForm[index * 4 + 2] =
+      next === undefined ? cell : this.cellOf(next);
+    this.data.iForm[index * 4 + 3] = next === undefined ? 0 : t;
   }
 
-  /** Under way (with a wake) or at anchor. */
-  setUnderWay(index: number, underWay: boolean): void {
-    this.style[index * 4 + 3] = underWay ? 1 : 0;
+  /** How much of her wake shows (0 at anchor, 1 under way). */
+  setUnderWay(index: number, underWay: boolean | number): void {
+    this.data.iStyle[index * 4 + 3] = Number(underWay);
   }
 
   /** A mark's room and spacing (ShipMark.room, ShipMark.spacing). */
   setFit(index: number, room: Room, spacing: number): void {
-    this.fit[index * 4] = encodeRoom(room);
-    this.fit[index * 4 + 1] = spacing;
+    this.data.iFit.set([...roomOf(room), spacing], index * 4);
+  }
+
+  /** A mark's spacing from the next ship toward her group's lead (ShipMark.spacing). */
+  setSpacing(index: number, spacing: number): void {
+    this.data.iFit[index * 4 + 3] = spacing;
+  }
+
+  /**
+   * A room passing from a fixed one (map km) to the coast's distance (with
+   * a floor): `t` how far it has gone, 0..1. A ship weighing from a bay
+   * keeps her size as she moves out, instead of jumping.
+   */
+  setRoomBlend(index: number, fixedKm: number, t: number, floorKm = 0): void {
+    const f = this.data.iFit;
+    f[index * 4] = fixedKm;
+    f[index * 4 + 1] = t;
+    f[index * 4 + 2] = floorKm;
   }
 
   /**
@@ -424,8 +514,8 @@ export class Glyphs implements ChartLayer {
    * which is the lead's. (0, 0) for a ship on her own.
    */
   setFormation(index: number, along: number, up: number): void {
-    this.fit[index * 4 + 2] = along;
-    this.fit[index * 4 + 3] = up;
+    this.data.iForm[index * 4] = along;
+    this.data.iForm[index * 4 + 1] = up;
   }
 
   update(frame: FrameInfo): void {
@@ -437,13 +527,13 @@ export class Glyphs implements ChartLayer {
     // Back to front: an insertion sort over last frame's order, which is
     // nearly sorted already.
     const n = this.count;
-    const pos = this.pos;
-    const fit = this.fit;
+    const pos = this.data.iPos;
+    const form = this.data.iForm;
     for (let i = 0; i < n; i++) {
       const dx = pos[i * 4] - eye.x;
       const dy = pos[i * 4 + 1] - eye.y;
       // In a formation, rows higher on screen read as farther and draw first.
-      this.depth[i] = (dx * dx + dy * dy) * (1 + 0.001 * fit[i * 4 + 3]);
+      this.depth[i] = (dx * dx + dy * dy) * (1 + 0.001 * form[i * 4 + 1]);
     }
     const order = this.order;
     for (let i = 1; i < n; i++) {
@@ -456,37 +546,41 @@ export class Glyphs implements ChartLayer {
       }
       order[j + 1] = k;
     }
-    const outPos = this.iPos.array as Float32Array;
-    const outStyle = this.iStyle.array as Float32Array;
-    const outFit = this.iFit.array as Float32Array;
-    for (let i = 0; i < n; i++) {
-      const k = order[i] * 4;
-      for (let c = 0; c < 4; c++) {
-        outPos[i * 4 + c] = pos[k + c];
-        outStyle[i * 4 + c] = this.style[k + c];
+    for (const name of ATTRIBUTES) {
+      const src = this.data[name];
+      const out = this.attrs[name].array as Float32Array;
+      for (let i = 0; i < n; i++) {
+        const k = order[i] * 4;
+        out[i * 4] = src[k];
+        out[i * 4 + 1] = src[k + 1];
+        out[i * 4 + 2] = src[k + 2];
+        out[i * 4 + 3] = src[k + 3];
       }
-      for (let c = 0; c < 4; c++) outFit[i * 4 + c] = fit[order[i] * 4 + c];
+      this.attrs[name].needsUpdate = true;
     }
-    this.iPos.needsUpdate = true;
-    this.iStyle.needsUpdate = true;
-    this.iFit.needsUpdate = true;
   }
 
   /** The sides' colours under the current light. */
   private colours(frame: FrameInfo): void {
     const light = frame.light;
     const night = light.night;
-    // British: scene 1's pale canvas and dark hulls. The combined fleet:
-    // the slate-violet of scene 1's enemy line, a shade lighter in canvas.
+    // British: scene 1's pale canvas (its lit and shaded cloths), dark hulls
+    // and Victory's ochre bands. The combined fleet: the slate-violet of
+    // scene 1's enemy line, a shade lighter in canvas, its bands a lighter
+    // slate.
     setHex(this.canvas[0], 0xebe2ce);
+    setHex(this.shade[0], 0xd1c5a9);
     setHex(this.hull[0], 0x26231f);
+    setHex(this.band[0], 0xc29a77);
     setHex(this.canvas[1], 0xa9a6b4);
+    setHex(this.shade[1], 0x918e9e);
     setHex(this.hull[1], 0x34343f);
-    for (const c of this.canvas) {
-      c.lerp(light.sunColor, 0.18 * (1 - night)).multiplyScalar(
-        1 - 0.5 * night,
-      );
+    setHex(this.band[1], 0x6d6b7b);
+    const lit = 1 - 0.5 * night;
+    for (const c of [...this.canvas, ...this.shade]) {
+      c.lerp(light.sunColor, 0.18 * (1 - night)).multiplyScalar(lit);
     }
+    for (const c of this.band) c.multiplyScalar(1 - 0.6 * night);
   }
 
   dispose(): void {
@@ -494,7 +588,6 @@ export class Glyphs implements ChartLayer {
     this.ships.material.dispose();
     this.wakes.geometry.dispose();
     this.wakes.material.dispose();
-    this.atlas.texture.dispose();
   }
 }
 

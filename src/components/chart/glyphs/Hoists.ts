@@ -67,7 +67,9 @@ void main() {
   float dist = length(base - cameraPosition);
   vec3 w = base + (cameraPosition - base) * uPull;
   vec4 clip = projectionMatrix * viewMatrix * vec4(w, 1.0);
-  float h = glyphHeight(iPos.xy, dist, iPos.w, iRoom);
+  // iRoom: a fixed room (km), or the coast's distance with a floor (-1 - floor).
+  vec3 room = iRoom < 0.0 ? vec3(0.0, 1.0, -iRoom - 1.0) : vec3(iRoom, 0.0, 0.0);
+  float h = glyphHeight(iPos.xy, dist, iPos.w, room);
   // Which way the ship faces on screen, as her glyph does.
   vec3 right = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]);
   float facing = dot(vec2(sin(iPos.z), cos(iPos.z)), normalize(right.xy + 1e-6));
@@ -84,7 +86,7 @@ void main() {
   gl_Position = clip;
   vLocal = position.xy;
   vKind = iFlag.x;
-  vAlpha = iPos.w > 0.0 ? glyphShow(dist, h, 0.0) : 0.0;
+  vAlpha = iPos.w > 0.0 ? glyphShow(dist, h, 0.0, 0.0) : 0.0;
   vDist = dist;
 }
 `;

@@ -17,6 +17,7 @@ import { encodeDistance, encodeHeight, packTexel } from "./lib/encode.ts";
 import { readEtopoBands } from "./lib/etopo.ts";
 import { resampleToTile, type TileGrid, tileGrid } from "./lib/grid.ts";
 import { extractRivers, measureFlow, packRivers } from "./lib/rivers.ts";
+import { buildSoundings } from "./soundings.ts";
 
 /**
  * Builds the chart's assets in public/chart/ from the raw downloads:
@@ -30,6 +31,8 @@ import { extractRivers, measureFlow, packRivers } from "./lib/rivers.ts";
  * - rivers.bin (gzip): Natural Earth rivers as world-space polylines, each
  *   from its source downstream, with every point's distance from the source.
  * - manifest.json: grids, encodings and files, read by the app.
+ * - soundings-<tile>.bin and soundings.json: depths in fathoms over the
+ *   detail tiles' shoal water (soundings.ts, lib/soundings.ts).
  *
  * Run with `npm run data:build`, which downloads first.
  */
@@ -283,6 +286,8 @@ async function main() {
     lowBytes.length +
     riverBytes.length;
   console.log(`Done: ${(total / 1e6).toFixed(2)} MB in public/chart/`);
+  // Last: the soundings read the detail tiles just written.
+  await buildSoundings();
 }
 
 if (import.meta.main) await main();

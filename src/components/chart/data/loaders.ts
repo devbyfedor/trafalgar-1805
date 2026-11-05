@@ -165,3 +165,59 @@ export async function loadRivers(
   const ranks = new Uint8Array(buffer, ranksStart, count);
   return { offsets, points, flow, ranks: ranks.slice() };
 }
+
+/** One detail tile's soundings (scripts/data/lib/soundings.ts). */
+export interface SoundingSet {
+  tile: string;
+  count: number;
+  /** Interleaved per sounding: world x, y (km), depth in half-fathoms, rank. */
+  points: Float32Array;
+  /** Per sounding, the distance from the coast, km of chart. */
+  coastKm: Float32Array;
+}
+
+export interface SoundingsIndex {
+  version: number;
+  /** The coarsest rank's spacing, km of chart; each rank halves it. */
+  coarsestKm: number;
+  ranks: number;
+  sets: { tile: string; file: string; bytes: number; count: number }[];
+}
+
+/**
+ * soundings.json and each detail tile's soundings-<tile>.bin: 8 bytes a
+ * sounding (x and y as uint16 fractions of the tile, y from the north;
+ * half-fathoms; rank; coast distance in tens of metres). None when the
+ * index is missing, so a chart without soundings still runs.
+ */
+export async function loadSoundings(
+  manifest: ChartManifest,
+  signal?: AbortSignal,
+): Promise<{ index: SoundingsIndex; sets: SoundingSet[] } | null> {
+  const response = await fetch(`${CHART_BASE}soundings.json`, { signal });
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`soundings: HTTP ${response.status}`);
+  const index = (await response.json()) as SoundingsIndex;
+  const sets: SoundingSet[] = [];
+  for (const entry of index.sets) {
+    const tile = manifest.tiles.find((t) => t.id === entry.tile);
+    if (!tile) continue;
+    const view = new DataView(await loadGzip(entry.file, signal));
+    const count = Math.floor(view.byteLength / 8);
+    const width = tile.cols * tile.cellKm;
+    const height = tile.rows * tile.cellKm;
+    const points = new Float32Array(count * 4);
+    const coastKm = new Float32Array(count);
+    for (let i = 0; i < count; i++) {
+      const o = i * 8;
+      points[i * 4] = tile.x0 + (view.getUint16(o, true) / 65535) * width;
+      points[i * 4 + 1] =
+        tile.yTop - (view.getUint16(o + 2, true) / 65535) * height;
+      points[i * 4 + 2] = view.getUint8(o + 4);
+      points[i * 4 + 3] = view.getUint8(o + 5);
+      coastKm[i] = view.getUint16(o + 6, true) / 100;
+    }
+    sets.push({ tile: entry.tile, count, points, coastKm });
+  }
+  return { index, sets };
+}

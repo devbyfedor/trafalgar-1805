@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "coarsestKm": 8,
+  "ranks": 5,
+  "sets": [
+    {
+      "tile": "cadiz",
+      "file": "soundings-cadiz.bin",
+      "bytes": 94201,
+      "count": 13117
+    }
+  ]
+}

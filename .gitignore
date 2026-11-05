@@ -58,3 +58,7 @@ next-env.d.ts
 
 # agents' git worktrees and local Claude Code state
 /.claude/
+
+# the owner's own screenshots of the site (they show his browser): local only,
+# never committed
+/docs/owner-feedback/

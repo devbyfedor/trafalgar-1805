@@ -87,85 +87,95 @@ export class Terrain {
     inlandGeometry.setAttribute("node", this.inlandNodes);
     inlandGeometry.instanceCount = 0;
 
-    const material = new ShaderMaterial({
-      glslVersion: GLSL3,
-      vertexShader: TERRAIN_VERTEX,
-      fragmentShader: TERRAIN_FRAGMENT,
-      defines: { SEA_DEPTH: "" },
-      side: FrontSide,
-      uniforms: {
-        ...field.uniforms,
-        uGridN: { value: GRID },
-        uExag: { value: 1 },
-        uEye: { value: this.eye },
-        uTexelKm: { value: field.texelKm },
-        uDpr: { value: 1 },
-        // Device pixels per radian of view, vertically.
-        uPxPerRad: { value: 1000 },
-        // Sky (shared chunk).
-        uSkyStops: { value: [] as Vector3[] },
-        uSunDir: { value: new Vector3(0, 1, 0) },
-        uSunDisc: { value: 0 },
-        uGlowColor: { value: new Vector3() },
-        uGlow: { value: 0 },
-        uHazeColor: { value: new Vector3() },
-        // Palette.
-        uSeaDeep: { value: new Vector3() },
-        uSeaShallow: { value: new Vector3() },
-        uSeaReflect: { value: 1 },
-        uPaperLow: { value: new Vector3() },
-        uPaperHigh: { value: new Vector3() },
-        uInk: { value: new Vector3() },
-        uInkPale: { value: new Vector3() },
-        uContourInk: { value: new Vector3() },
-        uSunColor: { value: new Vector3() },
-        uShadeColor: { value: new Vector3() },
-        uReliefGain: { value: 0.5 },
-        // True-scale slopes over which hill shading fades in (rise / run).
-        uReliefSlope: { value: [0.002, 0.04] },
-        uShadowStrength: { value: 0.5 },
-        // The most exaggeration cast shadows follow.
-        uShadowExag: { value: 3.5 },
-        uLightDirA: { value: new Vector3(0, 0, 1) },
-        uLightDirB: { value: new Vector3(0, 0, 1) },
-        uLightOnA: { value: 0 },
-        uLightOnB: { value: 0 },
-        uLightMix: { value: 0 },
-        uSlotA: { value: new Vector3() },
-        uSlotB: { value: new Vector3() },
-        // Chart style.
-        uContourInterval: { value: 200 },
-        uContourBlend: { value: 0 },
-        // Waterlining (terrain/shaders.ts): spacing at the coast, CSS px;
-        // where (as a share of the reach) the lines at the spacing on
-        // screen give way to every other one, and how much farther each
-        // coarser set reaches; the reach of the band, in spacings.
-        uWaterSpacingPx: { value: 2.2 },
-        uWaterOpen: { value: [0.45, 0.45] },
-        uWaterReach: { value: 26 },
-        // A small island far from other land (terrain/shaders.ts,
-        // waterAlone): how far its window reaches past the coast distance
-        // (in reaches), the share of land in it over which land stops being
-        // alone (a straight coast keeps above 0.11 out to the reach), and
-        // the share of the reach and of the strength its halo keeps.
-        uWaterWindow: { value: 0.3 },
-        uWaterAlone: { value: [0.02, 0.08] },
-        uWaterAloneReach: { value: 0.55 },
-        uWaterAloneStrength: { value: 0.6 },
-        uIsobathDeepest: { value: 200 },
-        uSmoothBias: { value: 1.5 },
-        uHazeVisibility: { value: 100 },
-        uStageFadeKm: { value: 900 },
-      },
-    });
-    this.mesh = new Mesh(geometry, material);
+    const uniforms = {
+      ...field.uniforms,
+      uGridN: { value: GRID },
+      uExag: { value: 1 },
+      uEye: { value: this.eye },
+      uTexelKm: { value: field.texelKm },
+      uDpr: { value: 1 },
+      // Device pixels per radian of view, vertically.
+      uPxPerRad: { value: 1000 },
+      // Sky (shared chunk).
+      uSkyStops: { value: [] as Vector3[] },
+      uSunDir: { value: new Vector3(0, 1, 0) },
+      uSunDisc: { value: 0 },
+      uGlowColor: { value: new Vector3() },
+      uGlow: { value: 0 },
+      uHazeColor: { value: new Vector3() },
+      // Palette.
+      uSeaDeep: { value: new Vector3() },
+      uSeaShallow: { value: new Vector3() },
+      uSeaReflect: { value: 1 },
+      uPaperLow: { value: new Vector3() },
+      uPaperHigh: { value: new Vector3() },
+      uInk: { value: new Vector3() },
+      uInkPale: { value: new Vector3() },
+      uContourInk: { value: new Vector3() },
+      uSunColor: { value: new Vector3() },
+      uShadeColor: { value: new Vector3() },
+      uReliefGain: { value: 0.5 },
+      // True-scale slopes over which hill shading fades in (rise / run).
+      uReliefSlope: { value: [0.002, 0.04] },
+      uShadowStrength: { value: 0.5 },
+      // The most exaggeration cast shadows follow.
+      uShadowExag: { value: 3.5 },
+      uLightDirA: { value: new Vector3(0, 0, 1) },
+      uLightDirB: { value: new Vector3(0, 0, 1) },
+      uLightOnA: { value: 0 },
+      uLightOnB: { value: 0 },
+      uLightMix: { value: 0 },
+      uSlotA: { value: new Vector3() },
+      uSlotB: { value: new Vector3() },
+      // Chart style.
+      uContourInterval: { value: 200 },
+      uContourBlend: { value: 0 },
+      // Close up (terrain/shaders.ts, closeUp): the chart's scale, km per
+      // CSS px, over which it comes to be drawn as held to the eye; the
+      // coastline's width far and close, CSS px; the true-scale slope
+      // where hill shading starts close up; how much the contours' weight
+      // follows the light there.
+      uCloseKm: { value: [0.05, 0.16] },
+      uCoastPx: { value: [1.45, 0.9] },
+      uReliefCloseFrom: { value: 0.012 },
+      uContourWeight: { value: 0.5 },
+      // Waterlining (terrain/shaders.ts): spacing at the coast, CSS px;
+      // where (as a share of the reach) the lines at the spacing on
+      // screen give way to every other one, and how much farther each
+      // coarser set reaches; the reach of the band, in spacings.
+      uWaterSpacingPx: { value: 2.2 },
+      uWaterOpen: { value: [0.45, 0.45] },
+      uWaterReach: { value: 26 },
+      // A small island far from other land (terrain/shaders.ts,
+      // waterAlone): how far its window reaches past the coast distance
+      // (in reaches), the share of land in it over which land stops being
+      // alone (a straight coast keeps above 0.11 out to the reach), and
+      // the share of the reach and of the strength its halo keeps.
+      uWaterWindow: { value: 0.3 },
+      uWaterAlone: { value: [0.02, 0.08] },
+      uWaterAloneReach: { value: 0.55 },
+      uWaterAloneStrength: { value: 0.6 },
+      uIsobathDeepest: { value: 200 },
+      uSmoothBias: { value: 1.5 },
+      uHazeVisibility: { value: 100 },
+      uStageFadeKm: { value: 900 },
+    };
+    // Two materials on one uniforms object (a clone would copy them, and
+    // three can't clone the field's render-target textures): the coasts and
+    // the sea write the sea's depth, the inland draw doesn't.
+    const material = (defines: Record<string, string>) =>
+      new ShaderMaterial({
+        glslVersion: GLSL3,
+        vertexShader: TERRAIN_VERTEX,
+        fragmentShader: TERRAIN_FRAGMENT,
+        defines,
+        side: FrontSide,
+        uniforms,
+      });
+    this.mesh = new Mesh(geometry, material({ SEA_DEPTH: "" }));
     this.mesh.frustumCulled = false;
     this.mesh.renderOrder = 0;
-    // The inland draw: the same shaders and uniforms, without the depth write.
-    const inlandMaterial = material.clone();
-    inlandMaterial.uniforms = material.uniforms;
-    inlandMaterial.defines = {};
-    this.inland = new Mesh(inlandGeometry, inlandMaterial);
+    this.inland = new Mesh(inlandGeometry, material({}));
     this.inland.frustumCulled = false;
     // Drawn first: a draw that writes its own depth can leave the GPU's
     // coarse depth test off for the draws after it.

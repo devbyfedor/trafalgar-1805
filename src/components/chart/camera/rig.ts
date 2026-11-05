@@ -166,20 +166,27 @@ export interface ContourStyle {
   blend: number;
 }
 
+/** The finest contour interval, m: close up, the low hills round a bay. */
+const CONTOUR_FINEST_M = 25;
+
 /**
- * Contour interval for a camera altitude: 100 m doubling as the camera
- * climbs, with the blend between an interval and its double, so contours
- * thin out smoothly (the doubled set is a subset of the finer one).
- * Writes into `out`, so the frame allocates nothing.
+ * Contour interval for a camera altitude: 100 m at 40 km, doubling as the
+ * camera climbs and halving as it comes down, to 25 m from about 5 km, with
+ * the blend between an interval and its double, so contours thin out and
+ * come in smoothly (the doubled set is a subset of the finer one). Writes
+ * into `out`, so the frame allocates nothing.
  */
 export function contourIntervalAt(
   altitudeKm: number,
   out: ContourStyle,
 ): ContourStyle {
-  const ideal = 100 * Math.max(1, (altitudeKm / 40) ** 0.62);
-  const k = Math.log2(ideal / 100);
+  const ideal = Math.max(
+    CONTOUR_FINEST_M,
+    100 * (Math.max(altitudeKm, 1e-3) / 40) ** 0.62,
+  );
+  const k = Math.log2(ideal / CONTOUR_FINEST_M);
   const whole = Math.floor(k);
-  out.interval = 100 * 2 ** whole;
+  out.interval = CONTOUR_FINEST_M * 2 ** whole;
   out.blend = k - whole;
   return out;
 }

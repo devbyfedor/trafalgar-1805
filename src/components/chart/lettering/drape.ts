@@ -1,4 +1,9 @@
-import { GLSL_FIELD, GLSL_GEO, GLSL_SURFACE } from "../shaders/common";
+import {
+  GLSL_FIELD,
+  GLSL_FIELD_SMOOTH,
+  GLSL_GEO,
+  GLSL_SURFACE,
+} from "../shaders/common";
 
 /**
  * Laying lettering and its marks on the chart: a point (world km) set on
@@ -26,16 +31,23 @@ vec3 chartDrape(vec3 p) {
 /**
  * The ground under a fragment of lettering, for its ink: 1 on land, 0 on
  * the sea, switching at the coast within a pixel, as the inked coastline
- * is drawn. `vChartXY` is the fragment's place on the chart (world km).
+ * is drawn (read the way the terrain reads it, smooth close up).
+ * `vChartXY` is the fragment's place on the chart (world km).
  */
 export const GROUND = /* glsl */ `
 ${GLSL_FIELD}
+${GLSL_FIELD_SMOOTH}
 uniform vec3 uTexelKm;
 varying vec2 vChartXY;
 
 float chartGround() {
-  float px = max(length(fwidth(vChartXY)), 1e-6);
-  vec4 f = sampleFieldLod(vChartXY, max(vec3(0.0), log2(px / uTexelKm)));
+  vec2 dx = dFdx(vChartXY);
+  vec2 dy = dFdy(vChartXY);
+  float px = max(length(abs(dx) + abs(dy)), 1e-6);
+  vec4 f;
+  vec4 fs;
+  vec2 slope;
+  sampleFieldBoth(vChartXY, dx, dy, 0.0, f, fs, slope);
   return smoothstep(-px, px, -f.y);
 }
 `;

@@ -120,6 +120,134 @@ vec2 sampleHorizon(vec2 p) {
 `;
 
 /**
+ * The field read smoothly close up (fragment shaders only; needs
+ * GLSL_FIELD). Read bilinearly, a magnified field draws every line made
+ * from it (the coast, the waterlines, the isobaths, the contours) as a
+ * chain of short curves that kink at each texel's edge, and its shading in
+ * soft lozenges: on the Cádiz tile a texel spans 30-40 px from 16 km up.
+ * Wherever a texel spans more than a pixel, each layer is read through a
+ * cubic B-spline instead, which is smooth to its second derivative: the
+ * lines become curves and the shading continuous. Four bilinear taps make
+ * the sixteen-texel B-spline (Sigg and Hadwiger, "Fast third-order texture
+ * filtering", GPU Gems 2, ch. 20). Where a texel spans less than a pixel
+ * the hardware's own filtering stays, and between the two they blend over
+ * an octave, so nothing changes in a step as the camera moves.
+ *
+ * The field and the smoothed field (read a mip bias coarser, for the lines
+ * and the shading) are read together: once magnified past the bias they
+ * are the same B-spline. Layers that a finer one hides are not read at all:
+ * inside the detail tile, away from its edge band and its distance cap,
+ * the overview and the surround cost nothing.
+ */
+export const GLSL_FIELD_SMOOTH = /* glsl */ `
+// The cubic B-spline of a texture's mip level at uv (size: the level's
+// size in texels), in four bilinear taps. grad: the slope of its first
+// channel per unit of uv, from the taps' differences about two texels
+// apart, which carry almost none of the filtering's rounding noise.
+vec4 bsplineAt(sampler2D tex, vec2 uv, vec2 size, float level, out vec2 grad) {
+  vec2 t = uv * size - 0.5;
+  vec2 f = fract(t);
+  t -= f;
+  vec2 f2 = f * f;
+  vec2 f3 = f2 * f;
+  vec2 w0 = (1.0 - 3.0 * f + 3.0 * f2 - f3) / 6.0;
+  vec2 w1 = (4.0 - 6.0 * f2 + 3.0 * f3) / 6.0;
+  vec2 w2 = (1.0 + 3.0 * f + 3.0 * f2 - 3.0 * f3) / 6.0;
+  vec2 w3 = f3 / 6.0;
+  vec2 g0 = w0 + w1;
+  vec2 g1 = w2 + w3;
+  // Each pair of texels as one bilinear tap between their centres.
+  vec2 h0 = (t - 0.5 + w1 / g0) / size;
+  vec2 h1 = (t + 1.5 + w3 / g1) / size;
+  vec4 a = textureLod(tex, h0, level);
+  vec4 b = textureLod(tex, vec2(h1.x, h0.y), level);
+  vec4 c = textureLod(tex, vec2(h0.x, h1.y), level);
+  vec4 d = textureLod(tex, h1, level);
+  grad = vec2(
+    (g0.y * (b.x - a.x) + g1.y * (d.x - c.x)) / (h1.x - h0.x),
+    (g0.x * (c.x - a.x) + g1.x * (d.x - b.x)) / (h1.y - h0.y)
+  );
+  return g0.y * (g0.x * a + g1.x * b) + g1.y * (g0.x * c + g1.x * d);
+}
+
+// One layer's field (f) and smoothed field (fs, a mip bias coarser) at uv,
+// with the uv's screen derivatives. Its texels per pixel, along the
+// footprint's longer axis, choose the filter: below one pixel's worth of
+// texel the B-spline, above it the hardware's, blended over an octave.
+// The smoothed field serves two ends, read two ways close up: its slopes
+// (zw, the shading) through the base level's B-spline, crisp and without
+// facets, as the bias would have read the base level; its height and
+// distance (xy, the isobaths and contours) through the next level's (0.93
+// km texels on a detail tile), so those lines follow the landforms as an
+// engraver's form lines did, not the data's metre-scale noise. slope: how
+// fast that height changes per pixel, from the B-spline's taps, and how
+// much the estimate counts (where the hardware filters instead, a screen
+// derivative does).
+void sampleLayerBoth(sampler2D tex, vec2 uv, vec2 dx, vec2 dy, float bias, out vec4 f, out vec4 fs, out vec2 slope) {
+  vec2 size = vec2(textureSize(tex, 0));
+  float rho = max(length(dx * size), length(dy * size));
+  float lod = log2(max(rho, 1e-8));
+  float lb = lod + bias;
+  float tf = clamp(lod + 1.0, 0.0, 1.0);
+  float tz = clamp(lb, 0.0, 1.0);
+  float tx = clamp(lb - 1.0, 0.0, 1.0);
+  vec2 g = vec2(0.0);
+  vec2 gS = vec2(0.0);
+  vec4 cubic = tf < 1.0 ? bsplineAt(tex, uv, size, 0.0, g) : vec4(0.0);
+  vec4 lin = tf > 0.0 ? textureGrad(tex, uv, dx, dy) : vec4(0.0);
+  vec4 cubicS = tx < 1.0 ? bsplineAt(tex, uv, vec2(textureSize(tex, 1)), 1.0, gS) : vec4(0.0);
+  float k = exp2(bias);
+  vec4 linS = tz > 0.0 ? textureGrad(tex, uv, dx * k, dy * k) : vec4(0.0);
+  f = mix(cubic, lin, tf);
+  fs = vec4(mix(cubicS.xy, linS.xy, tx), mix(cubic.zw, linS.zw, tz));
+  float w = 1.0 - tx;
+  slope = vec2(w * length(vec2(dot(gS, dx), dot(gS, dy))), w);
+}
+
+// GLSL_FIELD's layered(), for both reads at once, reading a layer only
+// where it shows. dp: the world point's screen derivatives (dFdx, dFdy),
+// taken before any branch. slope: as sampleLayerBoth's, layered alike
+// (its first part already weighted by its second).
+void sampleFieldBoth(vec2 p, vec2 dpx, vec2 dpy, float bias, out vec4 f, out vec4 fs, out vec2 slope) {
+  const vec2 FLIP = vec2(1.0, -1.0);
+  float cb = uHasB * cover(p, uRectB, uFadeB);
+  vec4 bf = vec4(0.0);
+  vec4 bs = vec4(0.0);
+  vec2 bg = vec2(0.0);
+  if (cb > 0.0) {
+    sampleLayerBoth(uFieldB, tileUv(p, uRectB), dpx / uRectB.zw * FLIP, dpy / uRectB.zw * FLIP, bias, bf, bs, bg);
+    // Inside the detail tile and short of its distance cap, it alone shows.
+    if (cb >= 1.0 && max(abs(bf.y), abs(bs.y)) < 0.85 * uSatB) {
+      f = bf;
+      fs = bs;
+      slope = bg;
+      return;
+    }
+  }
+  float ca = cover(p, uRectA, uFadeA);
+  vec4 af = vec4(0.0);
+  vec4 as = vec4(0.0);
+  vec2 ag = vec2(0.0);
+  if (ca > 0.0) {
+    sampleLayerBoth(uFieldA, tileUv(p, uRectA), dpx / uRectA.zw * FLIP, dpy / uRectA.zw * FLIP, bias, af, as, ag);
+  }
+  vec4 cf = OPEN_SEA;
+  vec4 cs = OPEN_SEA;
+  vec2 cg = vec2(0.0);
+  bool overviewAlone = ca >= 1.0 && max(abs(af.y), abs(as.y)) < 0.85 * uSatA;
+  if (!overviewAlone && insideKm(tileUv(p, uRectC), uRectC) > 0.0) {
+    sampleLayerBoth(uFieldC, tileUv(p, uRectC), dpx / uRectC.zw * FLIP, dpy / uRectC.zw * FLIP, bias, cf, cs, cg);
+  }
+  f = mix(cf, handOver(af, cf, uSatA), ca);
+  fs = mix(cs, handOver(as, cs, uSatA), ca);
+  slope = mix(cg, ag, ca);
+  f = mix(f, handOver(bf, f, uSatB), cb);
+  fs = mix(fs, handOver(bs, fs, uSatB), cb);
+  slope = mix(slope, bg, cb);
+}
+`;
+
+/**
  * The chart's surface, shared by the terrain mesh and everything laid on it
  * (lettering, rivers, routes), so they rise and fall together. Needs
  * GLSL_GEO and GLSL_FIELD, and the uniforms uExag and uTexelKm.

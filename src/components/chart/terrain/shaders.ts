@@ -1,5 +1,6 @@
 import {
   GLSL_FIELD,
+  GLSL_FIELD_SMOOTH,
   GLSL_GEO,
   GLSL_LINES,
   GLSL_SEA_DEPTH,
@@ -60,6 +61,7 @@ export const TERRAIN_FRAGMENT = /* glsl */ `
 precision highp float;
 ${GLSL_GEO}
 ${GLSL_FIELD}
+${GLSL_FIELD_SMOOTH}
 ${GLSL_LINES}
 ${GLSL_SKY}
 ${GLSL_SEA_DEPTH}
@@ -95,6 +97,10 @@ uniform vec3 uSlotB;
 
 uniform float uContourInterval;
 uniform float uContourBlend;
+uniform vec2 uCloseKm;
+uniform vec2 uCoastPx;
+uniform float uReliefCloseFrom;
+uniform float uContourWeight;
 uniform float uWaterSpacingPx;
 uniform vec2 uWaterOpen;
 uniform float uWaterReach;
@@ -105,18 +111,6 @@ uniform float uIsobathDeepest;
 uniform float uSmoothBias;
 uniform float uHazeVisibility;
 uniform float uStageFadeKm;
-
-// The field read at a coarser mip: soundings, contours and shading follow
-// the landforms, not every gully and every sounding. (Fragment shaders
-// only: texture() takes a bias only here.)
-vec4 sampleFieldBias(vec2 p, float bias) {
-  return layered(
-    p,
-    texture(uFieldC, tileUv(p, uRectC), bias),
-    texture(uFieldA, tileUv(p, uRectA), bias),
-    texture(uFieldB, tileUv(p, uRectB), bias)
-  );
-}
 
 // One lighting state's light on the relief. x: how the slope faces the
 // sun against flat ground, compressed to (-0.5, 1), so slopes toward a low
@@ -210,6 +204,18 @@ float waterlines(float d, float pxKm, float band, float alone) {
   return cov * strength;
 }
 
+// Whether a line drawn where a field crosses a level stays put (1) or
+// would wander (0): where the ground is nearly flat, the field's own noise
+// (the half-float filtering rounds to about 1 part in 2,000 of the value,
+// and the height code to a tenth of a metre near sea level) moves the
+// crossing by pixels from one pixel to the next, and the line breaks into
+// speckle. A level on such flat ground is no line a surveyor could draw.
+// v: the value at the level (m); perPx: how fast it changes, m per pixel.
+float steady(float v, float perPx) {
+  float noisePx = (abs(v) * 6e-4 + 0.03) / max(perPx, 1e-6);
+  return 1.0 - smoothstep(0.25, 0.6, noisePx);
+}
+
 // Clear near the camera, closing smoothly to opaque at the far distance.
 float hazeAmount(float dist) {
   float x = dist / uHazeVisibility;
@@ -218,13 +224,32 @@ float hazeAmount(float dist) {
 
 void main() {
   vec2 p = vWorld.xy;
-  vec4 f = sampleField(p);
+  // The field (f), and read a mip bias coarser (fs) for the isobaths, the
+  // contours and the shading, which follow the landforms, not every gully
+  // and every sounding; both smooth close up (GLSL_FIELD_SMOOTH).
+  vec2 dpx = dFdx(p);
+  vec2 dpy = dFdy(p);
+  vec4 f;
+  vec4 fs;
+  vec2 slope;
+  sampleFieldBoth(p, dpx, dpy, uSmoothBias, f, fs, slope);
+  // How fast the smoothed height changes per pixel: from the B-spline's
+  // taps where it is read so (free of the filtering's rounding noise, of
+  // which a screen derivative of a nearly flat field is mostly made), else
+  // from the screen derivative. The isobaths and contours use it.
+  float hDeriv = length(vec2(dFdx(fs.x), dFdy(fs.x)));
+  float hPerPx = max(mix(hDeriv, slope.x / max(slope.y, 1e-6), slope.y), 1e-5);
   float h = f.x;
   float sdf = f.y;
-  vec4 fs = sampleFieldBias(p, uSmoothBias);
   float dpr = uDpr;
   // Km per pixel across the coast (the distance field's gradient is 1).
   float pxKm = max(length(vec2(dFdx(sdf), dFdy(sdf))), 1e-6);
+  // How far the chart is held to the eye here (0 far, 1 close), by its
+  // scale on screen (km per CSS px, from the area a pixel covers, so a
+  // slanting view doesn't count as far): close up it draws as a pilot
+  // chart would, a finer coast and relief carried by the weight of lines.
+  float areaKm = sqrt(abs(dpx.x * dpy.y - dpx.y * dpy.x));
+  float closeUp = 1.0 - smoothstep(uCloseKm.x, uCloseKm.y, areaKm * dpr);
 
   // The world ends at the surround's edges, far out in the haze.
   float stage = smoothstep(0.0, uStageFadeKm, insideKm(tileUv(p, uRectC), uRectC));
@@ -245,7 +270,7 @@ void main() {
   // of the period's lead, only faintly (docs/research/scene-02/a-t4.md,
   // directive 7).
   float sounding = max(-fs.x, 0.0);
-  float dPx = max(length(vec2(dFdx(sounding), dFdy(sounding))), 1e-5);
+  float dPx = hPerPx;
   float iso = 0.0;
   float levels[6] = float[6](10.0, 20.0, 50.0, 100.0, 200.0, 500.0);
   for (int i = 0; i < 6; i++) {
@@ -255,7 +280,7 @@ void main() {
     float gap = (i < 5 ? levels[i + 1] - fm : fm) * 1.8288;
     float crowd = smoothstep(2.0 * dpr, 7.0 * dpr, gap / dPx);
     float ink = fm > 100.0 ? 0.35 : 1.0;
-    iso = max(iso, lineCov(abs(sounding - L) / dPx, 0.8 * dpr) * crowd * ink);
+    iso = max(iso, lineCov(abs(sounding - L) / dPx, 0.8 * dpr) * crowd * ink * steady(L, dPx));
   }
   // Soundings give way to the waterlining where it is strong.
   float reach = uWaterReach * uWaterSpacingPx * dpr * pxKm;
@@ -291,26 +316,39 @@ void main() {
   // Restrained hill shading: only real relief is shaded (true-scale slope,
   // so it doesn't grow with the exaggeration); gentle lowland stays plain
   // paper, as on a chart. Cast shadows are their own term: long shadows
-  // from a low sun carry the drama.
-  float relief = smoothstep(uReliefSlope.x, uReliefSlope.y, length(fs.zw));
+  // from a low sun carry the drama. Close up, the data's gentle swells
+  // (a texel is 0.46 km on a detail tile) would shade as soft pillows, so
+  // the shading starts on steeper ground and the contours carry the rest.
+  float reliefFrom = mix(uReliefSlope.x, uReliefCloseFrom, closeUp);
+  float relief = smoothstep(reliefFrom, uReliefSlope.y, length(fs.zw));
   float shade = uReliefGain * relief * lit.x - uShadowStrength * lit.y;
   vec3 tint = shade < 0.0 ? uShadeColor : uSunColor;
   vec3 landColor = paper * (1.0 + 0.45 * shade);
   landColor = mix(landColor, landColor * tint, min(abs(shade), 1.0) * 0.6);
 
   // Contours: an interval and its double, nested, chosen by the camera.
+  // Close up they shade as an engraver's lines do: finer and paler on the
+  // slopes that face the light, heavier on those turned from it.
+  vec2 lightXY = mix(uLightDirA.xy * uLightOnA, uLightDirB.xy * uLightOnB, uLightMix);
+  float slopeLen = length(fs.zw);
+  float facing = length(lightXY) > 1e-4 && slopeLen > 1e-6
+    ? dot(-fs.zw / slopeLen, normalize(lightXY))
+    : 0.0;
+  float weight = 1.0 - uContourWeight * closeUp * facing;
   float hc = max(fs.x, 0.0);
-  float hPx = max(length(vec2(dFdx(hc), dFdy(hc))), 1e-5);
+  float hPx = hPerPx;
   float I = uContourInterval;
-  float cFine = lineCov(abs(hc - floor(hc / I + 0.5) * I) / hPx, 0.7 * dpr);
-  float cCoarse = lineCov(abs(hc - floor(hc / (2.0 * I) + 0.5) * 2.0 * I) / hPx, 0.7 * dpr);
-  float contour = max(cCoarse, cFine * (1.0 - uContourBlend));
+  float cw = 0.7 * dpr * weight;
+  float cFine = lineCov(abs(hc - floor(hc / I + 0.5) * I) / hPx, cw);
+  float cCoarse = lineCov(abs(hc - floor(hc / (2.0 * I) + 0.5) * 2.0 * I) / hPx, cw);
+  float contour = max(cCoarse, cFine * (1.0 - uContourBlend)) * steady(hc, hPx);
   contour *= smoothstep(3.0 * dpr, 8.0 * dpr, I / hPx) * smoothstep(0.4 * I, 0.9 * I, hc);
-  landColor = mix(landColor, uContourInk, contour * 0.32);
+  landColor = mix(landColor, uContourInk, min(contour * 0.32 * weight, 1.0));
 
   // ---- Together -------------------------------------------------------
   vec3 color = mix(seaColor, landColor, land);
-  float coast = lineCov(abs(sdf) / pxKm, 1.45 * dpr) * stage;
+  float coastPx = mix(uCoastPx.x, uCoastPx.y, closeUp);
+  float coast = lineCov(abs(sdf) / pxKm, coastPx * dpr) * stage;
   color = mix(color, uInk, coast * 0.92);
 
   // Beyond the stage the chart gives way to open sea and haze.

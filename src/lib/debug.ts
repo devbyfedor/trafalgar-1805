@@ -41,10 +41,15 @@ export interface ChartReadout {
   nodes: number;
 }
 
-let chartSource: (() => ChartReadout) | null = null;
+let chartSource: (() => ChartReadout | null) | null = null;
 
-/** A chart offers its readouts; the overlay reads them twice a second. */
-export function registerChartReadout(read: () => ChartReadout): () => void {
+/**
+ * A chart offers its readouts; the overlay reads them twice a second. The
+ * reader returns null while its chart is not drawing (scene 2 off screen).
+ */
+export function registerChartReadout(
+  read: () => ChartReadout | null,
+): () => void {
   chartSource = read;
   return () => {
     if (chartSource === read) chartSource = null;

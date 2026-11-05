@@ -5,7 +5,7 @@ import {
   type Page,
   test,
 } from "@playwright/test";
-import { scrollToProgress, settleFrames } from "./helpers";
+import { open as openPage, scrollToProgress, settleFrames } from "./helpers";
 
 /**
  * Screenshots for docs/screenshots/scene-01 (run with `npm run screenshots`).
@@ -26,8 +26,7 @@ async function open(
 ): Promise<Page> {
   const context = await browser.newContext({ ...desktop, ...options });
   const page = await context.newPage();
-  await page.goto(url);
-  await page.waitForLoadState("networkidle");
+  await openPage(page, url);
   await page.evaluate(() => document.fonts.ready.then(() => undefined));
   await settleFrames(page, 4);
   return page;

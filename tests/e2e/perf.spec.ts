@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 import {
   collectErrors,
+  HANDOFF_LENGTH,
+  open,
   PIN_LENGTH,
   readLongTasks,
   recordLongTasks,
@@ -9,7 +11,9 @@ import {
 
 /**
  * One scripted scroll-through with real wheel input: down through the pinned
- * scene into the scene 2 placeholder, then back to the top. Records a video
+ * scene and the handoff into scene 2, then back to the top. Scene 2's chart
+ * loads in idle time while scene 1 plays, so this is where its setup would
+ * show as long tasks. Records a video
  * (test-results/) and the long tasks seen during the scroll. Headless video
  * looks choppier than the real thing; the numbers are indicative. Anything
  * over 50 ms is reported here and investigated, not failed on.
@@ -17,22 +21,26 @@ import {
 test("scripted scroll-through", async ({ page }, testInfo) => {
   const errors = collectErrors(page);
   await recordLongTasks(page);
-  await page.goto("/");
-  await page.waitForLoadState("networkidle");
+  await open(page, "/");
   await page.waitForTimeout(1200);
   const loadTasks = await readLongTasks(page);
 
   await page.mouse.move(640, 360);
   const vh = page.viewportSize()?.height ?? 720;
-  const distance = PIN_LENGTH * vh + vh * 0.8;
+  const distance = (PIN_LENGTH + HANDOFF_LENGTH) * vh + vh * 0.8;
   const scrollStart = await page.evaluate(() => performance.now());
   await wheelBy(page, distance, 90, 60);
   await page.waitForTimeout(1600);
-  await expect(page.getByText("Chapter II follows")).toBeInViewport();
+  await expect(
+    page.getByRole("heading", { name: "II. The road to Trafalgar" }),
+  ).toBeInViewport();
+  expect((await page.locator("#road").boundingBox())?.y).toBeCloseTo(0, 0);
 
   await wheelBy(page, -distance, 120, 50);
-  await page.waitForTimeout(1600);
-  expect(await page.evaluate(() => window.scrollY)).toBeLessThan(5);
+  // Lenis eases to rest a frame at a time: wait for it to reach the top.
+  await expect
+    .poll(() => page.evaluate(() => window.scrollY), { timeout: 8000 })
+    .toBeLessThan(5);
 
   const { longTasks, loafs } = await readLongTasks(page);
   const duringScroll = longTasks.filter((t) => t.start >= scrollStart);

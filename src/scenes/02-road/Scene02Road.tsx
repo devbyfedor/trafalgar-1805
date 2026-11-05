@@ -168,18 +168,23 @@ export function Scene02Road() {
             await stage.chart.warm();
             if (controller.signal.aborted) return;
             const s = stage;
+            let drawing = false;
             render = (time: number) => {
               writeDate();
-              // Keep drawing while the scrub settles back to the start, so
-              // scene 1's Victory is handed back whole.
-              const active = (near || state.p > 0) && !document.hidden;
-              if (!active) return;
-              if (drawn === 0 && state.p === 0 && !near) return;
+              // Draw while on screen, and off screen only while the scrub is
+              // still settling (scrolled back past the start, scene 1's
+              // Victory is handed back whole; past the end, the last frame
+              // holds and nothing more is drawn).
+              drawing = (near || state.p !== drawn) && !document.hidden;
+              if (!drawing) return;
               s.draw(state.p, time);
               drawn = state.p;
             };
             gsap.ticker.add(render);
-            unregister = registerChartReadout(() => s.chart.stats);
+            // Readouts while scene 2 is on screen (or about to be).
+            unregister = registerChartReadout(() =>
+              near && drawing ? s.chart.stats : null,
+            );
             window.__road = { ready: true, stats: s.chart.stats };
           };
           start().catch((error: unknown) => {

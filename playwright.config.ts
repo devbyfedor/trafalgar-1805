@@ -25,6 +25,8 @@ import { defineConfig, devices } from "@playwright/test";
  *   screenshots`), which the regression project uses as the approved frames
  * - docs-chart: the chart lab's, docs/screenshots/scene-02 (`npm run
  *   screenshots:chart`)
+ * - stills: scene 2's stills for reduced motion and WebGL failures,
+ *   public/stills/scene-02 (`npm run stills`)
  */
 
 const PORT = 4174;
@@ -155,6 +157,18 @@ export default defineConfig({
       use: {
         ...desktop,
         channel: "chromium",
+        trace: "off",
+      },
+    },
+    {
+      // npm run stills: scene 2's stills, public/stills/scene-02.
+      name: "stills",
+      testMatch: /[\\/]stills\.spec\.ts$/,
+      use: {
+        ...desktop,
+        channel: "chromium",
+        viewport: { width: 1920, height: 1080 },
+        deviceScaleFactor: 1,
         trace: "off",
       },
     },

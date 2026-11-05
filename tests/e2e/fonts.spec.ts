@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { collectErrors, scrollToProgress, settleFrames } from "./helpers";
+import { collectErrors, open, scrollToProgress, settleFrames } from "./helpers";
 
 /**
  * The real faces (src/fonts): Bodoni Moda for the title, Baskervville for
@@ -70,8 +70,7 @@ function readTitle(page: Page): Promise<TitleReport> {
 }
 
 async function openAtHero(page: Page): Promise<void> {
-  await page.goto("/");
-  await page.waitForLoadState("networkidle");
+  await open(page, "/");
   await page.evaluate(() => document.fonts.ready.then(() => undefined));
   await settleFrames(page, 4);
   await scrollToProgress(page, 0.6);

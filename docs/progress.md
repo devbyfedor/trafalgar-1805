@@ -2,6 +2,17 @@
 
 Live checklist. A later session picks up from here. The briefs are `docs/scene-01-brief.md` and `docs/scene-02-brief.md`; decisions and deviations are in `docs/decisions.md`.
 
+## Session 11 (5 November 2026): the owner's review, then Stage B to its end
+
+**The owner's answers to session 10's questions:** the last frame looks west into the sunrise (as built); beat 1 keeps "invasion craft"; Nelson's track runs on through Ushant and Spithead and is completed with his September passage from Portsmouth back to Cádiz.
+
+**The owner's review of the site** (his screenshots were said to be in `docs/owner-feedback/`, which is not in the repository; worked from his written notes): ships sink into the sea when the camera pulls back and looks at a slant (in squadrons only mastheads show); glyphs jerk, flicker or jump in size between near and far; the ships should be sharper and finer, as scene 1's up close and a clean silhouette far off; the chart should grow sharper and richer close up, like an engraved pilot chart (a thinner coast, sharper relief, period detail such as soundings), with nothing soapy or pixelated and detail coming in smoothly, inside the frame budget.
+
+**His order for the session:** (1) the full check passing again; (2) the ships (sinking, smoothness, sharpness), then the chart close up; (3) the history check, and the "Scene 2" section into `history-notes.md`; (4) the four agent branches reviewed and merged one by one, the build and tests passing after each; (5) the rest of Stage B (the names of 1805, the signal relay, new tests, the stills, staged loading, screenshots at four sizes, frame time); then a report in Russian and a stop.
+
+- **Step 1, done:** scene 1's tests rewritten for scene 2 (the pin holds through the handoff and releases under scene 2; perf scrolls into scene 2; reduced motion stacks scene 2's stills); `networkidle` replaced by a helper that ignores worker scripts (troika's text worker, loaded from a `blob:` URL, never reports finished, so that state never came once the chart loaded on the home page); `wheelBy` scrolls exact distances (down in 90 px steps and up in 120 px steps it had come back 30 px short); scene 2 draws off screen only while its scrub settles and shows its readouts only while near; `npm run stills` renders provisional stills (to be re-rendered at the end). Verified on its own build: `laptop`, `desktop-1080`, `phone`, `perf` (no long task while scrolling; 50–190 ms tasks at load from the chart's setup, for step 5), `regression`; `chart` and `chart-gpu` passed earlier in the session on the same chart code.
+- **Running in the background:** the workflow `scene2-history-finish` (rules on `v-merged-lead.md`, researches Nelson's September passage and the Stage B names, edits a copy of the section, re-checks it); its outputs land in the session's scratchpad, `history/`.
+
 ## Scene 2, Stage B: the full scene (from session 10, 1 November 2026)
 
 **Stage A is approved.** The owner checked `/lab/chart?debug` on the production preview on his laptop: a steady 60 fps. Owner-verified, 1 November 2026.

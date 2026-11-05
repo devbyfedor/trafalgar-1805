@@ -2,6 +2,9 @@ import { expect, test } from "@playwright/test";
 import {
   collectErrors,
   collectRequests,
+  HANDOFF_LENGTH,
+  open,
+  PIN_LENGTH,
   scrollToProgress,
   settleFrames,
 } from "./helpers";
@@ -13,8 +16,7 @@ test.describe("scene 1 on desktop", () => {
   }) => {
     const errors = collectErrors(page);
     const requests = collectRequests(page);
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await open(page, "/");
 
     const h1 = page.getByRole("heading", { level: 1 });
     await expect(h1).toHaveCount(1);
@@ -31,8 +33,7 @@ test.describe("scene 1 on desktop", () => {
   });
 
   test("keeps the SVG element count under budget", async ({ page }) => {
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await open(page, "/");
     const counts = await page.evaluate(() => {
       const svgElements = (root: Element | null) =>
         root ? root.querySelectorAll("svg, svg *").length : 0;
@@ -54,8 +55,7 @@ test.describe("scene 1 on desktop", () => {
     page,
   }) => {
     const errors = collectErrors(page);
-    await page.goto("/?debug");
-    await page.waitForLoadState("networkidle");
+    await open(page, "/?debug");
     const overlay = page.locator("[data-debug-overlay]");
     await expect(overlay).toBeVisible();
     await scrollToProgress(page, 0.5);
@@ -78,27 +78,32 @@ test.describe("scene 1 on desktop", () => {
     expect(errors).toEqual([]);
   });
 
-  test("pins for the scene and releases into the scene 2 placeholder", async ({
+  test("pins for the scene, holds through the handoff and releases under scene 2", async ({
     page,
   }) => {
     const errors = collectErrors(page);
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await open(page, "/");
     const scene = page.locator("#dawn");
+    const road = page.locator("#road");
 
     await scrollToProgress(page, 0.5);
     expect((await scene.boundingBox())?.y).toBeCloseTo(0, 0);
 
-    // Past the pin: the scene scrolls away and the placeholder comes in,
-    // with the credits line for the chart's data after it.
-    await scrollToProgress(page, 1.3);
+    // The handoff: both stages pinned, scene 1 on top of scene 2.
+    const handoffMid = 1 + HANDOFF_LENGTH / PIN_LENGTH / 2;
+    await scrollToProgress(page, handoffMid);
+    await settleFrames(page, 4);
+    expect((await scene.boundingBox())?.y).toBeCloseTo(0, 0);
+    expect((await road.boundingBox())?.y).toBeCloseTo(0, 0);
+
+    // Past the handoff: scene 1 scrolls away under scene 2's pin, whose
+    // chapter marker takes the place of scene 1's.
+    await scrollToProgress(page, 1 + HANDOFF_LENGTH / PIN_LENGTH + 0.3);
     await settleFrames(page, 4);
     expect((await scene.boundingBox())?.y ?? 0).toBeLessThan(-10);
-    await expect(page.getByText("Chapter II follows")).toBeInViewport();
+    expect((await road.boundingBox())?.y).toBeCloseTo(0, 0);
     await expect(
-      page.getByText(
-        "Relief: NOAA NCEI ETOPO 2022. Coastlines and rivers: Natural Earth.",
-      ),
+      page.getByRole("heading", { name: "II. The road to Trafalgar" }),
     ).toBeInViewport();
 
     await scrollToProgress(page, 0);

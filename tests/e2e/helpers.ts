@@ -1,7 +1,43 @@
-import type { Page } from "@playwright/test";
+import type { Page, Request } from "@playwright/test";
+
+/**
+ * Opens a page and waits until its requests have been quiet for half a
+ * second. Not Playwright's "networkidle": a dedicated worker's script, which
+ * troika's text worker loads from a blob: URL once scene 2's chart is set
+ * up, never reports as finished, so that state never comes.
+ */
+export async function open(page: Page, url: string): Promise<void> {
+  const pending = new Set<Request>();
+  const track = (r: Request) => {
+    const u = r.url();
+    if (!u.startsWith("blob:") && !u.startsWith("data:")) pending.add(r);
+  };
+  const done = (r: Request) => pending.delete(r);
+  page.on("request", track);
+  page.on("requestfinished", done);
+  page.on("requestfailed", done);
+  try {
+    await page.goto(url, { waitUntil: "load" });
+    const deadline = Date.now() + 30_000;
+    let quietSince = Date.now();
+    while (Date.now() < deadline) {
+      if (pending.size > 0) quietSince = Date.now();
+      else if (Date.now() - quietSince >= 500) break;
+      await page.waitForTimeout(100);
+    }
+  } finally {
+    page.off("request", track);
+    page.off("requestfinished", done);
+    page.off("requestfailed", done);
+  }
+}
 
 /** Must match PIN_LENGTH in src/scenes/01-dawn/choreography.ts. */
 export const PIN_LENGTH = 3;
+/** Must match HANDOFF_LENGTH in src/scenes/handoff.ts. */
+export const HANDOFF_LENGTH = 2.5;
+/** Must match PIN_LENGTH in src/scenes/02-road/beats.ts. */
+export const ROAD_PIN_LENGTH = 30;
 
 /** Collects console errors and uncaught page errors from the moment it is called. */
 export function collectErrors(page: Page): string[] {
@@ -49,6 +85,16 @@ export async function scrollToProgress(page: Page, p: number): Promise<void> {
     { p, pin: PIN_LENGTH },
   );
   await settleFrames(page, 3);
+}
+
+/**
+ * Jumps to progress p of scene 2 (0..1), bypassing smoothing. Scene 2's
+ * pin starts where scene 1's progress reaches 1 (src/scenes/handoff.ts).
+ * Its timeline is scrubbed, so the scene's own progress catches up over
+ * the scrub's 0.6 s.
+ */
+export async function scrollToRoad(page: Page, p: number): Promise<void> {
+  await scrollToProgress(page, 1 + (p * ROAD_PIN_LENGTH) / PIN_LENGTH);
 }
 
 export interface TimingEntry {
@@ -119,10 +165,14 @@ export async function wheelBy(
   // Playwright divides wheel deltas by the device scale factor; undo that so
   // the requested distance is in CSS pixels.
   const dpr = await page.evaluate(() => window.devicePixelRatio);
-  const steps = Math.ceil(Math.abs(cssPx) / stepPx);
+  // Whole steps, then what is left: exactly the distance asked, so a scroll
+  // down and back up by the same distance returns to the same place.
   const sign = Math.sign(cssPx);
-  for (let i = 0; i < steps; i++) {
-    await page.mouse.wheel(0, sign * stepPx * dpr);
+  let left = Math.abs(cssPx);
+  while (left > 0.5) {
+    const step = Math.min(stepPx, left);
+    await page.mouse.wheel(0, sign * step * dpr);
+    left -= step;
     await page.waitForTimeout(pauseMs);
   }
 }

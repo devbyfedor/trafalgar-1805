@@ -1,6 +1,6 @@
 import path from "node:path";
 import { expect, test } from "@playwright/test";
-import { collectErrors, scrollToProgress, settleFrames } from "./helpers";
+import { collectErrors, open, scrollToProgress, settleFrames } from "./helpers";
 import { compareImages } from "./imageDiff";
 
 /**
@@ -24,8 +24,7 @@ test("scene 1 matches its approved frames at p = 0, 0.5 and 0.75", async ({
 }, testInfo) => {
   test.setTimeout(180_000);
   const errors = collectErrors(page);
-  await page.goto("/");
-  await page.waitForLoadState("networkidle");
+  await open(page, "/");
   await page.evaluate(() => document.fonts.ready.then(() => undefined));
   await settleFrames(page, 4);
 

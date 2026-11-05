@@ -1,12 +1,11 @@
 import { expect, test } from "@playwright/test";
-import { collectErrors, settleFrames } from "./helpers";
+import { collectErrors, open, settleFrames } from "./helpers";
 
 test("a phone gets the fallback screen and no scroll machinery", async ({
   page,
 }) => {
   const errors = collectErrors(page);
-  await page.goto("/");
-  await page.waitForLoadState("networkidle");
+  await open(page, "/");
   await settleFrames(page, 3);
 
   await expect(page.locator("[data-fallback]")).toBeVisible();

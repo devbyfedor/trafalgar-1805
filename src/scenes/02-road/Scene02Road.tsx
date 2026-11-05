@@ -169,7 +169,10 @@ export function Scene02Road() {
             if (controller.signal.aborted) return;
             const s = stage;
             let drawing = false;
+            // Held while a bench draws its own frames (development).
+            let held = false;
             render = (time: number) => {
+              if (held) return;
               writeDate();
               // Draw while on screen, and off screen only while the scrub is
               // still settling (scrolled back past the start, scene 1's
@@ -189,6 +192,16 @@ export function Scene02Road() {
               ready: true,
               stats: s.chart.stats,
               sample: (p: number, mode?: number) => s.sample(p, mode),
+              bench: async (frames: number, p: number) => {
+                held = true;
+                try {
+                  return await s.bench(frames, p);
+                } finally {
+                  held = false;
+                  drawn = -1;
+                }
+              },
+              seaDepth: (on: boolean) => s.chart.setSeaDepth(on),
             };
           };
           start().catch((error: unknown) => {
@@ -255,6 +268,13 @@ declare global {
         p: number,
         mode?: number,
       ) => { fleets: Float32Array; squadrons: Float32Array };
+      /** Development: frames at p timed on the GPU and the CPU (RoadStage.bench). */
+      bench: (
+        frames: number,
+        p: number,
+      ) => Promise<import("@/components/chart/engine/bench").BenchResult>;
+      /** Measurement only: the water writes the sea's depth, or not. */
+      seaDepth: (on: boolean) => void;
     };
   }
 }

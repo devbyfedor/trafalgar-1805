@@ -2,7 +2,8 @@
  * Frame timing for development: how long the chart takes to draw a frame
  * on this machine, measured on the GPU with EXT_disjoint_timer_query_webgl2
  * where the browser offers it, and on the CPU around the draw call
- * (scripts/dev/bench.mjs drives it through the lab's `window.__chart`).
+ * (scripts/dev/bench.mjs drives it through the lab's `window.__chart`, and
+ * scripts/dev/road-bench.mjs through scene 2's `window.__road`).
  * Each frame is drawn in its own animation frame while the lab's own loop
  * is held, so the GPU sees the same work as in the flight.
  */

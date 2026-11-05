@@ -9,6 +9,7 @@ import {
   Rivers,
   Route,
 } from "@/components/chart";
+import { type BenchResult, benchFrames } from "@/components/chart/engine/bench";
 import { readCoastKm } from "@/components/chart/glyphs/coast";
 import { GlyphProbe } from "@/components/chart/glyphs/probe";
 import { ROAD_FLIGHT } from "./camera";
@@ -42,6 +43,12 @@ export interface RoadStage {
   ): { fleets: Float32Array; squadrons: Float32Array };
   /** Sets the chart for progress p and draws a frame (gsap.ticker time). */
   draw(p: number, time: number): void;
+  /**
+   * Development: draws `frames` frames at p, each timed on the GPU and the
+   * CPU (engine/bench.ts; scripts/dev/road-bench.mjs). The host holds its
+   * own drawing meanwhile.
+   */
+  bench(frames: number, p: number): Promise<BenchResult>;
   resize(width: number, height: number): void;
   dispose(): void;
 }
@@ -143,6 +150,18 @@ export async function createRoadStage(
         sampled = Number.NaN;
         director.apply(p);
         chart.frame(time);
+      },
+      bench(frames, p) {
+        sampled = Number.NaN;
+        const gl = chart.renderer.getContext() as WebGL2RenderingContext;
+        return benchFrames(
+          gl,
+          (time) => {
+            director.apply(p);
+            chart.frame(time);
+          },
+          frames,
+        );
       },
       resize(width, height) {
         chart.resize(width, height);

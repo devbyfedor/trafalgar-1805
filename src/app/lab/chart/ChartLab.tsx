@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import type { ChartStats, LabelState, LightId } from "@/components/chart";
+import { type BenchResult, benchFrames } from "@/components/chart/engine/bench";
 import { worldX, worldY } from "@/components/chart/geo/mercator";
 import { Credits } from "@/components/experience/Credits";
 import { DebugOverlay } from "@/components/experience/DebugOverlay";
@@ -16,7 +17,6 @@ import {
 } from "@/scenes/02-road/fleets";
 import { GAZETTEER } from "@/scenes/02-road/gazetteer";
 import { TOULON_TO_CADIZ } from "@/scenes/02-road/routes";
-import { type BenchResult, benchFrames } from "./bench";
 import { LAB_DEMOS, type LabDemo } from "./demos";
 import {
   buildFlight,

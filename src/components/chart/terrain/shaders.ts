@@ -322,6 +322,8 @@ void main() {
   // that crosses a coast lifts the water near it toward the land's height
   // (exaggerated, from far off, by hundreds of metres), and nothing that
   // stands on the sea (a ship, her wake, a route) may ever sink into it.
+#ifdef SEA_DEPTH
   gl_FragDepth = sdf > 0.0 ? max(gl_FragCoord.z, seaDepthThrough(vWorld)) : gl_FragCoord.z;
+#endif
 }
 `;

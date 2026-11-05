@@ -557,6 +557,28 @@ function anchorage(): Map<Ship, Berth> {
 export const ANCHORAGE: ReadonlyMap<Ship, Berth> = anchorage();
 
 /**
+ * A ship's distance from her nearest neighbour at anchor off Cádiz, world
+ * km (0 for a ship with no berth there): her glyph draws no wider than that
+ * allows (glyphBerth), so the anchorage reads ship by ship.
+ */
+export function anchorSpacing(ship: Ship): number {
+  const at = ANCHORAGE.get(ship);
+  if (!at) return 0;
+  let best = Number.POSITIVE_INFINITY;
+  for (const [other, o] of ANCHORAGE) {
+    if (other === ship) continue;
+    best = Math.min(
+      best,
+      Math.hypot(
+        worldX(o.lon) - worldX(at.lon),
+        worldY(o.lat) - worldY(at.lat),
+      ),
+    );
+  }
+  return Number.isFinite(best) ? best : 0;
+}
+
+/**
  * Stage A's proof, kept for the lab: the fleets at dawn on 21 October (now
  * at their true spacing) and the combined fleet at anchor off Cádiz, both
  * at once.

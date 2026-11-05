@@ -16,14 +16,24 @@ import type { TerrainField } from "./field";
 import { TERRAIN_FRAGMENT, TERRAIN_VERTEX } from "./shaders";
 
 /**
- * The chart's surface: land and sea in one instanced draw. The CDLOD
- * quadtree picks the patches each frame; the shaders do the rest.
+ * The chart's surface: land and sea in two instanced draws of one patch.
+ * The CDLOD quadtree picks the patches each frame; the shaders do the rest.
+ *
+ * Where the chart draws water its depth is the sea's own (GLSL_SEA_DEPTH),
+ * so nothing standing on the sea sinks into it. Writing a fragment's depth
+ * stops the GPU from skipping hidden fragments early, and that costs most
+ * where relief hides relief, inland. So the patches with no sea within
+ * INLAND_MARGIN_KM (land through and through on the coarse land grid) are
+ * drawn by a second material without it; the rest, the coasts and the sea,
+ * keep it.
  */
 
 const GRID = 32;
 /** The quadtree's root: a square well beyond the stage, so the sea reaches the horizon. */
 const ROOT_SIZE = 32768;
 const MAX_DEPTH = 12;
+/** A patch is inland when there is no sea within this of it (a cell of the coarse land grid). */
+const INLAND_MARGIN_KM = 23;
 
 export interface TerrainStyle {
   contourInterval: number;
@@ -31,9 +41,17 @@ export interface TerrainStyle {
 }
 
 export class Terrain {
+  /** The coasts and the sea: the water writes the sea's depth. */
   readonly mesh: Mesh<InstancedBufferGeometry, ShaderMaterial>;
+  /** The patches inland, with no water to correct. */
+  readonly inland: Mesh<InstancedBufferGeometry, ShaderMaterial>;
   readonly cdlod: Cdlod;
+  /** Whether a square and a margin round it are all land; without it every patch is coastal. */
+  allLand:
+    | ((x0: number, y0: number, size: number, marginKm: number) => boolean)
+    | null = null;
   private readonly nodes: InstancedBufferAttribute;
+  private readonly inlandNodes: InstancedBufferAttribute;
   private readonly eye = new Vector3();
 
   constructor(field: TerrainField) {
@@ -52,15 +70,28 @@ export class Terrain {
     const geometry = new InstancedBufferGeometry();
     geometry.setAttribute("position", new BufferAttribute(coords, 3));
     geometry.setIndex(new BufferAttribute(index, 1));
-    this.nodes = new InstancedBufferAttribute(this.cdlod.instances, 4);
+    const capacity = this.cdlod.instances.length;
+    this.nodes = new InstancedBufferAttribute(new Float32Array(capacity), 4);
     this.nodes.setUsage(DynamicDrawUsage);
     geometry.setAttribute("node", this.nodes);
     geometry.instanceCount = 0;
+    // The same patch (its vertex and index buffers shared) for the inland draw.
+    const inlandGeometry = new InstancedBufferGeometry();
+    inlandGeometry.setAttribute("position", geometry.getAttribute("position"));
+    inlandGeometry.setIndex(geometry.getIndex());
+    this.inlandNodes = new InstancedBufferAttribute(
+      new Float32Array(capacity),
+      4,
+    );
+    this.inlandNodes.setUsage(DynamicDrawUsage);
+    inlandGeometry.setAttribute("node", this.inlandNodes);
+    inlandGeometry.instanceCount = 0;
 
     const material = new ShaderMaterial({
       glslVersion: GLSL3,
       vertexShader: TERRAIN_VERTEX,
       fragmentShader: TERRAIN_FRAGMENT,
+      defines: { SEA_DEPTH: "" },
       side: FrontSide,
       uniforms: {
         ...field.uniforms,
@@ -130,6 +161,15 @@ export class Terrain {
     this.mesh = new Mesh(geometry, material);
     this.mesh.frustumCulled = false;
     this.mesh.renderOrder = 0;
+    // The inland draw: the same shaders and uniforms, without the depth write.
+    const inlandMaterial = material.clone();
+    inlandMaterial.uniforms = material.uniforms;
+    inlandMaterial.defines = {};
+    this.inland = new Mesh(inlandGeometry, inlandMaterial);
+    this.inland.frustumCulled = false;
+    // Drawn first: a draw that writes its own depth can leave the GPU's
+    // coarse depth test off for the draws after it.
+    this.inland.renderOrder = -1;
   }
 
   get uniforms() {
@@ -179,17 +219,68 @@ export class Terrain {
     // The highest land is under 5 km; exaggerated, scaled by sec φ ≤ 1.9.
     const maxZ = 4.9 * 1.9 * exaggeration;
     const count = this.cdlod.select(eye, frustum, maxZ);
-    this.mesh.geometry.instanceCount = count;
+    // Inland patches to the second draw, the rest to the first.
+    const all = this.cdlod.instances;
+    const coast = this.nodes.array as Float32Array;
+    const inland = this.inlandNodes.array as Float32Array;
+    let nc = 0;
+    let ni = 0;
+    for (let i = 0; i < count; i++) {
+      const o = i * 4;
+      const x0 = all[o];
+      const y0 = all[o + 1];
+      const size = all[o + 2];
+      const into =
+        this.allLand?.(x0, y0, size, INLAND_MARGIN_KM) === true
+          ? inland
+          : coast;
+      const k = (into === inland ? ni++ : nc++) * 4;
+      into[k] = x0;
+      into[k + 1] = y0;
+      into[k + 2] = size;
+      into[k + 3] = all[o + 3];
+    }
+    this.upload(this.mesh, this.nodes, nc);
+    this.upload(this.inland, this.inlandNodes, ni);
+  }
+
+  private upload(
+    mesh: Mesh<InstancedBufferGeometry, ShaderMaterial>,
+    nodes: InstancedBufferAttribute,
+    n: number,
+  ): void {
+    mesh.geometry.instanceCount = n;
     // Nothing to upload when nothing is in view (an empty range would
     // upload the whole buffer).
-    if (count === 0) return;
-    this.nodes.clearUpdateRanges();
-    this.nodes.addUpdateRange(0, count * 4);
-    this.nodes.needsUpdate = true;
+    if (n === 0) return;
+    nodes.clearUpdateRanges();
+    nodes.addUpdateRange(0, n * 4);
+    nodes.needsUpdate = true;
+  }
+
+  /** Patches drawn this frame (both draws). */
+  get patches(): number {
+    return (
+      this.mesh.geometry.instanceCount + this.inland.geometry.instanceCount
+    );
+  }
+
+  /**
+   * Whether the water writes the sea's own depth (on by default; off only
+   * to measure what it costs).
+   */
+  setSeaDepth(on: boolean): void {
+    const m = this.mesh.material;
+    if (on === "SEA_DEPTH" in m.defines) return;
+    if (on) m.defines.SEA_DEPTH = "";
+    else delete m.defines.SEA_DEPTH;
+    m.needsUpdate = true;
   }
 
   dispose(): void {
     this.mesh.geometry.dispose();
     this.mesh.material.dispose();
+    this.inland.geometry.dispose();
+    this.inland.material.dispose();
   }
 }

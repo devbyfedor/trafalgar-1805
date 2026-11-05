@@ -12,6 +12,7 @@ import { METRE_VH, VICTORY_X } from "@/scenes/01-dawn/composition";
 import { VICTORY_BOX } from "@/scenes/01-dawn/layers/Victory";
 import { BEATS, type BeatId, dayAt } from "./beats";
 import {
+  anchorSpacing,
   BRITISH,
   COMBINED,
   DAWN,
@@ -21,7 +22,12 @@ import {
 } from "./fleets";
 import { type ShipState, shipAt } from "./movements";
 import type { DatedWaypoint, Leg } from "./routes";
-import { formationSlot, SQUADRONS, type SquadronSpec } from "./squadrons";
+import {
+  formationRows,
+  formationSlot,
+  SQUADRONS,
+  type SquadronSpec,
+} from "./squadrons";
 
 /**
  * Scene 2's director: everything the chart shows is a pure function of the
@@ -68,8 +74,141 @@ const SWAP: readonly [number, number] = [0.068, 0.08];
 /** The least room a squadron's block keeps near a coast, map km. */
 const SQUADRON_ROOM_KM = 45;
 
+/**
+ * The least share of its height a squadron's glyph keeps for want of room.
+ * Seen from thousands of kilometres up, 45 km of sea is a few pixels, and a
+ * symbol passing an island would shrink to nothing and flicker; and the
+ * squadron is a block of glyphs reaching well beyond its lead's room, so
+ * shrinking it keeps it off no island, it only makes the count hard to
+ * read. A block lying in port stands in the roads instead (ROADS_KM).
+ */
+export const SQUADRON_ROOM_FLOOR = 0.85;
+
+/**
+ * A squadron's room along its way is read ahead of time at every step of p
+ * over the squadrons' beats, then eased (RoadDirector.computeRooms): the
+ * least of it within ROOM_MIN_P either side, smoothed over about
+ * ROOM_EASE_P, so the block shrinks before a strait or an island and grows
+ * again after it at the pace of the scroll, not of the story's clock (which
+ * runs a hundred kilometres to a few pixels of scroll on the crossings).
+ */
+const ROOM_STEP = 0.0005;
+const ROOM_MIN_P = 0.006;
+const ROOM_EASE_P = 0.004;
+
+/**
+ * Headings are eased over the scroll too: a route turns at its waypoints
+ * and a ship at her keys, and on the crossings a few pixels of scroll cover
+ * a day, so a turn read straight off the track flips the glyph from one
+ * facing to the other in a frame (and swings a squadron's formation across
+ * its lead). Read ahead at every step of p and smoothed over about
+ * HEADING_EASE_P, a ship turns through the change of course instead, and a
+ * reversal turns through end-on. The fleets' headings are eased from
+ * FLEET_HEADING_P (before it they hold their dawn headings, or are not
+ * drawn).
+ */
+const HEADING_STEP = 0.0005;
+const HEADING_EASE_P = 0.0025;
+const FLEET_HEADING_P = 0.6;
+
+/** An angle brought into (-π, π]. */
+function wrapPi(a: number): number {
+  const t = (((a + Math.PI) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+  return t === 0 ? Math.PI : t - Math.PI;
+}
+
+/** Smooths a run of samples with a Gaussian of `sigma` steps, the ends held. */
+function gaussian(u: Float64Array, sigma: number): Float64Array {
+  const n = u.length;
+  const r = Math.ceil(3 * sigma);
+  const kernel = new Float64Array(2 * r + 1);
+  let total = 0;
+  for (let k = -r; k <= r; k++) {
+    kernel[k + r] = Math.exp(-(k * k) / (2 * sigma * sigma));
+    total += kernel[k + r];
+  }
+  const out = new Float64Array(n);
+  for (let i = 0; i < n; i++) {
+    let sum = 0;
+    for (let k = -r; k <= r; k++)
+      sum += u[Math.min(n - 1, Math.max(0, i + k))] * kernel[k + r];
+    out[i] = sum / total;
+  }
+  return out;
+}
+
+/**
+ * A run of headings (radians, NaN where there is none) eased over the
+ * scroll: gaps filled from their neighbours, unwrapped so each change goes
+ * the short way round, then smoothed (HEADING_EASE_P). The last stretch
+ * comes back to the headings as given, so the scene ends on them exactly.
+ */
+function easeHeadings(raw: Float64Array): Float32Array {
+  const n = raw.length;
+  const out = new Float32Array(n);
+  const first = raw.findIndex((v) => !Number.isNaN(v));
+  if (first < 0) return out;
+  const u = new Float64Array(n);
+  let last = raw[first];
+  for (let i = 0; i < n; i++) {
+    if (i <= first) u[i] = raw[first];
+    else if (Number.isNaN(raw[i])) u[i] = u[i - 1];
+    else {
+      u[i] = u[i - 1] + wrapPi(raw[i] - last);
+      last = raw[i];
+    }
+  }
+  const sigma = HEADING_EASE_P / HEADING_STEP;
+  const eased = gaussian(u, sigma);
+  for (let i = 0; i < n; i++) {
+    const end = smooth(n - 1 - 4 * sigma, n - 1, i);
+    out[i] = eased[i] + (u[i] - eased[i]) * end;
+  }
+  return out;
+}
+
+/** A table of values by step of p from `p0`, read at p (linearly, the ends held). */
+function tableAt(
+  table: Float32Array,
+  p0: number,
+  step: number,
+  p: number,
+): number {
+  const x = Math.min(table.length - 1, Math.max(0, (p - p0) / step));
+  const k = Math.min(table.length - 2, Math.floor(x));
+  return table[k] + (table[k + 1] - table[k]) * (x - k);
+}
+
+/** The least room within reach either side, then eased in proportion (in log space). */
+function easeRooms(coast: Float32Array): Float32Array {
+  const n = coast.length;
+  const reach = Math.round(ROOM_MIN_P / ROOM_STEP);
+  const least = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    let m = Number.POSITIVE_INFINITY;
+    const end = Math.min(n - 1, i + reach);
+    for (let k = Math.max(0, i - reach); k <= end; k++)
+      m = Math.min(m, coast[k]);
+    least[i] = Math.log(Math.max(m, SQUADRON_ROOM_KM));
+  }
+  const sigma = ROOM_EASE_P / ROOM_STEP;
+  const r = Math.ceil(3 * sigma);
+  const out = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    let sum = 0;
+    let weights = 0;
+    for (let k = -r; k <= r; k++) {
+      const w = Math.exp(-(k * k) / (2 * sigma * sigma));
+      sum += least[Math.min(n - 1, Math.max(0, i + k))] * w;
+      weights += w;
+    }
+    out[i] = Math.exp(sum / weights);
+  }
+  return out;
+}
+
 /** How far off a port a squadron's block stands while it lies there, map km. */
-const ROADS_KM = 22;
+const ROADS_KM = 30;
 
 /** A ship at anchor in Cádiz bay: the open water beyond her, map km. */
 const ANCHOR_ROOM_KM = 4.2;
@@ -258,6 +397,7 @@ export function fleetMarks(): ShipMark[] {
       opacity: 0,
       room: "coast",
       spacing: dawnSpacing(ship) || undefined,
+      berth: anchorSpacing(ship) || undefined,
     } satisfies ShipMark;
   });
 }
@@ -305,6 +445,12 @@ export class RoadDirector {
   );
   private readonly ndc = new Vector3();
   private victoryIndex: number;
+  /** Each squadron's eased room by step of p from the start of the chase (computeRooms). */
+  private rooms: Float32Array[] | null = null;
+  /** Each squadron's eased heading by step of p from the start of the chase. */
+  private readonly squadHeadings: Float32Array[];
+  /** Each ship's eased heading by step of p from FLEET_HEADING_P (prepare). */
+  private fleetHeadings: Float32Array[] | null = null;
   /** Scene 1's Victory box, while the handoff runs. */
   private painted: HTMLElement | null = null;
   private paintedState: "natural" | "moving" | "hidden" = "natural";
@@ -328,6 +474,74 @@ export class RoadDirector {
       return s;
     });
     this.victoryIndex = this.ships.findIndex((s) => s.name === "Victory");
+    // The squadrons' headings, eased (a few thousand steps in all).
+    const [p0, p1] = [BEATS.chase[0], BEATS.finisterre[1]];
+    const steps = Math.round((p1 - p0) / HEADING_STEP) + 1;
+    this.squadHeadings = this.squads.map((squad) => {
+      const raw = new Float64Array(steps).fill(Number.NaN);
+      for (let k = 0; k < steps; k++) {
+        const p = Math.min(p1 - 1e-9, p0 + k * HEADING_STEP);
+        const head = this.squadronHead(squad, dayAt(p), p);
+        if (head) raw[k] = head.heading;
+      }
+      return easeHeadings(raw);
+    });
+  }
+
+  /**
+   * Eases every ship's heading through beats 4 and 5 ahead of time, a few
+   * ships between frames (`pause`), so no task runs long. Until it has run,
+   * ships take their headings straight from their tracks.
+   */
+  async prepare(pause: () => Promise<void>): Promise<void> {
+    const steps = Math.round((1 - FLEET_HEADING_P) / HEADING_STEP) + 1;
+    const days = new Float64Array(steps);
+    for (let k = 0; k < steps; k++)
+      days[k] = dayAt(Math.min(1, FLEET_HEADING_P + k * HEADING_STEP));
+    const out: Float32Array[] = [];
+    const s = { ...this.state };
+    for (let i = 0; i < this.ships.length; i++) {
+      const raw = new Float64Array(steps).fill(Number.NaN);
+      for (let k = 0; k < steps; k++)
+        if (shipAt(this.ships[i], days[k], s)) raw[k] = s.heading;
+      out.push(easeHeadings(raw));
+      if (i % 12 === 11) await pause();
+    }
+    this.fleetHeadings = out;
+  }
+
+  /**
+   * Works out each squadron's room along its way, ahead of time: the
+   * coast's distance under its lead at every step of p through the chase
+   * and Finisterre, read on the GPU (`read`, readCoastKm), then eased
+   * (easeRooms). Until it has run, a squadron reads its room from the chart
+   * where it is.
+   */
+  async computeRooms(
+    read: (points: Float32Array) => Promise<Float32Array>,
+  ): Promise<void> {
+    const [p0, p1] = [BEATS.chase[0], BEATS.finisterre[1]];
+    const steps = Math.round((p1 - p0) / ROOM_STEP) + 1;
+    const points = new Float32Array(this.squads.length * steps * 2);
+    this.squads.forEach((squad, s) => {
+      for (let k = 0; k < steps; k++) {
+        const p = Math.min(p1 - 1e-9, p0 + k * ROOM_STEP);
+        const head = this.squadronHead(squad, dayAt(p), p);
+        const o = (s * steps + k) * 2;
+        points[o] = head?.x ?? 0;
+        points[o + 1] = head?.y ?? 0;
+      }
+    });
+    const coast = await read(points);
+    this.rooms = this.squads.map((_, s) =>
+      easeRooms(coast.subarray(s * steps, (s + 1) * steps)),
+    );
+  }
+
+  /** A squadron's eased room at p, or null before computeRooms has run. */
+  private roomAt(s: number, p: number): number | null {
+    const rooms = this.rooms?.[s];
+    return rooms ? tableAt(rooms, BEATS.chase[0], ROOM_STEP, p) : null;
   }
 
   /** Scene 1's Victory box to hand over from (null: no scene 1 on the page). */
@@ -384,6 +598,13 @@ export class RoadDirector {
       } else if (!shipAt(ship, d, s)) {
         glyphs.setOpacity(i, 0);
         return;
+      } else if (this.fleetHeadings && p >= FLEET_HEADING_P) {
+        s.heading = tableAt(
+          this.fleetHeadings[i],
+          FLEET_HEADING_P,
+          HEADING_STEP,
+          p,
+        );
       }
       glyphs.place(i, s.x, s.y, s.heading);
       // As she weighs and makes sail, her furled glyph crossfades into her
@@ -408,14 +629,16 @@ export class RoadDirector {
 
   private applySquadrons(p: number, d: number): void {
     const glyphs = this.layers.squadrons;
+    // From the chase's own clock on: before it the story is in August.
     const beat = fade(p, [
-      BEATS.chase[0] - 0.005,
-      BEATS.chase[0] + 0.01,
+      BEATS.chase[0],
+      BEATS.chase[0] + 0.012,
       BEATS.finisterre[1] - 0.012,
       BEATS.finisterre[1],
     ]);
-    for (const squad of this.squads) {
+    this.squads.forEach((squad, s) => {
       const { spec, first, n, stageP } = squad;
+      const room = this.roomAt(s, p);
       const [from, to] = spec.shown;
       const visible =
         beat * smooth(from - 0.4, from, d) * (1 - smooth(to, to + 0.6, d));
@@ -429,6 +652,13 @@ export class RoadDirector {
       const prev = j > 0 ? spec.stages[j - 1].types : null;
       const t = prev ? smooth(stageP[j], stageP[j] + CHANGE_P, p) : 1;
       const where = this.squadronHead(squad, d, p);
+      if (where)
+        where.heading = tableAt(
+          this.squadHeadings[s],
+          BEATS.chase[0],
+          HEADING_STEP,
+          p,
+        );
       for (let k = 0; k < n; k++) {
         const i = first + k;
         const now = cur[k];
@@ -447,11 +677,12 @@ export class RoadDirector {
           glyphs.setType(i, before);
           opacity *= 1 - t;
         }
-        const [along, up] = formationSlot(k);
+        const [along, up] = formationSlot(k, formationRows(n));
         glyphs.setFormation(i, along, up);
+        if (room !== null) glyphs.setRoomBlend(i, room, 0);
         glyphs.setOpacity(i, opacity);
       }
-    }
+    });
   }
 
   /**

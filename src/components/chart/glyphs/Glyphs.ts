@@ -85,6 +85,12 @@ export interface ShipMark {
    * mark with no spacing) stands for the group.
    */
   spacing?: number;
+  /**
+   * A ship at anchor: her distance from her nearest neighbour at anchor,
+   * map km. Her glyph draws no wider than that allows while she lies
+   * there, so a crowded anchorage reads ship by ship (glyphBerth).
+   */
+  berth?: number;
 }
 
 export { GLYPH_PX };
@@ -108,6 +114,7 @@ in vec4 iPos;
 in vec4 iStyle;
 in vec4 iFit;
 in vec4 iForm;
+in vec4 iMore;
 uniform float uPull;
 out vec2 vLocal;
 out vec3 vCells;
@@ -120,7 +127,7 @@ ${GLSL_GLYPH_HEIGHT}
 void main() {
   vec3 base = vec3(iPos.xy, 0.0);
   float lead = length(base - cameraPosition);
-  float h = glyphHeight(iPos.xy, lead, iPos.w, iFit.xyz);
+  float h = glyphBerth(glyphHeight(iPos.xy, lead, iPos.w, iFit.xyz), lead, iFit.y, iMore.x);
   vec3 foot = glyphFoot(base, iPos.z, lead, iForm.xy, h);
   float dist = length(foot - cameraPosition);
   vec3 w = foot + (cameraPosition - foot) * uPull;
@@ -215,6 +222,7 @@ in vec4 iPos;
 in vec4 iStyle;
 in vec4 iFit;
 in vec4 iForm;
+in vec4 iMore;
 uniform float uWakeLength;
 uniform float uPull;
 out vec2 vLocal;
@@ -225,7 +233,7 @@ ${GLSL_GLYPH_HEIGHT}
 void main() {
   vec3 base = vec3(iPos.xy, 0.0);
   float lead = length(base - cameraPosition);
-  float h = glyphHeight(iPos.xy, lead, iPos.w, iFit.xyz);
+  float h = glyphBerth(glyphHeight(iPos.xy, lead, iPos.w, iFit.xyz), lead, iFit.y, iMore.x);
   // On the sea under the ship's own foot, in a formation too.
   vec3 foot = glyphFoot(base, iPos.z, lead, iForm.xy, h);
   float dist = length(foot - cameraPosition);
@@ -299,7 +307,7 @@ function levelUniforms(atlas: GlyphAtlas) {
   };
 }
 
-const ATTRIBUTES = ["iPos", "iStyle", "iFit", "iForm"] as const;
+const ATTRIBUTES = ["iPos", "iStyle", "iFit", "iForm", "iMore"] as const;
 type AttributeName = (typeof ATTRIBUTES)[number];
 
 export class Glyphs implements ChartLayer {
@@ -313,7 +321,9 @@ export class Glyphs implements ChartLayer {
    * - iFit: room (fixed km), how far the coast's distance has taken over
    *   (0..1), the least room by a coast (km), spacing (km);
    * - iForm: place in a formation (steps along, rows up, in glyph heights),
-   *   a second cell and how far the glyph has turned into it (0..1).
+   *   a second cell and how far the glyph has turned into it (0..1);
+   * - iMore: her berth at anchor (km from her nearest neighbour; 0 for
+   *   none), and three spare.
    */
   private readonly data: Record<AttributeName, Float32Array>;
   private readonly attrs: Record<AttributeName, InstancedBufferAttribute>;
@@ -326,11 +336,16 @@ export class Glyphs implements ChartLayer {
   private readonly band = [new Vector3(), new Vector3()];
   private readonly size: ReturnType<typeof glyphSizeUniforms>;
 
-  /** `atlas` from buildGlyphAtlas; several layers may share one. */
+  /**
+   * `atlas` from buildGlyphAtlas; several layers may share one.
+   * `roomFloor`: the least share of its height a glyph keeps for want of
+   * room (a squadron's symbol, which must never vanish at sea).
+   */
   constructor(
     field: TerrainField,
     atlas: GlyphAtlas,
     marks: readonly ShipMark[],
+    options: { roomFloor?: number } = {},
   ) {
     this.atlas = atlas;
     const n = marks.length;
@@ -340,6 +355,7 @@ export class Glyphs implements ChartLayer {
       iStyle: new Float32Array(n * 4),
       iFit: new Float32Array(n * 4),
       iForm: new Float32Array(n * 4),
+      iMore: new Float32Array(n * 4),
     };
     this.order = new Int32Array(n);
     this.depth = new Float32Array(n);
@@ -360,6 +376,7 @@ export class Glyphs implements ChartLayer {
       );
       this.data.iFit.set([...roomOf(m.room), m.spacing ?? 0], i * 4);
       this.data.iForm.set([0, 0, cell, 0], i * 4);
+      this.data.iMore.set([m.berth ?? 0, 0, 0, 0], i * 4);
       this.order[i] = i;
     });
 
@@ -373,7 +390,7 @@ export class Glyphs implements ChartLayer {
     }
     ships.instanceCount = n;
     // One set of size uniforms, shared by both materials.
-    this.size = glyphSizeUniforms(field, atlas.aspect);
+    this.size = glyphSizeUniforms(field, atlas.aspect, options.roomFloor);
     const common = {
       ...field.uniforms,
       ...this.size,

@@ -173,8 +173,10 @@ export class Chart {
     private readonly options: ChartOptions,
   ) {
     this.terrain = new Terrain(field);
-    this.terrain.cdlod.hasLand = landIndex(lowres);
-    this.scene.add(this.terrain.mesh, this.sky.mesh);
+    const land = landIndex(lowres);
+    this.terrain.cdlod.hasLand = land.any;
+    this.terrain.allLand = land.all;
+    this.scene.add(this.terrain.mesh, this.terrain.inland, this.sky.mesh);
     this.camera.up.set(0, 0, 1);
     this.quality = new QualityLadder((level) => this.applyQuality(level));
     if (options.quality !== undefined) this.quality.force(options.quality);
@@ -208,6 +210,11 @@ export class Chart {
   /** GPU memory a layer holds outside three's own accounting, bytes. */
   addGpuBytes(bytes: number): void {
     this.extraGpuBytes += bytes;
+  }
+
+  /** Measurement only: whether the water writes the sea's depth (Terrain.setSeaDepth). */
+  setSeaDepth(on: boolean): void {
+    this.terrain.setSeaDepth(on);
   }
 
   setLight(a: LightId, b: LightId, t: number): void {

@@ -188,7 +188,7 @@ export function Scene02Road() {
             window.__road = {
               ready: true,
               stats: s.chart.stats,
-              sample: (p: number) => s.sample(p),
+              sample: (p: number, mode?: number) => s.sample(p, mode),
             };
           };
           start().catch((error: unknown) => {
@@ -251,7 +251,10 @@ declare global {
       ready: boolean;
       stats: import("@/components/chart").ChartStats;
       /** Draws the scene at p and reads back its glyphs (RoadStage.sample). */
-      sample: (p: number) => { fleets: Float32Array; squadrons: Float32Array };
+      sample: (
+        p: number,
+        mode?: number,
+      ) => { fleets: Float32Array; squadrons: Float32Array };
     };
   }
 }

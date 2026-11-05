@@ -254,6 +254,7 @@ export function ChartLab() {
           stats: chart.stats,
           ready: true,
           labels: () => lettering.snapshot(),
+          seaDepth: (on: boolean) => chart.setSeaDepth(on),
           bench: async (frames, p) => {
             if (p !== undefined) jump(p);
             held = true;
@@ -319,6 +320,8 @@ declare global {
        * the GPU and the CPU, for development (scripts/dev/bench.mjs).
        */
       bench?: (frames: number, p?: number) => Promise<BenchResult>;
+      /** Measurement only: the water writes the sea's depth, or not. */
+      seaDepth?: (on: boolean) => void;
     };
   }
 }

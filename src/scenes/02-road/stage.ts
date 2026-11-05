@@ -9,9 +9,15 @@ import {
   Rivers,
   Route,
 } from "@/components/chart";
+import { readCoastKm } from "@/components/chart/glyphs/coast";
 import { GlyphProbe } from "@/components/chart/glyphs/probe";
 import { ROAD_FLIGHT } from "./camera";
-import { fleetMarks, RoadDirector, squadronMarks } from "./director";
+import {
+  fleetMarks,
+  RoadDirector,
+  SQUADRON_ROOM_FLOOR,
+  squadronMarks,
+} from "./director";
 import { GLYPH_TYPES } from "./fleets";
 import { GAZETTEER } from "./gazetteer";
 import { NELSON, VILLENEUVE } from "./routes";
@@ -30,7 +36,10 @@ export interface RoadStage {
    * Draws the scene at p and reads back every glyph as drawn (GlyphProbe),
    * both fleets ship by ship, then the squadrons: for tests and tuning.
    */
-  sample(p: number): { fleets: Float32Array; squadrons: Float32Array };
+  sample(
+    p: number,
+    mode?: number,
+  ): { fleets: Float32Array; squadrons: Float32Array };
   /** Sets the chart for progress p and draws a frame (gsap.ticker time). */
   draw(p: number, time: number): void;
   resize(width: number, height: number): void;
@@ -79,7 +88,9 @@ export async function createRoadStage(
     chart.addGpuBytes(atlas.gpuBytes);
     const fleets = new Glyphs(chart.field, atlas, fleetMarks());
     chart.add(fleets, fleets.wakes, fleets.ships);
-    const squadrons = new Glyphs(chart.field, atlas, squadronMarks());
+    const squadrons = new Glyphs(chart.field, atlas, squadronMarks(), {
+      roomFloor: SQUADRON_ROOM_FLOOR,
+    });
     chart.add(squadrons, squadrons.wakes, squadrons.ships);
     const lettering = new Lettering(chart.field, GAZETTEER);
     chart.add(lettering, lettering.batch, lettering.marks.mesh);
@@ -94,19 +105,42 @@ export async function createRoadStage(
       routes,
       legs,
     });
+    // Every ship's heading through beats 4 and 5, eased ahead of time.
+    await director.prepare(
+      () => new Promise<void>((resolve) => setTimeout(resolve, 0)),
+    );
+    options.signal.throwIfAborted();
+    // Each squadron's room along its way, read once from the chart. Without
+    // it (a GPU that can't read floats back) a squadron reads its room where
+    // it is, as before.
+    try {
+      await director.computeRooms((points) =>
+        readCoastKm(chart.renderer, chart.field, points),
+      );
+    } catch (error) {
+      options.signal.throwIfAborted();
+      console.warn("scene 2: squadron rooms not read ahead", error);
+    }
+    options.signal.throwIfAborted();
     let probes: [GlyphProbe, GlyphProbe] | null = null;
+    let sampled = Number.NaN;
     const stage: RoadStage = {
       chart,
       director,
-      sample(p) {
+      sample(p, mode = 0) {
         probes ??= [new GlyphProbe(fleets), new GlyphProbe(squadrons)];
-        director.apply(p);
-        chart.frame(performance.now() / 1000);
+        // Another mode at the same p reads the frame already drawn.
+        if (p !== sampled) {
+          director.apply(p);
+          chart.frame(performance.now() / 1000);
+          sampled = p;
+        }
         const read = (probe: GlyphProbe) =>
-          probe.read(chart.renderer, chart.camera).values.slice();
+          probe.read(chart.renderer, chart.camera, mode).values.slice();
         return { fleets: read(probes[0]), squadrons: read(probes[1]) };
       },
       draw(p, time) {
+        sampled = Number.NaN;
         director.apply(p);
         chart.frame(time);
       },

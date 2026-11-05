@@ -18,7 +18,12 @@ import { GLSL_GLYPH_HEIGHT } from "./height";
 /**
  * What the glyph shader makes of each ship this frame, read back for tests
  * and tuning: her foot on screen (device px from the bottom left), her
- * glyph's height (device px) and how much of it shows. The probe runs the
+ * glyph's height (device px) and how much of it shows (mode 0); how her
+ * height came about (mode 1: her room in km, the height the room allows,
+ * the camera's height over her distance, her height before the room); how
+ * she is drawn (mode 2: her facing, -1 to 1, her cell, the cell she turns
+ * into and how far); her wake and room as set (mode 3: wake, fixed room,
+ * how far the coast has taken over, the room's floor in km). The probe runs the
  * glyphs' own GLSL for the same instances and uniforms, one point per
  * ship into a float texture, so what it reports is what was drawn. Used to
  * sweep the scene and find any glyph that jumps, flickers or changes size
@@ -31,20 +36,28 @@ in vec4 iPos;
 in vec4 iStyle;
 in vec4 iFit;
 in vec4 iForm;
+in vec4 iMore;
 uniform float uPull;
 uniform float uCount;
+uniform float uMode;
 out vec4 vOut;
 ${GLSL_GLYPH_HEIGHT}
 void main() {
   vec3 base = vec3(iPos.xy, 0.0);
   float lead = length(base - cameraPosition);
-  float h = glyphHeight(iPos.xy, lead, iPos.w, iFit.xyz);
+  vec4 parts;
+  float h = glyphBerth(glyphHeightParts(iPos.xy, lead, iPos.w, iFit.xyz, parts), lead, iFit.y, iMore.x);
   vec3 foot = glyphFoot(base, iPos.z, lead, iForm.xy, h);
   vec3 w = foot + (cameraPosition - foot) * uPull;
   vec4 clip = projectionMatrix * viewMatrix * vec4(w, 1.0);
   vec2 px = (clip.xy / clip.w * 0.5 + 0.5) * uViewport;
   float alpha = iStyle.z * glyphShow(lead, h, iFit.w, iFit.y);
-  vOut = vec4(px, h, clip.w > 0.0 ? alpha : -1.0);
+  vec3 right = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]);
+  float facing = dot(vec2(sin(iPos.z), cos(iPos.z)), normalize(right.xy + 1e-6));
+  if (uMode > 2.5) vOut = vec4(iStyle.w, iFit.x, iFit.y, iFit.z);
+  else if (uMode > 1.5) vOut = vec4(facing, iStyle.x, iForm.z, iForm.w);
+  else if (uMode > 0.5) vOut = parts;
+  else vOut = vec4(px, h, clip.w > 0.0 ? alpha : -1.0);
   gl_Position = vec4((float(gl_InstanceID) + 0.5) / uCount * 2.0 - 1.0, 0.0, 0.0, 1.0);
   gl_PointSize = 1.0;
 }
@@ -69,15 +82,16 @@ export class GlyphProbe {
   private readonly target: WebGLRenderTarget;
   private readonly sorted: Float32Array;
   private readonly values: Float32Array;
+  private readonly material: ShaderMaterial;
 
   constructor(private readonly glyphs: Glyphs) {
     const n = glyphs.markCount;
     const g = new InstancedBufferGeometry();
     g.setAttribute("position", new BufferAttribute(new Float32Array(3), 3));
-    for (const name of ["iPos", "iStyle", "iFit", "iForm"] as const)
+    for (const name of ["iPos", "iStyle", "iFit", "iForm", "iMore"] as const)
       g.setAttribute(name, glyphs.ships.geometry.getAttribute(name));
     g.instanceCount = n;
-    const material = new ShaderMaterial({
+    this.material = new ShaderMaterial({
       glslVersion: GLSL3,
       vertexShader: VERTEX,
       fragmentShader: FRAGMENT,
@@ -86,9 +100,10 @@ export class GlyphProbe {
       uniforms: {
         ...glyphs.ships.material.uniforms,
         uCount: { value: n },
+        uMode: { value: 0 },
       },
     });
-    const points = new Points(g, material);
+    const points = new Points(g, this.material);
     points.frustumCulled = false;
     this.scene.add(points);
     this.target = new WebGLRenderTarget(Math.max(1, n), 1, {
@@ -103,10 +118,11 @@ export class GlyphProbe {
   }
 
   /** Reads this frame's glyphs; call right after the chart has drawn. */
-  read(renderer: WebGLRenderer, camera: Camera): GlyphSample {
+  read(renderer: WebGLRenderer, camera: Camera, mode = 0): GlyphSample {
     const n = this.glyphs.markCount;
     if (n === 0) return { values: this.values };
     const before = renderer.getRenderTarget();
+    this.material.uniforms.uMode.value = mode;
     renderer.setRenderTarget(this.target);
     renderer.render(this.scene, camera);
     renderer.readRenderTargetPixels(this.target, 0, 0, n, 1, this.sorted);

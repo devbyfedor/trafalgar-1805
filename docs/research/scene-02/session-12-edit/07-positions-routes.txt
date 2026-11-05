@@ -1,0 +1,147 @@
+@@@ The anchorage: "that ruling" given its file (a-v-merged-lead 13)
+<<<
+The 1.5–2 nm of that ruling would reach El Diamante at the WNW end.
+===
+The 1.5–2 nm that `research/scene-02/a-h2c.md` gives would reach El Diamante at the WNW end.
+>>>
+
+@@@ Outer and inner ships: the fairway (a-v-merged-lead 13)
+<<<
+in the fairway the same ruling keeps the anchored fleet out of, so it serves here as the harbour mouth instead.
+===
+in the fairway out of which `research/scene-02/a-h2c.md` keeps the anchored fleet, so it serves here as the harbour mouth instead.
+>>>
+
+@@@ Outer and inner ships: the midpoint (a-v-merged-lead 13)
+<<<
+The ruling's midpoint between the forts (36°30.7′ N 6°15.4′ W) falls on Natural Earth's coastline.
+===
+The midpoint between the forts that `research/scene-02/a-h2c.md` gives (36°30.7′ N 6°15.4′ W) falls on Natural Earth's coastline.
+>>>
+
+@@@ Not here: the notes' first centre (a-v-merged-h2 14)
+<<<
+- **Not here.** The first suggested centre, 36°33′ N 6°18′ W,
+===
+- **Not here.** The centre the research notes first gave (`research/scene-02/h2-boulogne-cadiz.md`, section 9.2), 36°33′ N 6°18′ W,
+>>>
+
+@@@ The harbour mouth (a-v-merged-h2 18)
+<<<
+- **The harbour mouth.** The passes between Las Puercas and El Diamante: 36°33.5′ N 6°17.4′ W, in 9–10 m today, 0.9 nm north-east of Las Puercas and 0.5 nm south of El Diamante (`research/scene-02/a-h2c.md`, H2-38b). Medium.
+===
+- **The harbour mouth.** The passes between Las Puercas and El Diamante: 36°33.5′ N 6°17.4′ W, in 9–10 m today, 0.9 nm north-east of Las Puercas, on the line of the modern El Diamante buoys and about 0.4–0.5 nm south of the shoal's shallow core (`research/scene-02/a-h2c.md`, H2-38b; `research/scene-02/a-v-draft-h2.md`, A1). Medium.
+>>>
+
+@@@ The main fleet: the diary's print named (a-v-merged-lead 7)
+<<<
+between the diary's "Cadiz bearing E.S.E. by compass, distance sixteen leagues" (36°33′ N 7°18′ W) and the noon log,
+===
+between the diary's 16 leagues ESE by compass (36°33′ N 7°18′ W; Hudson 1917, p. 23; Beatty 1807, p. 97) and the noon log,
+>>>
+
+@@@ The main fleet: the chase signal and the courses steered (a-v-merged-h2 3)
+<<<
+The fleet lay to, then chased in the SE quarter by compass, about 114° true (the courses steered are in the relay table). Medium.
+===
+The fleet lay to, then made the general chase in the SE quarter (the SE compass flag; SE by compass is about 114° true), steering E by S, then SE by E by compass, about 80° then 103° true (Walker, NRS II 323; the Téméraire's log in Corbett 1910, p. 333 n. 1; see the relay table). Medium.
+>>>
+
+@@@ Where this differs from scene 1 (decisions 1 and 2, texts of a-v-merged-h2; a-v-merged-h2 19)
+<<<
+It adds the British spread, Africa's place and the British heading at first light (the chart draws them on 047° true, the course after bearing up, some 20–30 minutes after scene 1's sunrise).
+===
+It adds the British formation, Africa's place and the British heading at first light (the chart draws them on 047° true, the course after bearing up, some 20–30 minutes after scene 1's sunrise: a deliberate licence, the owner's decision).
+>>>
+
+@@@ Where this differs from scene 1: the spacing (decision 1; a-v-merged-h2 19)
+<<<
+so the night tracks are drawn loosely and end on the dawn positions. The lab opens the spacing within each fleet a few times over the true distances, as it draws the glyphs larger than true scale, so that the ships read one by one from the Gulf. Its combined line runs about 16 nm, 36°00′–36°16′ N, its northern glyph 4.8 nm off the chart's coast near Conil. Its British are spread over about 11 nm north to south, the southern pair 6–8 nm from the Victory. That is a licence. The sources give a line nearly five miles long (James III 389), its northern end about 7–9 nm off the coast by the British reckoning and 18–24 nm by the French. The logs put single British ships 3–4 nm from the Victory at 4 a.m. and say nothing of how far apart the two groups were. Medium.
+===
+so the night tracks are drawn loosely and end on the dawn positions. Both fleets stand at their true spacing (the owner's decision, 1 November 2026): a line nearly five miles long (James III 389), its northern end about 7–9 nm off the coast by the British reckoning and 18–24 nm by the French, and single British ships 3–4 nm from the Victory at 4 a.m.; the logs say nothing of how far apart the two British groups were. Scene 1's brief table gives the courses after bearing up, ENE and E by N by compass, as "about NE then ENE true"; worked with 21° W they are about 047° and 058° true, NE and NE by E (`research/dawn-setting.md`, F-27). Medium.
+>>>
+
+@@@ Boulogne: Outreau low (a-v-merged-h2 17)
+<<<
+all fall on the chart's land. Medium for the places, low for the flotilla's layout.
+===
+all fall on the chart's land. Medium for the places, low for the left camp at Outreau (an uncited Wikipedia page) and for the flotilla's layout.
+>>>
+
+@@@ What the chart draws (a-v-merged-h2 14; decisions 1, 2 and 4; a-v-merged-lead, licence 2)
+<<<
+- **What the chart draws now.** The lab shows two moments at once with six ships for each; the full scene gives each its beat and the counts of "Fleet sizes at each stage". At anchor (10–19 October), all heading 294° true: five in the outer bay along the line above, from 36°34.0′ N 6°17.0′ W to 36°33.6′ N 6°15.6′ W, the outermost (an 80) at 36°33.7′ N 6°17.2′ W, and one 74 at the outer end of the narrows, 36°31.0′ N 6°15.2′ W. At dawn on 21 October: the Victory at 36°08′ N 6°28′ W with three 98s and two 74s, between 36°00.5′ and 36°11.4′ N, 6°25′–6°31′ W, all on 047° true; the combined fleet, its flagship the Bucentaure (an 80) near the centre at 36°09.6′ N 6°14.4′ W and five more from 36°00′ to 36°16′ N, 6°12′–6°15′ W, on 183–192° true. Each glyph is drawn larger than true scale and kept to the open water beyond it, so that none stands on the chart's shore (`docs/decisions.md`). Medium for the anchorage line, low for single glyphs; the dawn spacing and the British heading are licences (see "Assumptions and licences").
+===
+- **What the chart draws.** Each moment has its own beat and the count of "Fleet sizes at each stage". At anchor (10–19 October), all heading 294° true: the main group along the line above, the outermost ships at its WNW end, and a few ships at the outer end of the narrows (see "The anchorage, 10–19 October" and "Outer and inner ships"). At dawn on 21 October both fleets stand at their true spacing (the owner's decision, 1 November 2026): the Victory about 36°08′ N 6°28′ W with the British in loose order in two groups strung north to south, single ships a few miles from her and the Africa apart to the north, all on 047° true; the combined fleet in its ragged line about 5 nm long north to south, centred about 36°09′ N 6°14′ W, 9–12 nm east of the Victory, its northern end 7–9 nm off the coast by the British reckoning, heading about south. Seen from the view of the whole Gulf each fleet may show only its flagships (see "Assumptions and licences", 3); the scene's last frame, looking east-north-east into the sunrise from west of the British, comes close enough for the formation to read (see "Assumptions and licences", 1). Each ship's place within her fleet is an estimate (see "Assumptions and licences", 7). Each glyph is drawn larger than true scale and kept to the open water beyond it, so that none stands on the chart's shore (`docs/decisions.md`, "No glyph stands on the shore"). Medium for the layout, low for single glyphs; the British heading is a licence (see "Assumptions and licences", 1).
+>>>
+
+@@@ How they are drawn: anchorages (September passage, D1)
+<<<
+the Cádiz channel, Dunnose and Spithead). Elsewhere the lines pass Cape Finisterre at 6.7 nm, Cape St Vincent at 8.7, São Miguel's north coast
+===
+the Cádiz channel, Dunnose, Spithead and St Helens road). Elsewhere the lines pass Cape Finisterre at 6.7 nm, Cape St Vincent at 6.1 on the September line and 8.7 on the others, São Miguel's north coast
+>>>
+
+@@@ How they are drawn: the September line's closest (September passage, D1)
+<<<
+come within 2 nm of Europa Point and Punta Carnero only in the mouth of Gibraltar Bay. Natural Earth lacks
+===
+come within 2 nm of Europa Point and Punta Carnero only in the mouth of Gibraltar Bay; the September line passes the Eddystone at 2.8 nm and the coast by Dartmouth at 2.9 (drawn curve). Natural Earth lacks
+>>>
+
+@@@ How they are drawn: rocks Natural Earth lacks (September passage, D1)
+<<<
+the Columbretes, the Isla de Sancti Petri, the Las Puercas reef and Diamond Rock,
+===
+the Columbretes, the Isla de Sancti Petri, the Eddystone, Wolf Rock, the Seven Stones, the Farilhões, the Las Puercas reef and Diamond Rock,
+>>>
+
+@@@ How they are drawn: every route drawn (decision 6: Nelson's track to Spithead "as now", and completed)
+<<<
+Only the Toulon–Cádiz line is drawn now; the others are data for the full scene (`research/scene-02/routes-draft.json`, with the corrections of `research/scene-02/a-v-draft-h1.md`, rulings 1, 2, 11 and 16).
+===
+The scene draws every route from these data: `research/scene-02/routes-draft.json`, with the corrections of `research/scene-02/a-v-draft-h1.md`, rulings 1, 2, 11 and 16, and Nelson's September leg, `research/scene-02/nelson-september.json`.
+>>>
+
+@@@ Toulon to Cádiz: heading without "drawn now" (decision 6; a-v-merged-lead, notes for the editor)
+<<<
+- **Toulon to Cádiz (drawn now).** Table A
+===
+- **Toulon to Cádiz.** Table A
+>>>
+
+@@@ Toulon to Cádiz: the anchorage of 10–19 October (a-v-merged-h1 4)
+<<<
+not the outer-bay berth of August to October;
+===
+not the outer-bay anchorage of 10–19 October;
+>>>
+
+@@@ Toulon to Cádiz: islands Natural Earth has (a-v-merged-h1 3)
+<<<
+Islands Natural Earth lacks (curve): Hormigas 8.4, Isla Grosa 13.4, Tabarca 18.3, Isla de Benidorm 13.2, Columbretes 19.6, Isla de Sancti Petri 4.3, Las Puercas 3.2; Alborán 5.4 and Perejil 3.1.
+===
+Islands Natural Earth lacks (curve): Hormigas 8.4, Isla Grosa 13.4, Tabarca 18.3, Isla de Benidorm 13.2, Columbretes 19.6, Isla de Sancti Petri 4.3, Las Puercas 3.2. Islands it has (curve): Alborán 5.4, Perejil 3.1.
+>>>
+
+@@@ Toulon to Cádiz: where the curve departs most; the squadron (a-v-merged-h1 3; a-v-merged-lead, notes for the editor)
+<<<
+The curve departs at most 4.4 nm from the straight legs, off Barcelona. Three glyphs, an 80 and two 74s, sail at its drawing head for Villeneuve's eleven.
+===
+The curve departs at most 4.4 nm from the straight legs, on the leg of 2–3 April between Barcelona and the Columbretes. Villeneuve's eleven sail at its drawing head as a squadron (see "Assumptions and licences", 3).
+>>>
+
+@@@ Ferrol to Cádiz: the end point (a-v-merged-h1 4)
+<<<
+The line enters Cádiz bay by the channel between Las Puercas and the El Diamante shoal, 0.1–0.2 nm from the buoys and 0.4 nm from Las Puercas, to the anchorage's centre (`research/scene-02/a-h2c.md`, H2-36d; see "Positions on the chart"). Low.
+===
+The line enters Cádiz bay by the channel between Las Puercas and the El Diamante shoal, 0.1–0.2 nm from the buoys and 0.4 nm from Las Puercas, and ends at the centre of the anchorage of 10–19 October (`research/scene-02/a-h2c.md`, H2-36d; see "Positions on the chart"). That is an estimate for the evening of 20 August, when the fleet anchored in Cádiz road (James III 375); where the ships lay at first, the Argonauta between the Puntal and Matagorda forts, is under "Into the roadstead". Low.
+>>>
+
+@@@ Nelson, Portsmouth to Cádiz (September passage, D2; decision 6)
+<<<
+The detour to Tetuan (22–23 July) and back to Tarifa (25 July) is left out. Medium.
+===
+The detour to Tetuan (22–23 July) and back to Tarifa (25 July) is left out. Medium.
+- **Nelson, Portsmouth to Cádiz.** Nelson's diary from the manuscript (Hudson 1917, pp. 15–19), with the Victory's log extracts and his letters (Nicolas VII 35–53); the table is in `research/scene-02/h6-september.md`, section 3, as corrected in `research/scene-02/v-h6-september.md`. Twenty-two points run from Spithead, where the Ushant line ends, to the Victory's position at 8 p.m. on 28 September. Sixteen rest on the sources' own places: St Helens road; off Christchurch, Portland, Berry Head (four miles), Plymouth and Lagos Bay; the noon latitudes of 23, 24 and 28 September; and seven bearings: the Lizard north, Scilly NE 27 leagues, Cape Finisterre abreast at 17 leagues, the Rock of Lisbon SSE 10 and NNE 13–14 leagues, Cape St Vincent SE by S 6 leagues, and San Sebastián light E by N 5–6 leagues. Every bearing is read by compass with gufm1's 21–25° W, the out-of-sight Scilly reckoning included, since Nelson gave his own out-of-sight reckoning of 19 October by compass (Hudson pp. 22–23); read as true, the Scilly point would lie 35 nm WNW. "Abreast" of Finisterre is read as the cape due east, on the beam of a ship running south. The noon latitude of the 23rd may be 42°02½′ rather than 42°25′. Longitudes are estimated except where a bearing gives them, and so are the offings where a place is named without a distance. Five estimated points take the line out of St Helens road on the log's SSE by compass and round the Isle of Wight, Start Point, the Eddystone and Cape St Vincent; the Spithead point carries the hour of Nelson's arrival at Portsmouth, as the ship already lay at St Helens. Between the Décade and Finisterre (20–23 September) no position exists, and the line runs straight. Checked like the others: no point, segment or drawn curve touches land, and all keep 2 nm or more off the coast except at Spithead and St Helens road. Closest are the Isle of Wight off Shanklin at 2.3 nm, the Eddystone 2.8, the coast by Dartmouth 2.9 (curve), Bolt Head 3.0, Start Point 3.4, Sagres 3.7, Cape St Vincent 6.1 and Cabo da Roca 12.2. The line ends where the Victory lay at 8 p.m., south-west by west of Cádiz and in sight of it, not at the fleet's later station. High for the dates, medium for the line, low for the offings.
+>>>

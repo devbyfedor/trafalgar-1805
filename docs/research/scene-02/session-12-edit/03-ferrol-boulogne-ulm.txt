@@ -1,0 +1,69 @@
+@@@ To A Coruña: the two Spaniards named (a-v-merged-h1, "Also noticed", optional)
+<<<
+the 13 French anchored at A Coruña and the two Spaniards went on into Ferrol.
+===
+the 13 French anchored at A Coruña and the two Spaniards, the Argonauta and Terrible, went on into Ferrol.
+>>>
+
+@@@ The turn, 15 August: 13 August without quotation marks (a-v-merged-lead 6)
+<<<
+and his print of the same letter on p. 103 reads "13 août"; both are slips
+===
+and his print of the same letter on p. 103 reads 13 August; both are slips
+>>>
+
+@@@ The turn, 15 August: Corbett rejects the staff map (a-v-merged-h1 8)
+<<<
+Desbrière's staff map has the fleet near 44°40′ N 12°25′ W;
+===
+Desbrière's staff map has the fleet near 44°40′ N 12°25′ W, which Corbett rejects as too far north for a fleet that was off Cádiz eighty hours after the turn (p. 261 n.);
+>>>
+
+@@@ Collingwood: his phrase paraphrased (a-v-merged-lead 7)
+<<<
+with the frigate Endymion and the bomb Thunder, "only three poor things with a frigate and a bomb", as he wrote next day (Corbett 1910, p. 270).
+===
+with the frigate Endymion and the bomb Thunder, a force he described next day as a poor one (Corbett 1910, p. 270).
+>>>
+
+@@@ After: Desbrière paraphrased (a-v-merged-lead 6)
+<<<
+the Dragon and Goliath among them, "ralliés en route", as Cornwallis's orders intended
+===
+the Dragon and Goliath among them, joining him on the way, as Cornwallis's orders intended
+>>>
+
+@@@ The army: figures for their own dates (a-v-merged-h2 11)
+<<<
+Napoleon's own round figure was 150,000 men and 10,000 horses (Corr. XI No. 9209). High.
+===
+Napoleon's own round figure was 150,000 men and 10,000 horses (Corr. XI No. 9209). Other figures are right for their own dates: the craft at Étaples, Boulogne, Wimereux and Ambleteuse could carry 120,000 men and 10,000 horses by Napoleon's count of 2 July 1804 (Corr. IX No. 7832), and the table of July 1805 was to carry 163,645 men, 16,783 of them seamen, and 9,059 horses (James III, App. 27, from Dumas; `research/scene-02/h2-boulogne-cadiz.md`, H2-03). High.
+>>>
+
+@@@ What the crossing needed: the editors' date (a-v-merged-h2 20)
+<<<
+and, looking back, fifteen days (13 September) (Corr. IX–XI;
+===
+and, looking back, fifteen days (13 September, a date the editors supply) (Corr. IX–XI;
+>>>
+
+@@@ The decision, 22–26 August: Bernadotte, then James's 22nd (a-v-merged-h2 11 and 10)
+<<<
+(Corr. XI Nos. 9117, 9120; No. 9120 is misprinted "23 mai").
+===
+(Corr. XI Nos. 9117, 9120; No. 9120 is misprinted "23 mai"). The same day he ordered a force of about 10,000 under Bernadotte to gather at Göttingen (No. 9119). James (III 332) dates Berthier's letter to Marmont the 22nd and quotes it, from Dumas, with another condition: if the fleets could not reach the Channel.
+>>>
+
+@@@ Why east: Napoleon's figures for the army (a-v-merged-h2 11)
+<<<
+On the 25th he wrote that Austria's preparations had suspended his embarkation (No. 9130).
+===
+On the 25th he wrote that Austria's preparations had suspended his embarkation (No. 9130). His figures for the army he would bring varied with the reader: 200,000 in Germany (to Talleyrand, 23 and 25 August), 300,000 (for Marmont, 23 August) and "plus de 100,000" in Bavaria (to the King of Prussia, 23 August); none is a return (`research/scene-02/a-h2a.md`, R20).
+>>>
+
+@@@ How many: sixteen generals (a-v-merged-h2 13)
+<<<
+and 30,000 in the 8th.
+===
+and 30,000 with 16 generals in the 8th (the Austrian eyewitness also has 16).
+>>>

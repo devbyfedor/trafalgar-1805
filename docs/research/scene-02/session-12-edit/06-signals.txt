@@ -1,0 +1,96 @@
+@@@ Popham's telegraph: confidence at the end, split (a-v-merged-h3 15)
+<<<
+- **Popham's telegraph.** A diagonal red and white flag announced a message, one hoist per word or phrase from Popham's numbered vocabulary (1803). Issued to ships of the line from 1803; in September 1805 the Admiralty decided every ship, cruisers included, should carry it (Corbett 1910, pp. 298–301). High. Which half was red is disputed: Popham says only "a diagonal red and white flag" (1803, p. 6), Perrin white and red, Wilson red over white and Kent white over red, and Barraclough found both in contemporary books (all via FOTW); invisible at chart scale.
+===
+- **Popham's telegraph.** A diagonal red and white flag announced a message, one hoist per word or phrase from Popham's numbered vocabulary (1803). Issued to ships of the line from 1803; in September 1805 the Admiralty decided every ship, cruisers included, should carry it (Corbett 1910, pp. 298–301). Which half was red is disputed: Popham says only "a diagonal red and white flag" (1803, p. 6), Perrin white and red, Wilson red over white and Kent white over red, and Barraclough found both in contemporary books (all via FOTW); invisible at chart scale. High for the code, medium for the flag's colours.
+>>>
+
+@@@ Night lights: the blue light's source named (a-v-merged-lead 12)
+<<<
+blue lights, or Bengal lights, are taken to burn alike, with a bluish-white glare (inference from period compositions).
+===
+blue lights, or Bengal lights, are taken to burn alike, with a bluish-white glare (inference from period compositions: *Encyclopaedia Britannica*, 1778, "Pyrotechny").
+>>>
+
+@@@ Night lights: firework colour (a-v-merged-h3 9)
+<<<
+Rockets threw gold sparks, strong colours coming only after about 1811 (Physics World; RSC).
+===
+Rockets threw gold sparks; strong colours came only after about 1811, with chlorate compositions (Physics World; Lancaster 2012, RSC).
+>>>
+
+@@@ Relay table, 6.04: Corbett paraphrased (a-v-merged-lead 6)
+<<<
+| NRS II 160; Corbett 1910, p. 333 ("six o'clock"); the Sirius's log enters it under its "At 4" watch heading | High |
+===
+| NRS II 160; Corbett 1910, p. 333 (six o'clock); the Sirius's log enters it under its "At 4" watch heading | High |
+>>>
+
+@@@ Relay table, 7.20: Corbett paraphrased (a-v-merged-lead 6)
+<<<
+Corbett's "in ten minutes" (7.10) has no support in the logs | High |
+===
+Corbett's ten minutes later (7.10) has no support in the logs | High |
+>>>
+
+@@@ How long: Blackwood's telegraph down the chain (a-v-merged-h3 10)
+<<<
+- **How long.** About 2½ hours on the logged clocks: 7.00 by the Euryalus, 9.30 by the Victory. Blackwood wrote "within two hours"; Browne's 10 a.m. makes three;
+===
+- **How long.** About 2½ hours on the logged clocks: 7.00 by the Euryalus, 9.30 by the Victory. Blackwood wrote "within two hours" in a letter of that day, written while he was "talking to Lord Nelson" by Popham's telegraph, his frigates repeating it along the chain (Nicolas VII 131 n.; the Euryalus's telegraph messages to and from the Naiad, 10.20 a.m. to 1.50 p.m., NRS II 161–164); Browne's 10 a.m. makes three;
+>>>
+
+@@@ The night chain: the Pickle (a-v-merged-h3 1)
+<<<
+The logs put the Euryalus and Sirius by the enemy, the Phoebe and Naiad between. High.
+===
+The logs put the Euryalus and Sirius by the enemy and the Phoebe and Naiad between. The schooner Pickle, sent to Cape Spartel on the 19th, was with the fleet again by the afternoon of the 20th; from 5.40 p.m. she repeated the Sirius's signals to the fleet, and she kept company with the Sirius until midnight (NRS II 146, 317; Nicolas VII 135 n.). High.
+>>>
+
+@@@ Dark and light: the enemy's own guns sourced (a-v-merged-h3 14)
+<<<
+with rockets, flares and guns of its own (stern and top lights and rockets: Prigny, Desbrière 1907, annexes p. 139; flares: Lucas, Fraser 1906, p. 92; six miles: Fraser 1906, p. 95). High.
+===
+with rockets, flares and guns of its own (stern and top lights, rockets, and guns and lanterns for the admiral's signal at midnight: Prigny, Desbrière 1907, annexes p. 139; signals with guns and rockets at 7.40 p.m.: the Sirius, Nicolas VII 134 n.; flares: Lucas, Fraser 1906, p. 92; six miles: Fraser 1906, p. 95). High.
+>>>
+
+@@@ How the chart shows the signals: framing line (a-v-merged-h3 12)
+<<<
+### How the chart shows the signals
+
+**By day: the relay of 19 October (beat 4).**
+===
+### How the chart shows the signals
+
+What beats 4 and 5 are to show, and why. The two tables at the end give the positions the sources support; the scene places its glyphs from them.
+
+**By day: the relay of 19 October (beat 4).**
+>>>
+
+@@@ Day geometry: the Defence–Mars gap (a-v-merged-h3 11)
+<<<
+(the Defence–Mars gap about 15.5 nm, inside masthead range;
+===
+(the Defence–Mars gap about 15.7 nm, inside masthead range;
+>>>
+
+@@@ One link: what is logged and what is not (a-v-merged-h3 5)
+<<<
+Hoists stay up until the Victory answers, so lit links accumulate westward, then come down as the answer runs back (the rules; not logged that day). Medium.
+===
+Hoists stay up until the Victory answers, so lit links accumulate westward, then come down as the answer runs back. Neither is logged on the 19th: the held hoists follow the rules, and the counted puffs follow the counted guns the Euryalus logged with her signals on the 20th (NRS II 165, 167), while along the chain the records of the 19th have only guns fired by the Phoebe and by a ship seen from the fleet (NRS II 146, 312, 322; see "Assumptions and licences"). Medium.
+>>>
+
+@@@ Night geometry: the Pickle with the Sirius (a-v-merged-h3 1)
+<<<
+the Sirius 4 nm WSW of it, then the Phoebe, Naiad, Defence, Colossus and Mars,
+===
+the Sirius 4 nm WSW of it with the schooner Pickle in company, then the Phoebe, Naiad, Defence, Colossus and Mars,
+>>>
+
+@@@ Later inventions: firework colour (a-v-merged-h3 9)
+<<<
+Vivid red or green fireworks are wrong too: before about 1811 firework colours were weak reds and yellows at most (Physics World; RSC). Medium.
+===
+Vivid red or green fireworks are wrong too: before about 1811 firework colour was weak at most, pale reds and yellows by *Physics World*, faint greens and reds by the RSC (Lancaster 2012). Werrett (2015) argues that early modern manuals already gave a variety of recipes for coloured fire and that the later stress on colour comes from writers of the Chemical Revolution; the French remarks on the colour of the British fires are read under "Night lights". Medium.
+>>>

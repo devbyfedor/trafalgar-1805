@@ -1,0 +1,69 @@
+@@@ intro: September passage, h6 notes, the section's own checks (lead, optional note; decision 6)
+<<<
+Ferrol and Cádiz, Napoleon's turn east to Ulm, Nelson's watch on Cádiz, the sortie, the signals and the names on the chart. They come from the research notes in `research/scene-02/` (`h1-campaign.md`, `h2-boulogne-cadiz.md`, `h3-signals.md`, `h4-names.md`), their independent checks (`v-*.md`) and the adjudications of every contested verdict (`a-*.md`), which are the final word on the points they rule on; `research/scene-02/README.md` says what each file is.
+===
+Ferrol and Cádiz, Napoleon's turn east to Ulm, Nelson's return to the fleet in September and his watch on Cádiz, the sortie, the signals and the names on the chart. They come from the research notes in `research/scene-02/` (`h1-campaign.md`, `h2-boulogne-cadiz.md`, `h3-signals.md`, `h4-names.md`, `h6-september.md`), their independent checks (`v-*.md`) and the adjudications of every contested verdict (`a-*.md`), which are the final word on the points they rule on; the checks of this section as a whole and the rulings on them are `v-merged-*.md` and `a-v-merged-*.md`. `research/scene-02/README.md` says what each file is.
+>>>
+
+@@@ brief row 1 (a-v-merged-h1 9)
+<<<
+| Villeneuve breaks out of Toulon on 29 or 30 March | He weighed at about 4 p.m. on 30 March (Reille, the *Atlas*'s log, his letter of 9 germinal; Nelson: "in the night of Saturday, March 30th"). 29 March is James's slip in converting the Republican date, copied by Clowes | 30 March 1805 | High |
+===
+| Villeneuve breaks out of Toulon on 29 or 30 March | He weighed at about 4 p.m. on 30 March (Reille, the Atlas's log, his letter of 9 germinal; Nelson: "in the night of Saturday, March 30th"). 29 March is James's slip in converting the Republican date, copied by Clowes | 30 March 1805 | High |
+>>>
+
+@@@ brief row 2 (a-v-merged-h1 9; a-v-merged-lead 6)
+<<<
+| He collects Spanish ships at Cádiz and crosses to Martinique | A stop of about six hours on the night of 9–10 April (Corbett: "less than four hours"). Of 18 ships of the line nominally together, 14 crossed in company; three Spaniards met him at Martinique on 14 May and the *San Rafael* on the 16th | 14 glyphs on the crossing, 18 at Martinique | High |
+===
+| He collects Spanish ships at Cádiz and crosses to Martinique | A stop of about six hours on the night of 9–10 April (Corbett: under four hours). Of 18 ships of the line nominally together, 14 crossed in company; three Spaniards met him at Martinique on 14 May and the San Rafael on the 16th | 14 glyphs on the crossing (4 more sailing apart if the stragglers are drawn), 18 at Martinique | High |
+>>>
+
+@@@ brief row 4, beat 2 (a-v-merged-h1 10; a-v-merged-lead, decision 6)
+<<<
+| Beat 2: "races back for the Channel"; Nelson "follows him across the Atlantic and back" | Decrès's dispatch of 29 April, with the Emperor's orders of 14 April (both brought by the *Didon*), and Villeneuve's decision of 10 June sent him back to Ferrol first, to gather the ships there before Brest and the Channel (Desbrière 1907, pp. 30–34, 41–42). Homeward the tracks parted: Villeneuve went north of the whole Azores group for Ferrol; Nelson went south of the western and central Azores and through the group, north of São Miguel, to Cape St Vincent and Gibraltar (19 July), then north to Ushant (15 August), and never caught up | Villeneuve's line heads for Ferrol; Nelson's runs south of it to Gibraltar; the captions can keep the plan's aim | High |
+===
+| Beat 2: "races back for the Channel"; Nelson "follows him across the Atlantic and back" | Decrès's dispatch of 29 April, with the Emperor's orders of 14 April (both brought by the Didon), and Villeneuve's decision of 10 June sent him back to Ferrol first, to gather the ships there before Brest and the Channel (Desbrière 1907, pp. 30–34, 41–42). Homeward the tracks parted: Villeneuve went north of the whole Azores group for Ferrol; Nelson went south of the western and central Azores and through the group, north of São Miguel, to Cape St Vincent and Gibraltar (19 July), then north to Ushant (15 August) and Spithead (18 August), and never caught up. He sailed again from St Helens on 15 September and joined the fleet off Cádiz on the 28th | Villeneuve's line heads for Ferrol; Nelson's runs south of it to Gibraltar, and on in beat 3 to Ushant and Spithead and back to Cádiz in September (the owner's decision, 5 November 2026); the captions can keep the plan's aim, and "across the Atlantic and back" holds only loosely, since Nelson came home by another track | High |
+>>>
+
+@@@ brief row 9, flotilla (decision 5; a-v-merged-lead 8 with a-v-merged-h2 9)
+<<<
+On the chart's coastline the Liane basin is land | Instanced rigged craft in the road off the harbour mouth; the caption may say "invasion craft" | High for the designs and the count, low for the layout in August 1805 |
+===
+On the chart's coastline the Liane basin is land | Instanced rigged craft in the road off the harbour mouth; the caption says "invasion craft" (the owner's decision, 5 November 2026) | High for the designs, medium for the rigs as built and for the count (right for 20 July 1805), low for the layout in August 1805 |
+>>>
+
+@@@ brief row 10, gives up on England (a-v-merged-h2 10)
+<<<
+| Napoleon abandons the invasion; beat 3: "gives up on England" | He put it off "à une autre année" (23 August), leaving troops and the flotilla at Boulogne as a standing threat. He decided on 23–26 August, before he knew Villeneuve was in Cádiz |
+===
+| Napoleon abandons the invasion; beat 3: "gives up on England" | On 23 August he had Marmont told that if the fleet were held at Cádiz he would put the crossing off "à une autre année" (Corr. XI No. 9120), and he left troops and the flotilla at Boulogne as a standing threat. He decided on 23–26 August, before he knew Villeneuve was in Cádiz |
+>>>
+
+@@@ brief row 11, Ulm confidence (a-v-merged-h2 9)
+<<<
+| 20 October on the date line; "lays down its arms" is exact, "surrenders" defensible; never 19 October | High |
+===
+| 20 October on the date line; "lays down its arms" is exact, "surrenders" defensible; never 19 October | High for the dates, medium for the number |
+>>>
+
+@@@ brief row 12, in the harbour, confidence (a-v-merged-h2 9)
+<<<
+a few of them in the narrows (see "Positions on the chart") | Medium for the description, low for the coordinates |
+===
+a few of them in the narrows (see "Positions on the chart") | High for the roadstead and the narrows, medium for the layout, low for the coordinates |
+>>>
+
+@@@ brief row 13, caption (a-v-merged-h3 8; decision 3)
+<<<
+| Beat 4 caption: "linked to the coast by a chain of frigates" | Frigates held only the Cádiz end; the chain itself was ships of the line (Defence, Colossus, Mars, with the Agamemnon stationed by the Defence) | Caption: "a chain of frigates and ships of the line", or "a chain of warships" at the same length; frigate glyphs inshore, ships of the line beyond | High |
+===
+| Beat 4 caption: "linked to the coast by a chain of frigates" | Frigates held the Cádiz end: the Euryalus and Sirius off the port, the Phoebe and Naiad sent out to repeat; the links beyond them were ships of the line (Defence, Colossus, Mars, with the Agamemnon stationed by the Defence) (NRS II 145–146; diary of 14 October, Hudson 1917, p. 21; Beatty 1807, p. 6) | Caption: "a chain of frigates and ships of the line" (the owner's decision, 1 November 2026); frigate glyphs inshore, ships of the line beyond | High |
+>>>
+
+@@@ brief row 14, the chain lights up (a-v-merged-h3 7)
+<<<
+| The chain "lights up ship by ship when the combined fleet sails" | The relay of 19 October ran in daylight, 7 to about 9.30, with flags, Popham's telegraph and guns (the Phoebe's three-minute guns; a ship "firing guns" seen from the fleet); counted guns with each hoist are logged only on the 20th. Only seven of the line got out that day. Lights, rockets and blue lights belong to the nights of 19–20 and 20–21 October, and the night chain was a different, short chain between the closing fleets | By day each link shows a hoist and white gun puffs, in pulses, never instant; "by half past nine", never "in minutes"; light effects only in the night beat | High for the sequence, medium for the duration |
+===
+| The chain "lights up ship by ship when the combined fleet sails" | The relay of 19 October ran in daylight, 7 to about 9.30, with flags and guns (the Phoebe's three-minute guns; a ship "firing guns" seen from the fleet); Popham's telegraph carried the Sirius's first report at 6.04 and later messages along the chain, from 10.20; counted guns with each hoist are logged only on the 20th. Only seven of the line got out that day. Lights, rockets and blue lights belong to the nights of 19–20 and 20–21 October, and the night chain was a different, short chain between the closing fleets | By day each link shows a hoist and white gun puffs, in pulses, never instant; "by half past nine" or "some two and a half hours later", never "in minutes" or "within two hours"; light effects only in the night beat | High for the sequence, medium for the duration |
+>>>

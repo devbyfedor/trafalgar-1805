@@ -1,0 +1,252 @@
+@@@ Doubts, Toulon to Cádiz: the sailing (a-v-merged-lead 5)
+<<<
+- **Toulon to Cádiz, 30 March to 10 April.** The first sighting on 31 March:
+===
+- **Toulon to Cádiz, 30 March to 10 April.** The sailing: 30 March (Reille, the Atlas's log, Villeneuve's letter of 9 germinal; Nelson) or 29 March (James III 339, his conversion slip; Clowes). The first sighting on 31 March:
+>>>
+
+@@@ Doubts, Toulon to Cádiz: Adkin (a-v-merged-lead 5)
+<<<
+Nicolas's chronology; Mahan for Gibraltar; Adkin; James, copied by Clowes);
+===
+Nicolas's chronology; Mahan for Gibraltar; Adkin, as Wikipedia cites him; James, copied by Clowes);
+>>>
+
+@@@ Doubts, Toulon to Cádiz: Corbett paraphrased (a-v-merged-lead 6)
+<<<
+or "less than four hours" (Corbett p. 68).
+===
+or under four hours (Corbett p. 68).
+>>>
+
+@@@ Doubts, the orders the Didon brought (a-v-merged-lead 3)
+<<<
+- **The orders the Didon brought.** Decrès's dispatch of 29 April with a copy of the Emperor's orders of 14 April (Desbrière pp. 31–34; Villeneuve's letter of 1 June); accounts that speak of "Napoleon's orders of 29 April" run the two together. She reached Martinique on 29 May (Mahan), 30 May (Reille), 31 May (Corbett) or 1 June (James).
+===
+- **The orders the Didon brought.** Decrès's dispatch of 29 April, with a copy of the Emperor's orders of 14 April (Desbrière pp. 31–34; Villeneuve's letter of 1 June). The 35-day wait came from the Emperor's orders; the dispatch pressed the attack on the islands, and its postscript of 1 May the return to Ferrol in any case (see "The plan"). She reached Martinique on 29 May (Mahan), 30 May (Reille), 31 May (Corbett) or 1 June (James).
+>>>
+
+@@@ Doubts, the crossing: Desbrière paraphrased (a-v-merged-lead 6)
+<<<
+10 June (Corbett; Desbrière's "dès le 10 juin") or 11 June (Villeneuve's letter dated at sea; Desbrière's "mettait à la voile le 11 juin"); James has "the 9th or 10th".
+===
+10 June (Corbett; Desbrière, who has the borrowed troops in the frigates by the 10th) or 11 June (Villeneuve's letter dated at sea; Desbrière once has him sailing that day); James has "the 9th or 10th". Martinique reached on 14 May (Villeneuve's report, Desbrière 1907, pp. 25–26) or 13 May (James, his conversion slip; Clowes gives both).
+>>>
+
+@@@ Doubts, Nelson's pursuit: versions the body gives (a-v-merged-lead 5)
+<<<
+The Termagant off Tarifa on 25 July: 3.30 a.m. (Mahan; the log as read) or "four o'clock" (Nelson to Collingwood, VI 497).
+===
+The Termagant off Tarifa on 25 July: 3.30 a.m. (Mahan; the log as read) or "four o'clock" (Nelson to Collingwood, VI 497). The anchoring in the Gulf of Palmas: 26 March (the log, civil; Nicolas VI 374) or 27 March (James; Nicolas's chronology: the log date). Corbett has him at Ustica on 7 April, against his letters, which put him off Palermo on 9–10 April. In Gibraltar Bay on 6 May (the log) or 7 May (James: the log date). Off Cape St Vincent from the evening of 10 May (Corbett, on Hardy's postscript; not in the log) or only after weighing from Lagos at 9.10 a.m. on 11 May (the log); Knight's arrival on 11 May (the log) or 12 May (James, Clowes: the log date). His squadron: ten names (Nicolas VI 432 n.; Corbett p. 108), of which James and Clowes print nine. St John's Road, Antigua, on 12 June (the log) or 13 June (James, Clowes and the Decade's journal: log dates); Tetuan left on 23 July (the log) or "the 24th at noon" (James: the log date).
+>>>
+
+@@@ Doubts, Villeneuve's run home: Corbett paraphrased (a-v-merged-lead 6)
+<<<
+On 12 July the fleet was "within about 300 miles" of the coast west of Oporto (Corbett), about 365 nm on his chart.
+===
+On 12 July Corbett puts the fleet some 300 miles off the coast west of Oporto; his chart has about 365 nm.
+>>>
+
+@@@ Doubts, Cape Finisterre: Corbett paraphrased (a-v-merged-lead 6)
+<<<
+or "about east" for Ferrol (Corbett p. 196), 089° true by the 1805 variation.
+===
+or about east for Ferrol (Corbett p. 196); the two agree, since ESE by compass was 089° true by the 1805 variation.
+>>>
+
+@@@ Doubts, the turn south: Desbrière's dates without quotation marks (a-v-merged-lead 6)
+<<<
+"16 août" (Desbrière's narrative, p. 102), "13 août" (his print of the letter, p. 103)
+===
+16 August (Desbrière's narrative, p. 102), 13 August (his print of the letter, p. 103)
+>>>
+
+@@@ Doubts, the turn south: the staff map (a-v-merged-h1 8)
+<<<
+Desbrière's staff map puts the fleet near 44°40′ N 12°25′ W.
+===
+Desbrière's staff map puts the fleet near 44°40′ N 12°25′ W (rejected by Corbett, p. 261 n.).
+>>>
+
+@@@ Doubts, the turn south: the bearing paraphrased (a-v-merged-lead 7)
+<<<
+about 36°07′ N 6°32′ W if "Cádiz NE nine leagues" is by compass,
+===
+about 36°07′ N 6°32′ W if the bearing of Cádiz, NE nine leagues, is by compass,
+>>>
+
+@@@ Doubts, the British off Cádiz: Desbrière paraphrased (a-v-merged-lead 6)
+<<<
+with the Dragon and Goliath "ralliés en route", p. 109;
+===
+with the Dragon and Goliath joining on the way, p. 109;
+>>>
+
+@@@ Doubts, the British off Cádiz: Ajax and Thunderer (September passage, A)
+<<<
+Ajax and Thunderer joined Nelson off the Lizard (Nelson to Marsden) or off Plymouth (James, Beatty).
+===
+Ajax and Thunderer joined Nelson off the Lizard on 18 September (Nelson to Marsden, in the morning; his diary, at noon; Desbrière) or off Plymouth (James, Beatty).
+>>>
+
+@@@ Doubts, the British off Cádiz: the letter to Ball (a-v-merged-h2 1)
+<<<
+or 15–18 (a letter to Ball).
+===
+or 15–18 (to Ball, 11 October, Nicolas VII 111).
+>>>
+
+@@@ Doubts, the British off Cádiz: the Prince of Wales, the Donegal, the Royal Sovereign (a-v-merged-h2 6); then Nelson's September passage (September passage, F; a-v-merged-lead, decision 6)
+<<<
+On 18 October coast signals told Villeneuve that four of the line had left Gibraltar with a convoy (Desbrière p. 141); Louis had five (Austen).
+===
+On 18 October coast signals told Villeneuve that four of the line had left Gibraltar with a convoy (Desbrière p. 141); Louis had five (Austen). The Prince of Wales parted on the evening of 13 October (Beatty, pp. 5–6; Corbett p. 330; Desbrière p. 148 n.) or on the 14th (James III 383; Clowes V 128); the Victory's log enters it under "October 14th", a nautical day that began at noon on the 13th. The Donegal left for Gibraltar on 17 October (Nelson's diary, Beatty, p. 97; James III 383; Clowes V 128) or on the 18th (Beatty's narrative, p. 6, probably the log's nautical date). The Royal Sovereign joined on 8 October (Nelson, Nicolas VII 88 n., 107; Corbett p. 328); James (III 383) and Clowes (V 128) put her among the ships that joined between the 9th and the 13th (`research/scene-02/a-h2b.md`, H2-18, H2-18h).
+- **Nelson's September passage.** "27 leagues S.W. from Scilly" is drawn by compass; read as true it lies 35 nm WNW, and the mean of the two, as drawn for Cape Sicié, lies between them. The noon latitude of 23 September is drawn as 42°25′ N; the manuscript's "2′5" could be 42°02½′, which the six-hour run from Finisterre in a fresh beam gale would favour. Desbrière gives the San Sebastián bearing of the 28th at 8 a.m. (p. 147), the log at 8 p.m. The Euryalus was sent ahead at 4 p.m. on the 26th by the diary, James and Beatty, with a letter dated the 25th (Nicolas VII 49), or from off Cape St Vincent by Corbett (p. 317). Duff names the Euryalus among the ships that joined with Nelson (Nicolas VII 70 n.), although she had been sent ahead on the 26th. The Victory's own logs, read only in Nicolas's extracts, would settle these and give a latitude and longitude for every noon. When the Victory moved from the Motherbank to St Helens before 14 September is not recorded in the sources read; the line starts at Spithead so as to join the Ushant line. Low.
+>>>
+
+@@@ Doubts, Boulogne: the new ports (a-v-merged-lead 7)
+<<<
+Wimereux and Ambleteuse: both "new ports" Napoleon had built (Corr. IX No. 7832, 2 July 1804),
+===
+Wimereux and Ambleteuse: both new ports Napoleon had built ("deux nouveaux ports", Corr. IX No. 7832, 2 July 1804),
+>>>
+
+@@@ Doubts, Boulogne: the craft's rigs (a-v-merged-lead 5)
+<<<
+The modern figures of about 60,000 men at Boulogne and over 175,000 in the camps have no source.
+===
+The modern figures of about 60,000 men at Boulogne and over 175,000 in the camps have no source. The craft's rigs: bateaux canonniers and péniches lug-rigged (Desbrière, *Projets* III 90 and the plate facing it), or some gun-vessels schooner-rigged and the péniches mostly schuyts (James III 216–217).
+>>>
+
+@@@ Doubts, the turn east: the postponement (a-v-merged-h2 10)
+<<<
+- **The turn east and Ulm.** When Napoleon knew Villeneuve was in Cádiz:
+===
+- **The turn east and Ulm.** The postponement: on 23 August, if the fleet were held at Cádiz (No. 9120), or, in Berthier's letter to Marmont as James quotes it, on the 22nd, if the fleets could not reach the Channel (James III 332, from Dumas). When Napoleon knew Villeneuve was in Cádiz:
+>>>
+
+@@@ Doubts, Cádiz: the orders of 17 September and the council of war (a-v-merged-h2 4; a-v-merged-lead 5)
+<<<
+Rosily's instructions: 17 September (No. 9230) or the 18th (Desbrière's narrative).
+===
+Rosily's instructions: 17 September (No. 9230) or the 18th (Desbrière's narrative). The orders and the "pusillanimité" letter: 14 and 15 September (Nos. 9210, 9220), or one letter of 17 September (James III 378; Clowes V 128 dates the orders the same day). The council of war of 8 October: fourteen officers signed (Desbrière 1907, annexes 97–100), the Spanish brigadier Hore among them, whom Desbrière's narrative leaves out; the argument that the allied crews were unpractised was Escaño's (annexes 97–100) or Prigny's (Corbett p. 324).
+>>>
+
+@@@ Doubts, Cádiz: Rosily and the date line (a-v-merged-h2 2)
+<<<
+and Cádiz on 23 October (expected, Beurnonville) or by the 25th (his first letter from Cádiz); the date line shows 23–25 October 1805.
+===
+and Cádiz on 23 October (expected, Beurnonville) or by the 25th (his first letter from Cádiz), after the fleet had sailed; the date line, which ends at dawn on 21 October, does not show it.
+>>>
+
+@@@ Doubts, Cádiz: Corbett paraphrased (a-v-merged-lead 6)
+<<<
+"crowded up in the harbour" about 29 September (Corbett p. 318);
+===
+still packed in the harbour about 29 September (Corbett p. 318);
+>>>
+
+@@@ Doubts, the anchorage: the diary's print (a-v-merged-lead 7)
+<<<
+Nelson's "harbour's mouth",
+===
+Nelson's "Harbours Mouth",
+>>>
+
+@@@ Doubts, the anchorage: the Thémis paraphrased (a-v-merged-lead 7)
+<<<
+the Thémis mentions "the innermost ships" still at anchor on the 19th;
+===
+the Thémis reports the innermost ships still at anchor on the 19th (Desbrière 1907, annexes 273);
+>>>
+
+@@@ Doubts, the anchorage: the full path (a-v-merged-h2 15d)
+<<<
+The outermost ships are drawn 0.25 nm north-east of the point `a-h2c.md` (H2-36d) gives them,
+===
+The outermost ships are drawn 0.25 nm north-east of the point `research/scene-02/a-h2c.md` (H2-36d) gives them,
+>>>
+
+@@@ Doubts, the sortie: the Naiad's eleven (a-v-merged-h3 3)
+<<<
+nine (Prigny, from memory) and twelve (James and Nicolas, from the Euryalus's count of all sail).
+===
+nine (Prigny, from memory), eleven of the line at noon (the Naiad, from 11 or 12 miles off) and twelve (James and Nicolas, from the Euryalus's count of all sail).
+>>>
+
+@@@ Doubts, the combined fleet's night: Beatty's editions (a-v-merged-h2 15a)
+<<<
+it wore twice (Beatty, p. 10; Nicolas VII 136, after Beatty);
+===
+it wore twice (Beatty, p. 10 in both editions; Nicolas VII 136, after Beatty);
+>>>
+
+@@@ Doubts, the British 19–21 October: Beatty's editions (a-v-merged-h2 15b)
+<<<
+or 2 a.m. (Beatty's narrative, p. 11, against his own appendix);
+===
+or 2 a.m. (Beatty's narrative, p. 11 in both editions, against his own appendix);
+>>>
+
+@@@ Doubts, the relay: No. 108 at 7.10, Corbett paraphrased (a-v-merged-h3 6; a-v-merged-lead 6)
+<<<
+The Euryalus's repeat to the Phoebe: 7.20 by the logs; Corbett's "in ten minutes" (7.10) has no support.
+===
+The Euryalus's repeat to the Phoebe: 7.20 by the logs; Corbett's ten minutes later (7.10) has no support, and at 7.10 the Euryalus made only a general signal, No. 108, close nearer the Admiral (NRS II 160; R9).
+>>>
+
+@@@ Doubts, the relay: fifty miles (a-v-merged-lead 6)
+<<<
+"fifty miles" (Corbett and Mahan, rounding)
+===
+about fifty miles (Corbett and Mahan, rounding)
+>>>
+
+@@@ Doubts, the relay: by 3 (a-v-merged-lead 6)
+<<<
+3 p.m. (the diary; Nicolas VII 131) or "by three" (Corbett).
+===
+3 p.m. (the diary; Nicolas VII 131) or by 3 (Corbett).
+>>>
+
+@@@ Doubts, the relay: the British strength and Corbett's "easternmost" (a-v-merged-h3 6)
+<<<
+If the Victory's clock ran about 45 minutes slow on the 19th (an inference, R10), her 9.30 was about 10.15 local time, with the sun about 37° up rather than 32°.
+===
+If the Victory's clock ran about 45 minutes slow on the 19th (an inference, R10), her 9.30 was about 10.15 local time, with the sun about 37° up rather than 32°. The British strength: 27 of the line off Cádiz (Nicolas VII 130; Browne, NRS II 194; Cumby 1899, p. 718), 23–24 of them with Nelson; Walker's 26 under all sail after the chase signal (NRS II 323) is the low count (R7). Corbett (1910, p. 333) calls the Mars "Duff's easternmost ship"; the diary of 14 October and Beatty (1807, p. 7) put her at the fleet's end of the chain, and Corbett's own note puts the Defence and Agamemnon nearest Cádiz (p. 334 n. 2), so "easternmost" is a slip (`research/scene-02/v-h3b.md`, H3-17d).
+>>>
+
+@@@ Doubts, the night's signals: paraphrase (a-v-merged-lead 7)
+<<<
+meant "standing west"
+===
+meant that the enemy was standing to the westward
+>>>
+
+@@@ Doubts, signals: colours, books and ranges (a-v-merged-h3 4)
+<<<
+- **Signals: colours, books and ranges.** The 1804 values of the numeral flags (Perrin's Plate XIII) were not transcribed. Which half of Popham's telegraph flag was red: Popham names only "a diagonal red and white flag" (1803, p. 6); Perrin has white and red, Wilson red over white, Kent white over red, and Barraclough found both in contemporary books (all via FOTW). The hoists held along the chain until the Victory's answer ran back, the wear lights (two at the ensign staff, one at the bowsprit end) and the form of No. 31 (three guns and two lights, or a square of four lanterns) come from the 1799 rule books; no log of those days records them (R16, R25). All ranges are estimates: flag colours readable at about 4–11 nm, lanterns at 1–3 nm, blue lights at 5–14 nm (R21–R22).
+===
+- **Signals: colours, books and ranges.** The 1804 values of the numeral flags (Perrin's Plate XIII) were not transcribed, and the day *Signal Book* of 1799 was not read; numeral 1 of 1799 is plain red in the copy FOTW describes, yellow-red-yellow in Perrin. Which half of Popham's telegraph flag was red: Popham names only "a diagonal red and white flag" (1803, p. 6); Perrin has white and red, Wilson red over white, Kent white over red, and Barraclough found both in contemporary books (all via FOTW). The hoists held along the chain until the Victory's answer ran back come from Popham (1803, p. 6) and the *Signal-Book* of 1796; the wear lights (two at the ensign staff, one at the bowsprit end), the form of No. 31 (three guns and two lights, or a square of four lanterns) and the one-light answer come from the 1799 *Night Signals* (`research/scene-02/a-h3.md`, R16, R25). No log of 19–21 October records them, except that on the 20th the Agamemnon kept the signal up (NRS II 300). All ranges are estimates: flag colours readable at about 4–11 nm, lanterns at 1–3 nm, blue lights at 5–14 nm (`research/scene-02/a-h3.md`, R21–R22).
+>>>
+
+@@@ Doubts, dawn: the gap between the fleets and the line's orientation (a-v-merged-h2 7)
+<<<
+The Africa's position, Cape Trafalgar SE 8–9 leagues at 6 a.m., about 36°21′ N 6°30′ W, is low.
+===
+The Africa's position, Cape Trafalgar SE 8–9 leagues at 6 a.m., about 36°21′ N 6°30′ W, is low. The distance between the fleets at daylight runs from 6 to 12 nm in the sources: 10–12 from the Victory by her logs (9–10 at 8 a.m.), James and Browne, about 12 by Beatty, four leagues by the Neptune and the Britannia, 9 by the Belleisle and an officer quoted by Fraser, about 8 by Wheeler (1995), 6–7 by Collingwood, about 2½ leagues by Villeneuve, about three by the Algésiras and "dos leguas" by the Montañés, while Gravina's squadron, to windward and so nearer, had the British 4–5 miles off; the scene uses 9–12 nm from the Victory, as scene 1 does. The line ran NNE–SSW by compass by the British (the Victory's log; Corbett), south-east to north-west by Lucas of the Redoutable (Fraser 1906, p. 112) (`research/dawn-setting.md`, sections 1.1 and 7, doubts 1 and 7).
+>>>
+
+@@@ Doubts: the dawn licences go (decisions 1 and 2; a-v-merged-h2, the owner's decisions)
+<<<
+
+- **The chart's dawn licences (the owner's call).** The combined line: about 16 nm long on the chart (36°00′–36°16′ N), its northern glyph 4.8 nm off the chart's coast near Conil; in the sources nearly 5 miles long (James III 389), its northern end about 7–9 nm off the coast by the British reckoning and 18–24 nm by the French (Dumanoir, the Scipion). The British spread: about 11 nm north to south on the chart, the southern pair 6–8 nm from the Victory; in the logs single ships 3–4 nm from her at 4 a.m. (the Mars, the Ajax), and nothing on how far apart the two groups were. The British heading: 047° on the chart, against N by E (about 350° true) at first light and sunrise in the Victory's log. See "Assumptions and licences".
+===
+>>>
+
+@@@ Doubts, not consulted first-hand (a-v-merged-lead 5; September passage, doubts)
+<<<
+- **Not consulted first-hand.** Tofiño's own plan of Cádiz (only Faden's English copy of 1797); the Victory's master's log for 1–21 October (ADM 52); the Spanish official report in full; the treaties of the Third Coalition and Britain's part in it.
+===
+- **Not consulted first-hand.** Tofiño's own plan of Cádiz (only Faden's English copy of 1797); the Victory's master's log for 1–21 October (ADM 52); her captain's log for September (ADM 51/4514), which reportedly gives a noon latitude and longitude for every day, and the private master's log Thomas Atkinson kept from 19 September (Pembroke College, Oxford); modern biographies and histories (Sugden, Knight, Adkins); the Spanish official report in full; the treaties of the Third Coalition and Britain's part in it; Adkin's *Trafalgar Companion* (2005), known only as Wikipedia cites it; the *Précis des événements militaires*, known only as James quotes it (III 375).
+>>>

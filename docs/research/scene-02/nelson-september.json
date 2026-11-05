@@ -2,80 +2,80 @@
   "id": "nelson-september",
   "title": "Nelson, Portsmouth to the fleet off Cádiz, 14 to 28 September 1805",
   "confidence": "medium",
-  "note": "Table K. Nelson's private diary as printed from the manuscript (Hudson 1917, pp. 15-19), with the Victory's log extracts and his letters in Nicolas VII 35-53. The diary gives a place for almost every day: off Christchurch, Portland, Berry Head, Plymouth and the Lizard in the Channel; 27 leagues SW of Scilly (letter of 25 September); abreast of Cape Finisterre 17 leagues; noon latitudes on 23, 24 and 28 September; bearings of the Rock of Lisbon (25 and 26 September), Cape St Vincent (27 September, by compass) and San Sebastián light (the log, 8 p.m. on the 28th). Bearings are worked by compass with gufm1 variation for September 1805 (25° W in the Channel, 22.3° W off Lisbon, 21.7° W off Cape St Vincent, 21.2° W off Cádiz) unless they are reckonings from land out of sight (Scilly, Finisterre), which are read as true. No source gives a longitude; points marked est. keep the line clear of the coast or fill a day the sources leave blank. The Biscay crossing (20-23 September) has no position between the Décade and Finisterre and is drawn straight. Checked against Natural Earth 10m land and minor islands, and by hand against the Eddystone, the Manacles, Wolf Rock, the Seven Stones and the Berlengas: no point, straight segment or drawn curve touches land; all keep 2 nm or more off the coast except Spithead and St Helens road (anchorages; 0.7-1.2 nm). Closest approaches, straight / curve: the Isle of Wight between the Foreland and St Catherine's 2.4 / 3.7 nm; St Alban's Head 4.7 / 3.9; Portland Bill 6.0; Berry Head 4.2 / 4.3; Start Point 3.1 (straight), the coast by Dartmouth 2.9 (curve); Prawle Point and Bolt Head 3.0-3.2 / 3.7; the Eddystone 2.8 / 2.8; the Lizard 8.8; Cabo da Roca and Cascais 12.2 / 12.4; Cape St Vincent 6.1 / 6.3; the Algarve by Sagres 3.7 / 4.6; Cabo de Santa María 10.3; San Sebastián light 16.5 at the end. The curve departs up to 18 nm from the straight leg across the Bay of Biscay, in open sea.",
+  "note": "The table of research/scene-02/h6-september.md, section 3, as corrected in v-h6-september.md. Nelson's private diary as printed from the manuscript (Hudson 1917, pp. 15-19), with the Victory's log extracts and his letters in Nicolas VII 35-53. The sources give a place for almost every day: St Helens road; off Christchurch, Portland, Berry Head, Plymouth, the Eddystone and the Lizard in the Channel; 27 leagues SW of Scilly (letter of 25 September); abreast of Cape Finisterre 17 leagues; noon latitudes on 23, 24 and 28 September; the Rock of Lisbon (25 and 26 September), Cape St Vincent (27 September, by compass) and San Sebastián light (the log, 8 p.m. on the 28th). Every bearing is read by compass with gufm1's variation for September 1805 at the ship (24-25° W in the Channel, 25.2° W at the Scilly point, 22.3° and 21.9° W off the Rock of Lisbon, 21.7° W off Cape St Vincent, 21.2° W off Cádiz), the out-of-sight Scilly reckoning included: Nelson gave his own out-of-sight reckoning of 19 October 'by compass' (Hudson 1917, pp. 22-23). 'Abreast of Cape Finisterre' is read as the cape due east (true), on the beam of a ship running south. No source gives a longitude; points marked est. keep the line clear of the coast or follow a course the log gives. The Biscay crossing (20-23 September) has no position between the Décade and Finisterre and is drawn straight. Checked against Natural Earth 10m land and minor islands, and by hand against the Eddystone, Wolf Rock, the Seven Stones and the Farilhões, which Natural Earth lacks: no point, straight segment or drawn curve touches land; all keep 2 nm or more off the coast except Spithead and St Helens road (anchorages; 0.8-1.2 nm). Closest approaches to Natural Earth's coast, straight / curve: the Isle of Wight off Shanklin 2.3 / 3.7 nm; Anvil Point 4.8 / 4.2; Portland Bill 7.1 (6.0 from the light); Berry Head 4.2 / 4.3; Start Point 3.4 (straight; 3.1 from the light); the coast by Dartmouth 2.9 (curve); Bolt Head 3.0 / 3.7; the Eddystone 2.8 / 2.8; the Lizard 8.8; Wolf Rock 24 / 22; Cabo da Roca and Cascais 12.2 / 12.5; the Farilhões 21 / 22; Cape St Vincent 6.1 / 6.3; the Algarve by Sagres 3.7 / 4.6; Cabo de Santa María 11 / 9; San Sebastián light 16.5 at the end. The curve departs up to 11 nm from the straight legs across the Bay of Biscay, in open sea, and up to 2.2 nm elsewhere. Length of the straight legs about 1,160 nm.",
   "waypoints": [
     {
       "lon": -1.1,
       "lat": 50.765,
       "date": "14 September, 6 a.m.",
-      "note": "Spithead, the end of nelson-ushant-spithead. Nelson reached Portsmouth from Merton at about 6 a.m. (diary, Hudson 1917, p. 15; Nicolas VII 35). The Victory herself already lay at St Helens; when she moved there from Spithead and the Motherbank is not in the sources read."
+      "note": "Spithead, the end of nelson-ushant-spithead (anchorage). The date is Nelson's arrival at Portsmouth from Merton (diary, Hudson 1917, p. 15; Nicolas VII 35), used to start the line where the August line ends: the ship herself went from Spithead to the Motherbank on 18 August (Nicolas VII, Analysis, p. xxxi) and lay at St Helens by 14 September; when she moved there is not in the sources read (est.)."
     },
     {
       "lon": -1.05,
       "lat": 50.705,
       "date": "15 September, 8 a.m.",
-      "note": "St Helens road (anchorage; berth est.). 14 September: flag rehoisted at 11.30 a.m. (log, Nicolas VII 36); Nelson on board at 2 p.m. after embarking from the beach by the bathing machines (diary). 15 September: weighed at daylight with light northerly airs, anchored again at 6, weighed at 8 (diary); the log has '8, A.M., weighed and made sail to the S.S.E. Euryalus in company'."
+      "note": "St Helens road (anchorage; berth est.). 14 September: flag rehoisted at 11.30 a.m. (log, Nicolas VII 36; 'about noon' in Nelson to Marsden); Nelson on board at 2 p.m. after embarking from the beach by the bathing machines (diary, Hudson pp. 15-16; Nicolas VII 35 prints the 'two' as the hour he left the beach). 15 September: weighed at daylight with light northerly airs, anchored again at 6, weighed at 8 (diary); the log has '8, A.M., weighed and made sail to the S.S.E. Euryalus in company'."
     },
     {
-      "lon": -1,
-      "lat": 50.625,
-      "note": "est., east of the Foreland after making sail to the SSE"
+      "lon": -0.955,
+      "lat": 50.648,
+      "note": "est., 5 nm SE (true) of the berth: the log's course out of the road, SSE, read by compass with 24° W (Nicolas VII 36); keeps the line off the Foreland before the turn down-Channel"
     },
     {
       "lon": -1.3,
       "lat": 50.5,
-      "note": "est., south of St Catherine's Point"
+      "note": "est., south of St Catherine's Point (the same point as on nelson-ushant-spithead)"
     },
     {
       "lon": -1.76,
       "lat": 50.56,
       "date": "15 September, sunset (about 6.20 p.m.)",
-      "note": "off Christchurch at sunset (diary); est., about 9 nm south of Hengistbury Head. Light breezes all day, thick fog at night."
+      "note": "off Christchurch at sunset (diary, Hudson p. 16); est., about 9 nm south of Hengistbury Head. Light breezes all day, very foggy at night."
     },
     {
       "lon": -2.45,
       "lat": 50.41,
-      "note": "off Portland (letter to Davison, 16 September, 'Wind W.S.W.', Nicolas VII 38; Nicolas's chronology); hour not stated; est., about 6 nm south of the Bill, clear of the Race and the Shambles"
+      "note": "off Portland (letter to Davison, 16 September, 'Off Portland, Wind W.S.W.', Nicolas VII 38; Nicolas's chronology); hour not stated; est., about 6 nm south of the Bill, clear of the Race and the Shambles"
     },
     {
       "lon": -3.387,
       "lat": 50.374,
       "date": "16 September, evening",
-      "note": "off Berry Head 4 miles (diary); direction not stated, est. ESE. A letter went ashore that night in a Torbay boat (Nicolas VII 40)."
+      "note": "off Berry Head 4 miles (diary, Hudson p. 16); direction not stated, est. ESE. A letter went ashore that night in a Torbay boat (Nicolas VII 40)."
     },
     {
       "lon": -3.64,
       "lat": 50.13,
-      "note": "est., about 5 nm south of Start Point"
+      "note": "est., night of 16-17 September, about 5 nm south of Start Point; beating to the westward against a fresh westerly (diary)"
     },
     {
       "lon": -4.15,
       "lat": 50.235,
       "date": "17 September, 9 a.m.",
-      "note": "abreast of Plymouth (diary; letter 'off Plymouth ... Nine o'Clock in the Morning, Blowing fresh at W.S.W.', Nicolas VII 40); the Euryalus sent in to call the Ajax and Thunderer out of Cawsand Bay; est., about 5 nm south of Rame Head"
+      "note": "abreast of Plymouth (diary; letter 'off Plymouth ... Nine o'Clock in the Morning, Blowing fresh at W.S.W.', Nicolas VII 40); the Euryalus sent in to call the Ajax and Thunderer out of Cawsand Bay; est., about 5 nm SSE of Rame Head"
     },
     {
       "lon": -4.24,
       "lat": 50.1,
-      "note": "est., keeps the line 2.8 nm or more off the Eddystone (not in Natural Earth); all night standing to the westward, wind SW to SSW (diary)"
+      "note": "est., about 5 nm south of the Eddystone; a letter of the 17th is dated 'Off the Eddystone' (to Duckworth, Nicolas VII 43), and Duckworth saw him there from the shore (VII 43 n.); keeps the line 2.8 nm or more off the rock (not in Natural Earth). All night standing to the westward, wind SW to SSW (diary)."
     },
     {
       "lon": -5.104,
       "lat": 49.824,
       "date": "18 September, noon",
-      "note": "'Lizard North' (diary), by compass with 25° W; distance not stated, 9 nm assumed (est.). Lay to for the Ajax and Thunderer, which joined at noon (diary) or 'this morning ... off the Lizard' (Nelson to Marsden, Nicolas VII 45); James and Beatty say off Plymouth."
+      "note": "'Lizard North' (diary, Hudson p. 16), by compass with 25.1° W; distance not stated, 9 nm assumed (est.). Lay to for the Ajax and Thunderer, which joined at noon (diary) or 'this morning ... off the Lizard' (Nelson to Marsden, Nicolas VII 45); Desbrière (p. 146) also has the Lizard; James (III 379) and Beatty (1825, p. 1) say off Plymouth."
     },
     {
-      "lon": -7.798,
-      "lat": 48.929,
+      "lon": -7.036,
+      "lat": 48.622,
       "date": "20 September, about 2 p.m.",
-      "note": "'27 leagues S.W. from Scilly' (Nelson to Collingwood, 25 September, Nicolas VII 49; Desbrière 1907, p. 146), read as a true bearing from St Agnes; by compass it would be 48°37' N 7°02' W, 37 nm to the south-east. 11 a.m. passed Stirling's five of the line; 1.30 p.m. hove to for the Décade with Bickerton, 2.20 filled (log, Nicolas VII 46); the diary has 2 p.m., Beatty noon."
+      "note": "'27 leagues S.W. from Scilly' (Nelson to Collingwood, 25 September, Nicolas VII 49), read by compass from St Agnes with 25.2° W; read as a true bearing it would be 48°55.8' N 7°47.8' W, 35 nm WNW. Desbrière (p. 146) puts both of the day's meetings there. 11 a.m. passed Stirling's five of the line; 1.30 p.m. hove to for the Décade with Bickerton, 2.20 filled (log, Nicolas VII 46); the diary has her seen to windward at noon and spoken at 2, Beatty (p. 1) noon."
     },
     {
       "lon": -10.431,
       "lat": 42.877,
       "date": "23 September, 6 a.m.",
-      "note": "'abreast of Cape Finisterre 17 Lgs' (diary), the cape taken as due east; if east by compass, 42°32' N 10°20' W"
+      "note": "'abreast of Cape Finisterre 17 Lgs' (diary, Hudson p. 17), the cape taken as due east (true), on the beam of a ship running south; 'abreast' is not a compass bearing (if it were east by compass, 42°32' N 10°20' W)"
     },
     {
       "lon": -10.4,
@@ -87,25 +87,25 @@
       "lon": -10.1,
       "lat": 40.083,
       "date": "24 September, noon",
-      "note": "diary latitude 40°05' N; longitude est., on the line between the fixes either side, about 48 nm off the coast"
+      "note": "diary latitude 40°05' N (Hudson p. 18); longitude est., on the line between the fixes either side, about 48 nm off the coast"
     },
     {
       "lon": -9.953,
       "lat": 39.134,
       "date": "25 September, morning",
-      "note": "'Saw the Rock of Lisbon SSE 10 Leagues' (diary), by compass with 22.3° W (as a true bearing, 39°14.5' N 9°44.7' W); 'arrived off here this morning', calm all day (Nelson to Marsden, 5 p.m., Nicolas VII 50)"
+      "note": "'Saw the Rock of Lisbon SSE 10 Leagues' (diary, Hudson p. 18; hour not stated), by compass with 22.3° W (as a true bearing, 39°14.5' N 9°44.7' W); 'arrived off here this morning', calm all day (Nelson to Marsden, 5 p.m., Nicolas VII 50)"
     },
     {
-      "lon": -9.502,
+      "lon": -9.507,
       "lat": 38.106,
       "date": "26 September (hour not stated)",
-      "note": "'Rock of Lisbon in sight to the NNE 13-14 Lgs' (diary), by compass (as true, 38°09.4' N 9°49.6' W); light NW airs; at 4 p.m. the Euryalus sent ahead to Collingwood (diary)"
+      "note": "'Rock of Lisbon in sight to the NNE 13-14 Lgs' (diary, Hudson p. 18), by compass with 21.9° W (as true, 38°09.4' N 9°49.6' W); light NW airs; at 4 p.m. the Euryalus sent ahead to Collingwood (diary)"
     },
     {
       "lon": -9.307,
       "lat": 37.192,
       "date": "27 September, daylight",
-      "note": "'Cape St. Vincent SE b S by compass 6 Leagues' (diary), with 21.7° W; the sloop Nautilus, bound home with Collingwood's dispatches, met here and ordered to cruise off the cape (Nicolas VII 51-52)"
+      "note": "'Cape St. Vincent SE b S by compass 6 Leagues' (diary, Hudson p. 18), with 21.7° W; the sloop Nautilus, bound home with Collingwood's dispatches, met here and ordered to cruise off the cape (Nicolas VII 51-52)"
     },
     {
       "lon": -9.08,
@@ -116,19 +116,19 @@
       "lon": -8.62,
       "lat": 36.96,
       "date": "27 September, noon",
-      "note": "'abreast of Lagos Bay' (diary); distance not stated, est. about 8 nm south of Ponta da Piedade. Fresh NW breezes; brought to at 1 a.m. on the 28th, position not recorded."
+      "note": "'abreast of Lagos Bay' (diary, Hudson p. 19); distance not stated, est. about 8 nm SSE of Ponta da Piedade. Fresh NW breezes; brought to at 1 a.m. on the 28th, position not recorded."
     },
     {
       "lon": -6.9,
       "lat": 36.533,
       "date": "28 September, noon",
-      "note": "diary latitude 36°32' N, 'nine sail of ships of war bearing East' (Hudson 1917, p. 19; Beatty and Nicolas print only 'At noon saw eighteen sail'); longitude est., about 15 nm west of the joining. Eighteen sail at 1 p.m.; nearly calm."
+      "note": "diary latitude 36°32' N, 'nine sail of ships of war bearing East' (Hudson 1917, p. 19; Beatty and Nicolas print only 'At noon saw eighteen sail'); longitude est., about 17 nm WNW of the 8 p.m. position. Eighteen sail at 1 p.m.; nearly calm."
     },
     {
       "lon": -6.604,
       "lat": 36.38,
       "date": "28 September, 8 p.m.",
-      "note": "'At 8, St. Sebastian's Light-House bore E. b. N., distant five or six leagues' (Victory's log, Nicolas VII 53 n.), by compass with 21.2° W, 16.5 nm WSW of the light (15-18 nm for 5-6 leagues; as a true bearing, 36°28.4' N 6°39.1' W). She had joined Collingwood's fleet at 6 p.m. 'in steering-sails', within a few miles of this point; Cádiz in sight about fifteen miles off (Beatty, p. 3)."
+      "note": "'At 8, St. Sebastian's Light-House bore E. b. N., distant five or six leagues' (Victory's log, Nicolas VII 53 n., after the 6 p.m. entry), by compass with 21.2° W: 16.5 nm SW by W of the light (15-18 nm for 5-6 leagues; as a true bearing, 36°28.5' N 6°39.1' W). Desbrière (p. 147) has the same bearing at 8 a.m., for the main body. She had joined Collingwood's fleet at 6 p.m. 'in steering-sails', within a few miles of this point; Cádiz in sight about fifteen miles off (Beatty 1825, p. 2)."
     }
   ]
 }

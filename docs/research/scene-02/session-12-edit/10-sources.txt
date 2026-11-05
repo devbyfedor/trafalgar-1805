@@ -1,0 +1,115 @@
+@@@ Key sources, Desbrière: the Atlas in roman (a-v-merged-h1 9)
+<<<
+(Villeneuve, Reille, the *Atlas*'s tables, Escaño,
+===
+(Villeneuve, Reille, the Atlas's tables, Escaño,
+>>>
+
+@@@ Key sources, Desbrière: pp. 146–147 (September passage, G)
+<<<
+the turn, p. 112 n.: https://archive.org/details/la-campagne-maritime-de-1805/page/n137/mode/1up;
+===
+the turn, p. 112 n.: https://archive.org/details/la-campagne-maritime-de-1805/page/n137/mode/1up; Nelson's passage of September, pp. 146–147: https://archive.org/details/la-campagne-maritime-de-1805/page/n171/mode/1up;
+>>>
+
+@@@ Key sources, Corbett: September pages (September passage, G)
+<<<
+(chart: https://archive.org/details/campaignoftrafal00corb/page/n180/mode/1up; the relay, p. 333:
+===
+(chart: https://archive.org/details/campaignoftrafal00corb/page/n180/mode/1up; the Victory's variation in August, p. 261 n.: https://archive.org/details/campaignoftrafal00corb/page/n294/mode/1up; Blackwood at Merton, p. 278: https://archive.org/details/campaignoftrafal00corb/page/n311/mode/1up; Portsmouth, 14 September, p. 292: https://archive.org/details/campaignoftrafal00corb/page/n325/mode/1up; the Euryalus sent ahead, p. 317: https://archive.org/details/campaignoftrafal00corb/page/n352/mode/1up; the Cádiz signal stations, 28 September, p. 322: https://archive.org/details/campaignoftrafal00corb/page/n357/mode/1up; the relay, p. 333:
+>>>
+
+@@@ Key sources, Nicolas VII: September pages (September passage, G; a-v-merged-lead, decision 6)
+<<<
+vol. VII https://archive.org/details/dispatchesletter07nelsuoft (pp. 70–73:
+===
+vol. VII https://archive.org/details/dispatchesletter07nelsuoft (Analysis, p. xxxi: https://archive.org/details/dispatchesletter07nelsuoft/page/n34/mode/1up; the passage of September, pp. 35–36: https://archive.org/details/dispatchesletter07nelsuoft/page/n70/mode/1up; p. 38: https://archive.org/details/dispatchesletter07nelsuoft/page/n73/mode/1up; p. 40: https://archive.org/details/dispatchesletter07nelsuoft/page/n75/mode/1up; p. 43: https://archive.org/details/dispatchesletter07nelsuoft/page/n78/mode/1up; p. 46: https://archive.org/details/dispatchesletter07nelsuoft/page/n81/mode/1up; p. 49: https://archive.org/details/dispatchesletter07nelsuoft/page/n84/mode/1up; pp. 50–51: https://archive.org/details/dispatchesletter07nelsuoft/page/n85/mode/1up; p. 53: https://archive.org/details/dispatchesletter07nelsuoft/page/n88/mode/1up; p. 54: https://archive.org/details/dispatchesletter07nelsuoft/page/n89/mode/1up; pp. 70–73:
+>>>
+
+@@@ Key sources, NRS II: the Agamemnon and the Pickle (a-v-merged-h3 2, with 1 and 18)
+<<<
+- T. Sturges Jackson (ed.), *Logs of the Great Sea Fights 1794–1805*, vol. II (Navy Records Society, 1900): the frigates' logs and signal logs of 18–21 October: https://archive.org/details/logsofgreatseaf02jack (Euryalus, pp. 145–150: https://archive.org/details/logsofgreatseaf02jack/page/n162/mode/1up; signal log, p. 160: https://archive.org/details/logsofgreatseaf02jack/page/n177/mode/1up; Mars, p. 245: https://archive.org/details/logsofgreatseaf02jack/page/n262/mode/1up; Naiad, pp. 302–303: https://archive.org/details/logsofgreatseaf02jack/page/n319/mode/1up; Phoebe, p. 306: https://archive.org/details/logsofgreatseaf02jack/page/n323/mode/1up; Sirius, pp. 312–313: https://archive.org/details/logsofgreatseaf02jack/page/n329/mode/1up; Walker, pp. 322–323: https://archive.org/details/logsofgreatseaf02jack/page/n339/mode/1up)
+===
+- T. Sturges Jackson (ed.), *Logs of the Great Sea Fights 1794–1805*, vol. II (Navy Records Society, 1900): the frigates' logs and signal logs of 18–21 October: https://archive.org/details/logsofgreatseaf02jack (Euryalus, pp. 145–150: https://archive.org/details/logsofgreatseaf02jack/page/n162/mode/1up; signal log, p. 160: https://archive.org/details/logsofgreatseaf02jack/page/n177/mode/1up; Mars, p. 245: https://archive.org/details/logsofgreatseaf02jack/page/n262/mode/1up; Agamemnon, p. 300: https://archive.org/details/logsofgreatseaf02jack/page/n317/mode/1up; Naiad, pp. 302–303: https://archive.org/details/logsofgreatseaf02jack/page/n319/mode/1up; Phoebe, p. 306: https://archive.org/details/logsofgreatseaf02jack/page/n323/mode/1up; Sirius, pp. 312–313: https://archive.org/details/logsofgreatseaf02jack/page/n329/mode/1up; Pickle, p. 317: https://archive.org/details/logsofgreatseaf02jack/page/n334/mode/1up; Walker, pp. 322–323: https://archive.org/details/logsofgreatseaf02jack/page/n339/mode/1up)
+>>>
+
+@@@ Key sources, Hudson: September pages (September passage, G)
+<<<
+- G. Hudson (ed.), *Nelson's Last Diary* (1917), from the manuscript, pp. 21–24: https://archive.org/details/nelsonslastdiary00nelsuoft/page/n26/mode/1up;
+===
+- G. Hudson (ed.), *Nelson's Last Diary* (1917), from the manuscript: pp. 15–19, 13–28 September: https://archive.org/details/nelsonslastdiary00nelsuoft/page/n18/mode/1up (p. 18, the "[sic.]" latitude: https://archive.org/details/nelsonslastdiary00nelsuoft/page/n21/mode/1up); pp. 21–24: https://archive.org/details/nelsonslastdiary00nelsuoft/page/n26/mode/1up (pp. 22–23, the reckoning of 19 October by compass: https://archive.org/details/nelsonslastdiary00nelsuoft/page/n27/mode/1up);
+>>>
+
+@@@ Key sources, Beatty 1825: leaves corrected, p. 1 and p. 95 added (a-v-merged-lead 11; September passage, G)
+<<<
+(p. 2: https://archive.org/details/authenticnarrati00beat/page/n12/mode/1up; p. 10: https://archive.org/details/authenticnarrati00beat/page/n20/mode/1up; p. 97: https://archive.org/details/authenticnarrati00beat/page/n109/mode/1up)
+===
+(p. 1: https://archive.org/details/authenticnarrati00beat/page/n10/mode/1up; p. 2: https://archive.org/details/authenticnarrati00beat/page/n11/mode/1up; p. 10: https://archive.org/details/authenticnarrati00beat/page/n19/mode/1up; the diary in the appendix, p. 95: https://archive.org/details/authenticnarrati00beat/page/n106/mode/1up, and p. 97: https://archive.org/details/authenticnarrati00beat/page/n108/mode/1up)
+>>>
+
+@@@ Key sources: the Précis, after James (a-v-merged-lead 12)
+<<<
+A. T. Mahan, *The Life of Nelson*, vol. II (1897): https://www.gutenberg.org/ebooks/16915
+===
+A. T. Mahan, *The Life of Nelson*, vol. II (1897): https://www.gutenberg.org/ebooks/16915
+- *Précis des événements militaires*, vol. XII, p. 71, as James quotes and rejects it (III 375).
+>>>
+
+@@@ Key sources, Fraser: p. 22 (September passage, G); then Wheeler (a-v-merged-lead, notes for the editor)
+<<<
+- E. Fraser, *The Enemy at Trafalgar* (1906): https://archive.org/details/enemyattrafalgar00frasuoft (p. 29:
+===
+- E. Fraser, *The Enemy at Trafalgar* (1906): https://archive.org/details/enemyattrafalgar00frasuoft (p. 22: https://archive.org/details/enemyattrafalgar00frasuoft/page/n47/mode/1up; p. 29:
+>>>
+
+@@@ Key sources: Wheeler after Fraser (a-v-merged-lead, notes for the editor)
+<<<
+pp. 88–96: https://archive.org/details/enemyattrafalgar00frasuoft/page/n119/mode/1up)
+===
+pp. 88–96: https://archive.org/details/enemyattrafalgar00frasuoft/page/n119/mode/1up)
+- D. Wheeler, "El tiempo durante la batalla de Trafalgar (octubre 1805)", *Investigaciones Geográficas* 14 (1995), pp. 175–189: https://www.redalyc.org/pdf/176/17654243007.pdf
+>>>
+
+@@@ Key sources: Robinson after Cumby (a-v-merged-h3 13)
+<<<
+- W. P. Cumby, letter in *The Nineteenth Century* 46 (1899), pp. 718–719: https://archive.org/details/sim_twentieth-century_1899-11_46_273/page/n32/mode/1up
+===
+- W. P. Cumby, letter in *The Nineteenth Century* 46 (1899), pp. 718–719: https://archive.org/details/sim_twentieth-century_1899-11_46_273/page/n32/mode/1up
+- H. Robinson, *Sea Drift* (Portsea, 1858), p. 209, a midshipman of the Euryalus writing some fifty years later: https://archive.org/details/seadrift00robigoog/page/n217/mode/1up
+>>>
+
+@@@ Key sources: fireworks (a-v-merged-h3 9)
+<<<
+Royal Society of Chemistry, "Fire and light in the sky": https://edu.rsc.org/download?ac=13671; *Physics World*, "Whizz-bang science": https://physicsworld.com/a/whizz-bang-science/;
+===
+R. Lancaster, "Fire and light in the sky", *Education in Chemistry* (Royal Society of Chemistry, 1 September 2012): https://edu.rsc.org/feature/fire-and-light-in-the-sky/2020143.article; P. Thebault, "Whizz-bang science", *Physics World* (December 2018): https://physicsworld.com/a/whizz-bang-science/; S. Werrett, "Fireworks and color in the sixteenth and seventeenth century", *Early Science and Medicine* 20 (2015), pp. 458–477: https://doi.org/10.1163/15733823-02046p07 (accepted manuscript: https://discovery.ucl.ac.uk/id/eprint/1472417/);
+>>>
+
+@@@ Key sources, charts for the names: Knight, La Rochette (a-v-merged-lead 12)
+<<<
+Arrowsmith, *Chart of the West Indies* (1803): https://collections.leventhalmap.org/search/commonwealth:x633f878v
+===
+Arrowsmith, *Chart of the West Indies* (1803): https://collections.leventhalmap.org/search/commonwealth:x633f878v; J. Knight, *The Coasts of Portugal and Spain from Lisbon to Cape St Martin* (about 1795), BnF: https://gallica.bnf.fr/ark:/12148/btv1b53269571z; La Rochette's chart, published by Faden (1780): https://www.davidrumsey.com/luna/servlet/detail/RUMSEY~8~1~346004~90113492
+>>>
+
+@@@ Key sources, books for the names (a-v-merged-lead 12)
+<<<
+R. Brookes, *General Gazetteer*, 13th ed. (1807): https://archive.org/details/in.ernet.dli.2015.91219
+===
+R. Brookes, *General Gazetteer*, 13th ed. (1807): https://archive.org/details/in.ernet.dli.2015.91219; J. K. Tuckey, *Maritime Geography and Statistics*, vol. II (1815): https://archive.org/details/maritimegeograp09tuckgoog/page/n88; J. H. Moore, *The Practical Navigator* (1800): https://archive.org/details/bim_eighteenth-century_the-practical-navigator_moore-john-hamilton_1800; J. Walker, *The Universal Gazetteer* (1795): https://archive.org/details/bim_eighteenth-century_the-universal-gazetteer_walker-john_1795, and (1801): https://archive.org/details/universalgazette00walk_0; C. Cruttwell, *The New Universal Gazetteer* (1800): https://archive.org/details/bim_eighteenth-century_the-new-universal-gazett_cruttwell-clement_1800; *Encyclopaedia Britannica* (Edinburgh, 1810): https://archive.org/details/encyclopaediabri10edin
+>>>
+
+@@@ Key sources: modern pointers, then data and tools with ETOPO (a-v-merged-lead 12; September passage, G)
+<<<
+- Data and tools: Natural Earth 10m land and minor islands
+===
+- Modern pointers, cited only where the section says so: M. Adkin, *The Trafalgar Companion* (2005), as Wikipedia, "Trafalgar campaign", cites him: https://en.wikipedia.org/wiki/Trafalgar_campaign; Wikipedia, "Camp of Boulogne" (the uncited troop figures and the camp sites at Outreau and Terlincthun): https://en.wikipedia.org/wiki/Camp_of_Boulogne; Royal Museums Greenwich, "Battle of Trafalgar: background" (Nelson's leaving Portsmouth on 14 September): https://www.rmg.co.uk/stories/topics/battle-trafalgar-background
+- Data and tools: Natural Earth 10m land and minor islands
+>>>
+
+@@@ Key sources, data and tools: ETOPO (a-v-merged-lead 12)
+<<<
+read through Overpass: https://overpass-api.de/
+===
+read through Overpass: https://overpass-api.de/; NOAA, ETOPO 2022 global relief (the chart's heights and its 15″ tiles): https://www.ncei.noaa.gov/products/etopo-global-relief-model
+>>>

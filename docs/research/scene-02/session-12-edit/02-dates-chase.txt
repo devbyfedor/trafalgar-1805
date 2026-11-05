@@ -1,0 +1,62 @@
+@@@ James's one-day shift: Diamond Rock and Corvo (a-v-merged-h1 5)
+<<<
+Other dates in his French narrative are right: the San Rafael at Martinique on 16 May, Diamond Rock 29 May to 2 June, Basse-Terre 6 June, the convoy 8 June, Corvo 30 June; his 9 July for the gale
+===
+Other dates in his French narrative are right: the San Rafael at Martinique on 16 May, Diamond Rock 29 May to 2 June (the expedition sailed on the 29th and opened the attack on the 31st, III 349), Basse-Terre 6 June, the convoy 8 June, the five frigates rejoining on 30 June (the place he gives, about 20 leagues NE of Corvo, is doubtful; see "Open doubts"); his 9 July for the gale
+>>>
+
+@@@ The Atlas's tables: Desbrière's morning slip paraphrased (a-v-merged-lead 6)
+<<<
+His "7 h. 45 du matin" for the anchoring off Cádiz is a slip for the evening.
+===
+His 7.45 in the morning for the anchoring off Cádiz is a slip for the evening.
+>>>
+
+@@@ Bearings: Lisbon, the Channel, the Victory's own observations (September passage, E)
+<<<
+21° W off Cádiz, Cape St Vincent and São Miguel, 24° W at the Finisterre action and 25° W off Ushant, but 2½–3° E in the Lesser Antilles; with west variation, true = magnetic − variation. Positions worked from bearings say which reading they use. High for the model, medium for each worked position.
+===
+21° W off Cádiz, Cape St Vincent and São Miguel, 22° W off the Rock of Lisbon, 24° W at the Finisterre action, 25° W off Ushant and 24–25° W in the Channel, but 2½–3° E in the Lesser Antilles; with west variation, true = magnetic − variation. Positions worked from bearings say which reading they use. The Victory's own observations of mid-August 1805, 22°35′–23°15′ W between longitudes 11° and 18° W (Corbett 1910, p. 261 n.), lie 1–3½° below the model there. High for the model, medium for each worked position.
+>>>
+
+@@@ Cádiz, 9–10 April: Corbett paraphrased (a-v-merged-lead 6)
+<<<
+(Desbrière 1907, pp. 9–11; Corbett 1910, p. 68, has "less than four hours")
+===
+(Desbrière 1907, pp. 9–11; Corbett 1910, p. 68, has under four hours)
+>>>
+
+@@@ At Fort-de-France: split confidence (a-v-merged-h1 12)
+<<<
+James has the junction at sea, on the day the fleet sailed or the next (III 351). High, except the Didon's date and where Magon joined.
+===
+James has the junction at sea, on the day the fleet sailed or the next (III 351). High; low for the Didon's date, medium for where Magon joined.
+>>>
+
+@@@ Lagos and the bear-away: both readings of the bearing (a-v-merged-h1 13)
+<<<
+and at 6.50 p.m. bore up for the West Indies with Cape St Vincent NW by N 7 leagues, about 36°47′ N 8°41′ W (Nicolas VI 433; `research/scene-02/a-h1b.md`, S3-11MAY).
+===
+and at 6.50 p.m. bore up for the West Indies with Cape St Vincent NW by N 7 leagues: about 36°43′ N 8°45′ W if the bearing is true, 36°49′–50′ N 8°37′–38′ W by compass, so about 36°47′ N 8°41′ W, ±5 nm (Nicolas VI 433; `research/scene-02/a-h1b.md`, S3-11MAY).
+>>>
+
+@@@ Trinidad: the American off Tobago and Maurice's "Ferrol Squadron" (a-v-merged-h1 7)
+<<<
+- **Trinidad.** On a report from St Lucia that 28 sail had passed Gros Islet on the night of 28 May, Nelson embarked about 2,000 troops and sailed south at 9.30 a.m. on 5 June. Off Tobago at 6.10 p.m. on the 6th a schooner made, by chance, the signal for the enemy at Trinidad. On the 7th he went through the Bocas into the Gulf of Paria ready for battle and found nothing; at daylight on the 8th he learned the enemy had been at Martinique on the 4th (Nicolas VI 446–451). High.
+===
+- **Trinidad.** On a report from St Lucia that 28 sail had passed Gros Islet on the night of 28 May, Nelson embarked about 2,000 troops and sailed south at 9.30 a.m. on 5 June. Off Tobago at noon on the 6th he heard of an American ship, arrived the day before, that had been boarded by a French ship to windward of St Vincent three days earlier, the enemy standing south (Nelson to Marsden, 11 June, Nicolas VI 451; Corbett 1910, p. 162). Clarke and M'Arthur tell it differently: an American brig spoken by the Curieux had been boarded a few days before by the French fleet off Grenada, standing for the Bocas of Trinidad (Nicolas VI 448 n.). At 6.10 p.m. a schooner made, by chance, the signal for the enemy at Trinidad. On the 7th he went through the Bocas into the Gulf of Paria ready for battle and found nothing. At daylight on the 8th he learned the enemy had been at Martinique on the 4th. Maurice, late of Diamond Rock, also passed on the French commodore's word that a "Ferrol Squadron" of six French and eight Spanish ships had reached Fort Royal on 4 June; Nelson gave it little credit, and only Magon's two 74s had come (Nicolas VI 446–451; diary, VI 449). High; medium for the American's report.
+>>>
+
+@@@ North: the Channel fleet's strength (a-v-merged-h1 6)
+<<<
+On 15 August he joined Cornwallis off Ushant (24 of the line in sight at noon) and left him nine ships, then anchored with Victory and Superb at Spithead at 8.30 a.m. on 18 August and struck his flag on the 19th (Nicolas VII 4–8). High.
+===
+On 15 August he joined Cornwallis off Ushant and left him nine ships, then anchored with Victory and Superb at Spithead at 8.30 a.m. on 18 August and struck his flag on the 19th (Nicolas VII 4–8). The Victory counted 24 of the Channel fleet's ships of the line in sight at noon on the 15th (Nicolas VII 4). With Calder's ships, just rejoined, and Nelson's eleven, Cornwallis briefly had about 40 (Desbrière 1907, p. 88); once Nelson's flagship and the ships needing a refit had gone in, he had some 36 with his flag or on their way to it, besides the Dragon and Goliath, away to the south (Corbett 1910, p. 240). High; medium for the Channel fleet's strength.
+>>>
+
+@@@ Calder's fate: the evening of 13 October (a-v-merged-h1 1)
+<<<
+Nelson let him go home in his own flagship, which parted on 14 October by the Victory's log, so he missed Trafalgar. High.
+===
+Nelson let him go home in his own flagship, the Prince of Wales, which left the fleet on the evening of 13 October (Nelson to Marsden that day, Nicolas VII 120; Corbett 1910, p. 330), so he missed Trafalgar. The Victory's log enters the parting under the nautical "October 14th" (VII 121 n.), and James (III 383) and Clowes give the 14th. High.
+>>>

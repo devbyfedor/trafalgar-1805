@@ -1,0 +1,101 @@
+@@@ Assumptions and licences, items 1–3 (a-v-merged-lead: decisions 1, 2 and 4, issue 2)
+<<<
+1. **The British heading at the handoff.** The Victory's log has the fleet steering N by E by compass, about 350° true, at first light and at sunrise; it bore up after signal No. 76 at 6.50 by her clock to ENE, about 047° true, and steered E by N (058°) from 8 a.m. The chart draws the British on 047°, the course some 20–30 minutes after scene 1's sunrise, for continuity with scene 1's Victory sailing east (scene 1 keeps a stylised west-to-east view; `docs/decisions.md`, "The dawn fleets are spread out").
+2. **The dawn spacing.** The lab opens the spacing within each fleet a few times over the true distances, so that the ships read one by one from the Gulf: the combined line runs about 16 nm, its northern glyph 4.8 nm off the chart's coast, and the British spread over about 11 nm. The sources give a line nearly five miles long, 7–9 nm or more off the coast, and British ships 3–4 nm apart (see "Where this differs from scene 1"). The line's centre stays where the sources put it. Drawn to the true spacing, each fleet would show as one ship at the Gulf key; whether to tighten it is the owner's call.
+3. **Glyphs and counts.** Ships are glyphs drawn far larger than true scale, as a chart convention, and each is kept to the open water beyond it. The lab shows the anchorage of 10–19 October and the dawn of 21 October at once, with six ships for each; the full scene gives each moment its beat and its count.
+===
+1. **The British heading at the handoff.** The Victory's log has the fleet steering N by E by compass, about 350° true, at first light and at sunrise; it bore up after signal No. 76 at 6.50 by her clock to ENE, about 047° true, and steered E by N (058°) from 8 a.m. The chart draws the British on 047°, the course some 20–30 minutes after scene 1's sunrise, for continuity with scene 1's Victory sailing east (scene 1 keeps a stylised west-to-east view): a deliberate licence, the owner's decision of 1 November 2026. The scene's last frame looks east-north-east into the sunrise from west of the British, as scene 1 began (the owner's decision of 5 November 2026): the British in their two bodies in the foreground, bows to the left as they sail away toward the enemy on 047°, and the combined fleet's line strung across the water beyond them under the coast.
+2. **The dawn layout.** Both fleets stand at their true spacing, as "Dawn, 21 October" under "Positions on the chart" gives it (the owner's decision, 1 November 2026): the combined fleet's ragged line about 5 nm long north to south, its northern end 7–9 nm off the coast by the British reckoning; the British in two loose groups, single ships a few miles from the Victory, the Africa apart to the north. From the view of the whole Gulf each fleet may show only its flagships (item 3); the scene's last frame comes close enough for the formation to read (item 1). Each ship's place within her fleet is an estimate (item 7).
+3. **Glyphs and counts.** Ships are glyphs drawn far larger than true scale, as a chart convention, and each is kept to the open water beyond it, so that none stands on the chart's shore (`docs/decisions.md`, "No glyph stands on the shore"). The anchorage of 10–19 October and the dawn of 21 October each have their own beat and count (see "Fleet sizes at each stage"). Seen from far off, each group gives way to its lead: the other ships fade once they crowd together on screen, and the group's flagship stands for it, as a chart of a larger area shows a fleet by one ship (`docs/decisions.md`, "A group gives way to its lead"). At the routes' drawing heads a squadron is its lead glyph with the others in a compact formation astern, spaced on screen rather than as they sailed, so that its count reads at any zoom.
+>>>
+
+@@@ Assumptions and licences, items 7–11 (a-v-merged-lead 2, with a-v-merged-h3 2 and 16; decision 6)
+<<<
+7. **Estimated points.** Positions no source fixes are estimates inside the sources' range: the Toulon berth, the Atlas's longitudes for 4–8 April, the 4 p.m. point off Conil, the anchorage of 9 April, the Finisterre smoke, the bend of 15 August, the moorings of 10–19 October and every position of the night of 20–21 October.
+8. **Signals by the book.** The day relay holds each hoist until the Victory's answer runs back, and the night wears show two lights at the ensign staff and one at the bowsprit end. Both follow the 1799 rule books; no log of those days records them.
+9. **The Mars's distant signal.** The relay ends at the Mars with three dark shapes at three mastheads, on the word of one eyewitness writing years later (Cumby 1899, p. 719).
+===
+7. **Estimated points.** Positions no source fixes are estimates inside the sources' range: on the Toulon–Cádiz line, the Toulon berth, the Atlas's longitudes for 4–8 April, the points marked "est." (south of Cabo de Palos and of Cabo de Gata, through the Strait, the 4 p.m. point off Conil and the offing of Cádiz) and the anchorage of 9 April; the passages between the places named in the West Indies; the tracks between the named places on Villeneuve's way home and round Finisterre into Vigo and A Coruña; the line from Ferrol to Cádiz but for the Iris's fix of 14 August, with the bend of 15 August; Nelson's beat west in April and his passage of 15–28 September between the places his letters and diary name; the control points that keep curves off the coast (north of Capo San Vito, and at 37°58′ N 26°05′ W off São Miguel); the Finisterre smoke; the moorings of 10–19 October; the berths of Louis's ships at Gibraltar and Tetuan; the chain's single ships on 19 October; the British fleet's daybreak position on 20 October ("between Trafalgar and Cape Spartel"); every position of the night of 20–21 October; each ship's place within the two fleets at dawn on 21 October; and Boulogne's flotilla line and the left camp's site at Outreau.
+8. **Signals by the book.** Some of what the chart shows comes from the rule books, not from the logs of 19–21 October. By day each hoist stays flying until the Victory's answer runs back (Popham 1803, p. 6, and the *Signal-Book* of 1796; the day book of 1799 was not read). By night, from the 1799 *Night Signals*: No. 31 made as three guns and two lights, or near an enemy a square of four lanterns; two lights at each ship's ensign staff and one at her bowsprit end while the fleet wears; one light in answer to a signal. No log records hoists held down the chain on the 19th, though on the 20th the Agamemnon, ordered to repeat signals between the Euryalus and the Admiral, logged that she kept the signal up (NRS II 148, 300); no log of the night records the wear lights. The counted pairs or threes of gun puffs at each link on the 19th follow the counted guns the Euryalus logged with her signals on the 20th (NRS II 165, 167); along the chain on the 19th the records have only guns fired by the Phoebe and by a ship seen from the fleet (NRS II 146, 312, 322). The night's leading motif, two blue lights together every hour, is the half of Nelson's code for an enemy standing south, as the French reports have the combined fleet standing for most of the night; James has it standing north-west after 7.30 p.m. (see "Which half of the code").
+9. **The Mars's distant signal.** At the relay's last link the Mars shows first coloured flags the fleet cannot read, then three dark shapes at three mastheads (a flag, a ball and a pendant), on the word of one eyewitness writing years later (Cumby 1899, p. 719); no printed description of the Distant Signals of 1805 was found.
+10. **The army's march.** The dashed line from Boulogne to Ulm is a composite, labelled as the army: no single corps marched the whole of it. Boulogne to Donauwörth was the road of Soult's IV corps, from the Boulogne camps; Soult then turned south, and Ney's VI corps fought at Elchingen and took Ulm (see "The dashed line"; `research/scene-02/a-h2a.md`, R6).
+11. **Routes simplified.** A route keeps the positions that give its shape and drops those that would make it zigzag or double back, or that do not fit: on the crossing 8 and 11 May; on Villeneuve's way home both 19 June positions of the Curieux, James's 30 June point, the doubtful noon of 23 July and the 27 July letter's 40 leagues WSW of Finisterre; on Nelson's line 24 June, 4 and 6 July and 2, 4, 5 and 6 August; and Nelson's line in the Mediterranean starts at Pula. Short moves are left out: Nelson's detour to Tetuan and back to Tarifa (22–25 July), Villeneuve's stand towards Cape Prior after leaving Ferrol, the chase of Collingwood on 20 August, and the Victory's beating down the Channel against westerly winds on 16–18 September. The crossing has no day marks, and Villeneuve's homeward daily marks stop on 24 June (see "Routes on the chart").
+>>>
+
+@@@ Names intro: the files and the charts (a-v-merged-lead 13)
+<<<
+The chart sets the English forms (the site is in English), settled in `research/scene-02/a-h4.md` from `h4-names.md` and its check (`v-h4.md`), and upheld by the check of that ruling (`v-a-h4.md`) and the rulings on it (`a-v-a-h4.md`). They rest on the charts the adjudicators read: Faden's chart of Nelson's track (12 August 1807) first, then Heather's *Coast of Portugal* (1800),
+===
+The chart sets the English forms (the site is in English), settled in `research/scene-02/a-h4.md` with the corrections of `research/scene-02/a-v-a-h4.md`. They rest on the charts read for the names, among them Faden's chart of Nelson's track (12 August 1807), which the scene imitates, Heather's *Coast of Portugal* (1800),
+>>>
+
+@@@ Capes: points (a-v-merged-lead 15)
+<<<
+(Faden's Cape Geer, Cape Nun and Cape Bojador; Arrowsmith 1802; Laurie & Whittle's *Spain and Portugal*). Leaving out "The"
+===
+(Faden's Cape Geer, Cape Nun and Cape Bojador; Arrowsmith 1802; Laurie & Whittle's *Spain and Portugal*). Points are set as the charts name them: Start Pt. (Cary 1804's Start P.; Faden's bare Start would read as an instruction), the bare Lizard where the charts agree, and Europa Point and Rock of Lisbon spelled out as the period spelled them. Leaving out "The"
+>>>
+
+@@@ Four choices a visitor would notice (a-v-merged-lead 13)
+<<<
+- **Four forms changed when the names were settled.** "The Channel" to English Channel (Faden 1807; Heather's chart titles; Norie, Malham); "C. St Vincent" to C. St. Vincent; "Western Islands" to Azores or Western Islands (Laurie & Whittle 1794; Heather c. 1806), so that a visitor finds the Azores; "Martinico" to Martinique. The other thirty names on the chart stand, and the check of the ruling refuted none of the 34. West Indies, a region rather than a water, is set in roman like a land and fades out close up. High; medium for Martinique.
+===
+- **Four choices a visitor would notice.** The chart letters English Channel (Faden 1807; the chart titles in Heather's catalogue of 5 November 1806; Norie, Malham), not The Channel; C. St. Vincent, with the stop after "St." that the period printed; Azores or Western Islands (Laurie & Whittle 1794; Heather's catalogue), so that a visitor finds the Azores, not Western Islands alone; and Martinique, not Martinico. West Indies, a region rather than a water, is set in roman like a land and fades out close up. High; medium for Martinique.
+>>>
+
+@@@ The Channel: the catalogue (a-v-merged-lead 15)
+<<<
+English Channel: Faden 1807, Heather's chart titles of about 1806, Norie 1805 and Malham.
+===
+English Channel: Faden 1807, the chart titles in Heather's catalogue of 1806, Norie 1805 and Malham.
+>>>
+
+@@@ The Azores: the catalogue (a-v-merged-lead 15)
+<<<
+Azores or Western Islands: Laurie & Whittle 1794 and a Heather chart title of about 1806.
+===
+Azores or Western Islands: Laurie & Whittle 1794 and a chart title in Heather's catalogue of 1806.
+>>>
+
+@@@ Gulf of Cadiz: confidence (a-v-merged-lead 15)
+<<<
+The chart sets it on the open bight, as both period maps that name the water do.
+===
+The chart sets it on the open bight, as both period maps that name the water do. Medium for the extent.
+>>>
+
+@@@ West Indies: the catalogue (a-v-merged-lead 15)
+<<<
+Heather's catalogue of 5 November 1806, with a section for "the West Indies"
+===
+Heather's catalogue of 1806, with a section for "the West Indies"
+>>>
+
+@@@ West Indies: confidence (a-v-merged-lead 15)
+<<<
+the sea where the chart's label lies is CARIBBEAN SEA on Faden, Cary and Laurie & Whittle, and on Arrowsmith per `research/scene-02/a-h4.md`.
+===
+the sea where the chart's label lies is CARIBBEAN SEA on Faden, Cary and Laurie & Whittle, and on Arrowsmith per `research/scene-02/a-h4.md`. High for the form; medium as a label in the map body.
+>>>
+
+@@@ Tangier among the names on the chart (a-v-merged-lead 1)
+<<<
+and Faden's chart title of 1806 has the singular "Strait" (`research/scene-02/h4-names.md`).
+===
+and Faden's chart title of 1806 has the singular "Strait" (`research/scene-02/h4-names.md`).
+- **Tangier.** The chart letters Tangier, as Faden 1807, Heather 1800 and his Strait plate of about 1809, Cary 1801 and Laurie & Whittle's *Spain and Portugal* (1794) engrave it; Nelson (9 times, Tangiers once), Malham (17 to 0) and Brookes (3 to 0) write it. Tangiers: Cary's *Europe* (1804). Tanger: Laurie & Whittle's *Atlantic* (1794).
+>>>
+
+@@@ Carthagena: the catalogue (a-v-merged-lead 15)
+<<<
+Heather's catalogue of 5 November 1806 (no. 39,
+===
+Heather's catalogue of 1806 (no. 39,
+>>>
+
+@@@ Other names: Tangier moved (a-v-merged-lead 1)
+<<<
+reads today as a misprint); Tangier (Faden, Heather 1800 and c. 1809, Cary 1801, Nelson, Malham; Tangiers on Cary 1804); Tetuan (Tetwen
+===
+reads today as a misprint); Tetuan (Tetwen
+>>>

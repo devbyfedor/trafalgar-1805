@@ -1,0 +1,59 @@
+@@@ Fleet sizes intro (a-v-merged-lead 9, merging a-v-merged-h1 11 and a-v-merged-h2 14; decision 1)
+<<<
+Ships of the line only; frigates and smaller craft are in the sections above. "Glyphs" is how many ship glyphs the full scene shows at that moment (the lab shows six for each fleet; see "Positions on the chart").
+===
+Ships of the line only; frigates and smaller craft are in the sections above. "Glyphs" is how many ship glyphs the full scene places at that moment. Seen from far off, each group gives way to its lead (see "Assumptions and licences", 3), so with the fleets at their true spacing the view of the whole Gulf may show only the fleets' flagships; what the chart draws is under "Routes on the chart" and "Positions on the chart".
+>>>
+
+@@@ After Magon joined: James's version and split confidence (a-v-merged-lead 10)
+<<<
+| After Magon joined | 4 June | 20 (14 French, 6 Spanish) | 20 | High |
+===
+| After Magon joined | 4 June (James: at sea, on the day of sailing or the next) | 20 (14 French, 6 Spanish) | 20 | High for 20; medium for where Magon joined |
+>>>
+
+@@@ Nelson north to Ushant (a-v-merged-h1 6)
+<<<
+| After Finisterre | 23 July | 18 (San Rafael and Firme taken) | 18 | High |
+===
+| After Finisterre | 23 July | 18 (San Rafael and Firme taken) | 18 | High |
+| Nelson north to Ushant | 25 July – 15 August | 11 | 11 | High |
+>>>
+
+@@@ Nelson joins Cornwallis off Ushant (a-v-merged-h1 6)
+<<<
+| Leaving Ferrol | 13 August | 29 (18 French, 11 Spanish) | 29 | High |
+===
+| Leaving Ferrol | 13 August | 29 (18 French, 11 Spanish) | 29 | High |
+| Nelson joins Cornwallis off Ushant | 15 August | 11 join the Channel fleet (24 of the line in sight at noon): about 40 with Calder's ships and Nelson's (Desbrière); some 36 with the flag or on their way to it once the Victory and the ships needing a refit had gone in, besides the Dragon and Goliath (Corbett). Nine stay with Cornwallis; the Victory and Superb go on to Spithead | 11, then 2 | High for 11 and 2, medium for the Channel fleet |
+>>>
+
+@@@ The British off Cádiz: Lauriston's count (a-v-merged-lead 10); then Nelson back to Cádiz (September passage, C; a-v-merged-lead, decision 6)
+<<<
+| The British off Cádiz | from 30 August | about 26 after Calder joined (James; Allemand's intelligence); 29 by Desbrière's lists without his double count, with the Dragon and Goliath; his printed 32 counts three ships twice | 26 | Medium |
+===
+| The British off Cádiz | from 30 August | about 26 after Calder joined (James; Allemand's intelligence); 29 by Desbrière's lists without his double count, with the Dragon and Goliath; his printed 32 counts three ships twice; on 3 September Lauriston counted from the San Sebastián tower 5 of the line and 2 frigates at 3 leagues and 17 others at 6 leagues (Desbrière pp. 125, 145) | 26 | Medium |
+| Nelson back to Cádiz | 15–28 September | 1, the Victory, with the frigate Euryalus until he sent her ahead on the 26th; 3 from 18 September, when the Ajax and Thunderer joined off the Lizard | 1, then 3 | High |
+>>>
+
+@@@ Nelson joins: split confidence (a-v-merged-h2 8)
+<<<
+| Nelson joins | 28 September | 29 under his command, 23 in the main body and 6 inshore under Louis; 27 by James and Beatty | 29 | High for 29 |
+===
+| Nelson joins | 28 September | 29 under his command, 23 in the main body and 6 inshore under Louis; 27 by James and Beatty | 29 | High for 29 under his command, medium for all 29 in company |
+>>>
+
+@@@ Louis leaves for Gibraltar: the Leviathan (a-v-merged-h2 8)
+<<<
+| Louis leaves for Gibraltar | 2 October | 5 go; 23 with Nelson by 5 October | 23 | Medium-high |
+===
+| Louis leaves for Gibraltar | 2 October | 5 go; with the Leviathan away at Gibraltar until the 8th, 23 with Nelson by 5 October | 23 | Medium-high |
+>>>
+
+@@@ The Donegal to Gibraltar (a-v-merged-h2 8)
+<<<
+| The October peak | 13 October | 28; 29 by James and Clowes, which needs the Africa to have joined before the Prince of Wales sailed | 28 | Medium-high |
+===
+| The October peak | 13 October | 28; 29 by James and Clowes, which needs the Africa to have joined before the Prince of Wales sailed | 28 | Medium-high |
+| The Donegal to Gibraltar | 17 October | 27 to the battle: 3 of 100 guns, 4 of 98, 1 of 80, 16 of 74, 3 of 64 | 27 | High |
+>>>

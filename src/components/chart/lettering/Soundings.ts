@@ -184,14 +184,14 @@ export class Soundings implements ChartLayer {
     geometry.instanceCount = figures;
     this.uniforms = {
       uCssPerRad: { value: 1000 },
-      uEmPx: { value: options.emPx ?? 11 },
+      uEmPx: { value: options.emPx ?? 14 },
       uShowPx: { value: [...(options.showPx ?? [55, 85])] },
       uCoarsestKm: { value: index.coarsestKm },
       // The waterlining's reach on screen, CSS px (terrain/Terrain.ts:
       // 26 spacings of 2.2 px).
       uBandPx: { value: 26 * 2.2 },
       uHazeVisibility: { value: 100 },
-      uOpacity: { value: options.opacity ?? 0.55 },
+      uOpacity: { value: options.opacity ?? 0.75 },
       uPull: { value: 0.004 },
       uCellEm: { value: [...atlas.cellEm] },
       uBaselineEm: { value: atlas.baselineEm },
@@ -199,7 +199,7 @@ export class Soundings implements ChartLayer {
       uGlyphs: { value: chars.length },
       uAtlas: { value: atlas.texture },
       uInk: { value: this.ink },
-      uWeight: { value: 0.0 },
+      uWeight: { value: 0.03 },
     };
     const material = new ShaderMaterial({
       glslVersion: GLSL3,

@@ -1,13 +1,19 @@
 import {
+  buildDigitAtlas,
   buildGlyphAtlas,
   CameraRig,
   Chart,
+  type DigitAtlas,
+  fontUrl,
   type GlyphAtlas,
   Glyphs,
   Lettering,
   loadRivers,
+  loadSoundings,
   Rivers,
   Route,
+  SOUNDING_FONT_FILE,
+  Soundings,
 } from "@/components/chart";
 import { type BenchResult, benchFrames } from "@/components/chart/engine/bench";
 import { readCoastKm } from "@/components/chart/glyphs/coast";
@@ -23,6 +29,7 @@ import {
 import { GLYPH_TYPES } from "./fleets";
 import { GAZETTEER } from "./gazetteer";
 import { NELSON, VILLENEUVE } from "./routes";
+import { SOUNDING_ANGLES } from "./soundings";
 
 /**
  * Scene 2's chart and everything on it. The scene imports this module
@@ -76,6 +83,7 @@ export async function createRoadStage(
     onFatal: options.onFatal,
   });
   let atlas: GlyphAtlas | null = null;
+  let digits: DigitAtlas | null = null;
   try {
     const riverData = await loadRivers(chart.manifest, options.signal);
     const rivers = new Rivers(chart.field, riverData);
@@ -107,6 +115,20 @@ export async function createRoadStage(
     chart.add(lettering, lettering.batch, lettering.marks.mesh);
     await lettering.ready;
     options.signal.throwIfAborted();
+    // The depths written over the shoal water of the detail tiles.
+    const soundingData = await loadSoundings(chart.manifest, options.signal);
+    if (soundingData) {
+      digits = await buildDigitAtlas(fontUrl(SOUNDING_FONT_FILE));
+      options.signal.throwIfAborted();
+      chart.addGpuBytes(digits.gpuBytes);
+      const soundings = new Soundings(
+        soundingData.index,
+        soundingData.sets,
+        digits,
+        { angles: SOUNDING_ANGLES },
+      );
+      chart.add(soundings, soundings.mesh);
+    }
     const rig = new CameraRig(ROAD_FLIGHT);
     const director = new RoadDirector({
       chart,
@@ -188,12 +210,14 @@ export async function createRoadStage(
         for (const probe of probes ?? []) probe.dispose();
         chart.dispose();
         atlas?.texture.dispose();
+        digits?.texture.dispose();
       },
     };
     return stage;
   } catch (error) {
     chart.dispose();
     atlas?.texture.dispose();
+    digits?.texture.dispose();
     throw error;
   }
 }

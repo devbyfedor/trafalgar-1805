@@ -5,7 +5,7 @@
  */
 
 export { type CameraKey, CameraRig } from "./camera/rig";
-export { loadRivers } from "./data/loaders";
+export { loadRivers, loadSoundings } from "./data/loaders";
 export {
   Chart,
   type ChartLayer,
@@ -27,12 +27,19 @@ export {
   type Side,
 } from "./glyphs/Glyphs";
 export {
+  buildDigitAtlas,
+  type DigitAtlas,
+  SOUNDING_FONT_FILE,
+} from "./lettering/digits";
+export { fontUrl } from "./lettering/fonts";
+export {
   type Label,
   type LabelRole,
   type LabelState,
   Lettering,
   type MarkKind,
 } from "./lettering/Lettering";
+export { Soundings, type SoundingsOptions } from "./lettering/Soundings";
 export { LIGHT_STATES, type LightId } from "./light/states";
 export { Rivers } from "./lines/Rivers";
 export { Route, type RoutePoint, type Waypoint } from "./lines/Route";

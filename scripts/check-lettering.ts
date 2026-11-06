@@ -4,10 +4,16 @@ import {
   DEFAULT_FONT_FILE,
   FONT_FILES,
 } from "../src/components/chart/lettering/fonts.ts";
+import {
+  SOUNDING_CHARS,
+  SOUNDING_FONT_FILE,
+} from "../src/components/chart/lettering/digits.ts";
 import { GAZETTEER } from "../src/scenes/02-road/gazetteer.ts";
 
 /**
- * Checks that every character of every name on the chart is in its font.
+ * Checks that every character of every name on the chart is in its font,
+ * and that the soundings' face has every figure (a 2D canvas draws them,
+ * and would quietly take a missing one from a system face).
  * troika fetches a fallback font from a CDN for any character neither the
  * label's font nor its default font covers, and nothing in troika 0.52.5
  * can turn that off, so a missing glyph would break the same-origin rule.
@@ -58,11 +64,20 @@ for (const label of GAZETTEER) {
   }
 }
 
+const figures = await font(SOUNDING_FONT_FILE);
+for (const char of SOUNDING_CHARS) {
+  const cp = char.codePointAt(0) ?? 0;
+  if (!figures.supportsCodePoint(cp))
+    problems.push(
+      `soundings: U+${cp.toString(16).toUpperCase().padStart(4, "0")} is not in ${SOUNDING_FONT_FILE}`,
+    );
+}
+
 for (const line of fallbacks) console.warn(`lettering: ${line}`);
 if (problems.length) {
   for (const line of problems) console.error(`lettering: ${line}`);
   process.exit(1);
 }
 console.log(
-  `lettering: ${GAZETTEER.length} names, every character in its font`,
+  `lettering: ${GAZETTEER.length} names and the soundings' ${SOUNDING_CHARS.length} figures, every character in its font`,
 );

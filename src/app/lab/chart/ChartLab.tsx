@@ -17,6 +17,7 @@ import {
 } from "@/scenes/02-road/fleets";
 import { GAZETTEER } from "@/scenes/02-road/gazetteer";
 import { TOULON_TO_CADIZ } from "@/scenes/02-road/routes";
+import { SOUNDING_ANGLES } from "@/scenes/02-road/soundings";
 import { LAB_DEMOS, type LabDemo } from "./demos";
 import {
   buildFlight,
@@ -144,6 +145,7 @@ export function ChartLab() {
         let unregister = () => {};
         let demo: LabDemo | null = null;
         let disposeAtlas = () => {};
+        let disposeDigits = () => {};
         const onVisibility = () => chart.pause();
         dispose = () => {
           if (render) gsap.ticker.remove(render);
@@ -153,6 +155,7 @@ export function ChartLab() {
           demo?.dispose?.();
           chart.dispose();
           disposeAtlas();
+          disposeDigits();
           window.__chart = undefined;
         };
 
@@ -183,6 +186,29 @@ export function ChartLab() {
         chart.add(lettering, lettering.batch, lettering.marks.mesh);
         await lettering.ready;
         if (cancelled) return;
+        const soundingData = await engine.loadSoundings(
+          chart.manifest,
+          controller.signal,
+        );
+        if (cancelled) return;
+        if (soundingData) {
+          const digits = await engine.buildDigitAtlas(
+            engine.fontUrl(engine.SOUNDING_FONT_FILE),
+          );
+          if (cancelled) {
+            digits.texture.dispose();
+            return;
+          }
+          disposeDigits = () => digits.texture.dispose();
+          chart.addGpuBytes(digits.gpuBytes);
+          const soundings = new engine.Soundings(
+            soundingData.index,
+            soundingData.sets,
+            digits,
+            { angles: SOUNDING_ANGLES },
+          );
+          chart.add(soundings, soundings.mesh);
+        }
         const loadDemo = LAB_DEMOS[query.get("demo") ?? ""];
         if (loadDemo) {
           const module = await loadDemo();

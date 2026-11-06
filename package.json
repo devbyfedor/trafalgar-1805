@@ -14,7 +14,7 @@
     "lint:fix": "biome check --write",
     "format": "biome format --write",
     "typecheck": "next typegen && tsc --noEmit",
-    "test:e2e": "npm run build && playwright test --project=laptop --project=desktop-1080 --project=phone --project=perf --project=chart --project=chart-gpu --project=regression --project=chart-frames",
+    "test:e2e": "npm run build && playwright test --project=laptop --project=desktop-1080 --project=phone --project=perf --project=chart --project=chart-gpu --project=road --project=regression --project=chart-frames",
     "screenshots": "npm run build && playwright test --project=docs",
     "screenshots:chart": "npm run build && playwright test --project=docs-chart",
     "check:lettering": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-lettering.ts",

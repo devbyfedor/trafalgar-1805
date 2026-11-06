@@ -121,6 +121,18 @@ export default defineConfig({
       },
     },
     {
+      // Scene 2 on the home page, on the GPU: in software a frame takes
+      // seconds.
+      name: "road",
+      testMatch: /[\\/]road\.spec\.ts$/,
+      use: {
+        ...desktop,
+        channel: "chromium",
+        viewport: { width: 1280, height: 720 },
+        deviceScaleFactor: 1.5,
+      },
+    },
+    {
       name: "regression",
       testMatch: /[\\/]regression\.spec\.ts$/,
       use: {
@@ -142,6 +154,7 @@ export default defineConfig({
         "perf",
         "chart",
         "chart-gpu",
+        "road",
         "regression",
       ],
       use: {

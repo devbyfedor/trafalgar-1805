@@ -86,6 +86,7 @@ export class Sky {
       },
     });
     this.mesh = new Mesh(geometry, material);
+    this.mesh.name = "sky";
     this.mesh.frustumCulled = false;
     // After the chart: the depth test leaves it only the empty pixels.
     this.mesh.renderOrder = 10;

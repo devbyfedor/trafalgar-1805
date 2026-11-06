@@ -254,15 +254,22 @@ export function ChartLab() {
           stats: chart.stats,
           ready: true,
           labels: () => lettering.snapshot(),
-          seaDepth: (on: boolean) => chart.setSeaDepth(on),
-          bench: async (frames, p) => {
+          bench: async (frames, p, alternate) => {
             if (p !== undefined) jump(p);
             held = true;
             try {
               const gl = chart.renderer.getContext() as WebGL2RenderingContext;
-              return await benchFrames(gl, draw, frames);
+              return await benchFrames(
+                gl,
+                draw,
+                frames,
+                alternate
+                  ? (i) => chart.showNamed(alternate, i % 2 === 0)
+                  : undefined,
+              );
             } finally {
               held = false;
+              if (alternate) chart.showNamed(alternate, true);
             }
           },
         };
@@ -317,11 +324,15 @@ declare global {
       labels?: () => LabelState[];
       /**
        * Draws `frames` frames, at progress `p` if given, and times each on
-       * the GPU and the CPU, for development (scripts/dev/bench.mjs).
+       * the GPU and the CPU, for development (scripts/dev/bench.mjs); with
+       * `alternate`, the chart's objects of that name drawn on even frames
+       * only (Chart.showNamed).
        */
-      bench?: (frames: number, p?: number) => Promise<BenchResult>;
-      /** Measurement only: the water writes the sea's depth, or not. */
-      seaDepth?: (on: boolean) => void;
+      bench?: (
+        frames: number,
+        p?: number,
+        alternate?: string,
+      ) => Promise<BenchResult>;
     };
   }
 }

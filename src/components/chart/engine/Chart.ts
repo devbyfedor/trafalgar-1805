@@ -20,6 +20,7 @@ import { type ChartManifest, loadManifest } from "../data/manifest";
 import { LightBlend, type LightId } from "../light/states";
 import { Sky } from "../sky/Sky";
 import { TerrainField } from "../terrain/field";
+import { probeWaterLift, type WaterLift } from "../terrain/liftProbe";
 import { Terrain } from "../terrain/Terrain";
 import { QUALITY_LADDER, QualityLadder, type QualityLevel } from "./quality";
 
@@ -175,8 +176,7 @@ export class Chart {
     this.terrain = new Terrain(field);
     const land = landIndex(lowres);
     this.terrain.cdlod.hasLand = land.any;
-    this.terrain.allLand = land.all;
-    this.scene.add(this.terrain.mesh, this.terrain.inland, this.sky.mesh);
+    this.scene.add(this.terrain.mesh, this.sky.mesh);
     this.camera.up.set(0, 0, 1);
     this.quality = new QualityLadder((level) => this.applyQuality(level));
     if (options.quality !== undefined) this.quality.force(options.quality);
@@ -212,9 +212,28 @@ export class Chart {
     this.extraGpuBytes += bytes;
   }
 
-  /** Measurement only: whether the water writes the sea's depth (Terrain.setSeaDepth). */
-  setSeaDepth(on: boolean): void {
-    this.terrain.setSeaDepth(on);
+  /**
+   * Development: every water pixel's height above the sea in the frame
+   * last drawn (terrain/liftProbe.ts); none may be above it.
+   */
+  probeWaterLift(): WaterLift {
+    return probeWaterLift(this.renderer, this.scene, this.camera, this.terrain);
+  }
+
+  /**
+   * Measurement only: shows or hides the chart's objects of that name
+   * ("terrain", "sky", "glyphs", "soundings" and so on), so a bench can time
+   * a layer's share of the frame on alternate frames (engine/bench.ts).
+   * Returns how many objects it found.
+   */
+  showNamed(name: string, shown: boolean): number {
+    let found = 0;
+    this.scene.traverse((object) => {
+      if (object.name !== name) return;
+      object.visible = shown;
+      found++;
+    });
+    return found;
   }
 
   setLight(a: LightId, b: LightId, t: number): void {

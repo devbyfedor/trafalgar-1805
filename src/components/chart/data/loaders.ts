@@ -83,8 +83,6 @@ export function highestLand(
 export function landIndex(low: LowresHeights): {
   /** True when a square (world km) or a margin around it holds any land. */
   any: (x0: number, y0: number, size: number, marginKm: number) => boolean;
-  /** True when a square and a margin around it are land through and through. */
-  all: (x0: number, y0: number, size: number, marginKm: number) => boolean;
 } {
   const { cols, rows, cellKm, data } = low;
   const w = cols + 1;
@@ -96,8 +94,8 @@ export function landIndex(low: LowresHeights): {
       sums[(r + 1) * w + c + 1] = sums[r * w + c + 1] + line;
     }
   }
-  // Land cells in a square with a margin, and how many cells it covers
-  // (none past the grid's edge, which is open sea).
+  // Land cells in a square with a margin (none past the grid's edge, which
+  // is open sea).
   const count = (x0: number, y0: number, size: number, marginKm: number) => {
     const c0 = Math.max(0, Math.floor((x0 - marginKm - low.x0) / cellKm));
     const c1 = Math.min(
@@ -112,27 +110,16 @@ export function landIndex(low: LowresHeights): {
       rows - 1,
       Math.floor((low.yTop - (y0 - marginKm)) / cellKm),
     );
-    if (c0 > c1 || r0 > r1) return [0, 1];
-    const land =
+    if (c0 > c1 || r0 > r1) return 0;
+    return (
       sums[(r1 + 1) * w + c1 + 1] -
       sums[r0 * w + c1 + 1] -
       sums[(r1 + 1) * w + c0] +
-      sums[r0 * w + c0];
-    // A square reaching past the grid holds open sea.
-    const inside =
-      x0 - marginKm >= low.x0 &&
-      x0 + size + marginKm <= low.x0 + cols * cellKm &&
-      y0 + size + marginKm <= low.yTop &&
-      y0 - marginKm >= low.yTop - rows * cellKm;
-    const cells = (c1 - c0 + 1) * (r1 - r0 + 1) + (inside ? 0 : 1);
-    return [land, cells];
+      sums[r0 * w + c0]
+    );
   };
   return {
-    any: (x0, y0, size, marginKm) => count(x0, y0, size, marginKm)[0] > 0,
-    all: (x0, y0, size, marginKm) => {
-      const [land, cells] = count(x0, y0, size, marginKm);
-      return land === cells;
-    },
+    any: (x0, y0, size, marginKm) => count(x0, y0, size, marginKm) > 0,
   };
 }
 

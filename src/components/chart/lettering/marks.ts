@@ -127,6 +127,7 @@ export class Marks {
       },
     });
     this.mesh = new Mesh(geometry, material);
+    this.mesh.name = "marks";
     // Marks move in the shader; the mesh's bounds don't know where.
     this.mesh.frustumCulled = false;
     this.mesh.renderOrder = 29;

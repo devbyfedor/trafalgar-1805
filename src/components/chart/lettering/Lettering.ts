@@ -190,6 +190,7 @@ export class Lettering implements ChartLayer {
       },
     );
     this.batch = new BatchedText();
+    this.batch.name = "lettering";
     this.batch.material = base;
     // Glyphs move in the shader; the batch's bounds don't know where.
     this.batch.frustumCulled = false;

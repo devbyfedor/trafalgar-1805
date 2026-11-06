@@ -5,13 +5,19 @@
 // `frames` frames at p (60 by default) and times each on the GPU
 // (EXT_disjoint_timer_query_webgl2) and on the CPU around the draw; the
 // first five after each jump are left out. The page is scrolled into scene
-// 2 first, so scene 1's own loops are paused. AB=1 alternates the terrain's
-// sea-depth write on and off at each p instead (three rounds each way).
+// 2 first, so scene 1's own loops are paused. AB=<name> times the frame
+// with and without the chart's objects of that name (Chart.showNamed:
+// terrain, sky, glyphs, wakes, lettering, marks, soundings, rivers, route)
+// at each p instead, on alternate frames, so both are timed at the same
+// clock (on battery, or under a sustained load, the GPU's clock moves
+// within a second).
 // Needs a server: `npm run preview` with BASE=http://127.0.0.1:4173 for
 // numbers that count. Environment: BASE, W, H and S as in road.mjs (1280,
 // 720, 1.5: the owner's laptop); QUALITY pins a quality level (0, the top,
 // by default); P=0.1,0.2 benches only those points; SWEEPS=n keeps the
-// best of n sweeps per point; JSON=<file> also writes the rows.
+// best of n sweeps per point; IDLE=ms waits that long before each timed
+// burst (on battery a pause lets the power budget refill, so a burst runs
+// at the clock a fresh load gets); JSON=<file> also writes the rows.
 import { writeFile } from "node:fs/promises";
 import { chromium } from "@playwright/test";
 
@@ -23,8 +29,9 @@ const height = Number(process.env.H ?? 720);
 const scale = Number(process.env.S ?? 1.5);
 const quality = Number(process.env.QUALITY ?? 0);
 const sweeps = Number(process.env.SWEEPS ?? 1);
-const ab = process.env.AB === "1";
-const SKIP = 5;
+const ab = process.env.AB ?? "";
+const idle = Number(process.env.IDLE ?? 0);
+const SKIP = 6;
 /** Scene 1's pin before the handoff and scene 2's pin, viewport heights. */
 const SCENE1 = 3;
 const SCENE2 = 30;
@@ -70,7 +77,7 @@ const renderer = await page.evaluate(() => {
 });
 console.log(renderer);
 console.log(
-  `${width}x${height} at scale ${scale}, quality ${quality}, ${frames} frames a point${ab ? ", sea depth on and off" : `, best of ${sweeps}`}`,
+  `${width}x${height} at scale ${scale}, quality ${quality}, ${frames} frames a point${ab ? `, with and without ${ab}` : `, best of ${sweeps}`}`,
 );
 
 const points = process.env.P
@@ -80,7 +87,10 @@ const points = process.env.P
       (_, i) => Math.round(Math.min(1, i * step) * 1e4) / 1e4,
     );
 
+const pause = () =>
+  idle > 0 ? new Promise((resolve) => setTimeout(resolve, idle)) : null;
 const bench = async (p, n) => {
+  await pause();
   const r = await page.evaluate(
     ([f, at]) => window.__road.bench(f, at),
     [n + SKIP, p],
@@ -93,25 +103,44 @@ const bench = async (p, n) => {
 };
 
 if (ab) {
-  console.log("    p |  on median  p95 | off median  p95 | on/off");
+  console.log(
+    `    p | with ${ab}: median  p95 | without: median  p95 | ratio | pairs`,
+  );
+  const rows = [];
   for (const p of points) {
+    await pause();
+    const r = await page.evaluate(
+      ([f, at, name]) => window.__road.bench(f, at, name),
+      [2 * frames + SKIP, p, ab],
+    );
     const on = [];
     const off = [];
-    for (let round = 0; round < 3; round++) {
-      for (const flag of round % 2 === 0 ? [true, false] : [false, true]) {
-        await page.evaluate((f) => window.__road.seaDepth(f), flag);
-        await bench(p, 8);
-        const r = await bench(p, frames);
-        (flag ? on : off).push(...r.gpu);
-      }
-    }
-    await page.evaluate(() => window.__road.seaDepth(true));
-    const mOn = quantile(on, 0.5);
-    const mOff = quantile(off, 0.5);
+    const byFrame = new Map();
+    r.gpu.forEach((t, i) => {
+      const frame = r.gpuFrame[i];
+      if (frame < SKIP) return;
+      (frame % 2 === 0 ? on : off).push(t);
+      byFrame.set(frame, t);
+    });
+    // Each frame with the write against the frame after it, without.
+    const ratios = [];
+    for (const [frame, t] of byFrame)
+      if (frame % 2 === 0 && byFrame.has(frame + 1))
+        ratios.push(t / byFrame.get(frame + 1));
+    const row = {
+      p,
+      onMedian: quantile(on, 0.5),
+      onP95: quantile(on, 0.95),
+      offMedian: quantile(off, 0.5),
+      offP95: quantile(off, 0.95),
+      pairRatio: quantile(ratios, 0.5),
+    };
+    rows.push(row);
     console.log(
-      `${p.toFixed(3).padStart(5)} | ${ms(mOn)} ${ms(quantile(on, 0.95))} | ${ms(mOff)} ${ms(quantile(off, 0.95))} | ${(mOn / mOff).toFixed(2)}`,
+      `${p.toFixed(3).padStart(5)} | ${ms(row.onMedian)} ${ms(row.onP95)} | ${ms(row.offMedian)} ${ms(row.offP95)} | ${(row.onMedian / row.offMedian).toFixed(2).padStart(6)} | ${row.pairRatio.toFixed(2)}`,
     );
   }
+  if (process.env.JSON) await writeFile(process.env.JSON, JSON.stringify(rows));
 } else {
   console.log(
     "    p | GPU median   p95   max | CPU median   p95 | calls triangles",

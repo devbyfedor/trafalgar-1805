@@ -421,6 +421,7 @@ export class Glyphs implements ChartLayer {
         },
       }),
     );
+    this.ships.name = "glyphs";
     this.ships.frustumCulled = false;
     this.ships.renderOrder = 25;
 
@@ -451,6 +452,7 @@ export class Glyphs implements ChartLayer {
         },
       }),
     );
+    this.wakes.name = "wakes";
     this.wakes.frustumCulled = false;
     this.wakes.renderOrder = 22;
   }

@@ -3,7 +3,6 @@ import {
   GLSL_FIELD_SMOOTH,
   GLSL_GEO,
   GLSL_LINES,
-  GLSL_SEA_DEPTH,
   GLSL_SKY,
   GLSL_SURFACE,
 } from "../shaders/common";
@@ -42,7 +41,8 @@ void main() {
   p -= mod(grid, 2.0) * cell * morph;
   // Read the field at a mip level matching the mesh spacing.
   vec4 f = sampleFieldLod(p, max(vec3(0.0), log2(cell / uTexelKm)));
-  float z = surfaceZ(p, cell, f);
+  // Morphing stretches the triangles toward the coarser grid's cells.
+  float z = surfaceZ(p, cell * (1.0 + morph), f);
   // Skirt vertices (position.z = 1) hang below the patch's edge.
   z -= position.z * cell * 0.5;
   vWorld = vec3(p, z);
@@ -64,7 +64,6 @@ ${GLSL_FIELD}
 ${GLSL_FIELD_SMOOTH}
 ${GLSL_LINES}
 ${GLSL_SKY}
-${GLSL_SEA_DEPTH}
 in vec3 vWorld;
 in float vLandShare;
 out vec4 fragColor;
@@ -356,12 +355,13 @@ void main() {
   color = mix(mix(uSeaDeep, hazeCol, 0.25), color, stage);
   color = mix(color, hazeCol, hazeAmount(dist));
   fragColor = vec4(color, 1.0);
-  // Where the chart draws water, its depth is the sea's own. A mesh triangle
-  // that crosses a coast lifts the water near it toward the land's height
-  // (exaggerated, from far off, by hundreds of metres), and nothing that
-  // stands on the sea (a ship, her wake, a route) may ever sink into it.
-#ifdef SEA_DEPTH
-  gl_FragDepth = sdf > 0.0 ? max(gl_FragCoord.z, seaDepthThrough(vWorld)) : gl_FragCoord.z;
+  // The water's depth is the sea's own without writing it here: no mesh
+  // triangle that holds water is lifted (GLSL_SURFACE).
+#ifdef WATER_LIFT
+  // Development (terrain/liftProbe.ts): each pixel's height above the sea,
+  // metres, coarse in R (4 m steps) and fine in B (0.1 m); G marks water.
+  float liftM = max(vWorld.z, 0.0) * 1000.0;
+  fragColor = vec4(min(liftM / 4.0, 255.0) / 255.0, sdf > 0.0 ? 1.0 : 0.5, min(liftM * 10.0, 255.0) / 255.0, 1.0);
 #endif
 }
 `;

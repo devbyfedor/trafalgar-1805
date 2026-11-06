@@ -192,16 +192,19 @@ export function Scene02Road() {
               ready: true,
               stats: s.chart.stats,
               sample: (p: number, mode?: number) => s.sample(p, mode),
-              bench: async (frames: number, p: number) => {
+              waterLift: (p: number) => {
+                drawn = -1;
+                return s.waterLift(p);
+              },
+              bench: async (frames: number, p: number, alternate?: string) => {
                 held = true;
                 try {
-                  return await s.bench(frames, p);
+                  return await s.bench(frames, p, alternate);
                 } finally {
                   held = false;
                   drawn = -1;
                 }
               },
-              seaDepth: (on: boolean) => s.chart.setSeaDepth(on),
             };
           };
           start().catch((error: unknown) => {
@@ -268,13 +271,20 @@ declare global {
         p: number,
         mode?: number,
       ) => { fleets: Float32Array; squadrons: Float32Array };
-      /** Development: frames at p timed on the GPU and the CPU (RoadStage.bench). */
+      /** Development: every water pixel's height above the sea at p (RoadStage.waterLift). */
+      waterLift: (
+        p: number,
+      ) => import("@/components/chart/terrain/liftProbe").WaterLift;
+      /**
+       * Development: frames at p timed on the GPU and the CPU; with
+       * `alternate`, the chart's objects of that name drawn on even frames
+       * only (RoadStage.bench).
+       */
       bench: (
         frames: number,
         p: number,
+        alternate?: string,
       ) => Promise<import("@/components/chart/engine/bench").BenchResult>;
-      /** Measurement only: the water writes the sea's depth, or not. */
-      seaDepth: (on: boolean) => void;
     };
   }
 }

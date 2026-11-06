@@ -250,34 +250,33 @@ void sampleFieldBoth(vec2 p, vec2 dpx, vec2 dpy, float bias, out vec4 f, out vec
 /**
  * The chart's surface, shared by the terrain mesh and everything laid on it
  * (lettering, rivers, routes), so they rise and fall together. Needs
- * GLSL_GEO and GLSL_FIELD, and the uniforms uExag and uTexelKm.
+ * GLSL_GEO and GLSL_FIELD, and the uniforms uExag and uTexelKm. cellKm is
+ * the mesh's cell where the surface is read, as the morph has stretched it
+ * (between distance / 1.4 k and distance / k; distance / k is a safe
+ * estimate for layers laid on it).
  *
- * Only land rises, easing to sea level within a mesh cell of the coast. The
- * coast is read at a level four times finer than the mesh's: at the mesh's
- * own level a bay or a strait a few cells wide averaged into land, and the
- * mesh stood it up as a plateau over water the chart draws as sea.
+ * The water is the sea's own surface: no mesh triangle that holds any water
+ * is lifted. Every point of a triangle lies within √2 cells of each of its
+ * corners, and the coast read here (bilinear, a level four times finer than
+ * the mesh's, so a bay or a strait a few cells wide is not averaged into
+ * land) lies within 0.6 of that read's texel of the coast the fragments
+ * draw (finer still, through a B-spline close up). Land rises only beyond
+ * both, over the next cell; nearer the coast it stays at sea level, and its
+ * relief there is drawn by the shading and the contours alone. So a ship, a
+ * wake, a route or a sounding on the sea is never hidden by a raised sea.
  */
 export const GLSL_SURFACE = /* glsl */ `
+// The texel of the finest layer covering p, km.
+float finestTexelKm(vec2 p) {
+  float t = insideKm(tileUv(p, uRectA), uRectA) > 0.0 ? uTexelKm.x : uTexelKm.z;
+  return uHasB * cover(p, uRectB, uFadeB) > 0.0 ? uTexelKm.y : t;
+}
+
 float surfaceZ(vec2 p, float cellKm, vec4 f) {
   float coast = sampleFieldLod(p, max(vec3(0.0), log2(0.25 * cellKm / uTexelKm))).y;
-  float rise = smoothstep(0.0, cellKm, -coast);
+  float from = 1.42 * cellKm + 0.6 * max(finestTexelKm(p), 0.25 * cellKm);
+  float rise = smoothstep(from, from + cellKm, -coast);
   return max(f.x, 0.0) * 0.001 * secLat(p.y) * uExag * rise;
-}
-`;
-
-/**
- * The depth of the sea's surface (z = 0) on the ray from the camera through
- * a world point, as gl_FragDepth wants it; the point's own depth where the
- * ray never comes down to the sea. Fragment shaders only.
- */
-export const GLSL_SEA_DEPTH = /* glsl */ `
-uniform mat4 projectionMatrix;
-float seaDepthThrough(vec3 world) {
-  vec3 d = world - cameraPosition;
-  if (d.z > -1e-6 * length(d)) return gl_FragCoord.z;
-  vec3 s = cameraPosition - d * (cameraPosition.z / d.z);
-  vec4 c = projectionMatrix * (viewMatrix * vec4(s, 1.0));
-  return clamp(0.5 * c.z / c.w + 0.5, 0.0, 1.0);
 }
 `;
 

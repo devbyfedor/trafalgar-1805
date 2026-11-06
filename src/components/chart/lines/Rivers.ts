@@ -61,6 +61,7 @@ export class Rivers implements ChartLayer {
     }
     this.material = new RibbonMaterial(field, { lift: true, opacity: 0.8 });
     this.mesh = new Mesh(ribbonGeometry(lines), this.material);
+    this.mesh.name = "rivers";
     this.mesh.frustumCulled = false;
     this.mesh.renderOrder = 20;
   }

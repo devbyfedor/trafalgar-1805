@@ -210,6 +210,7 @@ export class Soundings implements ChartLayer {
       uniforms: this.uniforms,
     });
     this.mesh = new Mesh(geometry, material);
+    this.mesh.name = "soundings";
     // Placed in the shader; the mesh's bounds don't know where.
     this.mesh.frustumCulled = false;
     // On the chart's surface, under the routes and the ships.

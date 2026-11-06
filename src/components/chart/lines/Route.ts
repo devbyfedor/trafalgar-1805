@@ -114,6 +114,7 @@ export class Route implements ChartLayer {
       ribbonGeometry([{ points: this.points, width: options.width ?? 2.1 }]),
       this.material,
     );
+    this.mesh.name = "route";
     this.mesh.frustumCulled = false;
     this.mesh.renderOrder = 21;
   }

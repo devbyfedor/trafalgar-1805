@@ -12,6 +12,7 @@ import {
 import { type BenchResult, benchFrames } from "@/components/chart/engine/bench";
 import { readCoastKm } from "@/components/chart/glyphs/coast";
 import { GlyphProbe } from "@/components/chart/glyphs/probe";
+import type { WaterLift } from "@/components/chart/terrain/liftProbe";
 import { ROAD_FLIGHT } from "./camera";
 import {
   fleetMarks,
@@ -46,9 +47,12 @@ export interface RoadStage {
   /**
    * Development: draws `frames` frames at p, each timed on the GPU and the
    * CPU (engine/bench.ts; scripts/dev/road-bench.mjs). The host holds its
-   * own drawing meanwhile.
+   * own drawing meanwhile. With `alternate`, the chart's objects of that
+   * name (Chart.showNamed) are drawn on even frames and hidden on odd ones.
    */
-  bench(frames: number, p: number): Promise<BenchResult>;
+  bench(frames: number, p: number, alternate?: string): Promise<BenchResult>;
+  /** Development: draws the scene at p and probes its water (Chart.probeWaterLift). */
+  waterLift(p: number): WaterLift;
   resize(width: number, height: number): void;
   dispose(): void;
 }
@@ -151,17 +155,30 @@ export async function createRoadStage(
         director.apply(p);
         chart.frame(time);
       },
-      bench(frames, p) {
+      async bench(frames, p, alternate) {
         sampled = Number.NaN;
         const gl = chart.renderer.getContext() as WebGL2RenderingContext;
-        return benchFrames(
-          gl,
-          (time) => {
-            director.apply(p);
-            chart.frame(time);
-          },
-          frames,
-        );
+        try {
+          return await benchFrames(
+            gl,
+            (time) => {
+              director.apply(p);
+              chart.frame(time);
+            },
+            frames,
+            alternate
+              ? (i) => chart.showNamed(alternate, i % 2 === 0)
+              : undefined,
+          );
+        } finally {
+          if (alternate) chart.showNamed(alternate, true);
+        }
+      },
+      waterLift(p) {
+        sampled = Number.NaN;
+        director.apply(p);
+        chart.frame(performance.now() / 1000);
+        return chart.probeWaterLift();
       },
       resize(width, height) {
         chart.resize(width, height);

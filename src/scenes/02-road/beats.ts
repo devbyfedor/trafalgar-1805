@@ -69,8 +69,11 @@ const CLOCK: Record<BeatId, readonly Keyframe[]> = {
     [0.545, day(7, 24)],
     [0.59, day(8, 15)],
     [0.61, day(8, 20, 20)],
-    [0.635, day(8, 28)],
-    [0.65, day(9, 25)],
+    // The army leaves Boulogne; then Nelson's passage from St Helens to the
+    // fleet off Cádiz, which beat 4 takes up on the same day.
+    [0.62, day(8, 28)],
+    [0.632, day(9, 14, 6)],
+    [0.65, day(9, 28)],
   ],
   cadiz: [
     [0.65, day(9, 28)],

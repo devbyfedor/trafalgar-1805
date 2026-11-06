@@ -46,9 +46,16 @@ for (let i = 0; i < n - 1; i++) {
     out.push([lonOf(p[0]), latOf(p[1]), i]);
   }
 }
-// Only the coast inside this box (lon, lat) is read: Toulon to Cádiz.
-// Widen it for other routes.
-const box = [-7, 35, 7, 44];
+// Only the coast inside the route's own box (lon, lat), 3° wider each way,
+// is read.
+const lons = pts.map(([lon]) => lon);
+const lats = pts.map(([, lat]) => lat);
+const box = [
+  Math.min(...lons) - 3,
+  Math.min(...lats) - 3,
+  Math.max(...lons) + 3,
+  Math.max(...lats) + 3,
+];
 const segs = [];
 for (const f of ["ne_10m_land.geojson", "ne_10m_minor_islands.geojson"]) {
   const gj = JSON.parse(readFileSync(`${dir}/${f}`, "utf8"));

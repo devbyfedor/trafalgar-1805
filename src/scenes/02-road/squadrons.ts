@@ -9,9 +9,14 @@ import { day } from "./dates";
  */
 
 export interface Composition {
-  /** From this day on, the squadron is these ship types, lead first. */
+  /**
+   * From this day on, the squadron is these ship types, lead first, each
+   * ship in her own place in the block; null leaves a place empty, so a
+   * ship that leaves doesn't move the others up (a ship's place is its
+   * index in every stage).
+   */
   from: number;
-  types: readonly string[];
+  types: readonly (string | null)[];
 }
 
 export interface SquadronSpec {
@@ -30,6 +35,7 @@ const S112 = "spanish-112";
 const B98 = "british-98";
 const B74 = "british-74";
 const VIC = "victory";
+const BFR = "british-frigate";
 
 const repeat = (type: string, n: number) =>
   Array.from({ length: n }, () => type);
@@ -91,7 +97,9 @@ export const SQUADRONS: readonly SquadronSpec[] = [
   {
     id: "nelson",
     side: "british",
-    shown: [day(4, 3, 5), day(8, 16)],
+    // On to Spithead in August; in September from St Helens back to the
+    // fleet off Cádiz (history notes, "Nelson's passage").
+    shown: [day(4, 3, 5), day(9, 28, 18)],
     stages: [
       // Eleven of the line in the Mediterranean, the Royal Sovereign among them.
       { from: day(4, 3), types: [VIC, B98, ...repeat(B74, 9)] },
@@ -101,6 +109,16 @@ export const SQUADRONS: readonly SquadronSpec[] = [
       { from: day(6, 4, 17), types: [VIC, B98, ...repeat(B74, 10)] },
       // Homeward with eleven; the Northumberland stayed.
       { from: day(6, 13, 12), types: [VIC, B98, ...repeat(B74, 9)] },
+      // Off Ushant he left Cornwallis nine and went on with the Superb.
+      { from: day(8, 15, 18), types: [VIC, B74] },
+      // At Spithead he struck his flag (19 August): the Victory alone.
+      { from: day(8, 19, 12), types: [VIC] },
+      // From St Helens on 15 September with the frigate Euryalus.
+      { from: day(9, 15, 8), types: [VIC, BFR] },
+      // The Ajax and Thunderer join off the Lizard on the 18th.
+      { from: day(9, 18), types: [VIC, BFR, B74, B74] },
+      // The Euryalus sent ahead to Collingwood at 4 p.m. on the 26th.
+      { from: day(9, 26, 16), types: [VIC, null, B74, B74] },
     ],
   },
   {

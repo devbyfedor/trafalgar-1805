@@ -305,6 +305,13 @@ function legProgress(c: LegClock, d: number): number {
   return km / c.along[c.along.length - 1];
 }
 
+/**
+ * Where the squadrons' eased tables (headings, rooms) end: past beat 3,
+ * where the blocks are put away, so the stretch at a table's end that comes
+ * back to the headings as given (easeHeadings) is never seen.
+ */
+const SQUADRON_TABLE_END = BEATS.finisterre[1] + 0.02;
+
 /** The legs each squadron sails, in order. */
 const SQUADRON_LEGS: Record<string, readonly string[]> = {
   villeneuve: [
@@ -321,6 +328,7 @@ const SQUADRON_LEGS: Record<string, readonly string[]> = {
     "nelson-west-indies",
     "nelson-homeward",
     "nelson-ushant-spithead",
+    "nelson-september",
   ],
 };
 
@@ -409,7 +417,8 @@ export function squadronMarks(): ShipMark[] {
     const n = Math.max(...s.stages.map((x) => x.types.length));
     for (let i = 0; i < n; i++) {
       marks.push({
-        type: s.stages[0].types[0],
+        // Every squadron's lead is there from its first stage.
+        type: s.stages[0].types[0] ?? "victory",
         side: s.side,
         lon: 0,
         lat: 0,
@@ -475,7 +484,7 @@ export class RoadDirector {
     });
     this.victoryIndex = this.ships.findIndex((s) => s.name === "Victory");
     // The squadrons' headings, eased (a few thousand steps in all).
-    const [p0, p1] = [BEATS.chase[0], BEATS.finisterre[1]];
+    const [p0, p1] = [BEATS.chase[0], SQUADRON_TABLE_END];
     const steps = Math.round((p1 - p0) / HEADING_STEP) + 1;
     this.squadHeadings = this.squads.map((squad) => {
       const raw = new Float64Array(steps).fill(Number.NaN);
@@ -520,7 +529,7 @@ export class RoadDirector {
   async computeRooms(
     read: (points: Float32Array) => Promise<Float32Array>,
   ): Promise<void> {
-    const [p0, p1] = [BEATS.chase[0], BEATS.finisterre[1]];
+    const [p0, p1] = [BEATS.chase[0], SQUADRON_TABLE_END];
     const steps = Math.round((p1 - p0) / ROOM_STEP) + 1;
     const points = new Float32Array(this.squads.length * steps * 2);
     this.squads.forEach((squad, s) => {
@@ -633,8 +642,10 @@ export class RoadDirector {
     const beat = fade(p, [
       BEATS.chase[0],
       BEATS.chase[0] + 0.012,
-      BEATS.finisterre[1] - 0.012,
-      BEATS.finisterre[1],
+      // Nelson's block runs on to the fleet off Cádiz on 28 September,
+      // where the fleets' own glyphs take over (applyFleets, from 0.655).
+      BEATS.finisterre[1] - 0.002,
+      BEATS.finisterre[1] + 0.008,
     ]);
     this.squads.forEach((squad, s) => {
       const { spec, first, n, stageP } = squad;
@@ -648,8 +659,9 @@ export class RoadDirector {
       let j = 0;
       for (let k = 0; k < spec.stages.length; k++)
         if (spec.stages[k].from <= d) j = k;
-      const cur = spec.stages[j].types;
-      const prev = j > 0 ? spec.stages[j - 1].types : null;
+      const stages = spec.stages;
+      const cur = stages[j].types;
+      const prev = j > 0 ? stages[j - 1].types : null;
       const t = prev ? smooth(stageP[j], stageP[j] + CHANGE_P, p) : 1;
       const where = this.squadronHead(squad, d, p);
       if (where)
@@ -661,22 +673,34 @@ export class RoadDirector {
         );
       for (let k = 0; k < n; k++) {
         const i = first + k;
-        const now = cur[k];
-        const before = prev?.[k];
-        if (!where || (!now && !before) || visible <= 0.001) {
+        const now = cur[k] ?? null;
+        const before = prev?.[k] ?? null;
+        // Her presence, each change fading from wherever the one before had
+        // got to: where the story runs fast (Nelson's September passage) a
+        // change's fade outlasts the next stage, and cutting it short would
+        // pop. Changes further apart than a fade are as before.
+        let start = stages[0].types[k] ? 1 : 0;
+        for (let m = 1; m <= j; m++) {
+          const ran =
+            m === 1
+              ? 1
+              : smooth(stageP[m - 1], stageP[m - 1] + CHANGE_P, stageP[m]);
+          start += ((stages[m - 1].types[k] ? 1 : 0) - start) * ran;
+        }
+        const presence = start + ((now ? 1 : 0) - start) * t;
+        // The ship last in this place, while she fades out.
+        let last: string | null = null;
+        for (let m = j - 1; m >= 0 && !last; m--)
+          last = stages[m].types[k] ?? null;
+        if (!where || (!now && !last) || visible * presence <= 0.001) {
           glyphs.setOpacity(i, 0);
           continue;
         }
         glyphs.place(i, where.x, where.y, where.heading);
-        let opacity = visible;
+        const opacity = visible * presence;
         if (now && before && now !== before) glyphs.setType(i, before, now, t);
-        else if (now) {
-          glyphs.setType(i, now);
-          if (!before) opacity *= t;
-        } else if (before) {
-          glyphs.setType(i, before);
-          opacity *= 1 - t;
-        }
+        else if (now) glyphs.setType(i, now);
+        else if (last) glyphs.setType(i, last);
         const [along, up] = formationSlot(k, formationRows(n));
         glyphs.setFormation(i, along, up);
         if (room !== null) glyphs.setRoomBlend(i, room, 0);
@@ -725,13 +749,14 @@ export class RoadDirector {
   }
 
   private applyRoutes(p: number, d: number): void {
-    // Drawn day by day in beats 2 and 3, then put away before the camera
-    // comes down to the harbour.
+    // Drawn day by day in beats 2 and 3 (Nelson's September passage ends
+    // the drawing at the turn of beat 4), then put away as the camera comes
+    // down to the harbour.
     const shown = fade(p, [
       BEATS.chase[0] - 0.01,
       BEATS.chase[0] + 0.005,
-      BEATS.finisterre[1] - 0.012,
-      BEATS.finisterre[1] + 0.004,
+      BEATS.finisterre[1] - 0.002,
+      BEATS.finisterre[1] + 0.012,
     ]);
     for (const c of this.clocks) {
       const before = p < BEATS.chase[0];

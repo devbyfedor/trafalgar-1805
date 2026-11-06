@@ -380,6 +380,45 @@ export const nelsonUshantSpithead: Leg = {
   ],
 };
 
+/**
+ * Nelson, Portsmouth to the fleet off Cádiz, 14 to 28 September 1805:
+ * research/scene-02/nelson-september.json (h6-september.md, section 3, as
+ * corrected in v-h6-september.md): his diary as printed from the
+ * manuscript (Hudson 1917, pp. 15-19), the Victory's log extracts and his
+ * letters (Nicolas VII 35-53). Bearings by compass with the variation of
+ * September 1805 at the ship; points marked est. keep the line clear of the
+ * coast or follow a course the log gives. It starts where the August line
+ * ends, at Spithead (when the Victory moved to St Helens is not recorded).
+ */
+export const nelsonSeptember: Leg = {
+  id: "nelson-september",
+  side: "british",
+  waypoints: [
+    { lon: -1.1, lat: 50.765, day: day(9, 14, 6) }, // 14 September, 6 a.m.: Nelson at Portsmouth
+    { lon: -1.05, lat: 50.705, day: day(9, 15, 8) }, // 15 September, 8 a.m.: weighed from St Helens road with the Euryalus
+    { lon: -0.955, lat: 50.648 }, // est., the log's course out of the road, SSE by compass
+    { lon: -1.3, lat: 50.5 }, // est., south of St Catherine's Point
+    { lon: -1.76, lat: 50.56, day: day(9, 15, 18.33) }, // 15 September, sunset: off Christchurch (est. 9 nm off)
+    { lon: -2.45, lat: 50.41 }, // 16 September: off Portland (hour not stated; est. 6 nm south of the Bill)
+    { lon: -3.387, lat: 50.374, day: day(9, 16, 20) }, // 16 September, evening: off Berry Head 4 miles
+    { lon: -3.64, lat: 50.13 }, // est., night of 16-17 September, south of Start Point
+    { lon: -4.15, lat: 50.235, day: day(9, 17, 9) }, // 17 September, 9 a.m.: abreast of Plymouth; the Euryalus sent in for the Ajax and Thunderer
+    { lon: -4.24, lat: 50.1 }, // est., south of the Eddystone
+    { lon: -5.104, lat: 49.824, day: day(9, 18), mark: true }, // 18 September, noon: the Lizard north (by compass, 9 nm est.); the two 74s join
+    { lon: -7.036, lat: 48.622, day: day(9, 20, 14) }, // 20 September, about 2 p.m.: 27 leagues SW of Scilly, by compass
+    { lon: -10.431, lat: 42.877, day: day(9, 23, 6) }, // 23 September, 6 a.m.: abreast of Cape Finisterre 17 leagues
+    { lon: -10.4, lat: 42.417, day: day(9, 23), mark: true }, // 23 September, noon: diary latitude 42°25' N
+    { lon: -10.1, lat: 40.083, day: day(9, 24), mark: true }, // 24 September, noon: diary latitude 40°05' N
+    { lon: -9.953, lat: 39.134, day: day(9, 25, 8) }, // 25 September, morning: the Rock of Lisbon SSE 10 leagues, by compass
+    { lon: -9.507, lat: 38.106, day: day(9, 26) }, // 26 September (hour not stated): the Rock NNE 13-14 leagues; the Euryalus sent ahead at 4 p.m.
+    { lon: -9.307, lat: 37.192, day: day(9, 27, 6) }, // 27 September, daylight: Cape St Vincent SE by S 6 leagues, by compass
+    { lon: -9.08, lat: 36.94 }, // est., rounding Cape St Vincent
+    { lon: -8.62, lat: 36.96, day: day(9, 27), mark: true }, // 27 September, noon: abreast of Lagos Bay (est. 8 nm off)
+    { lon: -6.9, lat: 36.533, day: day(9, 28), mark: true }, // 28 September, noon: 36°32' N, nine ships of war to the east
+    { lon: -6.604, lat: 36.38, day: day(9, 28, 20) }, // 28 September, 8 p.m.: San Sebastián's light E by N 5-6 leagues; joined Collingwood at 6
+  ],
+};
+
 /** Villeneuve's legs in order, from Toulon to Cádiz by the West Indies. */
 export const VILLENEUVE: readonly Leg[] = [
   villeneuveToulonCadiz,
@@ -390,13 +429,14 @@ export const VILLENEUVE: readonly Leg[] = [
   combinedFerrolCadiz,
 ];
 
-/** Nelson's legs in order, from Sardinia to the West Indies and home. */
+/** Nelson's legs in order, from Sardinia to the West Indies, home, and back to Cádiz. */
 export const NELSON: readonly Leg[] = [
   nelsonMediterranean,
   nelsonOutward,
   nelsonWestIndies,
   nelsonHomeward,
   nelsonUshantSpithead,
+  nelsonSeptember,
 ];
 
 /** The Toulon–Cádiz leg as plain waypoints, for the lab's Stage A flight. */

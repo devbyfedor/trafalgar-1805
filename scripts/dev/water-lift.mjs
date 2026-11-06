@@ -1,7 +1,7 @@
 // Proof that nothing standing on the sea can sink into it, along the whole
 // of scene 2 (development only, not part of the site or the tests).
-//   node scripts/dev/water-lift.mjs [step]
-// At each p = 0, step, 2 step ... 1 (0.0025 by default) the scene draws its
+//   node scripts/dev/water-lift.mjs [step] [from] [to]
+// At each p = from, from + step ... to (0.0025 from 0 to 1 by default) the scene draws its
 // frame, then its terrain alone with each pixel's height above the sea
 // (Chart.probeWaterLift), and counts the water pixels above the sea. Every
 // water pixel must lie at sea level exactly; land pixels above it show the
@@ -11,6 +11,8 @@ import { chromium } from "@playwright/test";
 
 const base = process.env.BASE ?? "http://127.0.0.1:3000";
 const step = Number(process.argv[2] ?? 0.0025);
+const from = Number(process.argv[3] ?? 0);
+const to = Number(process.argv[4] ?? 1);
 const width = Number(process.env.W ?? 1280);
 const height = Number(process.env.H ?? 720);
 const scale = Number(process.env.S ?? 1.5);
@@ -42,12 +44,12 @@ await page.evaluate(
 );
 await page.waitForTimeout(1500);
 
-const count = Math.round(1 / step);
+const count = Math.round((to - from) / step);
 let worst = null;
 let lifted = 0;
 let landSeen = 0;
 for (let i = 0; i <= count; i++) {
-  const p = Math.round(Math.min(1, i * step) * 1e5) / 1e5;
+  const p = Math.round(Math.min(to, from + i * step) * 1e5) / 1e5;
   const r = await page.evaluate((at) => window.__road.waterLift(at), p);
   if (r.landRaised > 0) landSeen++;
   if (r.lifted > 0) {

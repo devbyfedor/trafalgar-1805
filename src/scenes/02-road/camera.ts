@@ -32,6 +32,24 @@ const DAWN_EYE: Lla = offset(
 /** The last frame's eye: west of the British, 6.5 km up. */
 const LAST_EYE: Lla = [-6.6, 36.1, 6.5];
 
+/**
+ * The harbour close up (beat 4): over the city, 3.5 km up, looking along 24°
+ * across the bay at the combined fleet's three lines at anchor (fleets.ts,
+ * ANCHORAGE), broadside to their heads (294°) and near enough that a row's
+ * ships stand apart (about 220 m between them, some 44 CSS px on screen)
+ * and the rows separate in depth. From farther south the rows crowd again,
+ * and from any side where the ships show their broadsides the city lies
+ * behind the camera.
+ */
+const ANCHORAGE_CENTRE = [-6.273, 36.563] as const;
+const HARBOUR_EYE: Lla = offset(
+  ANCHORAGE_CENTRE[0],
+  ANCHORAGE_CENTRE[1],
+  204,
+  4.5,
+  3.5,
+);
+
 /** Rising off the sea beside her, turning north and pitching down. */
 const RISING_EYE: Lla = offset(
   VICTORY_AT_DAWN.lon,
@@ -82,7 +100,23 @@ export const ROAD_FLIGHT: readonly CameraKey[] = [
   { p: 0.65, eye: [-9.4, 33.4, 900], target: [-6.4, 38, 0] },
   // 4. Down to the Gulf of Cádiz: the harbour, the chain to the west.
   { p: 0.69, eye: [-6.86, 35.74, 62], target: [-6.86, 36.5, 0] },
-  { p: 0.735, eye: [-6.45, 36.3, 16], target: [-6.3, 36.55, 0] },
+  // Turned onto the bay while still high, then straight down the line of
+  // sight to the harbour and back: turned low, the view whipped across.
+  {
+    p: 0.712,
+    eye: [-6.52, 36.21, 15],
+    target: [ANCHORAGE_CENTRE[0], ANCHORAGE_CENTRE[1], 0],
+  },
+  {
+    p: 0.735,
+    eye: HARBOUR_EYE,
+    target: [ANCHORAGE_CENTRE[0], ANCHORAGE_CENTRE[1], 0],
+  },
+  {
+    p: 0.758,
+    eye: [-6.55, 36.22, 15],
+    target: [ANCHORAGE_CENTRE[0], ANCHORAGE_CENTRE[1], 0],
+  },
   { p: 0.785, eye: [-6.96, 35.78, 58], target: [-6.86, 36.5, 0] },
   { p: 0.82, eye: [-6.9, 35.72, 70], target: [-6.7, 36.42, 0] },
   // 5. Night: up and east to Ulm, and back to the fleets closing.

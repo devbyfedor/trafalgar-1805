@@ -192,6 +192,8 @@ export function Scene02Road() {
               ready: true,
               stats: s.chart.stats,
               sample: (p: number, mode?: number) => s.sample(p, mode),
+              siteView: (p: number, lon: number, lat: number) =>
+                s.siteView(p, lon, lat),
               waterLift: (p: number) => {
                 drawn = -1;
                 return s.waterLift(p);
@@ -271,6 +273,18 @@ declare global {
         p: number,
         mode?: number,
       ) => { fleets: Float32Array; squadrons: Float32Array };
+      /** Development: a site's place in the frame at p (RoadStage.siteView). */
+      siteView: (
+        p: number,
+        lon: number,
+        lat: number,
+      ) => {
+        x: number;
+        y: number;
+        dist: number;
+        sinElev: number;
+        pxPerRad: number;
+      };
       /** Development: every water pixel's height above the sea at p (RoadStage.waterLift). */
       waterLift: (
         p: number,

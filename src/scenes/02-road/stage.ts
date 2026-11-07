@@ -1,3 +1,4 @@
+import { Vector3 } from "three";
 import {
   buildDigitAtlas,
   buildGlyphAtlas,
@@ -16,6 +17,7 @@ import {
   Soundings,
 } from "@/components/chart";
 import { type BenchResult, benchFrames } from "@/components/chart/engine/bench";
+import { worldX, worldY } from "@/components/chart/geo/mercator";
 import { readCoastKm } from "@/components/chart/glyphs/coast";
 import { GlyphProbe } from "@/components/chart/glyphs/probe";
 import type { WaterLift } from "@/components/chart/terrain/liftProbe";
@@ -60,6 +62,17 @@ export interface RoadStage {
   bench(frames: number, p: number, alternate?: string): Promise<BenchResult>;
   /** Development: draws the scene at p and probes its water (Chart.probeWaterLift). */
   waterLift(p: number): WaterLift;
+  /**
+   * Development: where a site on the sea level stands in the frame at p
+   * (normalised device coordinates), how far from the eye (km), how steeply
+   * the view meets the chart there (the sine of its elevation) and the
+   * frame's CSS px per radian, for sizing names (scripts/dev/name-sizes.mjs).
+   */
+  siteView(
+    p: number,
+    lon: number,
+    lat: number,
+  ): { x: number; y: number; dist: number; sinElev: number; pxPerRad: number };
   resize(width: number, height: number): void;
   dispose(): void;
 }
@@ -195,6 +208,19 @@ export async function createRoadStage(
         } finally {
           if (alternate) chart.showNamed(alternate, true);
         }
+      },
+      siteView(p, lon, lat) {
+        sampled = Number.NaN;
+        director.apply(p);
+        const camera = chart.camera;
+        camera.updateMatrixWorld();
+        const site = new Vector3(worldX(lon), worldY(lat), 0);
+        const dist = site.distanceTo(camera.position);
+        const sinElev = camera.position.z / Math.max(dist, 1e-6);
+        site.project(camera);
+        const height = chart.renderer.domElement.clientHeight || 720;
+        const pxPerRad = height / (2 * Math.tan((camera.fov * Math.PI) / 360));
+        return { x: site.x, y: site.y, dist, sinElev, pxPerRad };
       },
       waterLift(p) {
         sampled = Number.NaN;

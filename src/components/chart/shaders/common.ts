@@ -266,10 +266,14 @@ void sampleFieldBoth(vec2 p, vec2 dpx, vec2 dpy, float bias, out vec4 f, out vec
  * wake, a route or a sounding on the sea is never hidden by a raised sea.
  */
 export const GLSL_SURFACE = /* glsl */ `
-// The texel of the finest layer covering p, km.
+// The texel whose error bounds the coast read at p, km: the finest layer's
+// where it covers in full; where a layer covers only in part (its edge band,
+// or a detail tile fading in or out of the slot) the read blends it with the
+// coarser layer below, whose error then sets the margin.
 float finestTexelKm(vec2 p) {
-  float t = insideKm(tileUv(p, uRectA), uRectA) > 0.0 ? uTexelKm.x : uTexelKm.z;
-  return uHasB * cover(p, uRectB, uFadeB) > 0.0 ? uTexelKm.y : t;
+  float ca = insideKm(tileUv(p, uRectA), uRectA) > 0.0 ? cover(p, uRectA, uFadeA) : 0.0;
+  float t = ca >= 1.0 ? uTexelKm.x : uTexelKm.z;
+  return uHasB * cover(p, uRectB, uFadeB) >= 1.0 ? uTexelKm.y : t;
 }
 
 float surfaceZ(vec2 p, float cellKm, vec4 f) {

@@ -596,9 +596,11 @@ export class Glyphs implements ChartLayer {
     setHex(this.hull[1], 0x34343f);
     setHex(this.band[1], 0x6d6b7b);
     const lit = 1 - 0.5 * night;
-    for (const c of [...this.canvas, ...this.shade]) {
+    // Two plain loops: spreading the arrays would allocate every frame.
+    for (const c of this.canvas)
       c.lerp(light.sunColor, 0.18 * (1 - night)).multiplyScalar(lit);
-    }
+    for (const c of this.shade)
+      c.lerp(light.sunColor, 0.18 * (1 - night)).multiplyScalar(lit);
     for (const c of this.band) c.multiplyScalar(1 - 0.6 * night);
   }
 

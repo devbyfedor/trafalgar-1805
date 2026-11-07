@@ -210,6 +210,24 @@ function easeRooms(coast: Float32Array): Float32Array {
 /** How far off a port a squadron's block stands while it lies there, map km. */
 const ROADS_KM = 30;
 
+/**
+ * The roads farther out at the island anchorages of the West Indies beat:
+ * at ocean scale a block may cover small islands, as a printed fleet
+ * symbol does, but in a beat about the island itself the island and its
+ * name stay readable (the owner's rule, 6 November 2026). From 1,150 km up
+ * a block of twenty spans well over 100 km. [start, end] of a leg, km.
+ */
+const ISLAND_ROADS_KM = 110;
+const ROADS_BY_LEG: Readonly<Record<string, readonly [number, number]>> = {
+  // Fort Royal, Martinique, 14 May to 5 June.
+  "villeneuve-crossing": [ROADS_KM, ISLAND_ROADS_KM],
+  "villeneuve-west-indies": [ISLAND_ROADS_KM, ROADS_KM],
+  // Carlisle Bay, Barbados, 4-5 June; St John's Road, Antigua, 12-13 June.
+  "nelson-outward": [ROADS_KM, ISLAND_ROADS_KM],
+  "nelson-west-indies": [ISLAND_ROADS_KM, ISLAND_ROADS_KM],
+  "nelson-homeward": [ISLAND_ROADS_KM, ROADS_KM],
+};
+
 /** A ship at anchor in Cádiz bay: the open water beyond her, map km. */
 const ANCHOR_ROOM_KM = 4.2;
 
@@ -366,8 +384,9 @@ function blockAt(
   out: { x: number; y: number; heading: number },
 ): void {
   const len = c.along[c.along.length - 1] || 1;
-  const r0 = Math.min(0.5, ROADS_KM / len);
-  const r1 = Math.max(0.5, 1 - ROADS_KM / len);
+  const [a, b] = ROADS_BY_LEG[c.leg.id] ?? [ROADS_KM, ROADS_KM];
+  const r0 = Math.min(0.5, a / len);
+  const r1 = Math.max(0.5, 1 - b / len);
   c.route.pointAt(Math.min(r1, Math.max(r0, progress)), out);
 }
 

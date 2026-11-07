@@ -244,20 +244,24 @@ export const GAZETTEER: readonly Label[] = [
   },
   // A region, lettered like a land: it fades out close up.
   { text: "West Indies", role: "land", lon: -70, lat: 15.5, size: 100 },
+  // Sized to read at the West Indies beat (about 12 CSS px from 1,150 km
+  // up, foreshortened) and set to leeward, from the island's west coast so
+  // the name lies on the sea, clear of the squadrons standing off to
+  // windward in the roads (director.ts, ROADS_BY_LEG).
   {
     text: "Martinique",
     role: "island",
-    lon: -60.85,
-    lat: 14.65,
-    size: 9,
-    side: "right",
+    lon: -61.24,
+    lat: 14.66,
+    size: 18,
+    side: "left",
   },
   {
     text: "Barbadoes",
     role: "island",
-    lon: -59.42,
-    lat: 13.15,
-    size: 8,
-    side: "right",
+    lon: -59.67,
+    lat: 13.16,
+    size: 17,
+    side: "left",
   },
 ];

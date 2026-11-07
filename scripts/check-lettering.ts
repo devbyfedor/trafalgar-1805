@@ -1,13 +1,13 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import {
-  DEFAULT_FONT_FILE,
-  FONT_FILES,
-} from "../src/components/chart/lettering/fonts.ts";
-import {
   SOUNDING_CHARS,
   SOUNDING_FONT_FILE,
 } from "../src/components/chart/lettering/digits.ts";
+import {
+  DEFAULT_FONT_FILE,
+  FONT_FILES,
+} from "../src/components/chart/lettering/fonts.ts";
 import { GAZETTEER } from "../src/scenes/02-road/gazetteer.ts";
 
 /**

@@ -8,7 +8,10 @@ import { type RoadCaption, roadContent } from "../content";
  *   a fixed place (its text runs with the story and is hidden from
  *   assistive technology, which reads the captions' dates), and the
  *   captions under it, one at a time, in a box as tall as the longest.
- * - A scrim behind the card, as strong as contrast needs over the chart.
+ * - A scrim behind the card, as strong as contrast needs over the chart,
+ *   and a deeper one for the few stretches where the camera passes over
+ *   bright land between framings that keep the sea under the card
+ *   (ink.ts, DEEP_SCRIM).
  *
  * Initial CSS state is the scene's first frame in motion mode (everything
  * transparent: scene 1's text is still showing). Opacity, never
@@ -28,6 +31,15 @@ export function RoadText() {
         style={{
           background:
             "radial-gradient(ellipse 72% 88% at 16% 100%, rgba(11,17,23,0.56) 0%, rgba(11,17,23,0.36) 44%, rgba(11,17,23,0) 80%)",
+        }}
+      />
+      <div
+        data-el="scrim-deep"
+        aria-hidden="true"
+        className="absolute bottom-0 left-0 h-[52vh] w-[min(86vw,160vh)] opacity-0 fallback:hidden"
+        style={{
+          background:
+            "radial-gradient(ellipse 70% 86% at 18% 100%, rgba(11,17,23,0.74) 0%, rgba(11,17,23,0.66) 46%, rgba(11,17,23,0) 86%)",
         }}
       />
       <h2

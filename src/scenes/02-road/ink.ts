@@ -35,8 +35,9 @@ export const CHAPTER_INK_FADE = 0.004;
 
 /**
  * Where the card's text would stand on bright ground even with the sea
- * framed under it (the camera passing over land between two framings), a
- * deeper scrim comes in: [in from, full at, full until, out by].
+ * framed under it (the camera passing over land between two framings, or
+ * a view that must look north for its names to read), a deeper scrim
+ * comes in: [in from, full at, full until, out by].
  */
 export const DEEP_SCRIM: readonly (readonly [
   number,
@@ -46,7 +47,8 @@ export const DEEP_SCRIM: readonly (readonly [
 ])[] = [
   [0.155, 0.162, 0.178, 0.186],
   [0.236, 0.242, 0.268, 0.276],
-  [0.326, 0.333, 0.378, 0.386],
-  [0.436, 0.443, 0.478, 0.486],
+  // The whole Atlantic and the West Indies: looked at from the south, as
+  // their names must read, South America lies under the card.
+  [0.326, 0.333, 0.478, 0.486],
   [0.626, 0.631, 0.641, 0.648],
 ];

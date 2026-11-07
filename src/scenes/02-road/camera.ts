@@ -86,12 +86,12 @@ export const ROAD_FLIGHT: readonly CameraKey[] = [
   { p: 0.27, eye: [-18, 33, 2000], target: [-2, 41.5, 0] },
   { p: 0.31, eye: [-12, 17, 4300], target: [-18, 33, 0], fov: 46 },
   // The whole Atlantic from the south: the West Indies nearest.
-  { p: 0.35, eye: [-14, -12, 5000], target: [-32, 24.5, 0], fov: 52 },
+  { p: 0.35, eye: [-37, -11, 5000], target: [-32, 24.5, 0], fov: 52 },
   // The West Indies, where both squadrons are counted.
-  { p: 0.39, eye: [-50, 15.5, 1150], target: [-60.6, 15, 0] },
-  { p: 0.43, eye: [-49.5, 16.5, 1250], target: [-60.3, 16.2, 0] },
+  { p: 0.39, eye: [-58.5, 5.5, 1150], target: [-60.6, 15, 0] },
+  { p: 0.43, eye: [-57.6, 6.2, 1250], target: [-60.3, 16.2, 0] },
   // Back across: the return crossings.
-  { p: 0.47, eye: [-13, -9, 5000], target: [-31, 28, 0], fov: 52 },
+  { p: 0.47, eye: [-35, -7, 5000], target: [-31, 28, 0], fov: 52 },
   { p: 0.5, eye: [-22, 30, 2300], target: [-13, 42, 0] },
   // 3. Finisterre, then south to Cádiz and the army's turn east.
   { p: 0.535, eye: [-14.6, 40.1, 460], target: [-11.5, 43.5, 0] },

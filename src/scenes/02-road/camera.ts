@@ -76,27 +76,27 @@ export const ROAD_FLIGHT: readonly CameraKey[] = [
   { p: 0.085, eye: [-6.78, 35.52, 72], target: [-6.36, 36.22, 0] },
   // 1. North over Iberia and France to the Channel.
   { p: 0.12, eye: [-7.6, 33.6, 950], target: [-3.6, 44, 0] },
-  { p: 0.165, eye: [-1.6, 45.2, 420], target: [1.2, 50.2, 0] },
+  { p: 0.165, eye: [-5.2, 46.4, 420], target: [1.0, 50.3, 0] },
   // Boulogne from over the Channel to its south-west, looking up the
   // Strait: the camps and the flotilla on the right, England across the
   // water at the top left, the sea under the caption.
   { p: 0.2, eye: [0.85, 50.5, 32], target: [1.5, 50.85, 0] },
   { p: 0.235, eye: [0.92, 50.53, 28], target: [1.52, 50.86, 0] },
   // 2. The western Mediterranean: Toulon to Gibraltar and Cádiz.
-  { p: 0.27, eye: [1.2, 30.5, 2000], target: [-1.2, 40, 0] },
+  { p: 0.27, eye: [-18, 33, 2000], target: [-2, 41.5, 0] },
   { p: 0.31, eye: [-12, 17, 4300], target: [-18, 33, 0], fov: 46 },
   // The whole Atlantic from the south: the West Indies nearest.
-  { p: 0.35, eye: [-37, -11, 5000], target: [-32, 24.5, 0], fov: 52 },
+  { p: 0.35, eye: [-14, -12, 5000], target: [-32, 24.5, 0], fov: 52 },
   // The West Indies, where both squadrons are counted.
-  { p: 0.39, eye: [-58.5, 5.5, 1150], target: [-60.6, 15, 0] },
-  { p: 0.43, eye: [-57.6, 6.2, 1250], target: [-60.3, 16.2, 0] },
+  { p: 0.39, eye: [-50, 15.5, 1150], target: [-60.6, 15, 0] },
+  { p: 0.43, eye: [-49.5, 16.5, 1250], target: [-60.3, 16.2, 0] },
   // Back across: the return crossings.
-  { p: 0.47, eye: [-35, -7, 5000], target: [-31, 28, 0], fov: 52 },
+  { p: 0.47, eye: [-13, -9, 5000], target: [-31, 28, 0], fov: 52 },
   { p: 0.5, eye: [-22, 30, 2300], target: [-13, 42, 0] },
   // 3. Finisterre, then south to Cádiz and the army's turn east.
   { p: 0.535, eye: [-14.6, 40.1, 460], target: [-11.5, 43.5, 0] },
   { p: 0.575, eye: [-17, 33.5, 1750], target: [-7.2, 41, 0] },
-  { p: 0.62, eye: [-6.5, 36.5, 1700], target: [3.5, 47, 0] },
+  { p: 0.62, eye: [-19, 38, 1700], target: [1, 46.5, 0] },
   { p: 0.65, eye: [-9.4, 33.4, 900], target: [-6.4, 38, 0] },
   // 4. Down to the Gulf of Cádiz: the harbour, the chain to the west.
   { p: 0.69, eye: [-6.86, 35.74, 62], target: [-6.86, 36.5, 0] },

@@ -82,16 +82,26 @@ for (let i = 0; i <= count; i++) {
     }
     return out;
   });
-  await page.addStyleTag({
-    content:
-      "#road [data-layer=text] h2, #road [data-layer=text] p { color: transparent !important; }",
+  // The text hidden by a style of its own, switched on for the shot.
+  await page.evaluate(() => {
+    let style = document.getElementById("contrast-hide");
+    if (!style) {
+      style = document.createElement("style");
+      style.id = "contrast-hide";
+      style.textContent =
+        "#road [data-layer=text] h2, #road [data-layer=text] p { color: transparent !important; }";
+      document.head.append(style);
+    }
+    style.disabled = false;
   });
-  await page.waitForTimeout(120);
+  await page.waitForTimeout(150);
   const shot = await page.screenshot();
   await page.evaluate(() => {
-    const tags = document.querySelectorAll("style");
-    tags[tags.length - 1]?.remove();
+    const style = document.getElementById("contrast-hide");
+    if (style) style.disabled = true;
   });
+  if (process.env.SHOTS)
+    await writeFile(`${process.env.SHOTS}/contrast-${p.toFixed(3)}.png`, shot);
   const { data, info } = await sharp(shot)
     .removeAlpha()
     .raw()

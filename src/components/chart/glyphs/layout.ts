@@ -95,6 +95,12 @@ const FLOOR_PX = 11;
 const LAND_GAP_PX = 1.75;
 /** Half the coastline's width at its widest (uCoastPx) and its antialiasing, CSS px. */
 const COAST_HALF_PX = 1;
+/**
+ * A shape's spacing a little wider than the room it must keep between
+ * its ships (device px), so the clamps that keep it never find two of them
+ * exactly touching, where rounding would close them up.
+ */
+const SLACK_PX = 1.5;
 /** Room between two glyphs' ink, CSS px. */
 const GLYPH_GAP_PX = 1.5;
 /**
@@ -112,6 +118,12 @@ const PIECES_Y = 2;
 /** Baked tables: the least fit taken within this much p, then eased over this much. */
 const BAKE_LEAST_P = 0.004;
 const BAKE_EASE_P = 0.004;
+/** The easing of each glyph's baked size, in p (its least taken over 3σ). */
+const BAKE_SIZE_EASE_P = 0.002;
+/** Below this a glyph is a speck, whatever was baked (CSS px). */
+const SPECK_PX = 4.5;
+/** The most a glyph's foot may move in half a bake step and count as motion (CSS px). */
+const SWEEP_MAX_PX = 60;
 
 const smoothstep = (e0: number, e1: number, x: number) => {
   const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
@@ -302,6 +314,24 @@ export class GlyphLayout implements ChartLayer {
   /** Baked tables and the viewport they were baked for. */
   private bake: Bake | null = null;
   private baked: Bake | null = null;
+  /**
+   * While baking the sizes: each glyph's foot on the chart at the step
+   * before, so her land is fitted over the whole way she moves against it
+   * between steps (sweepFor), not only where she stands at each.
+   */
+  private sweeping = false;
+  private sweepX: Float64Array[] = [];
+  private sweepY: Float64Array[] = [];
+  private sweepOk: Uint8Array[] = [];
+  /** The sweep of the glyph being laid out: half-extents, px. */
+  private swX = 0;
+  private swY = 0;
+  /** The tables whose glyph sizes limit this frame's (none while baking). */
+  private ratios: Bake | null = null;
+  /** Each layer's index among the layers. */
+  private readonly layerIndex = new Map<Glyphs, number>();
+  /** Development: whether this frame reads the baked tables. */
+  private usingTables = false;
   /** Development: each squadron's layout this frame, when asked for. */
   debug: Record<string, unknown>[] | null = null;
 
@@ -321,6 +351,11 @@ export class GlyphLayout implements ChartLayer {
       (g): g is Formation => g.kind === "formation",
     );
     this.frees = groups.filter((g): g is FreeGroup => g.kind === "free");
+    for (let i = 0; i < this.layers.length; i++)
+      this.layerIndex.set(this.layers[i], i);
+    this.sweepX = this.layers.map((l) => new Float64Array(l.markCount));
+    this.sweepY = this.layers.map((l) => new Float64Array(l.markCount));
+    this.sweepOk = this.layers.map((l) => new Uint8Array(l.markCount));
     let total = 0;
     for (const l of this.layers) total += l.markCount;
     const f64 = (n: number) => new Float64Array(Math.max(1, n));
@@ -342,6 +377,20 @@ export class GlyphLayout implements ChartLayer {
     this.sr = f64(2 * largest);
   }
 
+  /** Development: a glyph's baked sizes from step k0 to k1, as laid out and eased. */
+  bakedSizes(layer: number, i: number, k0: number, k1: number): number[][] {
+    const b = this.baked;
+    if (!b) return [];
+    const out: number[][] = [];
+    for (let k = k0; k <= k1; k++)
+      out.push([
+        b.from + k * b.step,
+        b.raw[layer]?.[i * b.steps + k] ?? Number.NaN,
+        b.ratio[layer][i * b.steps + k],
+      ]);
+    return out;
+  }
+
   /** The scene's progress for this frame (the baked tables are read at it). */
   setProgress(p: number): void {
     this.p = p;
@@ -350,8 +399,13 @@ export class GlyphLayout implements ChartLayer {
   update(frame: FrameInfo): void {
     this.begin(frame);
     // Nothing is drawn unless a group places it.
-    for (const l of this.layers) l.drawn.alpha.fill(0);
+    for (const l of this.layers) {
+      l.drawn.alpha.fill(0);
+      l.drawn.nominal.fill(0);
+    }
     const baked = this.tablesFor(frame);
+    this.usingTables = baked !== null;
+    this.ratios = baked;
     // The fleets at their true places first; the squadrons' symbols fit
     // round them.
     for (let i = 0; i < this.frees.length; i++)
@@ -373,6 +427,7 @@ export class GlyphLayout implements ChartLayer {
       frame.eye.z,
     );
     this.obstacles = 0;
+    this.ratios = null;
   }
 
   // ---- Baking -------------------------------------------------------------
@@ -392,14 +447,28 @@ export class GlyphLayout implements ChartLayer {
       steps,
       this.formations.length,
       this.frees.length,
+      this.layers.map((l) => l.markCount),
     );
     return Array.from({ length: steps }, (_, k) => from + k * step);
   }
 
-  /** Records the decisions at step k, for the scene as set at its p. */
-  bakeStep(frame: FrameInfo, k: number): void {
+  /** How many passes a bake makes over its steps (bakeStep, bakeEnd). */
+  readonly bakePasses = 2;
+
+  /**
+   * Bakes step k, for the scene as set at its p. Pass 0 records the
+   * decisions (each fleet group's common scale, each squadron's fit, place
+   * and side, their shared scale); pass 1, laying the frame out with those
+   * decisions eased, records what each glyph draws: its height against
+   * its nominal.
+   */
+  bakeStep(frame: FrameInfo, k: number, pass: number): void {
     const bake = this.bake;
     if (!bake) return;
+    if (pass === 1) {
+      this.bakeSize(bake, frame, k);
+      return;
+    }
     if (k === 0) bake.key = viewKey(frame);
     this.begin(frame);
     for (let i = 0; i < this.frees.length; i++)
@@ -412,19 +481,98 @@ export class GlyphLayout implements ChartLayer {
         f.fit[k] = Number.NaN;
         f.offX[k] = Number.NaN;
         f.offY[k] = Number.NaN;
+        f.side[k] = Number.NaN;
+        f.sign[k] = Number.NaN;
         continue;
       }
       f.fit[k] = plan.fit;
+      f.sign[k] = signOfFit(plan.fit, plan.floor);
       f.offX[k] = plan.ax - plan.headX;
       f.offY[k] = plan.ay - plan.headY;
+      f.side[k] = plan.side;
+    }
+    bake.shared[k] = this.sharedScale();
+  }
+
+  /**
+   * What each glyph draws at step k, laid out as a frame reading the eased
+   * decisions would lay it out: her height against her nominal. Eased in
+   * turn (bakeEnd), the frames shrink a ship ahead of a pass that would
+   * pinch her, at the pace of the scroll, instead of where it pinches.
+   */
+  private bakeSize(bake: Bake, frame: FrameInfo, k: number): void {
+    this.begin(frame);
+    for (const l of this.layers) {
+      l.drawn.alpha.fill(0);
+      l.drawn.nominal.fill(0);
+    }
+    if (k === 0) for (const ok of this.sweepOk) ok.fill(0);
+    this.sweeping = true;
+    for (let i = 0; i < this.frees.length; i++)
+      this.layoutFree(this.frees[i], bake.at(i, this.p));
+    this.layoutSquadrons(bake);
+    this.sweeping = false;
+    for (let li = 0; li < this.layers.length; li++) {
+      const layer = this.layers[li];
+      const d = layer.drawn;
+      const t = bake.ratio[li];
+      // Every glyph a group laid out, even one squeezed out of sight (her
+      // squeeze is what the frames must see coming); one laid out by none
+      // has no nominal and limits nothing.
+      for (let i = 0; i < layer.markCount; i++) {
+        const laid = d.nominal[i] > 0;
+        t[i * bake.steps + k] = laid
+          ? Math.min(1, d.height[i] / d.nominal[i])
+          : 1;
+        // And her nominal, to judge how much of her shows once eased.
+        bake.nom[li][i * bake.steps + k] = laid ? d.nominal[i] : 0;
+        // Her foot on the chart, for the next step's sweep.
+        this.sweepOk[li][i] = laid ? 1 : 0;
+        this.sweepX[li][i] = d.x[i];
+        this.sweepY[li][i] = d.y[i];
+      }
     }
   }
 
-  /** Eases the baked tables; from now on the frames read them. */
-  bakeEnd(): void {
+  /**
+   * While baking the sizes, how far a glyph's foot moves against the land
+   * over half a step either way, px, into swX, swY: from where her foot
+   * stood on the chart at the step before, seen from this step's eye, to
+   * where it stands now, the same again ahead. Her land is fitted over
+   * that whole way, so an islet that passes under her between two steps
+   * still shrinks her ahead of it. A jump (the story moving on between
+   * beats) is no motion.
+   */
+  private sweepFor(layer: Glyphs, i: number, fx: number, fy: number): void {
+    this.swX = 0;
+    this.swY = 0;
+    if (!this.sweeping) return;
+    const li = this.layerIndex.get(layer) ?? 0;
+    if (!this.sweepOk[li][i]) return;
+    const v = this.view;
+    if (!v.project(this.sweepX[li][i], this.sweepY[li][i], 0)) return;
+    const dx = Math.abs(fx - v.px) / 2;
+    const dy = Math.abs(fy - v.py) / 2;
+    if (Math.hypot(dx, dy) > SWEEP_MAX_PX * this.dpr) return;
+    this.swX = dx;
+    this.swY = dy;
+  }
+
+  /**
+   * Ends a pass: eases the tables it filled. After the last, the frames
+   * read them.
+   */
+  bakeEnd(pass: number): void {
     const bake = this.bake;
     if (!bake) return;
-    bake.finish();
+    if (pass === 0) {
+      bake.finishDecisions();
+      return;
+    }
+    bake.finishSizes(
+      this.layers.map((l) => l.markCount),
+      (h) => this.shows(h),
+    );
     this.baked = bake;
     this.bake = null;
   }
@@ -590,9 +738,13 @@ export class GlyphLayout implements ChartLayer {
     y0: number,
     y1: number,
     limit: number,
+    sweepX = 0,
+    sweepY = 0,
   ): number {
     if (!this.coast || limit <= 0) return Math.max(0, limit);
-    const m = this.landMargin;
+    // The margin all round, and the way the box moves (baking only).
+    const mx = this.landMargin + sweepX;
+    const my = this.landMargin + sweepY;
     // The open sea's case: everything the box sweeps on its way to the
     // limit (the hull of the point and the box) in one piece.
     {
@@ -602,7 +754,7 @@ export class GlyphLayout implements ChartLayer {
       const hy = Math.max(0, limit * y1);
       const cx = ax + (lx + hx) / 2;
       const cy = ay + (ly + hy) / 2;
-      if (this.slack(cx, cy, (hx - lx) / 2 + m, (hy - ly) / 2 + m) >= 0)
+      if (this.slack(cx, cy, (hx - lx) / 2 + mx, (hy - ly) / 2 + my) >= 0)
         return limit;
     }
     let best = limit;
@@ -619,8 +771,8 @@ export class GlyphLayout implements ChartLayer {
           const sl = this.slack(
             ax + s * ux,
             ay + s * uy,
-            (s * pw) / 2 + m,
-            (s * ph) / 2 + m,
+            (s * pw) / 2 + mx,
+            (s * ph) / 2 + my,
           );
           if (sl <= 0.02) break;
           s += (0.7 * sl) / Math.max(rate, 1e-6);
@@ -631,6 +783,13 @@ export class GlyphLayout implements ChartLayer {
     return Math.max(0, Math.min(best, limit));
   }
 
+  /** The baked limit on a glyph's scale this frame (1 without tables). */
+  private bakedRatio(layer: Glyphs, index: number): number {
+    const b = this.ratios;
+    if (!b) return 1;
+    return b.ratioAt(this.layerIndex.get(layer) ?? 0, index, this.p);
+  }
+
   /** Writes a glyph's drawing for the frame: its foot (screen px), height and opacity. */
   private draw(
     layer: Glyphs,
@@ -639,6 +798,7 @@ export class GlyphLayout implements ChartLayer {
     fy: number,
     heading: number,
     h: number,
+    nominal: number,
     alpha: number,
     wakeShare: number,
     narrow = NARROW_SHIP,
@@ -646,6 +806,7 @@ export class GlyphLayout implements ChartLayer {
     const v = this.view;
     const d = layer.drawn;
     d.narrow[index] = narrow;
+    d.nominal[index] = nominal;
     // The foot on the sea under the screen point (above the horizon, the
     // ship's own place).
     if (v.unproject(fx, fy)) {
@@ -708,6 +869,23 @@ export class GlyphLayout implements ChartLayer {
   /** How much of a glyph this tall shows (device px). */
   private shows(h: number): number {
     return smoothstep(READABLE_PX * this.dpr, FULL_PX * this.dpr, h);
+  }
+
+  /**
+   * How much of a glyph shows this frame, drawn h tall: as baked, eased
+   * after the size's steep threshold (so a ship squeezed too small to read
+   * fades over the scroll instead of within a step of it); and never a
+   * speck, should she come out smaller than baked. Without tables, as her
+   * size says.
+   */
+  private shownAt(layer: Glyphs, index: number, h: number): number {
+    const b = this.ratios;
+    if (!b) return this.shows(h);
+    const li = this.layerIndex.get(layer) ?? 0;
+    return Math.min(
+      b.visAt(li, index, this.p),
+      smoothstep(SPECK_PX * this.dpr, READABLE_PX * this.dpr, h),
+    );
   }
 
   // ---- Ships at their true places -----------------------------------------
@@ -794,11 +972,13 @@ export class GlyphLayout implements ChartLayer {
       const l = this.bl[k];
       const r = this.br[k];
       const t = this.bt[k];
-      let s = this.obstacleFit(fx, fy, -l, r, 0, t, k === 0 ? 1 : common);
-      s = this.landFit(fx, fy, -l, r, 0, t, s);
+      const limit = Math.min(k === 0 ? 1 : common, this.bakedRatio(layer, i));
+      let s = this.obstacleFit(fx, fy, -l, r, 0, t, limit);
+      this.sweepFor(layer, i, fx, fy);
+      s = this.landFit(fx, fy, -l, r, 0, t, s, this.swX, this.swY);
       const h = s * this.h0[k];
-      const alpha = it.opacity[i] * this.shows(h);
-      this.draw(layer, i, fx, fy, it.heading[i], h, alpha, 1);
+      const alpha = it.opacity[i] * this.shownAt(layer, i, h);
+      this.draw(layer, i, fx, fy, it.heading[i], h, this.h0[k], alpha, 1);
       this.addObstacle(
         fx,
         fy,
@@ -824,16 +1004,32 @@ export class GlyphLayout implements ChartLayer {
    * that scale or less, against land and the glyphs before it.
    */
   private layoutSquadrons(baked: Bake | null): void {
+    for (let i = 0; i < this.formations.length; i++)
+      this.prepare(this.formations[i], baked ? baked.squadAt(i, this.p) : null);
+    // The shared scale moves as squadrons come on screen and go: baked and
+    // eased too.
+    const shared = baked ? baked.sharedAt(this.p) : this.sharedScale();
+    for (const g of this.formations) {
+      const plan = this.plans.get(g);
+      if (plan?.ok) this.drawSquadron(g, plan, shared);
+    }
+  }
+
+  /**
+   * The scale shared by the squadrons prepared this frame: the least of
+   * their fits, each counting as much as it shows: coming into the story,
+   * on screen (its shape's centre within its radius of the frame), and not
+   * given way to its sign (which it does below the floor).
+   */
+  private sharedScale(): number {
     let shared = 1;
     const v = this.view;
-    for (let i = 0; i < this.formations.length; i++) {
-      const g = this.formations[i];
-      const plan = this.prepare(g, baked ? baked.squadAt(i, this.p) : null);
-      if (!plan.ok) continue;
-      // A squadron counts as much as it shows: coming into the story, on
-      // screen (its shape's centre within its radius of the frame), and
-      // not given way to its sign (which it does below the floor).
-      const sign = 1 - smoothstep(0.8 * plan.floor, plan.floor, plan.fit);
+    for (const g of this.formations) {
+      const plan = this.plans.get(g);
+      if (!plan?.ok || plan.frame !== this.frameNo) continue;
+      const sign = Number.isNaN(plan.bakedSign)
+        ? signOfFit(plan.fit, plan.floor)
+        : plan.bakedSign;
       const cx = plan.ax + plan.cx;
       const cy = plan.ay + plan.cy;
       const out = Math.max(-cx, cx - v.w, -cy, cy - v.h);
@@ -844,10 +1040,7 @@ export class GlyphLayout implements ChartLayer {
         1 + (Math.max(plan.fit, plan.floor) - 1) * weight,
       );
     }
-    for (const g of this.formations) {
-      const plan = this.plans.get(g);
-      if (plan?.ok) this.drawSquadron(g, plan, shared);
-    }
+    return shared;
   }
 
   /**
@@ -881,33 +1074,36 @@ export class GlyphLayout implements ChartLayer {
     const headY = v.py;
     let ax = headX;
     let ay = headY;
-    // The meeting's course: both squadrons turn into it.
+    // The meeting's course: both squadrons turn into it. The meeting's
+    // share comes eased (the director's); eased again, and again in the
+    // zip, the rows spread into the line within a few steps of scroll.
     const other = g.meets;
-    const e = other && g.meeting > 0 ? smoothstep(0, 1, g.meeting) : 0;
+    const e = other && g.meeting > 0 ? g.meeting : 0;
     const heading =
       e > 0 && g.course !== undefined
         ? turn(g.heading, g.course, e)
         : g.heading;
-    if (!this.boxDims(g, heading)) return plan;
+    if (!this.boxDims(g)) return plan;
     const { half, tall, h, presence } = this.dims;
     const facing = v.facing(heading);
-    const step = 2 * half + this.glyphGap;
+    const step = 2 * half + this.glyphGap + SLACK_PX;
     // Which way astern lies: -1 to the left (bows right) .. 1. From the
     // facing while the ships show their sides; sailing nearly end-on, the
     // side with the more open water, both by weights that come and go
     // smoothly.
     const byFacing = 1 - 2 * smoothstep(-0.3, 0.3, facing);
     const sideways = smoothstep(0.15, 0.4, Math.abs(facing));
-    const side =
-      sideways >= 1
+    const side = baked
+      ? baked.side
+      : sideways >= 1
         ? byFacing
         : byFacing * sideways +
           this.openSide(headX, headY + tall, n * step * 0.4) * (1 - sideways);
-    const rowSep = tall + this.glyphGap;
+    const rowSep = tall + this.glyphGap + SLACK_PX;
     // Meeting another squadron: both zip into lines on one spacing, at
     // one place.
     const pair = other && e > 0 ? this.pairOf(g, other) : null;
-    const zip = smoothstep(0, 0.6, e);
+    const zip = e;
     const lineStep = pair ? step + (pair.step - step) * e : step;
     this.shapeOffsets(plan, g, n, side, zip, lineStep, rowSep);
     let cap = 1;
@@ -958,6 +1154,9 @@ export class GlyphLayout implements ChartLayer {
       ? Math.min(cap, baked.fit)
       : Math.min(cap, this.shapeFit(g, plan));
     plan.frame = this.frameNo;
+    plan.side = side;
+    plan.facing = facing;
+    plan.bakedSign = baked ? baked.sign : Number.NaN;
     return plan;
   }
 
@@ -989,7 +1188,7 @@ export class GlyphLayout implements ChartLayer {
    * the tallest, its nominal height, and how much of the squadron shows.
    * False when none of it does.
    */
-  private boxDims(g: Formation, heading: number): boolean {
+  private boxDims(g: Formation): boolean {
     const layer = g.layer;
     const it = layer.intent;
     const v = this.view;
@@ -1006,10 +1205,10 @@ export class GlyphLayout implements ChartLayer {
       reach = Math.max(reach, e.left, e.right);
       top = Math.max(top, e.top);
     }
-    const sx =
-      NARROW_SYMBOL + (1 - NARROW_SYMBOL) * Math.abs(v.facing(heading));
+    // At full width whatever the facing, so the shape keeps its spacing as
+    // the heading turns (the ships' own boxes narrow within it).
     const d = this.dims;
-    d.half = reach * sx * h + 0.5 / sx + 0.5;
+    d.half = reach * h + 1;
     d.tall = (layer.foot + top) * h + 0.5;
     d.h = h;
     d.presence = presence;
@@ -1049,11 +1248,10 @@ export class GlyphLayout implements ChartLayer {
     pair.frame = this.frameNo;
     pair.ok = false;
     const v = this.view;
-    const course = g.course ?? other.course ?? g.heading;
-    if (!this.boxDims(g, course)) return null;
+    if (!this.boxDims(g)) return null;
     const halfA = this.dims.half;
     const tallA = this.dims.tall;
-    if (!this.boxDims(other, course)) return null;
+    if (!this.boxDims(other)) return null;
     const half = Math.max(halfA, this.dims.half);
     const tall = Math.max(tallA, this.dims.tall);
     if (!v.project(g.x, g.y, 0)) return null;
@@ -1062,7 +1260,7 @@ export class GlyphLayout implements ChartLayer {
     if (!v.project(other.x, other.y, 0)) return null;
     const mx = (hx + v.px) / 2;
     const my = (hy + v.py) / 2;
-    const step = 2 * half + this.glyphGap;
+    const step = 2 * half + this.glyphGap + SLACK_PX;
     // Each line as long as its ships there.
     const countA = presentCount(g);
     const countB = presentCount(other);
@@ -1312,7 +1510,11 @@ export class GlyphLayout implements ChartLayer {
     const n = g.places.length;
     const fit = plan.fit;
     const scale = Math.min(shared, fit);
-    const sign = 1 - smoothstep(0.8 * plan.floor, plan.floor, fit);
+    // Its sign as baked (eased, so the ranks go over a stretch of scroll
+    // however fast the view pulls back), or from the fit.
+    const sign = Number.isNaN(plan.bakedSign)
+      ? signOfFit(fit, plan.floor)
+      : plan.bakedSign;
     plan.sign = sign;
     const ox = plan.ax + plan.cx;
     const oy = plan.ay + plan.cy;
@@ -1322,15 +1524,17 @@ export class GlyphLayout implements ChartLayer {
       this.view.ez,
     );
     const haze = this.view.haze(dist);
+    const why = this.debug ? ([] as number[][]) : null;
     for (let k = 0; k < n; k++) {
       const i = g.places[k];
       if (it.opacity[i] <= 0) continue;
       let fx = ox + scale * (plan.ox[k] - plan.cx);
       let fy = oy + scale * (plan.oy[k] - plan.cy);
       // As a sign, the lead stands where the water was found for the whole
-      // squadron, once the others have gone.
+      // squadron: she slides there along her own row (it holds no other
+      // ship) as the others go.
       if (k === 0) {
-        const t = smoothstep(0.95, 1, sign);
+        const t = smoothstep(0, 1, sign);
         fx += (ox - fx) * t;
         fy += (oy - fy) * t;
       }
@@ -1344,12 +1548,13 @@ export class GlyphLayout implements ChartLayer {
         k === 0
           ? 0
           : smoothstep(0.6 * (1 - rank), 0.6 * (1 - rank) + 0.4, sign);
-      // The lead grows to the shared scale once the others have gone.
-      const limit =
+      // The lead grows to the shared scale as the others go.
+      const limit = Math.min(
         k === 0
-          ? scale +
-            (Math.max(shared, scale) - scale) * smoothstep(0.95, 1, sign)
-          : scale * (1 - going);
+          ? scale + (Math.max(shared, scale) - scale) * smoothstep(0.5, 1, sign)
+          : scale * (1 - going),
+        this.bakedRatio(layer, i),
+      );
       let s = this.obstacleFit(
         fx,
         fy,
@@ -1359,9 +1564,22 @@ export class GlyphLayout implements ChartLayer {
         this.boxT,
         limit,
       );
-      s = this.landFit(fx, fy, -this.boxL, this.boxR, 0, this.boxT, s);
+      const byObstacle = s;
+      this.sweepFor(layer, i, fx, fy);
+      s = this.landFit(
+        fx,
+        fy,
+        -this.boxL,
+        this.boxR,
+        0,
+        this.boxT,
+        s,
+        this.swX,
+        this.swY,
+      );
+      why?.push([k, limit, byObstacle, s, this.bakedRatio(layer, i)]);
       const hd = s * plan.h;
-      const alpha = it.opacity[i] * (1 - going) * this.shows(hd);
+      const alpha = it.opacity[i] * (1 - going) * this.shownAt(layer, i, hd);
       this.draw(
         layer,
         i,
@@ -1369,6 +1587,7 @@ export class GlyphLayout implements ChartLayer {
         fy,
         plan.heading,
         hd,
+        plan.h,
         alpha,
         k === 0 ? 1 : 0,
         NARROW_SYMBOL,
@@ -1384,14 +1603,24 @@ export class GlyphLayout implements ChartLayer {
       this.debug.push({
         places: g.places[0],
         p: this.p,
+        tables: this.usingTables,
         baked: this.baked ? this.baked.key : "none",
         anchor: [plan.ax, plan.ay],
+        side: plan.side,
+        facing: plan.facing,
+        count: plan.count,
         radius: plan.radius,
         fit,
         shared,
         scale,
         sign,
+        meeting: g.meeting,
+        cx: plan.cx,
+        cy: plan.cy,
         h: plan.h,
+        // Each ship's limit, her scale after the glyphs before her and
+        // after land, and her baked size.
+        why,
       });
   }
 
@@ -1532,6 +1761,9 @@ interface SquadronPlan {
   hy: number;
   /** The frame it was laid out in. */
   frame: number;
+  /** Development: its side and facing. */
+  side: number;
+  facing: number;
   /** The shape's centre (from the lead) and radius. */
   cx: number;
   cy: number;
@@ -1543,6 +1775,8 @@ interface SquadronPlan {
   presence: number;
   /** How far it has turned into its sign; its lead's foot and height drawn. */
   sign: number;
+  /** Its sign as baked (NaN: decided from the frame). */
+  bakedSign: number;
   leadX: number;
   leadY: number;
   leadH: number;
@@ -1567,6 +1801,8 @@ function newPlan(n: number): SquadronPlan {
     hx: 0,
     hy: 0,
     frame: 0,
+    side: 0,
+    facing: 0,
     cx: 0,
     cy: 0,
     radius: 0,
@@ -1575,6 +1811,7 @@ function newPlan(n: number): SquadronPlan {
     cap: 1,
     presence: 0,
     sign: 0,
+    bakedSign: Number.NaN,
     leadX: 0,
     leadY: 0,
     leadH: 0,
@@ -1604,6 +1841,10 @@ interface BakedSquad {
   fit: number;
   offX: number;
   offY: number;
+  /** Which way astern lies (-1 left .. 1 right). */
+  side: number;
+  /** How far it has turned into its sign. */
+  sign: number;
 }
 
 /** The viewport a bake belongs to. */
@@ -1626,9 +1867,25 @@ class Bake {
     fit: Float32Array;
     offX: Float32Array;
     offY: Float32Array;
+    side: Float32Array;
+    sign: Float32Array;
   }[];
   readonly common: Float32Array[];
-  private readonly out: BakedSquad = { fit: 1, offX: 0, offY: 0 };
+  /** The squadrons' shared scale. */
+  readonly shared: Float32Array;
+  /** Per layer, per glyph (steps apart), its height against its nominal. */
+  readonly ratio: Float32Array[];
+  /** Per layer, per glyph (steps apart), how much of it shows for its size. */
+  readonly vis: Float32Array[];
+  /** Per layer, per glyph (steps apart), its nominal height (0: not laid out). */
+  readonly nom: Float32Array[];
+  private readonly out: BakedSquad = {
+    fit: 1,
+    offX: 0,
+    offY: 0,
+    side: -1,
+    sign: 0,
+  };
 
   constructor(
     readonly from: number,
@@ -1636,28 +1893,74 @@ class Bake {
     readonly steps: number,
     squads: number,
     frees: number,
+    marks: readonly number[],
   ) {
     this.to = from + (steps - 1) * step;
     this.squad = Array.from({ length: squads }, () => ({
       fit: new Float32Array(steps),
       offX: new Float32Array(steps),
       offY: new Float32Array(steps),
+      side: new Float32Array(steps),
+      sign: new Float32Array(steps),
     }));
     this.common = Array.from({ length: frees }, () => new Float32Array(steps));
+    this.shared = new Float32Array(steps);
+    this.ratio = marks.map((n) => new Float32Array(n * steps).fill(1));
+    this.vis = marks.map((n) => new Float32Array(n * steps).fill(1));
+    this.nom = marks.map((n) => new Float32Array(n * steps));
   }
 
-  finish(): void {
+  finishDecisions(): void {
     const reach = Math.round(BAKE_LEAST_P / this.step);
     const sigma = BAKE_EASE_P / this.step;
     for (const s of this.squad) {
       fillGaps(s.fit, 1);
       fillGaps(s.offX, 0);
       fillGaps(s.offY, 0);
+      fillGaps(s.side, -1);
+      fillGaps(s.sign, 0);
       ease(least(s.fit, reach), sigma, s.fit);
       ease(s.offX, sigma, s.offX);
       ease(s.offY, sigma, s.offY);
+      // A side change slides whole rows across the lead: slower still.
+      ease(s.side, 2 * sigma, s.side);
+      // Its sign: the most within reach (a squadron turns into its sign
+      // ahead of the view that needs it), eased slower still, so its ranks
+      // go over a stretch of scroll.
+      ease(most(s.sign, reach), 2 * sigma, s.sign);
     }
     for (const c of this.common) ease(least(c, reach), sigma, c);
+    ease(least(this.shared, reach), sigma, this.shared);
+  }
+
+  /**
+   * Each glyph's sizes: the least within the easing's whole reach, then
+   * eased, so at every step the eased size is no more than the size laid
+   * out there.
+   */
+  /** Development: the sizes as laid out, before easing. */
+  raw: Float32Array[] = [];
+
+  finishSizes(marks: readonly number[], shows: (h: number) => number): void {
+    this.raw = this.ratio.map((t) => t.slice());
+    const sigma = BAKE_SIZE_EASE_P / this.step;
+    const reach = Math.ceil(3 * sigma);
+    marks.forEach((n, li) => {
+      for (let i = 0; i < n; i++) {
+        const from = i * this.steps;
+        const to = from + this.steps;
+        const t = this.ratio[li].subarray(from, to);
+        ease(least(t, reach), sigma, t);
+        // How much of her shows at the eased size, eased in turn: after the
+        // size's steep threshold, so she fades over the scroll; and judged
+        // at the size the frames will draw, so the two agree.
+        const v = this.vis[li].subarray(from, to);
+        const nom = this.nom[li].subarray(from, to);
+        for (let k = 0; k < this.steps; k++)
+          v[k] = nom[k] > 0 ? shows(nom[k] * t[k]) : 1;
+        ease(least(v, reach), sigma, v);
+      }
+    });
   }
 
   squadAt(i: number, p: number): BakedSquad {
@@ -1665,6 +1968,8 @@ class Bake {
     this.out.fit = this.read(s.fit, p);
     this.out.offX = this.read(s.offX, p);
     this.out.offY = this.read(s.offY, p);
+    this.out.side = this.read(s.side, p);
+    this.out.sign = this.read(s.sign, p);
     return this.out;
   }
 
@@ -1672,13 +1977,46 @@ class Bake {
     return this.read(this.common[i], p);
   }
 
-  private read(t: Float32Array, p: number): number {
-    const x = Math.min(
-      this.steps - 1,
-      Math.max(0, (p - this.from) / this.step),
+  sharedAt(p: number): number {
+    return this.read(this.shared, p);
+  }
+
+  /** A glyph's baked height against its nominal at p. */
+  ratioAt(layer: number, i: number, p: number): number {
+    return this.readGlyph(this.ratio[layer], i, p);
+  }
+
+  /** How much of a glyph shows for her size at p, as baked. */
+  visAt(layer: number, i: number, p: number): number {
+    return this.readGlyph(this.vis[layer], i, p);
+  }
+
+  private readGlyph(t: Float32Array, i: number, p: number): number {
+    return this.read(t, p, i * this.steps);
+  }
+
+  /**
+   * A table at p, the steps (from `o` on) joined by a Catmull-Rom curve:
+   * read straight, each sample would be a kink, a jolt of motion every
+   * step of the bake.
+   */
+  private read(t: Float32Array, p: number, o = 0): number {
+    const last = this.steps - 1;
+    const x = Math.min(last, Math.max(0, (p - this.from) / this.step));
+    const k = Math.min(last - 1, Math.floor(x));
+    const u = x - k;
+    const y0 = t[o + Math.max(0, k - 1)];
+    const y1 = t[o + k];
+    const y2 = t[o + k + 1];
+    const y3 = t[o + Math.min(last, k + 2)];
+    return (
+      y1 +
+      0.5 *
+        u *
+        (y2 -
+          y0 +
+          u * (2 * y0 - 5 * y1 + 4 * y2 - y3 + u * (3 * (y1 - y2) + y3 - y0)))
     );
-    const k = Math.min(this.steps - 2, Math.floor(x));
-    return t[k] + (t[k + 1] - t[k]) * (x - k);
   }
 }
 
@@ -1695,6 +2033,27 @@ function fillGaps(t: Float32Array, fallback: number): void {
     else last = t[i];
   }
   for (let i = 0; i < t.length; i++) if (Number.isNaN(t[i])) t[i] = fallback;
+}
+
+/** The greatest value within `reach` steps either side. */
+function most(t: Float32Array, reach: number): Float32Array {
+  const out = new Float32Array(t.length);
+  for (let i = 0; i < t.length; i++) {
+    let m = Number.NEGATIVE_INFINITY;
+    const end = Math.min(t.length - 1, i + reach);
+    for (let k = Math.max(0, i - reach); k <= end; k++) m = Math.max(m, t[k]);
+    out[i] = m;
+  }
+  return out;
+}
+
+/**
+ * How far a squadron has turned into its sign at a fit (0 a block, 1 its
+ * lead alone): below the floor (the least scale its ships still read at)
+ * its ranks give way.
+ */
+function signOfFit(fit: number, floor: number): number {
+  return 1 - smoothstep(0.8 * floor, floor, fit);
 }
 
 /** The least value within `reach` steps either side. */

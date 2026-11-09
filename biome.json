@@ -17,6 +17,7 @@
       "!!**/blob-report",
       "!!**/.wrangler",
       "!!.claude",
+      "!scripts/dev/perf",
       "!next-env.d.ts"
     ]
   },

@@ -34,9 +34,13 @@ page.on("pageerror", (e) => logs.push(`pageerror: ${e.message}`));
 await page.goto(`${base}/${process.env.Q ? "?debug" : ""}`);
 await page.waitForLoadState("load");
 try {
-  await page.waitForFunction(() => window.__road?.ready && window.__road.baked, null, {
-    timeout: 120_000,
-  });
+  await page.waitForFunction(
+    () => window.__road?.ready && window.__road.baked,
+    null,
+    {
+      timeout: 120_000,
+    },
+  );
 } catch {
   console.log("scene 2: not ready after 120 s");
 }

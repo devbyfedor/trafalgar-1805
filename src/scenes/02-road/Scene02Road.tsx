@@ -135,17 +135,23 @@ export function Scene02Road() {
           let unregister = () => {};
           let drawn = -1;
           // A new viewport bakes the glyph layout's tables anew, once it
-          // has settled.
+          // has settled (the observer's first call, on the same size, does
+          // not).
           let rebake = 0;
+          let size = "";
+          const sizeKey = () =>
+            `${canvasHost.clientWidth}x${canvasHost.clientHeight}@${window.devicePixelRatio}`;
           const observer = new ResizeObserver(() => {
+            if (sizeKey() === size) return;
+            size = sizeKey();
             stage?.resize(canvasHost.clientWidth, canvasHost.clientHeight);
             drawn = -1;
             window.clearTimeout(rebake);
             if (window.__road) window.__road.baked = false;
             rebake = window.setTimeout(
               () =>
-                void stage?.bake().then(() => {
-                  if (window.__road) window.__road.baked = true;
+                void stage?.bake().then((done) => {
+                  if (done && window.__road) window.__road.baked = true;
                 }),
               400,
             );
@@ -176,14 +182,15 @@ export function Scene02Road() {
             }
             stage.director.setPainted(dawn.victory);
             observer.observe(canvasHost);
+            size = sizeKey();
             stage.resize(canvasHost.clientWidth, canvasHost.clientHeight);
             stage.director.apply(state.p);
             await stage.chart.warm();
             if (controller.signal.aborted) return;
             const s = stage;
             const baking = () =>
-              s.bake().then(() => {
-                if (window.__road) window.__road.baked = true;
+              s.bake().then((done) => {
+                if (done && window.__road) window.__road.baked = true;
               });
             void baking();
             let drawing = false;
@@ -211,6 +218,8 @@ export function Scene02Road() {
               baked: false,
               stats: s.chart.stats,
               sample: (p: number, mode?: number) => s.sample(p, mode),
+              bakedSizes: (layer: number, i: number, k0: number, k1: number) =>
+                s.bakedSizes(layer, i, k0, k1),
               siteView: (p: number, lon: number, lat: number) =>
                 s.siteView(p, lon, lat),
               waterLift: (p: number) => {
@@ -222,6 +231,10 @@ export function Scene02Road() {
                 return s.clash(p, ink);
               },
               glyphNames: () => s.glyphNames(),
+              motion: (p: number) => {
+                drawn = -1;
+                return s.motion(p);
+              },
               layoutDebug: (p: number) => {
                 drawn = -1;
                 return s.layoutDebug(p);
@@ -329,8 +342,17 @@ declare global {
       ) => import("@/components/chart/glyphs/clash").ClashResult;
       /** Development: each glyph layer's ships by name, in mark order. */
       glyphNames: () => string[][];
+      /** Development: each glyph's drawing and intended place at p (RoadStage.motion). */
+      motion: (p: number) => number[][];
       /** Development: each squadron's layout at p (RoadStage.layoutDebug). */
       layoutDebug: (p: number) => Record<string, unknown>[];
+      /** Development: a glyph's baked sizes by step (RoadStage.bakedSizes). */
+      bakedSizes: (
+        layer: number,
+        i: number,
+        k0: number,
+        k1: number,
+      ) => number[][];
       /**
        * Development: frames at p timed on the GPU and the CPU; with
        * `alternate`, the chart's objects of that name drawn on even frames

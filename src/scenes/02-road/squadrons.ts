@@ -22,7 +22,7 @@ export interface Composition {
 export interface SquadronSpec {
   id: string;
   side: "british" | "combined";
-  /** Shown from and to these days (it fades in and out at the ends). */
+  /** Shown from and to these days (it fades in before the first and out after the last, over a stretch of scroll). */
   shown: readonly [number, number];
   /** Its make-up over time, in order of `from`. */
   stages: readonly Composition[];

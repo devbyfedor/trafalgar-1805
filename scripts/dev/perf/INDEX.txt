@@ -1,0 +1,45 @@
+Performance investigation, scene 1 + chart loading (9 Nov 2026). All paths relative to this folder.
+
+Tools
+  instrument.js        init script: rAF timestamps, scrollY, wheel events, LoAF/longtask, fetch/createImageBitmap/rIC/Worker/getContext
+                       hooks, WebGL call timing (main thread) + EXT_disjoint_timer_query GPU timing of uploads/passes/draws,
+                       program link / first-use events, NOCHART (suppresses scene 2's idle(2500) load), FLUSH_TROIKA experiment
+  run.mjs              one run (env: BASE QUERY WAIT STEP INTERVAL DIST AFTER TRACE NOCHART NOSCROLL STYLE=css,css FLUSH_TROIKA CATS)
+  metrics.mjs          frame metrics per run, by phase and by scene-1 scroll band
+  steps.mjs            chart-load step costs per run (context creation, sync shader-log waits, readbacks, GPU passes)
+  analyze-trace.mjs    trace summary: main-thread tasks >16 ms with attribution, GC, GPU-process main-thread load per 250 ms
+  timeline.mjs         chart-loading window step by step + every late frame with what overlapped it
+  layers.mjs           which composited layers are re-rasterised while scrolling (trace RasterTask x CDP LayerTree)
+  gpu-task-detail.mjs, handler-tasks.mjs, angle-detail.mjs, raster-detail.mjs   GPU-process drill-downs
+  fixdiff.mjs, diffimg.mjs, crop.mjs   frozen-frame pixel diff of a CSS fix; amplified diff images; zoomed crops
+  fix-scene1.css (full), fix-noheroplus.css, fix-nohero.css, fix-strips.css, fix-scene1-text.css   injected compositor-hint prototypes
+  batch*.sh            the exact run sequences
+
+Key outputs (runs/)
+  metrics-all.txt                      frame metrics of every run (see contamination note below)
+  steps-all.txt                        chart-load step costs of every run
+  t-prod-fix-noscroll-a.timeline.txt   CLEANEST chart-load attribution (production export, scene-1 fix injected, no scroll)
+  t-prod-fix-noscroll-a.trace-summary.txt
+  t-noscroll-a.timeline.txt            same on the dev server (unminified names)
+  t-w1-a|b|c.timeline.txt / .trace-summary.txt   dev, scrolling from 1 s after load (compound effect with scene-1 raster)
+  t-prod-w1-a.timeline.txt / .trace-summary.txt  production, scrolling from 1 s (startup 222 ms task attribution)
+  t-nochart-a.trace-summary.txt        scene 1 alone: GPU-process main thread saturated by tile raster in p 0.08-0.64
+  layers-nofix.txt / layers-fix.txt    re-raster counts per layer without / with the compositor hints
+  fixdiff-*/diff.json, *-diff.png, p0.75-rigging-crop.png, p0.5-crest-crop.png   visual effect of each hint set
+  *.trace.json                         raw Chrome traces (open in DevTools Performance or ui.perfetto.dev)
+  t-prod-angle-a.trace.json            trace with gpu.angle: D3DCompile per shader, CrGpuMain link waits
+
+Builds measured
+  dev server http://127.0.0.1:3000 (working tree as of 17:00-17:20, being edited concurrently)
+  production export out/ built 15:19 (includes TerrainField.readBack, not the glyph-layout bake), served read-only on 4391
+
+Contamination
+  17:22:37-~17:31 the parent's scripts/dev/glyph-clash.mjs sweep used ~37 % of the GPU: runs t-prod-fix-flush-noscroll-a,
+  t-prod-fix-noscroll-b, t-prod-angle-a, prod-debug-w1-a, prod-debug-fix-nochart-w1-a, prod-debug-fix-w8-a are
+  contaminated (used only for attribution, not for numbers); t-prod-w1-a overlaps its last seconds.
+  From ~17:30 the owner's own Chrome GPU process drew ~8 % of the 3D engine (batches 6-7).
+
+In this repository
+  Copied from the session scratchpad on 9 Nov 2026; the scripts write to runs/ here (git-ignored). Port 4391 was a
+  read-only static server of out/ during the investigation; the project's own preview is npm run preview on 4173.
+  Findings and the plan: docs/research/perf-start-of-scroll.md. Not linted (biome.json excludes this folder).

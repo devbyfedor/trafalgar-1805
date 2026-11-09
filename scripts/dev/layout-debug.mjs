@@ -40,14 +40,14 @@ for (const p of ps) {
   for (const r of rows) {
     const fmt = (v) =>
       Array.isArray(v)
-        ? `(${v.map((x) => x.toFixed(0)).join(", ")})`
+        ? `(${v.map((x) => (Math.abs(x) < 10 ? x.toFixed(3) : x.toFixed(0))).join(", ")})`
         : typeof v === "number"
           ? v.toFixed(3)
           : v;
     const name = names[1][r.places]?.split(":")[0] ?? r.places;
     console.log(
       `  ${name}: ${Object.entries(r)
-        .filter(([k]) => k !== "places")
+        .filter(([k]) => k !== "places" && k !== "why")
         .map(([k, v]) => `${k} ${fmt(v)}`)
         .join("  ")}`,
     );

@@ -1,0 +1,28 @@
+/* Prototype (injected, not in the repo): give every element whose opacity or
+   transform scene 1 animates its own compositor layer, so the animation never
+   re-rasterises the layer it sits in. */
+[data-el="strip-dawn"],
+[data-el="veil"],
+[data-layer="warm-light"],
+[data-flag-frame],
+[data-el="stars"],
+[data-el="clouds-dawn"],
+[data-el="sun-reflection"],
+[data-el="sun-high"],
+[data-el="enemy-lights"],
+[data-el="enemy-group"],
+[data-el="cue"] {
+  will-change: opacity;
+}
+[data-el="sky-dawn"],
+[data-el="sun-glow"],
+[data-el="moon"],
+[data-el="british"],
+[data-el="sun-low"],
+[data-layer="bow-wave"],
+[data-flag] {
+  will-change: transform, opacity;
+}
+[data-el="cue-line"] {
+  will-change: transform;
+}

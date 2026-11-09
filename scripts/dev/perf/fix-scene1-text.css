@@ -1,0 +1,6 @@
+.title-char,
+[data-el="lede"],
+[data-el="closing"],
+[data-el="title"] {
+  will-change: transform, opacity;
+}

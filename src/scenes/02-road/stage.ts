@@ -72,8 +72,17 @@ export interface RoadStage {
   clash(p: number, ink?: number): ClashResult;
   /** Development: each layer's glyphs by name, in mark order. */
   glyphNames(): string[][];
+  /**
+   * Development: draws the scene at p and returns, per layer and glyph, its
+   * foot on screen as drawn, its height and opacity (device px; the foot
+   * from the bottom left), and where its intended place (a squadron's
+   * head, a ship's own place) projects: [x, y, h, alpha, ix, iy] each.
+   */
+  motion(p: number): number[][];
   /** Development: draws the scene at p and returns each squadron's layout (GlyphLayout.debug). */
   layoutDebug(p: number): Record<string, unknown>[];
+  /** Development: a glyph's baked sizes by step (GlyphLayout.bakedSizes). */
+  bakedSizes(layer: number, i: number, k0: number, k1: number): number[][];
   /**
    * Development: where a site on the sea level stands in the frame at p
    * (normalised device coordinates), how far from the eye (km), how steeply
@@ -88,10 +97,10 @@ export interface RoadStage {
   resize(width: number, height: number): void;
   /**
    * Bakes the glyph layout's tables for the current viewport, in idle
-   * slices (GlyphLayout.bakeBegin); call after each resize. Resolves when
-   * done (or when a newer bake or the scene's end cancels it).
+   * slices (GlyphLayout.bakeBegin); call after each resize. Resolves true
+   * when done, false when a newer bake or the scene's end cancels it.
    */
-  bake(): Promise<void>;
+  bake(): Promise<boolean>;
   dispose(): void;
 }
 
@@ -260,24 +269,27 @@ export async function createRoadStage(
     // viewport in idle slices of a few milliseconds; a new viewport bakes
     // anew, the layout deciding from each frame alone meanwhile.
     let baking: { cancelled: boolean } | null = null;
-    const bake = async () => {
+    const bake = async (): Promise<boolean> => {
       if (baking) baking.cancelled = true;
       const job = { cancelled: false };
       baking = job;
       const ps = layout.bakeBegin(0, 1, BAKE_STEP);
-      let k = 0;
-      while (k < ps.length) {
-        await idleSlice();
-        if (job.cancelled || options.signal.aborted) return;
-        const start = performance.now();
-        while (k < ps.length && performance.now() - start < BAKE_SLICE_MS) {
-          director.applyState(ps[k]);
-          layout.bakeStep(chart.peekFrame(), k);
-          k++;
+      for (let pass = 0; pass < layout.bakePasses; pass++) {
+        let k = 0;
+        while (k < ps.length) {
+          await idleSlice();
+          if (job.cancelled || options.signal.aborted) return false;
+          const start = performance.now();
+          while (k < ps.length && performance.now() - start < BAKE_SLICE_MS) {
+            director.applyState(ps[k]);
+            layout.bakeStep(chart.peekFrame(), k, pass);
+            k++;
+          }
         }
+        layout.bakeEnd(pass);
       }
-      layout.bakeEnd();
       sampled = Number.NaN;
+      return true;
     };
     const signs = new SignLabels(
       options.labels ?? null,
@@ -355,6 +367,9 @@ export async function createRoadStage(
           ink,
         );
       },
+      bakedSizes(layer, i, k0, k1) {
+        return layout.bakedSizes(layer, i, k0, k1);
+      },
       layoutDebug(p) {
         sampled = Number.NaN;
         layout.debug = [];
@@ -363,6 +378,30 @@ export async function createRoadStage(
         const out = layout.debug;
         layout.debug = null;
         return out;
+      },
+      motion(p) {
+        sampled = Number.NaN;
+        director.apply(p);
+        chart.frame(performance.now() / 1000);
+        const camera = chart.camera;
+        const w = chart.renderer.domElement.width;
+        const h = chart.renderer.domElement.height;
+        const v = new Vector3();
+        const screen = (x: number, y: number): [number, number] => {
+          v.set(x, y, 0).project(camera);
+          return [(v.x * 0.5 + 0.5) * w, (v.y * 0.5 + 0.5) * h];
+        };
+        return [fleets, squadrons].map((layer) => {
+          const out: number[] = [];
+          const d = layer.drawn;
+          const it = layer.intent;
+          for (let i = 0; i < layer.markCount; i++) {
+            const [x, y] = screen(d.x[i], d.y[i]);
+            const [ix, iy] = screen(it.x[i], it.y[i]);
+            out.push(x, y, d.height[i], d.alpha[i], ix, iy);
+          }
+          return out;
+        });
       },
       glyphNames() {
         return [fleetNames(), squadronNames()];

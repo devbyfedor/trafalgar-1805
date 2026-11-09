@@ -360,8 +360,9 @@ export interface GlyphDrawn {
   y: Float32Array;
   /** Heading drawn, radians (a squadron's ships along a track turn with it). */
   heading: Float32Array;
-  /** Height on screen, device px. */
+  /** Height on screen, device px, and the height it would have unhindered. */
   height: Float32Array;
+  nominal: Float32Array;
   /** Opacity drawn, 0..1. */
   alpha: Float32Array;
   /** Wake length share (1 for a ship on her own or leading, less astern). */
@@ -417,6 +418,7 @@ export class Glyphs implements ChartLayer {
       y: f32(),
       heading: f32(),
       height: f32(),
+      nominal: f32(),
       alpha: f32(),
       wakeShare: f32(),
       narrow: f32().fill(0.3),

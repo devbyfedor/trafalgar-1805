@@ -62,3 +62,6 @@ next-env.d.ts
 # the owner's own screenshots of the site (they show his browser): local only,
 # never committed
 /docs/owner-feedback/
+
+# Output of the start-of-scroll measurements (traces, about a gigabyte).
+/scripts/dev/perf/runs/

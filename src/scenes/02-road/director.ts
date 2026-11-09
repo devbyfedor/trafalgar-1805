@@ -206,6 +206,9 @@ const SQUADRON_BEATS: readonly BeatId[] = ["chase", "finisterre"];
  * the smoke. The plan holds through the 22nd, which the clock spreads over
  * the hold (beats.ts). Days: forming from, formed, parting from, apart.
  */
+/** How much scroll (of p) a meeting takes to form, and to part. */
+const MEETING_P = 0.03;
+
 const MEETINGS: readonly {
   /** The squadron drawn above, and the one below. */
   above: string;
@@ -333,6 +336,8 @@ interface Squad {
   n: number;
   /** The p at which each of its stages begins. */
   stageP: number[];
+  /** The p at which it comes into the story and leaves it (spec.shown). */
+  shownP: [number, number];
   /** The legs it sails, in order, and the p at which each begins. */
   legs: LegClock[];
   legP: number[];
@@ -477,6 +482,10 @@ export class RoadDirector {
         first,
         n,
         stageP: spec.stages.map((x) => pOfDay(x.from, SQUADRON_BEATS)),
+        shownP: [
+          pOfDay(spec.shown[0], SQUADRON_BEATS),
+          pOfDay(spec.shown[1], SQUADRON_BEATS),
+        ],
         legs,
         legP: legs.map((c) => pOfDay(c.first, SQUADRON_BEATS)),
         formation: {
@@ -505,13 +514,14 @@ export class RoadDirector {
       const b = this.squads.find((s) => s.spec.id === m.below);
       if (!a || !b) return [];
       const at = m.days.map((d) => pOfDay(d, SQUADRON_BEATS));
-      // Never faster than a squadron's change (CHANGE_P), however fast the
-      // story's clock runs there.
+      // Forming and parting no faster than MEETING_P of scroll, however
+      // fast the story's clock runs there: a line's tail travels half the
+      // screen as the rows zip into it.
       const p: [number, number, number, number] = [
-        at[0],
-        Math.max(at[1], at[0] + CHANGE_P),
+        Math.min(at[0], at[1] - MEETING_P),
+        at[1],
         at[2],
-        Math.max(at[3], at[2] + CHANGE_P),
+        Math.max(at[3], at[2] + MEETING_P),
       ];
       return [{ a, b, p, course: (m.course * Math.PI) / 180 }];
     });
@@ -703,10 +713,13 @@ export class RoadDirector {
       BEATS.finisterre[1] + 0.008,
     ]);
     this.squads.forEach((squad, s) => {
-      const { spec, first, n, stageP, formation } = squad;
-      const [from, to] = spec.shown;
+      const { spec, first, n, stageP, shownP, formation } = squad;
+      // In and out over a stretch of scroll, as its changes are: in story
+      // days, the clock's fast stretches popped them in a step.
       const visible =
-        beat * smooth(from - 0.4, from, d) * (1 - smooth(to, to + 0.6, d));
+        beat *
+        smooth(shownP[0] - CHANGE_P, shownP[0], p) *
+        (1 - smooth(shownP[1], shownP[1] + CHANGE_P, p));
       // The stage in force and the one before it: a ship that joins fades
       // in, one that leaves (or is taken) fades out, one replaced by
       // another type crossfades.

@@ -927,6 +927,10 @@ export class GlyphLayout implements ChartLayer {
       this.pushPoints(n, 2.5 * plan.radius, plan.radius);
       ax += this.pushX;
       ay += this.pushY;
+      // Clear of the squadrons laid out before it.
+      this.avoidEarlier(g, plan, ax, ay);
+      ax += this.pushX;
+      ay += this.pushY;
       if (pair) {
         // This squadron's lead at the end of its line her bows point to,
         // each line centred on the pair's place.
@@ -953,6 +957,7 @@ export class GlyphLayout implements ChartLayer {
     plan.fit = baked
       ? Math.min(cap, baked.fit)
       : Math.min(cap, this.shapeFit(g, plan));
+    plan.frame = this.frameNo;
     return plan;
   }
 
@@ -1201,6 +1206,68 @@ export class GlyphLayout implements ChartLayer {
     plan.cy = cy;
     plan.count = weight;
     plan.radius = radius + Math.hypot(step, rowSep) / 2;
+    // Its half-extents about its centre, each ship counting as she is
+    // there (the ships' boxes included).
+    let hx = 0;
+    let hy = 0;
+    for (let k = 0; k < n; k++) {
+      hx = Math.max(hx, share[k] * Math.abs(plan.ox[k] - cx));
+      hy = Math.max(hy, share[k] * Math.abs(plan.oy[k] - cy));
+    }
+    plan.hx = hx + step / 2;
+    plan.hy = hy + rowSep / 2;
+  }
+
+  /**
+   * How far to move a squadron clear of those laid out before it this
+   * frame, screen px, into pushX, pushY: along the line between their
+   * centres, by as much as their shapes (at the scale each fits) would
+   * still overlap along it, each counting as much as it is there; nothing
+   * where their centres coincide, so no direction is forced.
+   */
+  private avoidEarlier(
+    g: Formation,
+    plan: SquadronPlan,
+    ax: number,
+    ay: number,
+  ): void {
+    let tx = 0;
+    let ty = 0;
+    // Its own shape at full size (its fit is not yet known): a little more
+    // room than it may need.
+    const s = 1;
+    const cx = ax + plan.cx;
+    const cy = ay + plan.cy + plan.tall / 2;
+    for (const other of this.formations) {
+      if (other === g) break;
+      if (other === g.meets) continue;
+      const q = this.plans.get(other);
+      if (!q?.ok || q.frame !== this.frameNo) continue;
+      const so = Math.min(1, q.fit);
+      const ox = q.ax + q.cx;
+      const oy = q.ay + q.cy + q.tall / 2;
+      let dx = cx - ox;
+      let dy = cy - oy;
+      const d = Math.hypot(dx, dy);
+      if (d < 1e-3) continue;
+      dx /= d;
+      dy /= d;
+      const need =
+        (s * plan.hx + so * q.hx + this.glyphGap) * Math.abs(dx) +
+        (s * plan.hy + so * q.hy + this.glyphGap) * Math.abs(dy);
+      const lack = (need - d) * q.presence * smoothstep(0, 6, d);
+      if (lack <= 0) continue;
+      tx += dx * lack;
+      ty += dy * lack;
+    }
+    const tl = Math.hypot(tx, ty);
+    const cap = 2 * plan.radius;
+    if (tl > cap) {
+      tx *= cap / tl;
+      ty *= cap / tl;
+    }
+    this.pushX = tx;
+    this.pushY = ty;
   }
 
   /**
@@ -1407,17 +1474,36 @@ export class GlyphLayout implements ChartLayer {
    * it has turned into it (0..1), and its lead's foot and height on screen,
    * device px from the bottom left.
    */
-  signOf(g: Formation): { sign: number; x: number; y: number; h: number } {
+  signOf(g: Formation): SquadronSign {
     const plan = this.plans.get(g);
     const out = this.signOut;
-    out.sign = plan?.ok ? plan.sign : 0;
+    out.sign = plan?.ok ? plan.sign * plan.presence : 0;
     out.x = plan?.leadX ?? 0;
     out.y = plan?.leadY ?? 0;
     out.h = plan?.leadH ?? 0;
+    out.count = plan?.count ?? 0;
     return out;
   }
 
-  private readonly signOut = { sign: 0, x: 0, y: 0, h: 0 };
+  private readonly signOut: SquadronSign = {
+    sign: 0,
+    x: 0,
+    y: 0,
+    h: 0,
+    count: 0,
+  };
+}
+
+/** A squadron's sign this frame (GlyphLayout.signOf). */
+export interface SquadronSign {
+  /** How far it shows as its sign (0..1, its presence included). */
+  sign: number;
+  /** Its lead's foot on screen (device px from the bottom left) and height. */
+  x: number;
+  y: number;
+  h: number;
+  /** How many ships it is, in shares of those there. */
+  count: number;
 }
 
 /** A squadron's layout this frame, at scale 1 (GlyphLayout.prepare). */
@@ -1441,6 +1527,11 @@ interface SquadronPlan {
   lineU: Float64Array;
   /** How many ships are there, in shares. */
   count: number;
+  /** The shape's half-extents about its centre at scale 1. */
+  hx: number;
+  hy: number;
+  /** The frame it was laid out in. */
+  frame: number;
   /** The shape's centre (from the lead) and radius. */
   cx: number;
   cy: number;
@@ -1473,6 +1564,9 @@ function newPlan(n: number): SquadronPlan {
     share: new Float64Array(Math.max(1, n)),
     lineU: new Float64Array(Math.max(1, n)),
     count: 0,
+    hx: 0,
+    hy: 0,
+    frame: 0,
     cx: 0,
     cy: 0,
     radius: 0,

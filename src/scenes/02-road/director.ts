@@ -590,6 +590,11 @@ export class RoadDirector {
     return groups;
   }
 
+  /** The squadrons' symbols, in order (for their counts' lettering). */
+  formations(): Formation[] {
+    return this.squads.map((s) => s.formation);
+  }
+
   /** Scene 1's Victory box to hand over from (null: no scene 1 on the page). */
   setPainted(el: HTMLElement | null): void {
     if (this.painted && this.painted !== el) this.restorePainted();

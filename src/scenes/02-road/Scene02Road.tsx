@@ -164,6 +164,7 @@ export function Scene02Road() {
             const quality = query.get("quality");
             stage = await createRoadStage({
               canvas,
+              labels: canvasHost,
               signal: controller.signal,
               quality: quality === null ? undefined : Number(quality),
               onFatal: () => setMode("stills"),

@@ -19,7 +19,7 @@ import {
 import { type BenchResult, benchFrames } from "@/components/chart/engine/bench";
 import { worldX, worldY } from "@/components/chart/geo/mercator";
 import type { ClashResult } from "@/components/chart/glyphs/clash";
-import { GlyphLayout } from "@/components/chart/glyphs/layout";
+import { type Formation, GlyphLayout } from "@/components/chart/glyphs/layout";
 import { GlyphProbe } from "@/components/chart/glyphs/probe";
 import type { WaterLift } from "@/components/chart/terrain/liftProbe";
 import { ROAD_FLIGHT } from "./camera";
@@ -95,6 +95,68 @@ export interface RoadStage {
   dispose(): void;
 }
 
+/**
+ * Each squadron's count, lettered under its sign's lead as it turns into
+ * its sign ("11 sail"): upright, in the text face, in the chart's pale
+ * ink, as a period chart lettered a fleet's strength by its symbol. HTML
+ * over the canvas, moved each frame after the chart has drawn.
+ */
+class SignLabels {
+  private readonly els: HTMLSpanElement[] = [];
+  private readonly shown: string[] = [];
+
+  constructor(
+    host: HTMLElement | null,
+    private readonly formations: readonly Formation[],
+    private readonly layout: GlyphLayout,
+    private readonly chart: Chart,
+  ) {
+    if (!host) return;
+    for (let i = 0; i < formations.length; i++) {
+      const el = document.createElement("span");
+      el.setAttribute("aria-hidden", "true");
+      el.style.cssText =
+        "position:absolute;left:0;top:0;opacity:0;pointer-events:none;white-space:nowrap;" +
+        "font-family:var(--font-text);font-size:clamp(11px,1.75vh,20px);line-height:1;" +
+        "letter-spacing:0.02em;will-change:transform,opacity";
+      host.append(el);
+      this.els.push(el);
+      this.shown.push("");
+    }
+  }
+
+  update(): void {
+    if (this.els.length === 0) return;
+    const canvas = this.chart.renderer.domElement;
+    const dpr = this.chart.renderer.getPixelRatio();
+    const ink = this.chart.light.inkPale;
+    const colour = `rgb(${Math.round(ink.x * 255)},${Math.round(ink.y * 255)},${Math.round(ink.z * 255)})`;
+    for (let i = 0; i < this.formations.length; i++) {
+      const el = this.els[i];
+      const s = this.layout.signOf(this.formations[i]);
+      if (s.sign < 0.01 || s.h <= 0.01) {
+        if (this.shown[i] !== "hidden") {
+          el.style.opacity = "0";
+          this.shown[i] = "hidden";
+        }
+        continue;
+      }
+      const text = `${Math.round(s.count)} sail`;
+      if (el.textContent !== text) el.textContent = text;
+      const x = s.x / dpr;
+      const y = (canvas.height - s.y) / dpr;
+      el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, 0.3em)`;
+      el.style.opacity = s.sign.toFixed(3);
+      if (el.style.color !== colour) el.style.color = colour;
+      this.shown[i] = "shown";
+    }
+  }
+
+  dispose(): void {
+    for (const el of this.els) el.remove();
+  }
+}
+
 /** The glyph layout's tables: a step of p, and the most time a slice of baking takes, ms. */
 const BAKE_STEP = 0.001;
 const BAKE_SLICE_MS = 4;
@@ -115,6 +177,8 @@ export interface RoadStageOptions {
   onFatal: (reason: string) => void;
   /** Pins a quality level (tests); otherwise the ladder adapts. */
   quality?: number;
+  /** Where the squadrons' counts are lettered (over the canvas). */
+  labels?: HTMLElement;
 }
 
 export async function createRoadStage(
@@ -215,6 +279,12 @@ export async function createRoadStage(
       layout.bakeEnd();
       sampled = Number.NaN;
     };
+    const signs = new SignLabels(
+      options.labels ?? null,
+      director.formations(),
+      layout,
+      chart,
+    );
     let probes: [GlyphProbe, GlyphProbe] | null = null;
     let sampled = Number.NaN;
     const stage: RoadStage = {
@@ -236,6 +306,7 @@ export async function createRoadStage(
         sampled = Number.NaN;
         director.apply(p);
         chart.frame(time);
+        signs.update();
       },
       async bench(frames, p, alternate) {
         sampled = Number.NaN;
@@ -301,6 +372,7 @@ export async function createRoadStage(
       },
       bake,
       dispose() {
+        signs.dispose();
         director.dispose();
         for (const probe of probes ?? []) probe.dispose();
         chart.dispose();

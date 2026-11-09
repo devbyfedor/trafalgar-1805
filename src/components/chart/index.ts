@@ -27,6 +27,12 @@ export {
   type Side,
 } from "./glyphs/Glyphs";
 export {
+  type Formation,
+  type FreeGroup,
+  type GlyphGroup,
+  GlyphLayout,
+} from "./glyphs/layout";
+export {
   buildDigitAtlas,
   type DigitAtlas,
   SOUNDING_FONT_FILE,

@@ -462,32 +462,6 @@ function dawnBerths(): Map<Ship, Berth> {
 export const DAWN: ReadonlyMap<Ship, Berth> = dawnBerths();
 
 /**
- * Each ship's spacing at dawn (ShipMark.spacing): her distance from the
- * nearest ship of her group that lies nearer the group's lead, map km, so
- * seen from farther off a group closes in on its lead from the outside.
- */
-export function dawnSpacing(ship: Ship): number {
-  if (ship.lead || ship.group === "frigates") return 0;
-  const group = [...BRITISH, ...COMBINED].filter(
-    (s) => s.group === ship.group && s.side === ship.side,
-  );
-  const lead = group.find((s) => s.lead);
-  const at = DAWN.get(ship);
-  const leadAt = lead ? DAWN.get(lead) : undefined;
-  if (!at || !leadAt) return 0;
-  const d = (b: Berth, c: Berth) =>
-    Math.hypot(worldX(b.lon) - worldX(c.lon), worldY(b.lat) - worldY(c.lat));
-  const own = d(at, leadAt);
-  let best = own;
-  for (const other of group) {
-    const o = DAWN.get(other);
-    if (!o || other === ship) continue;
-    if (d(o, leadAt) < own) best = Math.min(best, d(at, o));
-  }
-  return best;
-}
-
-/**
  * The combined fleet at anchor off Cádiz, 10–19 October: out of range of
  * the city's guns, moored with springs, heads to the north-west (about
  * 294° true): the main body in three lines strung WNW–ESE in the outer bay
@@ -557,28 +531,6 @@ function anchorage(): Map<Ship, Berth> {
 export const ANCHORAGE: ReadonlyMap<Ship, Berth> = anchorage();
 
 /**
- * A ship's distance from her nearest neighbour at anchor off Cádiz, world
- * km (0 for a ship with no berth there): her glyph draws no wider than that
- * allows (glyphBerth), so the anchorage reads ship by ship.
- */
-export function anchorSpacing(ship: Ship): number {
-  const at = ANCHORAGE.get(ship);
-  if (!at) return 0;
-  let best = Number.POSITIVE_INFINITY;
-  for (const [other, o] of ANCHORAGE) {
-    if (other === ship) continue;
-    best = Math.min(
-      best,
-      Math.hypot(
-        worldX(o.lon) - worldX(at.lon),
-        worldY(o.lat) - worldY(at.lat),
-      ),
-    );
-  }
-  return Number.isFinite(best) ? best : 0;
-}
-
-/**
  * Stage A's proof, kept for the lab: the fleets at dawn on 21 October (now
  * at their true spacing) and the combined fleet at anchor off Cádiz, both
  * at once.
@@ -592,8 +544,6 @@ export const LAB_MARKS: readonly ShipMark[] = [
     heading: b.heading,
     underWay: true,
     size: ship.rig.size,
-    room: "coast" as const,
-    spacing: dawnSpacing(ship) || undefined,
   })),
   ...[...ANCHORAGE].map(([ship, b]) => ({
     type: ship.rig.anchor ?? ship.rig.sail,
@@ -603,17 +553,12 @@ export const LAB_MARKS: readonly ShipMark[] = [
     heading: b.heading,
     underWay: false,
     size: ship.rig.size,
-    // The open water beyond the line toward El Puerto, about 4 km
-    // (decisions.md, "No glyph stands on the shore").
-    room: b.lat < 36.53 ? 4.1 : 4.2,
   })),
 ];
 
 /**
  * Villeneuve's squadron sailing at the drawing head of the Toulon–Cádiz
- * route. Each ship's room is the water round her where she is, so passing
- * the Strait seen from far off the squadron draws small rather than on the
- * shore.
+ * route, laid out as a squadron's symbol (glyphs/layout.ts).
  */
 export const ROUTE_SQUADRON: readonly ShipMark[] = [
   {
@@ -624,7 +569,6 @@ export const ROUTE_SQUADRON: readonly ShipMark[] = [
     heading: 0,
     underWay: true,
     opacity: 0,
-    room: "coast",
   },
   {
     type: "french-74",
@@ -634,7 +578,6 @@ export const ROUTE_SQUADRON: readonly ShipMark[] = [
     heading: 0,
     underWay: true,
     opacity: 0,
-    room: "coast",
   },
   {
     type: "french-74",
@@ -644,6 +587,5 @@ export const ROUTE_SQUADRON: readonly ShipMark[] = [
     heading: 0,
     underWay: true,
     opacity: 0,
-    room: "coast",
   },
 ];

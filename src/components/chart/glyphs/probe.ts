@@ -13,50 +13,42 @@ import {
   WebGLRenderTarget,
 } from "three";
 import type { Glyphs } from "./Glyphs";
-import { GLSL_GLYPH_HEIGHT } from "./height";
 
 /**
- * What the glyph shader makes of each ship this frame, read back for tests
- * and tuning: her foot on screen (device px from the bottom left), her
- * glyph's height (device px) and how much of it shows (mode 0); how her
- * height came about (mode 1: her room in km, the height the room allows,
- * the camera's height over her distance, her height before the room); how
- * she is drawn (mode 2: her facing, -1 to 1, her cell, the cell she turns
- * into and how far); her wake and room as set (mode 3: wake, fixed room,
- * how far the coast has taken over, the room's floor in km). The probe runs the
- * glyphs' own GLSL for the same instances and uniforms, one point per
- * ship into a float texture, so what it reports is what was drawn. Used to
- * sweep the scene and find any glyph that jumps, flickers or changes size
- * from one step to the next (scripts/dev/glyph-sweep.mjs).
+ * What each ship's glyph is drawn as this frame, read back for tests and
+ * tuning: her foot on screen (device px from the bottom left), her glyph's
+ * height (device px) and how much of it shows (mode 0); her height,
+ * opacity, wake share and heading as drawn (mode 1); how she is drawn
+ * (mode 2: her facing, -1 to 1, her cell, the cell she turns into and how
+ * far); her wake (mode 3: under way, its length share). The probe reads the
+ * same instances the glyphs draw, one point per ship into a float texture,
+ * so what it reports is what was drawn. Used to sweep the scene and find
+ * any glyph that jumps, flickers or changes size from one step to the next
+ * (scripts/dev/glyph-sweep.mjs).
  */
 
 const VERTEX = /* glsl */ `
 precision highp float;
 in vec4 iPos;
 in vec4 iStyle;
-in vec4 iFit;
 in vec4 iForm;
-in vec4 iMore;
 uniform float uPull;
 uniform float uCount;
 uniform float uMode;
+uniform vec2 uViewport;
 out vec4 vOut;
-${GLSL_GLYPH_HEIGHT}
 void main() {
-  vec3 base = vec3(iPos.xy, 0.0);
-  float lead = length(base - cameraPosition);
-  vec4 parts;
-  float h = glyphBerth(glyphHeightParts(iPos.xy, lead, iPos.w, iFit.xyz, parts), lead, iFit.y, iMore.x);
-  vec3 foot = glyphFoot(base, iPos.z, lead, iForm.xy, h);
+  vec3 foot = vec3(iPos.xy, 0.0);
   vec3 w = foot + (cameraPosition - foot) * uPull;
   vec4 clip = projectionMatrix * viewMatrix * vec4(w, 1.0);
   vec2 px = (clip.xy / clip.w * 0.5 + 0.5) * uViewport;
-  float alpha = iStyle.z * glyphShow(lead, h, iFit.w, iFit.y);
+  float h = iPos.w;
+  float alpha = h > 0.01 ? iStyle.z : 0.0;
   vec3 right = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]);
   float facing = dot(vec2(sin(iPos.z), cos(iPos.z)), normalize(right.xy + 1e-6));
-  if (uMode > 2.5) vOut = vec4(iStyle.w, iFit.x, iFit.y, iFit.z);
-  else if (uMode > 1.5) vOut = vec4(facing, iStyle.x, iForm.z, iForm.w);
-  else if (uMode > 0.5) vOut = parts;
+  if (uMode > 2.5) vOut = vec4(iStyle.w, iForm.z, 0.0, 0.0);
+  else if (uMode > 1.5) vOut = vec4(facing, iStyle.x, iForm.x, iForm.y);
+  else if (uMode > 0.5) vOut = vec4(h, alpha, iForm.z, iPos.z);
   else vOut = vec4(px, h, clip.w > 0.0 ? alpha : -1.0);
   gl_Position = vec4((float(gl_InstanceID) + 0.5) / uCount * 2.0 - 1.0, 0.0, 0.0, 1.0);
   gl_PointSize = 1.0;
@@ -88,7 +80,7 @@ export class GlyphProbe {
     const n = glyphs.markCount;
     const g = new InstancedBufferGeometry();
     g.setAttribute("position", new BufferAttribute(new Float32Array(3), 3));
-    for (const name of ["iPos", "iStyle", "iFit", "iForm", "iMore"] as const)
+    for (const name of ["iPos", "iStyle", "iForm"] as const)
       g.setAttribute(name, glyphs.ships.geometry.getAttribute(name));
     g.instanceCount = n;
     this.material = new ShaderMaterial({

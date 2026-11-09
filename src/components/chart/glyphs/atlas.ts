@@ -87,8 +87,23 @@ export interface GlyphAtlas {
   index: ReadonlyMap<string, number>;
   /** How much of its cell a type's drawing fills, width and height (0..1). */
   fill: ReadonlyMap<string, { width: number; height: number }>;
+  /**
+   * Each type's drawing about its anchor (the hull's middle on the
+   * waterline), in cell heights: how far it reaches astern (left, the bow
+   * facing right as drawn) and ahead (right), and how high above the
+   * waterline, which lies FOOT above the cell's foot. Nothing is drawn
+   * below the waterline. For laying glyphs out (glyphs/layout.ts).
+   */
+  extents: ReadonlyMap<string, GlyphExtent>;
   /** Bytes on the GPU, mipmaps included. */
   gpuBytes: number;
+}
+
+/** A type's drawing about its anchor, in cell heights (GlyphAtlas.extents). */
+export interface GlyphExtent {
+  left: number;
+  right: number;
+  top: number;
 }
 
 /** The ladder of cell heights, device px, a factor of √2 apart. */
@@ -261,11 +276,17 @@ export async function buildGlyphAtlas(
 
   const index = new Map<string, number>();
   const fill = new Map<string, { width: number; height: number }>();
+  const extents = new Map<string, GlyphExtent>();
   shapes.forEach((s, i) => {
     index.set(types[i].id, i);
     fill.set(types[i].id, {
       width: ((s.left + s.right) * unit) / aspect,
       height: s.top * unit + FOOT,
+    });
+    extents.set(types[i].id, {
+      left: s.left * unit,
+      right: s.right * unit,
+      top: s.top * unit,
     });
   });
 
@@ -362,6 +383,7 @@ export async function buildGlyphAtlas(
     levels,
     aspect,
     cellMetres: 1 / unit,
+    extents,
     index,
     fill,
     gpuBytes: Math.round(width * height * 4 * (4 / 3)),

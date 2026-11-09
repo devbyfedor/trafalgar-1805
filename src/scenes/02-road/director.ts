@@ -5,29 +5,22 @@ import { worldX, worldY } from "@/components/chart/geo/mercator";
 import { FOOT } from "@/components/chart/glyphs/atlas";
 import type { Glyphs, ShipMark } from "@/components/chart/glyphs/Glyphs";
 import { glyphPxAt } from "@/components/chart/glyphs/height";
+import type {
+  Formation,
+  FreeGroup,
+  GlyphGroup,
+} from "@/components/chart/glyphs/layout";
 import type { LightId } from "@/components/chart/light/states";
 import type { Route } from "@/components/chart/lines/Route";
 import type { RibbonMaterial } from "@/components/chart/lines/ribbon";
 import { METRE_VH, VICTORY_X } from "@/scenes/01-dawn/composition";
 import { VICTORY_BOX } from "@/scenes/01-dawn/layers/Victory";
 import { BEATS, type BeatId, dayAt } from "./beats";
-import {
-  anchorSpacing,
-  BRITISH,
-  COMBINED,
-  DAWN,
-  dawnSpacing,
-  type Ship,
-  VICTORY_AT_DAWN,
-} from "./fleets";
+import { day } from "./dates";
+import { BRITISH, COMBINED, DAWN, type Ship, VICTORY_AT_DAWN } from "./fleets";
 import { type ShipState, shipAt } from "./movements";
 import type { DatedWaypoint, Leg } from "./routes";
-import {
-  formationRows,
-  formationSlot,
-  SQUADRONS,
-  type SquadronSpec,
-} from "./squadrons";
+import { formationRows, SQUADRONS, type SquadronSpec } from "./squadrons";
 
 /**
  * Scene 2's director: everything the chart shows is a pure function of the
@@ -70,31 +63,6 @@ const LIGHT: readonly (readonly [
 /** Where the painted Victory takes over from and gives way to her glyph. */
 const RISE: readonly [number, number] = [0.024, 0.07];
 const SWAP: readonly [number, number] = [0.068, 0.08];
-
-/** The least room a squadron's block keeps near a coast, map km. */
-const SQUADRON_ROOM_KM = 45;
-
-/**
- * The least share of its height a squadron's glyph keeps for want of room.
- * Seen from thousands of kilometres up, 45 km of sea is a few pixels, and a
- * symbol passing an island would shrink to nothing and flicker; and the
- * squadron is a block of glyphs reaching well beyond its lead's room, so
- * shrinking it keeps it off no island, it only makes the count hard to
- * read. A block lying in port stands in the roads instead (ROADS_KM).
- */
-export const SQUADRON_ROOM_FLOOR = 0.85;
-
-/**
- * A squadron's room along its way is read ahead of time at every step of p
- * over the squadrons' beats, then eased (RoadDirector.computeRooms): the
- * least of it within ROOM_MIN_P either side, smoothed over about
- * ROOM_EASE_P, so the block shrinks before a strait or an island and grows
- * again after it at the pace of the scroll, not of the story's clock (which
- * runs a hundred kilometres to a few pixels of scroll on the crossings).
- */
-const ROOM_STEP = 0.0005;
-const ROOM_MIN_P = 0.006;
-const ROOM_EASE_P = 0.004;
 
 /**
  * Headings are eased over the scroll too: a route turns at its waypoints
@@ -179,34 +147,6 @@ function tableAt(
   return table[k] + (table[k + 1] - table[k]) * (x - k);
 }
 
-/** The least room within reach either side, then eased in proportion (in log space). */
-function easeRooms(coast: Float32Array): Float32Array {
-  const n = coast.length;
-  const reach = Math.round(ROOM_MIN_P / ROOM_STEP);
-  const least = new Float32Array(n);
-  for (let i = 0; i < n; i++) {
-    let m = Number.POSITIVE_INFINITY;
-    const end = Math.min(n - 1, i + reach);
-    for (let k = Math.max(0, i - reach); k <= end; k++)
-      m = Math.min(m, coast[k]);
-    least[i] = Math.log(Math.max(m, SQUADRON_ROOM_KM));
-  }
-  const sigma = ROOM_EASE_P / ROOM_STEP;
-  const r = Math.ceil(3 * sigma);
-  const out = new Float32Array(n);
-  for (let i = 0; i < n; i++) {
-    let sum = 0;
-    let weights = 0;
-    for (let k = -r; k <= r; k++) {
-      const w = Math.exp(-(k * k) / (2 * sigma * sigma));
-      sum += least[Math.min(n - 1, Math.max(0, i + k))] * w;
-      weights += w;
-    }
-    out[i] = Math.exp(sum / weights);
-  }
-  return out;
-}
-
 /** How far off a port a squadron's block stands while it lies there, map km. */
 const ROADS_KM = 30;
 
@@ -227,9 +167,6 @@ const ROADS_BY_LEG: Readonly<Record<string, readonly [number, number]>> = {
   "nelson-west-indies": [ISLAND_ROADS_KM, ISLAND_ROADS_KM],
   "nelson-homeward": [ISLAND_ROADS_KM, ROADS_KM],
 };
-
-/** A ship at anchor in Cádiz bay: the open water beyond her, map km. */
-const ANCHOR_ROOM_KM = 4.2;
 
 /**
  * How much scroll (of p) a squadron takes to change: a ship joining or
@@ -256,6 +193,26 @@ function pOfDay(d: number, beats: readonly BeatId[]): number {
 
 /** The beats the squadrons sail in. */
 const SQUADRON_BEATS: readonly BeatId[] = ["chase", "finisterre"];
+
+/**
+ * Squadrons that meet, drawn as two lines facing each other as a battle
+ * plan draws them: Calder and Villeneuve off Cape Finisterre, sighted about
+ * noon on 22 July, in action from about five into the fog of the night, in
+ * sight on the 23rd without renewing it, apart on the 24th (history notes,
+ * "Finisterre"). Calder's line is drawn above, to the north as the camera
+ * looks. Days: forming from, formed, parting from, apart.
+ */
+const MEETINGS: readonly {
+  a: string;
+  b: string;
+  days: readonly [number, number, number, number];
+}[] = [
+  {
+    a: "villeneuve",
+    b: "calder",
+    days: [day(7, 21, 18), day(7, 22, 9), day(7, 23, 12), day(7, 24, 6)],
+  },
+];
 
 const smooth = (e0: number, e1: number, x: number) => {
   const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
@@ -324,7 +281,7 @@ function legProgress(c: LegClock, d: number): number {
 }
 
 /**
- * Where the squadrons' eased tables (headings, rooms) end: past beat 3,
+ * Where the squadrons' eased headings end: past beat 3,
  * where the blocks are put away, so the stretch at a table's end that comes
  * back to the headings as given (easeHeadings) is never seen.
  */
@@ -371,6 +328,8 @@ interface Squad {
   /** The legs it sails, in order, and the p at which each begins. */
   legs: LegClock[];
   legP: number[];
+  /** Its symbol, as the glyph layout draws it. */
+  formation: Formation;
 }
 
 /**
@@ -422,9 +381,6 @@ export function fleetMarks(): ShipMark[] {
       underWay: true,
       size: ship.rig.size,
       opacity: 0,
-      room: "coast",
-      spacing: dawnSpacing(ship) || undefined,
-      berth: anchorSpacing(ship) || undefined,
     } satisfies ShipMark;
   });
 }
@@ -459,9 +415,6 @@ export function squadronMarks(): ShipMark[] {
         heading: 0,
         underWay: true,
         opacity: 0,
-        // A symbol: small in a strait seen from far off, but legible by an
-        // island or in the roads off a port.
-        room: { coast: SQUADRON_ROOM_KM },
       });
     }
   }
@@ -479,6 +432,12 @@ export class RoadDirector {
   };
   private readonly clocks: LegClock[];
   private readonly squads: Squad[];
+  /** Squadrons meeting, and the p over which they come into lines and part. */
+  private readonly meetings: {
+    a: Squad;
+    b: Squad;
+    p: readonly [number, number, number, number];
+  }[];
   private readonly head = { x: 0, y: 0, heading: 0 };
   private readonly next = { x: 0, y: 0, heading: 0 };
   private readonly victory = new Vector3(
@@ -488,8 +447,6 @@ export class RoadDirector {
   );
   private readonly ndc = new Vector3();
   private victoryIndex: number;
-  /** Each squadron's eased room by step of p from the start of the chase (computeRooms). */
-  private rooms: Float32Array[] | null = null;
   /** Each squadron's eased heading by step of p from the start of the chase. */
   private readonly squadHeadings: Float32Array[];
   /** Each ship's eased heading by step of p from FLEET_HEADING_P (prepare). */
@@ -512,9 +469,35 @@ export class RoadDirector {
         stageP: spec.stages.map((x) => pOfDay(x.from, SQUADRON_BEATS)),
         legs,
         legP: legs.map((c) => pOfDay(c.first, SQUADRON_BEATS)),
+        formation: {
+          kind: "formation",
+          layer: layers.squadrons,
+          places: Array.from({ length: n }, (_, k) => first + k),
+          files: formationRows(n),
+          x: 0,
+          y: 0,
+          heading: 0,
+          meets: null,
+          meeting: 0,
+        },
       };
       first += n;
       return s;
+    });
+    this.meetings = MEETINGS.flatMap((m) => {
+      const a = this.squads.find((s) => s.spec.id === m.a);
+      const b = this.squads.find((s) => s.spec.id === m.b);
+      if (!a || !b) return [];
+      const at = m.days.map((d) => pOfDay(d, SQUADRON_BEATS));
+      // Never faster than a squadron's change (CHANGE_P), however fast the
+      // story's clock runs there.
+      const p: [number, number, number, number] = [
+        at[0],
+        Math.max(at[1], at[0] + 1.5 * CHANGE_P),
+        at[2],
+        Math.max(at[3], at[2] + 1.5 * CHANGE_P),
+      ];
+      return [{ a, b, p }];
     });
     this.victoryIndex = this.ships.findIndex((s) => s.name === "Victory");
     // The squadrons' headings, eased (a few thousand steps in all).
@@ -554,37 +537,41 @@ export class RoadDirector {
   }
 
   /**
-   * Works out each squadron's room along its way, ahead of time: the
-   * coast's distance under its lead at every step of p through the chase
-   * and Finisterre, read on the GPU (`read`, readCoastKm), then eased
-   * (easeRooms). Until it has run, a squadron reads its room from the chart
-   * where it is.
+   * The glyph layout's groups, in priority order (glyphs/layout.ts): both
+   * fleets ship by ship at their true places, group by group, each with its
+   * lead first and then its largest ships, so in a crowd the lesser ship
+   * yields; then the squadrons' symbols.
    */
-  async computeRooms(
-    read: (points: Float32Array) => Promise<Float32Array>,
-  ): Promise<void> {
-    const [p0, p1] = [BEATS.chase[0], SQUADRON_TABLE_END];
-    const steps = Math.round((p1 - p0) / ROOM_STEP) + 1;
-    const points = new Float32Array(this.squads.length * steps * 2);
-    this.squads.forEach((squad, s) => {
-      for (let k = 0; k < steps; k++) {
-        const p = Math.min(p1 - 1e-9, p0 + k * ROOM_STEP);
-        const head = this.squadronHead(squad, dayAt(p), p);
-        const o = (s * steps + k) * 2;
-        points[o] = head?.x ?? 0;
-        points[o + 1] = head?.y ?? 0;
-      }
-    });
-    const coast = await read(points);
-    this.rooms = this.squads.map((_, s) =>
-      easeRooms(coast.subarray(s * steps, (s + 1) * steps)),
-    );
-  }
-
-  /** A squadron's eased room at p, or null before computeRooms has run. */
-  private roomAt(s: number, p: number): number | null {
-    const rooms = this.rooms?.[s];
-    return rooms ? tableAt(rooms, BEATS.chase[0], ROOM_STEP, p) : null;
+  layoutGroups(): GlyphGroup[] {
+    const groups: GlyphGroup[] = [];
+    const order: readonly (readonly [Ship["side"], Ship["group"]])[] = [
+      ["british", "nelson"],
+      ["british", "collingwood"],
+      ["combined", "main"],
+      ["combined", "gravina"],
+      ["british", "frigates"],
+      ["combined", "frigates"],
+    ];
+    for (const [side, group] of order) {
+      const members = this.ships
+        .map((ship, i) => ({ ship, i }))
+        .filter(({ ship }) => ship.side === side && ship.group === group)
+        .sort(
+          (a, b) =>
+            Number(b.ship.lead) - Number(a.ship.lead) ||
+            (b.ship.rig.size ?? 1) - (a.ship.rig.size ?? 1) ||
+            a.i - b.i,
+        )
+        .map(({ i }) => i);
+      if (members.length > 0)
+        groups.push({
+          kind: "free",
+          layer: this.layers.fleets,
+          members,
+        } satisfies FreeGroup);
+    }
+    for (const squad of this.squads) groups.push(squad.formation);
+    return groups;
   }
 
   /** Scene 1's Victory box to hand over from (null: no scene 1 on the page). */
@@ -651,17 +638,13 @@ export class RoadDirector {
       }
       glyphs.place(i, s.x, s.y, s.heading);
       // As she weighs and makes sail, her furled glyph crossfades into her
-      // sailing one, her wake comes up, and her room passes from the bay
-      // beyond her (decisions.md, "No glyph stands on the shore") to her
-      // distance from the coast; coming to anchor, the reverse.
+      // sailing one and her wake comes up; coming to anchor, the reverse.
       const anchor = ship.rig.anchor;
       const k = anchor === undefined ? 0 : s.anchorage;
       if (anchor !== undefined && k > 0)
         glyphs.setType(i, ship.rig.sail, anchor, k);
       else glyphs.setType(i, ship.rig.sail);
       glyphs.setUnderWay(i, 1 - k);
-      glyphs.setRoomBlend(i, ANCHOR_ROOM_KM, 1 - k);
-      glyphs.setSpacing(i, dawnSpacing(ship));
       let opacity = Math.min(1, shown);
       // Her glyph takes over from scene 1's painted Victory.
       if (i === this.victoryIndex && p < 0.2)
@@ -682,8 +665,7 @@ export class RoadDirector {
       BEATS.finisterre[1] + 0.008,
     ]);
     this.squads.forEach((squad, s) => {
-      const { spec, first, n, stageP } = squad;
-      const room = this.roomAt(s, p);
+      const { spec, first, n, stageP, formation } = squad;
       const [from, to] = spec.shown;
       const visible =
         beat * smooth(from - 0.4, from, d) * (1 - smooth(to, to + 0.6, d));
@@ -698,13 +680,17 @@ export class RoadDirector {
       const prev = j > 0 ? stages[j - 1].types : null;
       const t = prev ? smooth(stageP[j], stageP[j] + CHANGE_P, p) : 1;
       const where = this.squadronHead(squad, d, p);
-      if (where)
+      if (where) {
         where.heading = tableAt(
           this.squadHeadings[s],
           BEATS.chase[0],
           HEADING_STEP,
           p,
         );
+        formation.x = where.x;
+        formation.y = where.y;
+        formation.heading = where.heading;
+      }
       for (let k = 0; k < n; k++) {
         const i = first + k;
         const now = cur[k] ?? null;
@@ -735,12 +721,19 @@ export class RoadDirector {
         if (now && before && now !== before) glyphs.setType(i, before, now, t);
         else if (now) glyphs.setType(i, now);
         else if (last) glyphs.setType(i, last);
-        const [along, up] = formationSlot(k, formationRows(n));
-        glyphs.setFormation(i, along, up);
-        if (room !== null) glyphs.setRoomBlend(i, room, 0);
         glyphs.setOpacity(i, opacity);
       }
     });
+    // Squadrons meeting draw as two lines facing each other (layout.ts).
+    for (const m of this.meetings) {
+      const w = smooth(m.p[0], m.p[1], p) * (1 - smooth(m.p[2], m.p[3], p));
+      m.a.formation.meets = w > 0 ? m.b.formation : null;
+      m.a.formation.meeting = w;
+      m.a.formation.above = false;
+      m.b.formation.meets = w > 0 ? m.a.formation : null;
+      m.b.formation.meeting = w;
+      m.b.formation.above = true;
+    }
   }
 
   /**

@@ -1,7 +1,12 @@
 "use client";
 
 import { useRef } from "react";
-import type { ChartStats, LabelState, LightId } from "@/components/chart";
+import type {
+  ChartStats,
+  Formation,
+  LabelState,
+  LightId,
+} from "@/components/chart";
 import { type BenchResult, benchFrames } from "@/components/chart/engine/bench";
 import { worldX, worldY } from "@/components/chart/geo/mercator";
 import type { ClashResult } from "@/components/chart/glyphs/clash";
@@ -12,6 +17,7 @@ import { registerChartReadout, reportProgress } from "@/lib/debug";
 import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
 import { isDebug } from "@/lib/media";
 import {
+  DAWN,
   GLYPH_TYPES,
   LAB_MARKS,
   ROUTE_SQUADRON,
@@ -43,8 +49,11 @@ import {
 
 const LIGHTS: readonly LightId[] = ["dawn", "campaign", "night"];
 
-/** Distance between the squadron's ships along the route, as a fraction of it. */
+/** How far along the route each of the squadron's ships joins it, as a fraction of it. */
 const SQUADRON_SPACING = 0.016;
+
+/** LAB_MARKS: the fleets at dawn first, then the anchorage. */
+const LAB_DAWN = DAWN.size;
 
 /** A comma-separated list of numbers, or null. */
 function listParam(query: URLSearchParams, name: string): number[] | null {
@@ -174,14 +183,46 @@ export function ChartLab() {
           atlas.texture.dispose();
           return;
         }
-        const glyphs = new engine.Glyphs(chart.field, atlas, [
+        const glyphs = new engine.Glyphs(atlas, [
           ...LAB_MARKS,
           ...ROUTE_SQUADRON,
         ]);
+        // The fleets at dawn and at anchor at their true places, and
+        // Villeneuve's squadron as a symbol at the route's head, laid out
+        // together before the glyphs draw, so none touches land or another.
+        const coast = await chart.field.readBack();
+        if (cancelled) {
+          atlas.texture.dispose();
+          return;
+        }
+        const index = (from: number, n: number) =>
+          Array.from({ length: n }, (_, k) => from + k);
+        const squadron = LAB_MARKS.length;
+        const formation: Formation = {
+          kind: "formation",
+          layer: glyphs,
+          places: index(squadron, ROUTE_SQUADRON.length),
+          files: 1,
+          x: 0,
+          y: 0,
+          heading: 0,
+          meets: null,
+          meeting: 0,
+        };
+        chart.add(
+          new engine.GlyphLayout(coast, [
+            { kind: "free", layer: glyphs, members: index(0, LAB_DAWN) },
+            {
+              kind: "free",
+              layer: glyphs,
+              members: index(LAB_DAWN, LAB_MARKS.length - LAB_DAWN),
+            },
+            formation,
+          ]),
+        );
         chart.add(glyphs, glyphs.wakes, glyphs.ships);
         chart.addGpuBytes(atlas.gpuBytes);
         disposeAtlas = () => atlas.texture.dispose();
-        const squadron = LAB_MARKS.length;
         const head = { x: 0, y: 0, heading: 0 };
         const lettering = new engine.Lettering(chart.field, GAZETTEER);
         chart.add(lettering, lettering.batch, lettering.marks.mesh);
@@ -237,9 +278,12 @@ export function ChartLab() {
           else chart.setLight("dawn", "campaign", state.light);
           const drawn = fixedRoute ?? state.route;
           route.setProgress(drawn);
-          // Villeneuve's squadron sails at the drawing head, in line astern.
+          // Villeneuve's squadron sails at the drawing head.
+          route.pointAt(drawn, head);
+          formation.x = head.x;
+          formation.y = head.y;
+          formation.heading = head.heading;
           for (let k = 0; k < ROUTE_SQUADRON.length; k++) {
-            route.pointAt(drawn - k * SQUADRON_SPACING, head);
             glyphs.place(squadron + k, head.x, head.y, head.heading);
             glyphs.setOpacity(
               squadron + k,

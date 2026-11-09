@@ -203,6 +203,10 @@ export function Scene02Road() {
                 return s.clash(p, ink);
               },
               glyphNames: () => s.glyphNames(),
+              layoutDebug: (p: number) => {
+                drawn = -1;
+                return s.layoutDebug(p);
+              },
               bench: async (frames: number, p: number, alternate?: string) => {
                 held = true;
                 try {
@@ -304,6 +308,8 @@ declare global {
       ) => import("@/components/chart/glyphs/clash").ClashResult;
       /** Development: each glyph layer's ships by name, in mark order. */
       glyphNames: () => string[][];
+      /** Development: each squadron's layout at p (RoadStage.layoutDebug). */
+      layoutDebug: (p: number) => Record<string, unknown>[];
       /**
        * Development: frames at p timed on the GPU and the CPU; with
        * `alternate`, the chart's objects of that name drawn on even frames

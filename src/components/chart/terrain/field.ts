@@ -30,6 +30,7 @@ import {
 } from "../data/manifest";
 import { mercatorY } from "../geo/mercator";
 import { GLSL_FIELD, GLSL_GEO } from "../shaders/common";
+import { CoastField, type CoastTile } from "./coast";
 
 /**
  * The terrain field on the GPU. Each tile's WebP (height and coast distance
@@ -202,6 +203,35 @@ void main() {
 }
 `;
 
+/**
+ * A tile's field as bytes for the CPU (TerrainField.readBack): the coast
+ * distance in R and G, the height in B and A, each a 16-bit code.
+ */
+const ENCODE = /* glsl */ `
+precision highp float;
+uniform sampler2D uField;
+uniform float uRange;
+uniform vec2 uHeights;
+out vec4 fragColor;
+
+vec2 split16(float u) {
+  float code = floor(clamp(u, 0.0, 1.0) * 65535.0 + 0.5);
+  float hi = floor(code / 256.0);
+  return vec2(hi, code - hi * 256.0) / 255.0;
+}
+
+void main() {
+  vec4 f = texelFetch(uField, ivec2(gl_FragCoord.xy), 0);
+  fragColor = vec4(
+    split16(f.y / (2.0 * uRange) + 0.5),
+    split16((f.x - uHeights.x) / (uHeights.y - uHeights.x))
+  );
+}
+`;
+
+/** The heights the CPU copy spans, m (0.3 m steps). */
+const CPU_HEIGHTS: readonly [number, number] = [-11000, 9000];
+
 /** A big triangle covering the viewport, for full-screen passes. */
 function fullscreenTriangle(): BufferGeometry {
   const geometry = new BufferGeometry();
@@ -339,6 +369,78 @@ export class TerrainField {
       this.bind(tile);
     }
     for (const tile of this.tiles) this.bake(tile);
+  }
+
+  /**
+   * Reads every tile's coast distance and height back to the CPU once, as
+   * the GPU decoded them (terrain/coast.ts), without stalling: each tile is
+   * encoded as bytes by a pass and read asynchronously.
+   */
+  async readBack(): Promise<CoastField> {
+    const material = new ShaderMaterial({
+      glslVersion: GLSL3,
+      vertexShader: VERTEX,
+      fragmentShader: ENCODE,
+      uniforms: {
+        uField: { value: null },
+        uRange: { value: 1 },
+        uHeights: { value: [...CPU_HEIGHTS] },
+      },
+      depthTest: false,
+      depthWrite: false,
+    });
+    const tiles: CoastTile[] = [];
+    try {
+      for (const tile of this.tiles) {
+        const { info } = tile;
+        const target = new WebGLRenderTarget(info.cols, info.rows, {
+          type: UnsignedByteType,
+          format: RGBAFormat,
+          minFilter: NearestFilter,
+          magFilter: NearestFilter,
+          generateMipmaps: false,
+          depthBuffer: false,
+        });
+        try {
+          const range = info.sdfRange * info.cellKm;
+          material.uniforms.uField.value = tile.field.texture;
+          material.uniforms.uRange.value = range;
+          this.run(material, target);
+          const bytes = new Uint8Array(info.cols * info.rows * 4);
+          await this.renderer.readRenderTargetPixelsAsync(
+            target,
+            0,
+            0,
+            info.cols,
+            info.rows,
+            bytes,
+          );
+          const [x0, yTop, width, height] = tileRect(info);
+          tiles.push({
+            role: info.role,
+            x0,
+            yTop,
+            width,
+            height,
+            cols: info.cols,
+            rows: info.rows,
+            cellKm: info.cellKm,
+            range,
+            hMin: CPU_HEIGHTS[0],
+            hMax: CPU_HEIGHTS[1],
+            sat: info.role === "surround" ? 0 : saturation(info),
+            fade: FADE_KM[info.role] || 1,
+            bytes,
+          });
+        } finally {
+          target.dispose();
+        }
+      }
+    } finally {
+      material.uniforms.uField.value = null;
+      material.dispose();
+    }
+    return new CoastField(tiles);
   }
 
   /** Rebakes the shadows for other sun azimuths (lighting states). */

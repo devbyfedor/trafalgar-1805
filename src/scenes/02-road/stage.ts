@@ -19,7 +19,7 @@ import {
 import { type BenchResult, benchFrames } from "@/components/chart/engine/bench";
 import { worldX, worldY } from "@/components/chart/geo/mercator";
 import type { ClashResult } from "@/components/chart/glyphs/clash";
-import { readCoastKm } from "@/components/chart/glyphs/coast";
+import { GlyphLayout } from "@/components/chart/glyphs/layout";
 import { GlyphProbe } from "@/components/chart/glyphs/probe";
 import type { WaterLift } from "@/components/chart/terrain/liftProbe";
 import { ROAD_FLIGHT } from "./camera";
@@ -27,7 +27,6 @@ import {
   fleetMarks,
   fleetNames,
   RoadDirector,
-  SQUADRON_ROOM_FLOOR,
   squadronMarks,
   squadronNames,
 } from "./director";
@@ -73,6 +72,8 @@ export interface RoadStage {
   clash(p: number, ink?: number): ClashResult;
   /** Development: each layer's glyphs by name, in mark order. */
   glyphNames(): string[][];
+  /** Development: draws the scene at p and returns each squadron's layout (GlyphLayout.debug). */
+  layoutDebug(p: number): Record<string, unknown>[];
   /**
    * Development: where a site on the sea level stands in the frame at p
    * (normalised device coordinates), how far from the eye (km), how steeply
@@ -129,12 +130,8 @@ export async function createRoadStage(
     atlas = await buildGlyphAtlas(GLYPH_TYPES);
     options.signal.throwIfAborted();
     chart.addGpuBytes(atlas.gpuBytes);
-    const fleets = new Glyphs(chart.field, atlas, fleetMarks());
-    chart.add(fleets, fleets.wakes, fleets.ships);
-    const squadrons = new Glyphs(chart.field, atlas, squadronMarks(), {
-      roomFloor: SQUADRON_ROOM_FLOOR,
-    });
-    chart.add(squadrons, squadrons.wakes, squadrons.ships);
+    const fleets = new Glyphs(atlas, fleetMarks());
+    const squadrons = new Glyphs(atlas, squadronMarks());
     const lettering = new Lettering(chart.field, GAZETTEER);
     chart.add(lettering, lettering.batch, lettering.marks.mesh);
     await lettering.ready;
@@ -167,18 +164,14 @@ export async function createRoadStage(
       () => new Promise<void>((resolve) => setTimeout(resolve, 0)),
     );
     options.signal.throwIfAborted();
-    // Each squadron's room along its way, read once from the chart. Without
-    // it (a GPU that can't read floats back) a squadron reads its room where
-    // it is, as before.
-    try {
-      await director.computeRooms((points) =>
-        readCoastKm(chart.renderer, chart.field, points),
-      );
-    } catch (error) {
-      options.signal.throwIfAborted();
-      console.warn("scene 2: squadron rooms not read ahead", error);
-    }
+    // The chart's land on the CPU, so the glyph layout keeps every ship off
+    // it; laid out before the glyph layers draw, each frame.
+    const coast = await chart.field.readBack();
     options.signal.throwIfAborted();
+    const layout = new GlyphLayout(coast, director.layoutGroups());
+    chart.add(layout);
+    chart.add(fleets, fleets.wakes, fleets.ships);
+    chart.add(squadrons, squadrons.wakes, squadrons.ships);
     let probes: [GlyphProbe, GlyphProbe] | null = null;
     let sampled = Number.NaN;
     const stage: RoadStage = {
@@ -247,6 +240,15 @@ export async function createRoadStage(
           [{ glyphs: fleets }, { glyphs: squadrons }],
           ink,
         );
+      },
+      layoutDebug(p) {
+        sampled = Number.NaN;
+        layout.debug = [];
+        director.apply(p);
+        chart.frame(performance.now() / 1000);
+        const out = layout.debug;
+        layout.debug = null;
+        return out;
       },
       glyphNames() {
         return [fleetNames(), squadronNames()];

@@ -63,9 +63,13 @@ for (const size of sizes) {
   // The top quality, pinned: a step of the ladder would rescale the frame.
   if (page_ === "road") {
     await page.goto(`${base}/?quality=0`);
-    await page.waitForFunction(() => window.__road?.ready, null, {
-      timeout: 180_000,
-    });
+    await page.waitForFunction(
+      () => window.__road?.ready && window.__road.baked,
+      null,
+      {
+        timeout: 180_000,
+      },
+    );
     // Into scene 2, so its canvas is on screen and sized.
     await page.evaluate(() => {
       const y = 3.3 * window.innerHeight;

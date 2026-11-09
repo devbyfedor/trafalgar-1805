@@ -134,9 +134,21 @@ export function Scene02Road() {
           let render: ((time: number) => void) | null = null;
           let unregister = () => {};
           let drawn = -1;
+          // A new viewport bakes the glyph layout's tables anew, once it
+          // has settled.
+          let rebake = 0;
           const observer = new ResizeObserver(() => {
             stage?.resize(canvasHost.clientWidth, canvasHost.clientHeight);
             drawn = -1;
+            window.clearTimeout(rebake);
+            if (window.__road) window.__road.baked = false;
+            rebake = window.setTimeout(
+              () =>
+                void stage?.bake().then(() => {
+                  if (window.__road) window.__road.baked = true;
+                }),
+              400,
+            );
           });
           const canvas = document.createElement("canvas");
           canvas.className = "absolute inset-0 block h-full w-full";
@@ -168,6 +180,11 @@ export function Scene02Road() {
             await stage.chart.warm();
             if (controller.signal.aborted) return;
             const s = stage;
+            const baking = () =>
+              s.bake().then(() => {
+                if (window.__road) window.__road.baked = true;
+              });
+            void baking();
             let drawing = false;
             // Held while a bench draws its own frames (development).
             let held = false;
@@ -190,6 +207,7 @@ export function Scene02Road() {
             );
             window.__road = {
               ready: true,
+              baked: false,
               stats: s.chart.stats,
               sample: (p: number, mode?: number) => s.sample(p, mode),
               siteView: (p: number, lon: number, lat: number) =>
@@ -276,6 +294,8 @@ declare global {
     /** Scene 2's chart, for the end-to-end tests. */
     __road?: {
       ready: boolean;
+      /** The glyph layout's tables are baked for the current viewport. */
+      baked: boolean;
       stats: import("@/components/chart").ChartStats;
       /** Draws the scene at p and reads back its glyphs (RoadStage.sample). */
       sample: (

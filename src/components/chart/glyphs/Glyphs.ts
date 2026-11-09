@@ -24,6 +24,7 @@ import {
   type GlyphAtlas,
   type GlyphExtent,
   type GlyphType,
+  inkExtent,
   LEVEL_PX,
 } from "./atlas";
 import { GLYPH_PX } from "./height";
@@ -89,7 +90,8 @@ precision highp float;
 in vec4 iPos;
 // Atlas cell, side, opacity, wake (0..1).
 in vec4 iStyle;
-// The cell it turns into and how far (0..1), its wake's length share, -.
+// The cell it turns into and how far (0..1), its wake's length share, the
+// least it narrows to end-on (0.3 for a ship; more for a squadron's symbol).
 in vec4 iForm;
 uniform float uPull;
 uniform vec2 uViewport;
@@ -118,7 +120,7 @@ void main() {
   vec4 clip = projectionMatrix * viewMatrix * vec4(w, 1.0);
   // Bow toward the heading's side of the screen, narrower end-on.
   float facing = glyphFacing(iPos.z);
-  float sx = mix(0.3, 1.0, abs(facing));
+  float sx = mix(iForm.w, 1.0, abs(facing));
   vec2 offset = vec2(position.x * uAspect * sx, position.y) * h;
   clip.xy += offset / (0.5 * uViewport) * clip.w;
   gl_Position = clip;
@@ -364,6 +366,8 @@ export interface GlyphDrawn {
   alpha: Float32Array;
   /** Wake length share (1 for a ship on her own or leading, less astern). */
   wakeShare: Float32Array;
+  /** The least the glyph narrows to end-on (0.3 for a ship; more for a symbol). */
+  narrow: Float32Array;
 }
 
 export class Glyphs implements ChartLayer {
@@ -378,7 +382,6 @@ export class Glyphs implements ChartLayer {
   private readonly order: Int32Array;
   private readonly depth: Float32Array;
   private readonly count: number;
-  private readonly extentByCell: GlyphExtent[];
   private readonly canvas = [new Vector3(), new Vector3()];
   private readonly shade = [new Vector3(), new Vector3()];
   private readonly hull = [new Vector3(), new Vector3()];
@@ -416,15 +419,11 @@ export class Glyphs implements ChartLayer {
       height: f32(),
       alpha: f32(),
       wakeShare: f32(),
+      narrow: f32().fill(0.3),
     };
     this.side = new Uint8Array(n);
     this.order = new Int32Array(n);
     this.depth = new Float32Array(n);
-    this.extentByCell = [];
-    for (const [id, cell] of atlas.index) {
-      const e = atlas.extents.get(id);
-      if (e) this.extentByCell[cell] = e;
-    }
     marks.forEach((m, i) => {
       const cell = this.cellOf(m.type);
       const it = this.intent;
@@ -524,17 +523,27 @@ export class Glyphs implements ChartLayer {
   }
 
   /**
-   * A mark's drawing about its anchor this frame, in cell heights: the
-   * larger of its two types' while it turns from one into the other.
+   * A mark's ink about its anchor at a height on screen (device px), in
+   * cell heights (atlas.ts, inkExtent): the larger of its two types' while
+   * it turns from one into the other.
    */
-  extentOf(index: number, out: GlyphExtent): GlyphExtent {
-    const a = this.extentByCell[this.intent.cell[index]];
-    const turning = this.intent.turn[index] > 0.001;
-    const b = turning ? this.extentByCell[this.intent.cell2[index]] : a;
-    out.left = Math.max(a?.left ?? 0.5, b?.left ?? 0.5);
-    out.right = Math.max(a?.right ?? 0.5, b?.right ?? 0.5);
-    out.top = Math.max(a?.top ?? 0.8, b?.top ?? 0.8);
+  extentOf(index: number, h: number, out: GlyphExtent): GlyphExtent {
+    inkExtent(this.atlas, this.intent.cell[index], h, out);
+    if (this.intent.cell2[index] !== this.intent.cell[index]) {
+      const l = out.left;
+      const r = out.right;
+      const t = out.top;
+      inkExtent(this.atlas, this.intent.cell2[index], h, out);
+      out.left = Math.max(l, out.left);
+      out.right = Math.max(r, out.right);
+      out.top = Math.max(t, out.top);
+    }
     return out;
+  }
+
+  /** A type's ink about its anchor at a height on screen, in cell heights. */
+  typeExtent(type: string, h: number, out: GlyphExtent): GlyphExtent {
+    return inkExtent(this.atlas, this.cellOf(type), h, out);
   }
 
   /** The waterline's height above the cell's foot, in cell heights. */
@@ -679,7 +688,7 @@ export class Glyphs implements ChartLayer {
       form[o] = it.cell2[k];
       form[o + 1] = it.turn[k];
       form[o + 2] = d.wakeShare[k];
-      form[o + 3] = 0;
+      form[o + 3] = d.narrow[k];
     }
     for (const name of ATTRIBUTES) this.attrs[name].needsUpdate = true;
   }

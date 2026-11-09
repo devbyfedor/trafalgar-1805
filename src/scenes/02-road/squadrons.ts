@@ -3,9 +3,9 @@ import { day } from "./dates";
 /**
  * The squadrons that sail at the routes' drawing heads in beats 2 and 3,
  * with their size at each stage (docs/history-notes.md, "Scene 2", "Fleet
- * sizes at each stage"). A squadron is drawn as its lead glyph at the head
- * and the others in a compact formation astern of it, spaced on screen, so
- * its size reads at any zoom.
+ * sizes at each stage"). Each is drawn as a symbol at the head of its track,
+ * a block of glyphs laid out on screen with the others (glyphs/layout.ts),
+ * so its size reads at any zoom.
  */
 
 export interface Composition {
@@ -156,36 +156,6 @@ export const SQUADRONS: readonly SquadronSpec[] = [
     stages: [{ from: day(8, 19), types: [B98, B74, B74] }],
   },
 ];
-
-/** How many rows a squadron's block has, by its largest make-up. */
-export function formationRows(largest: number): number {
-  return largest <= 3 ? 1 : largest <= 8 ? 2 : 3;
-}
-
-/**
- * A ship's place in her squadron's block (Glyphs.setFormation): steps
- * astern of the lead in glyph widths, rows up the screen in glyph heights.
- * The lead at (0, 0); the others in rows astern of her, one ship to a step,
- * the rows above and below staggered half a step and 0.8 of a glyph apart,
- * so every hull shows and the count reads at any zoom, as a chart draws a
- * fleet. A little ragged. A ship keeps her place through every change of
- * the squadron (the rows are set by its largest make-up), so nothing jumps
- * when ships join or leave.
- */
-export function formationSlot(
-  index: number,
-  rows: number,
-): [along: number, up: number] {
-  if (index === 0) return [0, 0];
-  const k = index - 1;
-  const row = rows === 1 ? 0 : k % rows;
-  const column =
-    rows === 1 ? k + 1 : Math.floor(k / rows) + (row === 0 ? 1 : 0.5);
-  const up = [0, 0.8, -0.8][row];
-  // A ragged hand: a fixed, small offset per place.
-  const wobble = Math.sin(index * 12.9898) * 0.05;
-  return [-0.72 * column + wobble, up + wobble * 0.4];
-}
 
 /** The largest squadron, so the layer can hold every ship of each. */
 export function largest(spec: SquadronSpec): number {

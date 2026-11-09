@@ -34,7 +34,7 @@ page.on("pageerror", (e) => logs.push(`pageerror: ${e.message}`));
 await page.goto(`${base}/${process.env.Q ? "?debug" : ""}`);
 await page.waitForLoadState("load");
 try {
-  await page.waitForFunction(() => window.__road?.ready, null, {
+  await page.waitForFunction(() => window.__road?.ready && window.__road.baked, null, {
     timeout: 120_000,
   });
 } catch {

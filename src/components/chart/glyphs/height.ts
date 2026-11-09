@@ -36,6 +36,32 @@ export function glyphPxAt(altitudeKm: number): number {
 }
 
 /**
+ * A glyph's nominal height on screen, CSS px: the altitude's size, larger
+ * for glyphs nearer than where the camera looks (sizeRef, km) and smaller
+ * for those beyond. Seen from high up a fleet keeps nearly one size (the
+ * difference to the power 0.35); seen at a grazing angle (the camera's
+ * height under 0.3 of the distance) the ones beyond shrink with distance
+ * as true perspective has them, as scene 1's ships on the horizon do,
+ * while nearer ones keep their size (capped above as before). Shared by
+ * the glyph layout and scene 1's hand-off (the director).
+ */
+export function glyphNominalPx(
+  altitudeKm: number,
+  dist: number,
+  sizeRef: number,
+): number {
+  const t = Math.min(
+    1,
+    Math.max(0, (altitudeKm / Math.max(dist, 1e-6) - 0.12) / 0.18),
+  );
+  const steep = t * t * (3 - 2 * t);
+  const lo = 0.3 + 0.25 * steep;
+  const k = Math.min(1.8, Math.max(lo, sizeRef / Math.max(dist, 1e-6)));
+  const power = k >= 1 ? 0.35 : 1 - 0.65 * steep;
+  return glyphPxAt(altitudeKm) * k ** power;
+}
+
+/**
  * A glyph's height on screen, device px: nearer glyphs a little larger,
  * within the view's own range, and no taller than the water beyond it
  * (ShipMark.room) seen from here: the angle between the glyph's foot and

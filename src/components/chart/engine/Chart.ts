@@ -351,6 +351,25 @@ export class Chart {
     s.nodes = this.terrain.cdlod.count;
   }
 
+  /**
+   * What the layers would see this frame, without drawing it or updating
+   * them: for laying things out ahead over the scroll (the glyph layout's
+   * baked tables). Call after the camera and the light are set.
+   */
+  peekFrame(): FrameInfo {
+    const info = this.info;
+    const dpr = this.renderer.getPixelRatio();
+    info.exaggeration = exaggerationAt(Math.max(0.05, this.eye.z));
+    info.dpr = dpr;
+    info.pxPerRadian =
+      (this.cssHeight * dpr) /
+      (2 * Math.tan((this.camera.fov * Math.PI) / 360));
+    info.width = this.renderer.domElement.width;
+    info.height = this.renderer.domElement.height;
+    info.hazeVisibility = hazeVisibilityAt(this.eye.z) / this.light.hazeDensity;
+    return info;
+  }
+
   /** Compiles every material now, so the first visible frame never hitches. */
   /**
    * Compiles every material and draws one frame, so the first visible frame

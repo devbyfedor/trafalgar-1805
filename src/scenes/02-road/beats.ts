@@ -65,8 +65,11 @@ const CLOCK: Record<BeatId, readonly Keyframe[]> = {
   ],
   finisterre: [
     [0.5, day(7, 21)],
-    [0.53, day(7, 22, 18)],
-    [0.545, day(7, 24)],
+    // The 22nd of July spread over the plan of the action (director.ts,
+    // MEETINGS), so the date line reads it all through.
+    [0.516, day(7, 22)],
+    [0.55, day(7, 22, 23.5)],
+    [0.56, day(7, 24)],
     [0.59, day(8, 15)],
     [0.61, day(8, 20, 20)],
     // The army leaves Boulogne; then Nelson's passage from St Helens to the

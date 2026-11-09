@@ -86,7 +86,26 @@ export interface RoadStage {
     lat: number,
   ): { x: number; y: number; dist: number; sinElev: number; pxPerRad: number };
   resize(width: number, height: number): void;
+  /**
+   * Bakes the glyph layout's tables for the current viewport, in idle
+   * slices (GlyphLayout.bakeBegin); call after each resize. Resolves when
+   * done (or when a newer bake or the scene's end cancels it).
+   */
+  bake(): Promise<void>;
   dispose(): void;
+}
+
+/** The glyph layout's tables: a step of p, and the most time a slice of baking takes, ms. */
+const BAKE_STEP = 0.001;
+const BAKE_SLICE_MS = 4;
+
+/** Waits for the browser to be idle (or a frame, where idle callbacks don't exist). */
+function idleSlice(): Promise<void> {
+  return new Promise((resolve) => {
+    if (typeof requestIdleCallback === "function")
+      requestIdleCallback(() => resolve(), { timeout: 200 });
+    else setTimeout(resolve, 16);
+  });
 }
 
 export interface RoadStageOptions {
@@ -169,9 +188,33 @@ export async function createRoadStage(
     const coast = await chart.field.readBack();
     options.signal.throwIfAborted();
     const layout = new GlyphLayout(coast, director.layoutGroups());
+    director.setLayout(layout);
     chart.add(layout);
     chart.add(fleets, fleets.wakes, fleets.ships);
     chart.add(squadrons, squadrons.wakes, squadrons.ships);
+    // The glyph layout's tables, baked ahead over the scroll for the
+    // viewport in idle slices of a few milliseconds; a new viewport bakes
+    // anew, the layout deciding from each frame alone meanwhile.
+    let baking: { cancelled: boolean } | null = null;
+    const bake = async () => {
+      if (baking) baking.cancelled = true;
+      const job = { cancelled: false };
+      baking = job;
+      const ps = layout.bakeBegin(0, 1, BAKE_STEP);
+      let k = 0;
+      while (k < ps.length) {
+        await idleSlice();
+        if (job.cancelled || options.signal.aborted) return;
+        const start = performance.now();
+        while (k < ps.length && performance.now() - start < BAKE_SLICE_MS) {
+          director.applyState(ps[k]);
+          layout.bakeStep(chart.peekFrame(), k);
+          k++;
+        }
+      }
+      layout.bakeEnd();
+      sampled = Number.NaN;
+    };
     let probes: [GlyphProbe, GlyphProbe] | null = null;
     let sampled = Number.NaN;
     const stage: RoadStage = {
@@ -256,6 +299,7 @@ export async function createRoadStage(
       resize(width, height) {
         chart.resize(width, height);
       },
+      bake,
       dispose() {
         director.dispose();
         for (const probe of probes ?? []) probe.dispose();

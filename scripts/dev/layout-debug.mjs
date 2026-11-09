@@ -19,9 +19,13 @@ const page = await browser.newPage({
   deviceScaleFactor: scale,
 });
 await page.goto(`${base}/?quality=0`);
-await page.waitForFunction(() => window.__road?.ready, null, {
-  timeout: 180_000,
-});
+await page.waitForFunction(
+  () => window.__road?.ready && window.__road.baked,
+  null,
+  {
+    timeout: 180_000,
+  },
+);
 await page.evaluate(() => {
   const y = 3.3 * window.innerHeight;
   if (window.__lenis)

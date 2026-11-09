@@ -36,9 +36,13 @@ const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
 // The top quality, pinned: a step of the ladder would rescale every glyph.
 await page.goto(`${base}/?quality=0`);
-await page.waitForFunction(() => window.__road?.ready, null, {
-  timeout: 180_000,
-});
+await page.waitForFunction(
+  () => window.__road?.ready && window.__road.baked,
+  null,
+  {
+    timeout: 180_000,
+  },
+);
 // Scroll into scene 2 so it draws, then drive it directly.
 await page.evaluate(() => {
   const y = 3.3 * window.innerHeight;

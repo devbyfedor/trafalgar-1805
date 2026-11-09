@@ -91,10 +91,17 @@ export interface GlyphAtlas {
    * Each type's drawing about its anchor (the hull's middle on the
    * waterline), in cell heights: how far it reaches astern (left, the bow
    * facing right as drawn) and ahead (right), and how high above the
-   * waterline, which lies FOOT above the cell's foot. Nothing is drawn
-   * below the waterline. For laying glyphs out (glyphs/layout.ts).
+   * waterline, which lies FOOT above the cell's foot. From the paths.
    */
   extents: ReadonlyMap<string, GlyphExtent>;
+  /**
+   * The same measured from the ink each level holds (texels whose
+   * coverage, summed, reaches 0.05), widened by a texel and a half for
+   * the filtering that spreads it when drawn: per cell, per level, left,
+   * right and top in cell heights (inkExtent). For laying glyphs out so
+   * that no ink touches another's (glyphs/layout.ts).
+   */
+  ink: Float32Array;
   /** Bytes on the GPU, mipmaps included. */
   gpuBytes: number;
 }
@@ -104,6 +111,32 @@ export interface GlyphExtent {
   left: number;
   right: number;
   top: number;
+}
+
+/**
+ * A type's ink about its anchor at a height on screen (device px): the
+ * union of the two levels the shader blends there (Glyphs' SHIP_FRAGMENT).
+ */
+export function inkExtent(
+  atlas: Pick<GlyphAtlas, "ink">,
+  cell: number,
+  h: number,
+  out: GlyphExtent,
+): GlyphExtent {
+  const n = LEVEL_PX.length;
+  const s = Math.min(
+    n - 1,
+    Math.max(0, 2 * Math.log2(Math.max(h, 1) / LEVEL_PX[0])),
+  );
+  const la = Math.floor(s);
+  const lb = Math.min(la + 1, n - 1);
+  const a = (cell * n + la) * 3;
+  const b = (cell * n + lb) * 3;
+  const ink = atlas.ink;
+  out.left = Math.max(ink[a], ink[b]);
+  out.right = Math.max(ink[a + 1], ink[b + 1]);
+  out.top = Math.max(ink[a + 2], ink[b + 2]);
+  return out;
 }
 
 /** The ladder of cell heights, device px, a factor of √2 apart. */
@@ -277,6 +310,7 @@ export async function buildGlyphAtlas(
   const index = new Map<string, number>();
   const fill = new Map<string, { width: number; height: number }>();
   const extents = new Map<string, GlyphExtent>();
+  const ink = new Float32Array(types.length * levels.length * 3);
   shapes.forEach((s, i) => {
     index.set(types[i].id, i);
     fill.set(types[i].id, {
@@ -354,6 +388,37 @@ export async function buildGlyphAtlas(
         data[o + 3] = lt[k];
       }
     }
+    // Each type's ink at this level, about its anchor (the cell's middle,
+    // its waterline row), in cell heights, a texel and a half wider all
+    // round for the filtering.
+    const li = levels.indexOf(level);
+    shapes.forEach((_, i) => {
+      const x0 = (i % level.cols) * level.strideX;
+      const y0 = Math.floor(i / level.cols) * level.strideY;
+      let minX = level.cellW;
+      let maxX = -1;
+      let minY = level.cellH;
+      for (let y = 0; y < level.cellH; y++) {
+        for (let x = 0; x < level.cellW; x++) {
+          const k = ((y0 + y) * w + x0 + x) * 4 + 3;
+          if (cv[k] + dk[k] + bd[k] < 13) continue;
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+        }
+      }
+      const o = (i * levels.length + li) * 3;
+      const H = level.cellH;
+      const anchor = level.cellW / 2;
+      const water = Math.round(H * (1 - FOOT));
+      if (maxX < 0) {
+        ink[o] = ink[o + 1] = ink[o + 2] = 0;
+        return;
+      }
+      ink[o] = (anchor - minX + 1.5) / H;
+      ink[o + 1] = (maxX + 1 - anchor + 1.5) / H;
+      ink[o + 2] = (water - minY + 1.5) / H;
+    });
     await pause();
   }
 
@@ -384,6 +449,7 @@ export async function buildGlyphAtlas(
     aspect,
     cellMetres: 1 / unit,
     extents,
+    ink,
     index,
     fill,
     gpuBytes: Math.round(width * height * 4 * (4 / 3)),

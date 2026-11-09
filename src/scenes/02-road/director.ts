@@ -4,11 +4,12 @@ import type { CameraRig } from "@/components/chart/camera/rig";
 import { worldX, worldY } from "@/components/chart/geo/mercator";
 import { FOOT } from "@/components/chart/glyphs/atlas";
 import type { Glyphs, ShipMark } from "@/components/chart/glyphs/Glyphs";
-import { glyphPxAt } from "@/components/chart/glyphs/height";
+import { glyphNominalPx } from "@/components/chart/glyphs/height";
 import type {
   Formation,
   FreeGroup,
   GlyphGroup,
+  GlyphLayout,
 } from "@/components/chart/glyphs/layout";
 import type { LightId } from "@/components/chart/light/states";
 import type { Route } from "@/components/chart/lines/Route";
@@ -20,7 +21,7 @@ import { day } from "./dates";
 import { BRITISH, COMBINED, DAWN, type Ship, VICTORY_AT_DAWN } from "./fleets";
 import { type ShipState, shipAt } from "./movements";
 import type { DatedWaypoint, Leg } from "./routes";
-import { formationRows, SQUADRONS, type SquadronSpec } from "./squadrons";
+import { SQUADRONS, type SquadronSpec } from "./squadrons";
 
 /**
  * Scene 2's director: everything the chart shows is a pure function of the
@@ -195,22 +196,29 @@ function pOfDay(d: number, beats: readonly BeatId[]): number {
 const SQUADRON_BEATS: readonly BeatId[] = ["chase", "finisterre"];
 
 /**
- * Squadrons that meet, drawn as two lines facing each other as a battle
- * plan draws them: Calder and Villeneuve off Cape Finisterre, sighted about
- * noon on 22 July, in action from about five into the fog of the night, in
- * sight on the 23rd without renewing it, apart on the 24th (history notes,
- * "Finisterre"). Calder's line is drawn above, to the north as the camera
- * looks. Days: forming from, formed, parting from, apart.
+ * Squadrons that meet, drawn as two lines on the action's course as a plan
+ * of the battle draws them: Calder and Villeneuve off Cape Finisterre on 22
+ * July, both lines on the starboard tack heading about west-south-west
+ * (James III 361; history notes, "The action"). Calder formed his line from
+ * two columns at 11.30, the allies theirs; each squadron here zips its rows
+ * into its line as the plan forms. The British line is drawn on the
+ * leeward side, from this camera the nearer, lower one; a lane between for
+ * the smoke. The plan holds through the 22nd, which the clock spreads over
+ * the hold (beats.ts). Days: forming from, formed, parting from, apart.
  */
 const MEETINGS: readonly {
-  a: string;
-  b: string;
+  /** The squadron drawn above, and the one below. */
+  above: string;
+  below: string;
+  /** The action's course, degrees true. */
+  course: number;
   days: readonly [number, number, number, number];
 }[] = [
   {
-    a: "villeneuve",
-    b: "calder",
-    days: [day(7, 21, 18), day(7, 22, 9), day(7, 23, 12), day(7, 24, 6)],
+    above: "villeneuve",
+    below: "calder",
+    course: 247,
+    days: [day(7, 22, 0), day(7, 22, 4.2), day(7, 22, 21.9), day(7, 23, 14)],
   },
 ];
 
@@ -434,9 +442,11 @@ export class RoadDirector {
   private readonly squads: Squad[];
   /** Squadrons meeting, and the p over which they come into lines and part. */
   private readonly meetings: {
+    /** Drawn above, and below. */
     a: Squad;
     b: Squad;
     p: readonly [number, number, number, number];
+    course: number;
   }[];
   private readonly head = { x: 0, y: 0, heading: 0 };
   private readonly next = { x: 0, y: 0, heading: 0 };
@@ -473,7 +483,13 @@ export class RoadDirector {
           kind: "formation",
           layer: layers.squadrons,
           places: Array.from({ length: n }, (_, k) => first + k),
-          files: formationRows(n),
+          types: [
+            ...new Set(
+              spec.stages.flatMap((x) =>
+                x.types.filter((t): t is string => t !== null),
+              ),
+            ),
+          ],
           x: 0,
           y: 0,
           heading: 0,
@@ -485,19 +501,19 @@ export class RoadDirector {
       return s;
     });
     this.meetings = MEETINGS.flatMap((m) => {
-      const a = this.squads.find((s) => s.spec.id === m.a);
-      const b = this.squads.find((s) => s.spec.id === m.b);
+      const a = this.squads.find((s) => s.spec.id === m.above);
+      const b = this.squads.find((s) => s.spec.id === m.below);
       if (!a || !b) return [];
       const at = m.days.map((d) => pOfDay(d, SQUADRON_BEATS));
       // Never faster than a squadron's change (CHANGE_P), however fast the
       // story's clock runs there.
       const p: [number, number, number, number] = [
         at[0],
-        Math.max(at[1], at[0] + 1.5 * CHANGE_P),
+        Math.max(at[1], at[0] + CHANGE_P),
         at[2],
-        Math.max(at[3], at[2] + 1.5 * CHANGE_P),
+        Math.max(at[3], at[2] + CHANGE_P),
       ];
-      return [{ a, b, p }];
+      return [{ a, b, p, course: (m.course * Math.PI) / 180 }];
     });
     this.victoryIndex = this.ships.findIndex((s) => s.name === "Victory");
     // The squadrons' headings, eased (a few thousand steps in all).
@@ -582,6 +598,16 @@ export class RoadDirector {
 
   /** Sets the chart's state for progress p; call before chart.frame. */
   apply(p: number): void {
+    this.applyState(p);
+    this.applyPainted(p);
+  }
+
+  /**
+   * The chart's state for progress p (camera, light, ships, routes) and
+   * the glyph layout's progress, without touching scene 1's painted
+   * Victory: for baking the layout's tables ahead (stage.ts).
+   */
+  applyState(p: number): void {
     const { chart, rig } = this.layers;
     chart.fly(rig, p);
     this.applyLight(p);
@@ -589,8 +615,15 @@ export class RoadDirector {
     this.applyFleets(p, d);
     this.applySquadrons(p, d);
     this.applyRoutes(p, d);
-    this.applyPainted(p);
+    this.layout?.setProgress(p);
   }
+
+  /** The glyph layout that draws this scene's ships (it reads the scene's progress). */
+  setLayout(layout: GlyphLayout): void {
+    this.layout = layout;
+  }
+
+  private layout: GlyphLayout | null = null;
 
   dispose(): void {
     this.restorePainted();
@@ -729,10 +762,12 @@ export class RoadDirector {
       const w = smooth(m.p[0], m.p[1], p) * (1 - smooth(m.p[2], m.p[3], p));
       m.a.formation.meets = w > 0 ? m.b.formation : null;
       m.a.formation.meeting = w;
-      m.a.formation.above = false;
+      m.a.formation.above = true;
+      m.a.formation.course = m.course;
       m.b.formation.meets = w > 0 ? m.a.formation : null;
       m.b.formation.meeting = w;
-      m.b.formation.above = true;
+      m.b.formation.above = false;
+      m.b.formation.course = m.course;
     }
   }
 
@@ -834,8 +869,7 @@ export class RoadDirector {
       chart.target.y - eye.y,
       eye.z,
     );
-    const gh =
-      glyphPxAt(eye.z) * Math.min(1.8, Math.max(0.55, sizeRef / dist)) ** 0.35;
+    const gh = glyphNominalPx(eye.z, dist, sizeRef);
     const gy = footY - FOOT * gh;
     // Her scale at the swap: a metre of the glyph against a metre of hers.
     const cellMetres = this.layers.fleets.atlas.cellMetres;

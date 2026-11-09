@@ -202,7 +202,7 @@ export function ChartLab() {
           kind: "formation",
           layer: glyphs,
           places: index(squadron, ROUTE_SQUADRON.length),
-          files: 1,
+          types: [...new Set(ROUTE_SQUADRON.map((m) => m.type))],
           x: 0,
           y: 0,
           heading: 0,

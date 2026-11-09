@@ -39,6 +39,7 @@ export class Terrain {
   private readonly nodes: InstancedBufferAttribute;
   private readonly eye = new Vector3();
   private lift: ShaderMaterial | null = null;
+  private landMask: ShaderMaterial | null = null;
 
   constructor(field: TerrainField) {
     const stage = field.stage;
@@ -225,9 +226,27 @@ export class Terrain {
     return this.lift;
   }
 
+  /**
+   * Development and tests: the same shader drawing how much land or
+   * coastline shows in each pixel through the haze (LAND_MASK;
+   * glyphs/clash.ts), on the same uniforms. Compiled on first use.
+   */
+  landMaskMaterial(): ShaderMaterial {
+    this.landMask ??= new ShaderMaterial({
+      glslVersion: GLSL3,
+      vertexShader: TERRAIN_VERTEX,
+      fragmentShader: TERRAIN_FRAGMENT,
+      defines: { LAND_MASK: "" },
+      side: FrontSide,
+      uniforms: this.uniforms,
+    });
+    return this.landMask;
+  }
+
   dispose(): void {
     this.mesh.geometry.dispose();
     this.mesh.material.dispose();
     this.lift?.dispose();
+    this.landMask?.dispose();
   }
 }

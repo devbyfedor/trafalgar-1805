@@ -4,6 +4,7 @@ import { useRef } from "react";
 import type { ChartStats, LabelState, LightId } from "@/components/chart";
 import { type BenchResult, benchFrames } from "@/components/chart/engine/bench";
 import { worldX, worldY } from "@/components/chart/geo/mercator";
+import type { ClashResult } from "@/components/chart/glyphs/clash";
 import { Credits } from "@/components/experience/Credits";
 import { DebugOverlay } from "@/components/experience/DebugOverlay";
 import { SmoothScroll } from "@/components/providers/SmoothScroll";
@@ -280,6 +281,22 @@ export function ChartLab() {
           stats: chart.stats,
           ready: true,
           labels: () => lettering.snapshot(),
+          clash: (p, ink) => {
+            held = true;
+            try {
+              tl.progress(Math.min(1, Math.max(0, p)));
+              draw(performance.now() / 1000);
+              return chart.probeClash([{ glyphs }], ink);
+            } finally {
+              held = false;
+            }
+          },
+          glyphNames: () => [
+            [
+              ...LAB_MARKS.map((m, i) => `lab:${i}:${m.type}`),
+              ...ROUTE_SQUADRON.map((_, k) => `route:${k}`),
+            ],
+          ],
           bench: async (frames, p, alternate) => {
             if (p !== undefined) jump(p);
             held = true;
@@ -359,6 +376,14 @@ declare global {
         p?: number,
         alternate?: string,
       ) => Promise<BenchResult>;
+      /**
+       * Development and tests: draws the flight at progress p and finds
+       * every glyph whose ink touches land or another glyph's
+       * (Chart.probeClash). `ink`: the least drawn alpha counted.
+       */
+      clash?: (p: number, ink?: number) => ClashResult;
+      /** Development: the glyphs by name, in mark order. */
+      glyphNames?: () => string[][];
     };
   }
 }

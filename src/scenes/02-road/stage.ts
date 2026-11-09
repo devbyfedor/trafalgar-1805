@@ -18,15 +18,18 @@ import {
 } from "@/components/chart";
 import { type BenchResult, benchFrames } from "@/components/chart/engine/bench";
 import { worldX, worldY } from "@/components/chart/geo/mercator";
+import type { ClashResult } from "@/components/chart/glyphs/clash";
 import { readCoastKm } from "@/components/chart/glyphs/coast";
 import { GlyphProbe } from "@/components/chart/glyphs/probe";
 import type { WaterLift } from "@/components/chart/terrain/liftProbe";
 import { ROAD_FLIGHT } from "./camera";
 import {
   fleetMarks,
+  fleetNames,
   RoadDirector,
   SQUADRON_ROOM_FLOOR,
   squadronMarks,
+  squadronNames,
 } from "./director";
 import { GLYPH_TYPES } from "./fleets";
 import { GAZETTEER } from "./gazetteer";
@@ -62,6 +65,14 @@ export interface RoadStage {
   bench(frames: number, p: number, alternate?: string): Promise<BenchResult>;
   /** Development: draws the scene at p and probes its water (Chart.probeWaterLift). */
   waterLift(p: number): WaterLift;
+  /**
+   * Development and tests: draws the scene at p and finds every glyph whose
+   * ink touches land or another glyph's (Chart.probeClash): the fleets are
+   * layer 0, the squadrons layer 1. `ink`: the least drawn alpha counted.
+   */
+  clash(p: number, ink?: number): ClashResult;
+  /** Development: each layer's glyphs by name, in mark order. */
+  glyphNames(): string[][];
   /**
    * Development: where a site on the sea level stands in the frame at p
    * (normalised device coordinates), how far from the eye (km), how steeply
@@ -227,6 +238,18 @@ export async function createRoadStage(
         director.apply(p);
         chart.frame(performance.now() / 1000);
         return chart.probeWaterLift();
+      },
+      clash(p, ink) {
+        sampled = Number.NaN;
+        director.apply(p);
+        chart.frame(performance.now() / 1000);
+        return chart.probeClash(
+          [{ glyphs: fleets }, { glyphs: squadrons }],
+          ink,
+        );
+      },
+      glyphNames() {
+        return [fleetNames(), squadronNames()];
       },
       resize(width, height) {
         chart.resize(width, height);

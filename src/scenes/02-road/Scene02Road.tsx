@@ -198,6 +198,11 @@ export function Scene02Road() {
                 drawn = -1;
                 return s.waterLift(p);
               },
+              clash: (p: number, ink?: number) => {
+                drawn = -1;
+                return s.clash(p, ink);
+              },
+              glyphNames: () => s.glyphNames(),
               bench: async (frames: number, p: number, alternate?: string) => {
                 held = true;
                 try {
@@ -289,6 +294,16 @@ declare global {
       waterLift: (
         p: number,
       ) => import("@/components/chart/terrain/liftProbe").WaterLift;
+      /**
+       * Development and tests: every glyph's ink on land or on another
+       * glyph's at p (RoadStage.clash).
+       */
+      clash: (
+        p: number,
+        ink?: number,
+      ) => import("@/components/chart/glyphs/clash").ClashResult;
+      /** Development: each glyph layer's ships by name, in mark order. */
+      glyphNames: () => string[][];
       /**
        * Development: frames at p timed on the GPU and the CPU; with
        * `alternate`, the chart's objects of that name drawn on even frames

@@ -429,6 +429,21 @@ export function fleetMarks(): ShipMark[] {
   });
 }
 
+/** The fleets' ships by name, in mark order (development). */
+export function fleetNames(): string[] {
+  return [...BRITISH, ...COMBINED].map((ship) => ship.name);
+}
+
+/** The squadrons' glyphs as "squadron:place", in mark order (development). */
+export function squadronNames(): string[] {
+  return SQUADRONS.flatMap((s) =>
+    Array.from(
+      { length: Math.max(...s.stages.map((x) => x.types.length)) },
+      (_, k) => `${s.id}:${k}`,
+    ),
+  );
+}
+
 /** The squadrons' marks: each squadron's largest make-up, in order. */
 export function squadronMarks(): ShipMark[] {
   const marks: ShipMark[] = [];

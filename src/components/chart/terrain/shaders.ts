@@ -363,5 +363,11 @@ void main() {
   float liftM = max(vWorld.z, 0.0) * 1000.0;
   fragColor = vec4(min(liftM / 4.0, 255.0) / 255.0, sdf > 0.0 ? 1.0 : 0.5, min(liftM * 10.0, 255.0) / 255.0, 1.0);
 #endif
+#ifdef LAND_MASK
+  // Development and tests (glyphs/clash.ts): how much land or coastline
+  // shows in this pixel through the haze (0..1), raised land included,
+  // where it stands in front of the sea.
+  fragColor = vec4(max(land, coast) * (1.0 - hazeAmount(dist)), 0.0, 0.0, 1.0);
+#endif
 }
 `;

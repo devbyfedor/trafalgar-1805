@@ -17,6 +17,7 @@ import {
 } from "../camera/rig";
 import { type LowresHeights, landIndex, loadLowres } from "../data/loaders";
 import { type ChartManifest, loadManifest } from "../data/manifest";
+import { type ClashLayer, type ClashResult, probeClash } from "../glyphs/clash";
 import { LightBlend, type LightId } from "../light/states";
 import { Sky } from "../sky/Sky";
 import { TerrainField } from "../terrain/field";
@@ -218,6 +219,21 @@ export class Chart {
    */
   probeWaterLift(): WaterLift {
     return probeWaterLift(this.renderer, this.scene, this.camera, this.terrain);
+  }
+
+  /**
+   * Development and tests: every glyph's ink on land or on another glyph's
+   * in the frame last drawn (glyphs/clash.ts); none may be.
+   */
+  probeClash(layers: readonly ClashLayer[], ink?: number): ClashResult {
+    return probeClash(
+      this.renderer,
+      this.scene,
+      this.camera,
+      this.terrain,
+      layers,
+      ink,
+    );
   }
 
   /**

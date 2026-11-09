@@ -1,12 +1,17 @@
 import {
+  AddEquation,
   BufferAttribute,
+  CustomBlending,
   DoubleSide,
   DynamicDrawUsage,
   GLSL3,
   InstancedBufferAttribute,
   InstancedBufferGeometry,
+  MaxEquation,
   Mesh,
+  OneFactor,
   ShaderMaterial,
+  type Texture,
   Vector2,
   Vector3,
   Vector4,
@@ -123,8 +128,15 @@ out float vRight;
 out float vSide;
 out float vAlpha;
 out float vDist;
+#ifdef CLASH_ID
+uniform int uClashBase;
+flat out int vId;
+#endif
 ${GLSL_GLYPH_HEIGHT}
 void main() {
+#ifdef CLASH_ID
+  vId = uClashBase + gl_InstanceID;
+#endif
   vec3 base = vec3(iPos.xy, 0.0);
   float lead = length(base - cameraPosition);
   float h = glyphBerth(glyphHeight(iPos.xy, lead, iPos.w, iFit.xyz), lead, iFit.y, iMore.x);
@@ -150,8 +162,42 @@ void main() {
 }
 `;
 
+/**
+ * Development and tests (glyphs/clash.ts): instead of its colour, wherever
+ * a glyph's ink shows (its drawn alpha at least uClashInk) it counts 1 in
+ * R, and 1 in G where the land mask shows land or coastline there
+ * (CLASH_COUNT, blended by adding); or it carries its id, the largest in R
+ * and the smallest in G (CLASH_ID, blended by MAX). A wake's ink on land
+ * counts in B.
+ */
+const GLSL_CLASH_DECLARE = /* glsl */ `
+#if defined(CLASH_COUNT) || defined(CLASH_ID)
+uniform float uClashInk;
+#endif
+#ifdef CLASH_COUNT
+uniform sampler2D uClashLand;
+#endif
+#ifdef CLASH_ID
+flat in int vId;
+#endif
+`;
+
+const GLSL_CLASH_FRAGMENT = /* glsl */ `
+#if defined(CLASH_COUNT) || defined(CLASH_ID)
+  if (min(cover, 1.0) < uClashInk) discard;
+#endif
+#ifdef CLASH_COUNT
+  float onLand = texelFetch(uClashLand, ivec2(gl_FragCoord.xy), 0).r >= uClashInk ? 1.0 : 0.0;
+  fragColor = vec4(1.0, onLand, 0.0, 0.0) / 255.0;
+#endif
+#ifdef CLASH_ID
+  fragColor = vec4(float(vId + 1), float(254 - vId), 0.0, 0.0) / 255.0;
+#endif
+`;
+
 const SHIP_FRAGMENT = /* glsl */ `
 precision highp float;
+${GLSL_CLASH_DECLARE}
 uniform sampler2D uAtlas;
 uniform vec2 uAtlasSize;
 // Per level: (x, y, cell width, cell height) and (stride x, stride y, columns, -).
@@ -213,6 +259,7 @@ void main() {
   if (cover < 0.003) discard;
   // Premultiplied: each part's colour by what shows of it.
   fragColor = vec4((canvas * sail + uHull[side] * c.g + uBand[side] * c.b) * a, min(cover, 1.0));
+${GLSL_CLASH_FRAGMENT}
 }
 `;
 
@@ -258,6 +305,7 @@ void main() {
 
 const WAKE_FRAGMENT = /* glsl */ `
 precision highp float;
+${GLSL_CLASH_DECLARE}
 ${GLSL_LINES}
 uniform vec3 uInk;
 uniform float uDpr;
@@ -282,6 +330,11 @@ void main() {
   float a = cov * fade * vAlpha * exp(-x * x) * 0.5;
   if (a < 0.003) discard;
   fragColor = vec4(uInk, a);
+#ifdef CLASH_COUNT
+  if (a < uClashInk) discard;
+  float onLand = texelFetch(uClashLand, ivec2(gl_FragCoord.xy), 0).r >= uClashInk ? 1.0 : 0.0;
+  fragColor = vec4(0.0, 0.0, onLand, 0.0) / 255.0;
+#endif
 }
 `;
 
@@ -335,6 +388,7 @@ export class Glyphs implements ChartLayer {
   private readonly hull = [new Vector3(), new Vector3()];
   private readonly band = [new Vector3(), new Vector3()];
   private readonly size: ReturnType<typeof glyphSizeUniforms>;
+  private clash: ClashMaterials | null = null;
 
   /**
    * `atlas` from buildGlyphAtlas; several layers may share one.
@@ -460,6 +514,55 @@ export class Glyphs implements ChartLayer {
   /** How many marks the layer holds. */
   get markCount(): number {
     return this.count;
+  }
+
+  /**
+   * Development and tests (glyphs/clash.ts): the layer's ships and wakes
+   * drawn as ink counts and ids instead of colour, on the same instances
+   * and uniforms, so what is counted is exactly what is drawn. Compiled on
+   * first use.
+   */
+  clashMaterials(): ClashMaterials {
+    if (this.clash) return this.clash;
+    const shared = {
+      uClashLand: { value: null as Texture | null },
+      uClashInk: { value: 0.1 },
+      uClashBase: { value: 0 },
+    };
+    const make = (
+      vertexShader: string,
+      fragmentShader: string,
+      uniforms: Record<string, { value: unknown }>,
+      define: string,
+      max: boolean,
+    ) =>
+      new ShaderMaterial({
+        glslVersion: GLSL3,
+        vertexShader,
+        fragmentShader,
+        defines: { [define]: "" },
+        transparent: true,
+        depthTest: false,
+        depthWrite: false,
+        side: DoubleSide,
+        blending: CustomBlending,
+        blendEquation: max ? MaxEquation : AddEquation,
+        blendSrc: OneFactor,
+        blendDst: OneFactor,
+        blendEquationAlpha: max ? MaxEquation : AddEquation,
+        blendSrcAlpha: OneFactor,
+        blendDstAlpha: OneFactor,
+        uniforms: { ...uniforms, ...shared },
+      });
+    const ship = this.ships.material.uniforms;
+    const wake = this.wakes.material.uniforms;
+    this.clash = {
+      uniforms: shared,
+      count: make(SHIP_VERTEX, SHIP_FRAGMENT, ship, "CLASH_COUNT", false),
+      id: make(SHIP_VERTEX, SHIP_FRAGMENT, ship, "CLASH_ID", true),
+      wakes: make(WAKE_VERTEX, WAKE_FRAGMENT, wake, "CLASH_COUNT", false),
+    };
+    return this.clash;
   }
 
   /** Which mark each drawn instance is, back to front (this frame's sort). */
@@ -609,7 +712,30 @@ export class Glyphs implements ChartLayer {
     this.ships.material.dispose();
     this.wakes.geometry.dispose();
     this.wakes.material.dispose();
+    if (this.clash) {
+      this.clash.count.dispose();
+      this.clash.id.dispose();
+      this.clash.wakes.dispose();
+    }
   }
+}
+
+/** A glyph layer's materials for the clash probe (Glyphs.clashMaterials). */
+export interface ClashMaterials {
+  uniforms: {
+    /** The land mask to test ink against. */
+    uClashLand: { value: Texture | null };
+    /** The least drawn alpha that counts as ink. */
+    uClashInk: { value: number };
+    /** The id of the layer's first drawn instance. */
+    uClashBase: { value: number };
+  };
+  /** Ships: ink counted in R, ink on land in G (added). */
+  count: ShaderMaterial;
+  /** Ships: the largest id in R, 254 less the smallest in G (MAX). */
+  id: ShaderMaterial;
+  /** Wakes: ink on land counted in B (added). */
+  wakes: ShaderMaterial;
 }
 
 function setHex(out: Vector3, hex: number): void {

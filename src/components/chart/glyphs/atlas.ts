@@ -115,7 +115,13 @@ export interface GlyphExtent {
 
 /**
  * A type's ink about its anchor at a height on screen (device px): the
- * union of the two levels the shader blends there (Glyphs' SHIP_FRAGMENT).
+ * union of the two levels the shader blends there (Glyphs' SHIP_FRAGMENT),
+ * each level's share of the union eased out as its blend weight falls
+ * under INK_FADE_WEIGHT. Below that weight a level's ink alone can't reach
+ * the clash probe's ink threshold (0.1), and the union passes from the
+ * pair (a, a + 1) to (a + 1, a + 2) without a step as the height crosses
+ * a level (it stepped by up to a tenth of a glyph's height there, and the
+ * spacing of a line of ships with it).
  */
 export function inkExtent(
   atlas: Pick<GlyphAtlas, "ink">,
@@ -130,13 +136,35 @@ export function inkExtent(
   );
   const la = Math.floor(s);
   const lb = Math.min(la + 1, n - 1);
+  const t = s - la;
+  const ka = inkShare(1 - t);
+  const kb = inkShare(t);
   const a = (cell * n + la) * 3;
   const b = (cell * n + lb) * 3;
   const ink = atlas.ink;
-  out.left = Math.max(ink[a], ink[b]);
-  out.right = Math.max(ink[a + 1], ink[b + 1]);
-  out.top = Math.max(ink[a + 2], ink[b + 2]);
+  out.left = inkUnion(ink[a], ink[b], ka, kb);
+  out.right = inkUnion(ink[a + 1], ink[b + 1], ka, kb);
+  out.top = inkUnion(ink[a + 2], ink[b + 2], ka, kb);
   return out;
+}
+
+/** A level's blend weight under which its ink gives way in inkExtent. */
+const INK_FADE_WEIGHT = 0.1;
+
+/** smoothstep(0, INK_FADE_WEIGHT, w). */
+function inkShare(w: number): number {
+  const x = Math.min(1, Math.max(0, w / INK_FADE_WEIGHT));
+  return x * x * (3 - 2 * x);
+}
+
+/**
+ * Two levels' reach, each counted by its share (1: its full reach; 0: no
+ * more than the other's): the union when both count, the one level's own
+ * reach when the other has faded out of the blend.
+ */
+function inkUnion(ea: number, eb: number, ka: number, kb: number): number {
+  const lo = Math.min(ea, eb);
+  return Math.max(lo + ka * (ea - lo), lo + kb * (eb - lo));
 }
 
 /** The ladder of cell heights, device px, a factor of √2 apart. */

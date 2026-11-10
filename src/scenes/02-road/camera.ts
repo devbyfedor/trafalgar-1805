@@ -96,6 +96,10 @@ export const ROAD_FLIGHT: readonly CameraKey[] = [
   // 3. Finisterre, then south to Cádiz and the army's turn east.
   { p: 0.535, eye: [-14.6, 40.1, 460], target: [-11.5, 43.5, 0] },
   { p: 0.575, eye: [-17, 33.5, 1750], target: [-7.2, 41, 0] },
+  // Villeneuve's turn south off Finisterre on the evening of 15 August
+  // (the clock slows for it, beats.ts) and his run down the coast of
+  // Portugal, held clear of the caption card.
+  { p: 0.602, eye: [-20, 30.5, 1750], target: [-9.5, 39.5, 0] },
   { p: 0.62, eye: [-19, 38, 1700], target: [1, 46.5, 0] },
   { p: 0.65, eye: [-9.4, 33.4, 900], target: [-6.4, 38, 0] },
   // 4. Down to the Gulf of Cádiz: the harbour, the chain to the west.

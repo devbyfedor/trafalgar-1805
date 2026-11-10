@@ -14,6 +14,7 @@ import type {
 import type { LightId } from "@/components/chart/light/states";
 import type { Route } from "@/components/chart/lines/Route";
 import type { RibbonMaterial } from "@/components/chart/lines/ribbon";
+import { monotoneCurve } from "@/lib/curve";
 import { METRE_VH, VICTORY_X } from "@/scenes/01-dawn/composition";
 import { VICTORY_BOX } from "@/scenes/01-dawn/layers/Victory";
 import { BEATS, type BeatId, dayAt } from "./beats";
@@ -89,6 +90,7 @@ function wrapPi(a: number): number {
 /** Smooths a run of samples with a Gaussian of `sigma` steps, the ends held. */
 function gaussian(u: Float64Array, sigma: number): Float64Array {
   const n = u.length;
+  if (!(sigma > 0)) return Float64Array.from(u);
   const r = Math.ceil(3 * sigma);
   const kernel = new Float64Array(2 * r + 1);
   let total = 0;
@@ -136,16 +138,33 @@ function easeHeadings(raw: Float64Array): Float32Array {
   return out;
 }
 
-/** A table of values by step of p from `p0`, read at p (linearly, the ends held). */
+/**
+ * A table of values by step of p from `p0`, read at p, the ends held: the
+ * steps joined by a Catmull-Rom curve (joined by straight lines, each step
+ * would be a kink in the motion).
+ */
 function tableAt(
   table: Float32Array,
   p0: number,
   step: number,
   p: number,
 ): number {
-  const x = Math.min(table.length - 1, Math.max(0, (p - p0) / step));
-  const k = Math.min(table.length - 2, Math.floor(x));
-  return table[k] + (table[k + 1] - table[k]) * (x - k);
+  const last = table.length - 1;
+  const x = Math.min(last, Math.max(0, (p - p0) / step));
+  const k = Math.min(last - 1, Math.floor(x));
+  const u = x - k;
+  const y0 = table[Math.max(0, k - 1)];
+  const y1 = table[k];
+  const y2 = table[k + 1];
+  const y3 = table[Math.min(last, k + 2)];
+  return (
+    y1 +
+    0.5 *
+      u *
+      (y2 -
+        y0 +
+        u * (2 * y0 - 5 * y1 + 4 * y2 - y3 + u * (3 * (y1 - y2) + y3 - y0)))
+  );
 }
 
 /** How far off a port a squadron's block stands while it lies there, map km. */
@@ -168,6 +187,16 @@ const ROADS_BY_LEG: Readonly<Record<string, readonly [number, number]>> = {
   "nelson-west-indies": [ISLAND_ROADS_KM, ISLAND_ROADS_KM],
   "nelson-homeward": [ISLAND_ROADS_KM, ROADS_KM],
 };
+
+/**
+ * Legs that end at sea, where the next leg takes up the passage from the
+ * same point and day: no port, so no roads and no rest there; the block
+ * sails on through the join (easeLegs). Villeneuve's West Indies leg ends
+ * at his turn for Europe north of Barbuda on 10 June, where his return
+ * begins: the block had stood still in the open sea there, in "roads" off
+ * no port.
+ */
+const SEA_JOINS: ReadonlySet<string> = new Set(["villeneuve-west-indies"]);
 
 /**
  * How much scroll (of p) a squadron takes to change: a ship joining or
@@ -238,18 +267,56 @@ function fade(
   return smooth(a, b, p) * (1 - smooth(c, d, p));
 }
 
-/** Days along a leg: its dated points' days and the distance between them. */
+/**
+ * A leg's clock: how far along it (km, along its straight legs) the fleet
+ * is at each day, from its dated points.
+ *
+ * The distance runs through the dated points on a monotone cubic in time
+ * that leaves the first and reaches the last at rest (lib/curve.ts), so a
+ * squadron weighs and comes to gathering and losing way, and changes pace
+ * at a dated point without a step: read straight between dated points, a
+ * block went from rest to full speed within a step of p (up to 4.6 glyph
+ * heights at once on the owner's screen: Nelson's off Cádiz on 28
+ * September, Villeneuve's leaving Martinique and Ferrol), and its pace
+ * jumped at every dated point. The days stay exact.
+ */
 interface LegClock {
   leg: Leg;
   route: Route;
-  /** Each waypoint's distance along the leg (straight legs, km) and its day. */
-  along: Float64Array;
-  days: Float64Array;
+  /** The leg's length along its straight legs, km. */
+  length: number;
   first: number;
   last: number;
+  /** km along the leg at a day (between `first` and `last`). */
+  km: (d: number) => number;
+  /** Its roads at either end, km (ROADS_BY_LEG; shared out on a short leg). */
+  roads: readonly [number, number];
+  /** It takes up the passage at sea from the leg before (SEA_JOINS), and hands it on at sea to the next. */
+  seaStart: boolean;
+  seaEnd: boolean;
+  /** Its block's place before it sails and after it arrives, 0..1 of it (blockProgress; easeLegs). */
+  blockFrom: number;
+  blockTo: number;
+  /**
+   * Its progress by step of p (HEADING_STEP from BEATS.chase[0] to
+   * SQUADRON_TABLE_END), eased (easeLegs): its drawing head's, and its
+   * squadron's block's.
+   */
+  drawn: Float32Array;
+  block: Float32Array;
 }
 
-function legClock(leg: Leg, route: Route): LegClock {
+/**
+ * A leg's clock. A leg joined to the one before or after it at sea
+ * (SEA_JOINS) neither rests nor has roads at that end: its pace there is
+ * its one interval's.
+ */
+function legClock(
+  leg: Leg,
+  route: Route,
+  seaStart: boolean,
+  seaEnd: boolean,
+): LegClock {
   const w = leg.waypoints;
   const along = new Float64Array(w.length);
   for (let i = 1; i < w.length; i++) {
@@ -260,35 +327,157 @@ function legClock(leg: Leg, route: Route): LegClock {
         worldY(w[i].lat) - worldY(w[i - 1].lat),
       );
   }
-  // Undated points take a day by distance between the dated ones around them.
-  const days = new Float64Array(w.length).fill(Number.NaN);
+  const length = along[w.length - 1] || 1;
+  const keys: [number, number][] = [];
   w.forEach((p: DatedWaypoint, i) => {
-    if (p.day !== undefined) days[i] = p.day;
+    if (p.day === undefined) return;
+    const last = keys[keys.length - 1];
+    if (last && p.day <= last[0]) return;
+    keys.push([p.day, along[i]]);
   });
-  let prev = -1;
-  for (let i = 0; i < w.length; i++) {
-    if (Number.isNaN(days[i])) continue;
-    if (prev >= 0 && i - prev > 1) {
-      for (let k = prev + 1; k < i; k++) {
-        const t = (along[k] - along[prev]) / (along[i] - along[prev] || 1);
-        days[k] = days[prev] + (days[i] - days[prev]) * t;
-      }
+  const km = monotoneCurve(keys, [
+    seaStart ? "secant" : "rest",
+    seaEnd ? "secant" : "rest",
+  ]);
+  const [roadsA, roadsB] = ROADS_BY_LEG[leg.id] ?? [ROADS_KM, ROADS_KM];
+  const a = seaStart ? 0 : roadsA;
+  const b = seaEnd ? 0 : roadsB;
+  // Each knee (blockKm) reaches twice its roads; on a short leg they meet.
+  const share = Math.min(1, length / (2 * Math.max(1e-9, a + b)));
+  return {
+    leg,
+    route,
+    length,
+    first: keys[0][0],
+    last: keys[keys.length - 1][0],
+    km,
+    roads: [a * share, b * share],
+    seaStart,
+    seaEnd,
+    blockFrom: 0,
+    blockTo: 1,
+    drawn: new Float32Array(0),
+    block: new Float32Array(0),
+  };
+}
+
+/**
+ * Where the clock runs fast, a short leg takes only a few steps of p (Vigo
+ * to A Coruña, two days, in about four), too few to gather and lose way in
+ * smoothly, and a route that turns at a dated point turns within a step.
+ * So each leg's progress, its drawing head's and its block's, is also read
+ * ahead at every HEADING_STEP of p and eased by a Gaussian of PATH_EASE_P
+ * (σ, p): a squadron never gathers way, loses it or changes pace in less
+ * scroll than that. Along the route only, so the block keeps to its line.
+ */
+const PATH_EASE_P = 0.0025;
+
+/**
+ * Fills the eased tables of one squadron's legs, in their order
+ * (LegClock.drawn, .block). The drawing heads are eased as one measure
+ * along all of them (the legs done, and the share of the one under way),
+ * so a leg is fully drawn before the next one starts (eased one by one,
+ * the one ending in port was still finishing as the next began, and the
+ * line broke between them). The blocks are eased by passage: legs joined
+ * at sea (SEA_JOINS) as one measure, as the heads are, so the block sails
+ * on through the join; a leg that ends in port on its own, the director
+ * sliding its block from one leg's roads to the next.
+ */
+function easeLegs(legs: readonly LegClock[]): void {
+  const [p0, p1] = [BEATS.chase[0], SQUADRON_TABLE_END];
+  const steps = Math.round((p1 - p0) / HEADING_STEP) + 1;
+  const sigma = PATH_EASE_P / HEADING_STEP;
+  // Each leg's passage (legs joined at sea share one) and its place in it.
+  const passage: number[] = [];
+  const place: number[] = [];
+  let count = 0;
+  let within = 0;
+  for (const c of legs) {
+    passage.push(count);
+    place.push(within++);
+    if (!c.seaEnd) {
+      count++;
+      within = 0;
     }
-    prev = i;
   }
-  return { leg, route, along, days, first: days[0], last: days[w.length - 1] };
+  for (const c of legs) {
+    c.blockFrom = blockProgress(c, c.first);
+    c.blockTo = blockProgress(c, c.last);
+  }
+  // Both measures in km, so a pace eased across a join stays a pace: in
+  // shares of each leg, the block leapt ahead where a short leg handed on
+  // to a long one.
+  const along = new Float64Array(steps);
+  const blocks = Array.from(
+    { length: Math.max(1, count + 1) },
+    () => new Float64Array(steps),
+  );
+  // Where each leg begins along the squadron's way, and along its passage.
+  const drawnFrom: number[] = [];
+  const blockFrom: number[] = [];
+  let sum = 0;
+  let inPassage = 0;
+  legs.forEach((c, n) => {
+    if (place[n] === 0) inPassage = 0;
+    drawnFrom.push(sum);
+    blockFrom.push(inPassage);
+    sum += c.length;
+    inPassage += (c.blockTo - c.blockFrom) * c.length;
+  });
+  for (let k = 0; k < steps; k++) {
+    const d = dayAt(Math.min(p1 - 1e-9, p0 + k * HEADING_STEP));
+    legs.forEach((c, n) => {
+      along[k] += legProgress(c, d) * c.length;
+      blocks[passage[n]][k] += (blockProgress(c, d) - c.blockFrom) * c.length;
+    });
+  }
+  const eased = gaussian(along, sigma);
+  const easedBlocks = blocks.map((b) => gaussian(b, sigma));
+  legs.forEach((c, n) => {
+    c.drawn = Float32Array.from(eased, (km) =>
+      Math.min(1, Math.max(0, (km - drawnFrom[n]) / c.length)),
+    );
+    const span = c.blockTo - c.blockFrom;
+    const reach = span * c.length || 1;
+    c.block = Float32Array.from(
+      easedBlocks[passage[n]],
+      (km) =>
+        c.blockFrom +
+        Math.min(1, Math.max(0, (km - blockFrom[n]) / reach)) * span,
+    );
+  });
+}
+
+/** A leg's eased progress at p: its drawing head's, or its block's. */
+function easedProgress(c: LegClock, which: "drawn" | "block", p: number) {
+  return tableAt(c[which], BEATS.chase[0], HEADING_STEP, p);
 }
 
 /** How much of a leg is drawn at a day, 0..1 of its length. */
 function legProgress(c: LegClock, d: number): number {
   if (d <= c.first) return 0;
   if (d >= c.last) return 1;
-  let i = 0;
-  while (i < c.days.length - 1 && c.days[i + 1] <= d) i++;
-  const span = c.days[i + 1] - c.days[i];
-  const t = span > 0 ? (d - c.days[i]) / span : 1;
-  const km = c.along[i] + (c.along[i + 1] - c.along[i]) * t;
-  return km / c.along[c.along.length - 1];
+  return c.km(d) / c.length;
+}
+
+/**
+ * Where a squadron's block stands on its leg at a day, 0..1 of its length:
+ * in the roads off either end while in port (a period chart sets a fleet in
+ * the open water by the port, not on the town), and with the fleet under
+ * way. It leaves the roads through a knee as the fleet clears the port:
+ * r + x²/4r of the way until the fleet has sailed twice the roads (x =
+ * 2r), the fleet's own place from there, at rest at the start and with the
+ * fleet's own pace at the knee's end; coming in, the same reversed. So the
+ * line's tip runs out from the port to the block and on with it.
+ */
+function blockProgress(c: LegClock, d: number): number {
+  const x = legProgress(c, d) * c.length;
+  const [a, b] = c.roads;
+  const L = c.length;
+  let y = x;
+  if (a > 0 && x < 2 * a) y = a + (x * x) / (4 * a);
+  else if (b > 0 && x > L - 2 * b) y = L - b - ((L - x) * (L - x)) / (4 * b);
+  return y / L;
 }
 
 /**
@@ -345,21 +534,13 @@ interface Squad {
   formation: Formation;
 }
 
-/**
- * A squadron's block on a leg at a share of it: the leg's own point, but
- * never nearer its ends than the roads (ROADS_KM), so in port the block
- * stands off the port on the route it came in or goes out by.
- */
+/** A squadron's block on a leg at p, on the route (blockProgress, eased). */
 function blockAt(
   c: LegClock,
-  progress: number,
+  p: number,
   out: { x: number; y: number; heading: number },
 ): void {
-  const len = c.along[c.along.length - 1] || 1;
-  const [a, b] = ROADS_BY_LEG[c.leg.id] ?? [ROADS_KM, ROADS_KM];
-  const r0 = Math.min(0.5, a / len);
-  const r1 = Math.max(0.5, 1 - b / len);
-  c.route.pointAt(Math.min(r1, Math.max(r0, progress)), out);
+  c.route.pointAt(easedProgress(c, "block", p), out);
 }
 
 /** A heading turned toward another by a share t, the short way round (radians). */
@@ -471,7 +652,30 @@ export class RoadDirector {
   private paintedState: "natural" | "moving" | "hidden" = "natural";
 
   constructor(private readonly layers: RoadLayers) {
-    this.clocks = layers.legs.map((leg, i) => legClock(leg, layers.routes[i]));
+    // A leg after one that ends at sea takes up the passage there.
+    const seaStarts = new Set<string>();
+    for (const ids of Object.values(SQUADRON_LEGS))
+      ids.forEach((id, n) => {
+        if (SEA_JOINS.has(id) && n + 1 < ids.length) seaStarts.add(ids[n + 1]);
+      });
+    this.clocks = layers.legs.map((leg, i) =>
+      legClock(
+        leg,
+        layers.routes[i],
+        seaStarts.has(leg.id),
+        SEA_JOINS.has(leg.id),
+      ),
+    );
+    // Each squadron's legs eased in their order; a leg of no squadron alone.
+    const sailed = new Set<string>();
+    for (const ids of Object.values(SQUADRON_LEGS)) {
+      const legs = ids.flatMap(
+        (id) => this.clocks.find((c) => c.leg.id === id) ?? [],
+      );
+      easeLegs(legs);
+      for (const c of legs) sailed.add(c.leg.id);
+    }
+    for (const c of this.clocks) if (!sailed.has(c.leg.id)) easeLegs([c]);
     let first = 0;
     this.squads = SQUADRONS.map((spec) => {
       const n = Math.max(...spec.stages.map((x) => x.types.length));
@@ -781,12 +985,38 @@ export class RoadDirector {
       m.a.formation.meets = w > 0 ? m.b.formation : null;
       m.a.formation.meeting = w;
       m.a.formation.above = true;
-      m.a.formation.course = m.course;
+      m.a.formation.course = this.meetingCourse(m, m.a, p);
       m.b.formation.meets = w > 0 ? m.a.formation : null;
       m.b.formation.meeting = w;
       m.b.formation.above = false;
-      m.b.formation.course = m.course;
+      m.b.formation.course = this.meetingCourse(m, m.b, p);
     }
+  }
+
+  /**
+   * The action's course for a squadron in a meeting, unwrapped against its
+   * heading (Formation.course): the way round it turns is the one it would
+   * take the short way when the lines begin to form, held as its own heading
+   * drifts, and on the way out the one from where they have parted. They
+   * change over in the middle of the plan, where the squadron lies on the
+   * course whichever way round it came.
+   */
+  private meetingCourse(
+    m: (typeof this.meetings)[number],
+    squad: Squad,
+    p: number,
+  ): number {
+    const own = squad.formation.heading;
+    const ref = p < (m.p[1] + m.p[2]) / 2 ? m.p[0] : m.p[3];
+    const s = this.squads.indexOf(squad);
+    const at = tableAt(
+      this.squadHeadings[s],
+      BEATS.chase[0],
+      HEADING_STEP,
+      ref,
+    );
+    const turnAtRef = wrapPi(m.course - at);
+    return own + turnAtRef + wrapPi(m.course - own - turnAtRef);
   }
 
   /**
@@ -803,11 +1033,21 @@ export class RoadDirector {
       // The leg in progress, or the last one begun (at anchor after it).
       let k = 0;
       for (let n = 0; n < legs.length; n++) if (legs[n].first <= d) k = n;
-      blockAt(legs[k], legProgress(legs[k], d), this.head);
-      if (k + 1 < legs.length) {
+      // Along a passage joined at sea, the leg its eased block is on, which
+      // may lag the day or run ahead of it at the join (easeLegs).
+      const begun = (c: LegClock) =>
+        easedProgress(c, "block", p) > c.blockFrom + 1e-7;
+      while (k > 0 && legs[k].seaStart && !begun(legs[k])) k--;
+      while (k + 1 < legs.length && legs[k].seaEnd && begun(legs[k + 1])) k++;
+      blockAt(legs[k], p, this.head);
+      // From one port's roads to the next leg's (a passage joined at sea
+      // runs on through its join).
+      if (k + 1 < legs.length && !legs[k].seaEnd) {
         const t = smooth(legP[k + 1] - CHANGE_P, legP[k + 1], p);
         if (t > 0) {
-          blockAt(legs[k + 1], 0, this.next);
+          // Toward the next leg's own eased place, which may already be
+          // getting under way.
+          blockAt(legs[k + 1], p, this.next);
           this.head.x += (this.next.x - this.head.x) * t;
           this.head.y += (this.next.y - this.head.y) * t;
           this.head.heading = turnToward(
@@ -840,7 +1080,14 @@ export class RoadDirector {
     ]);
     for (const c of this.clocks) {
       const before = p < BEATS.chase[0];
-      c.route.setProgress(before ? 0 : legProgress(c, d));
+      // Eased as the blocks are, so the line's tip keeps with its lead.
+      c.route.setProgress(
+        before
+          ? 0
+          : p <= SQUADRON_TABLE_END
+            ? easedProgress(c, "drawn", p)
+            : legProgress(c, d),
+      );
       c.route.mesh.visible = shown > 0.002;
       (c.route.mesh.material as RibbonMaterial).uniforms.uOpacity.value =
         0.9 * shown;

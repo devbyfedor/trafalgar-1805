@@ -342,6 +342,64 @@ interface Track {
    */
   weighed: Float64Array;
   anchors: Float64Array;
+  /**
+   * Her velocity at each key, km a day (keyVelocities): she passes a key
+   * without a change of pace or course in a step, and weighs and comes to
+   * from rest.
+   */
+  vx: Float64Array;
+  vy: Float64Array;
+}
+
+/**
+ * Each key's velocity for a curve through the keys with no step in its
+ * speed or course (cubic Hermite in time): nothing at an anchored key or
+ * where she lies still before or after it, so she gathers way from rest as
+ * she weighs and loses it as she comes to; at her first and last keys her
+ * one leg's; elsewhere along the bisector of her courses in and out, as
+ * fast as the harmonic mean of her two legs' speeds (at most twice the
+ * slower one's, so she never overshoots a key), and slower as she turns
+ * more (none for a reversal), so a turn rounds the key by little.
+ */
+function keyVelocities(
+  keys: readonly Key[],
+  moves: (k: number) => boolean,
+): [Float64Array, Float64Array] {
+  const n = keys.length;
+  const vx = new Float64Array(n);
+  const vy = new Float64Array(n);
+  const secant = (k: number): [number, number] => {
+    const span = keys[k + 1].day - keys[k].day;
+    if (!(span > 0) || !moves(k)) return [0, 0];
+    return [
+      (keys[k + 1].x - keys[k].x) / span,
+      (keys[k + 1].y - keys[k].y) / span,
+    ];
+  };
+  for (let k = 0; k < n; k++) {
+    if (keys[k].anchored) continue;
+    const inward = k > 0 ? secant(k - 1) : null;
+    const outward = k + 1 < n ? secant(k) : null;
+    if (!inward || !outward) {
+      const one = inward ?? outward ?? [0, 0];
+      vx[k] = one[0];
+      vy[k] = one[1];
+      continue;
+    }
+    const a = Math.hypot(inward[0], inward[1]);
+    const b = Math.hypot(outward[0], outward[1]);
+    if (a === 0 || b === 0) continue;
+    const ux = inward[0] / a + outward[0] / b;
+    const uy = inward[1] / a + outward[1] / b;
+    const u = Math.hypot(ux, uy);
+    if (u < 1e-9) continue;
+    // |ux, uy| is 2 cos(θ/2) for a turn of θ.
+    const half = u / 2;
+    const speed = ((2 * a * b) / (a + b)) * half * half;
+    vx[k] = (ux / u) * speed;
+    vy[k] = (uy / u) * speed;
+  }
+  return [vx, vy];
 }
 
 function track(keys: readonly Key[]): Track {
@@ -379,7 +437,8 @@ function track(keys: readonly Key[]): Track {
     if (keys[k].anchored && k > 0 && !keys[k - 1].anchored) c = keys[k].day;
     else if (keys[k].anchored) c = Number.NaN;
   }
-  return { keys, heading, leg, weighed, anchors };
+  const [vx, vy] = keyVelocities(keys, moves);
+  return { keys, heading, leg, weighed, anchors, vx, vy };
 }
 
 const TRACKS = new Map<Ship, Track>();
@@ -395,9 +454,12 @@ const into = (e0: number, e1: number, x: number) => {
 
 /**
  * A ship's place at a day (days since 1 January 1805), written into `out`;
- * false before her first key. Positions move linearly between keys; the
- * heading eases from each key's heading onto the leg's course and on to the
- * next key's, so it never jumps (Track.heading). She weighs at the day of
+ * false before her first key. Positions follow a curve through the keys
+ * with no step in speed or course, gathering way from rest as she weighs
+ * (Track.vx, .vy; linear between keys, a ship weighing went from rest to
+ * full speed and changed pace at every key in a step); the heading eases
+ * from each key's heading onto the leg's course and on to the next key's,
+ * so it never jumps (Track.heading). She weighs at the day of
  * an anchored key whose next key isn't, and comes to anchor at the day of
  * the anchored key she sails to; her glyph changes over WEIGH_DAYS after
  * the one and before the other, however short the legs between.
@@ -413,8 +475,15 @@ export function shipAt(ship: Ship, d: number, out: ShipState): boolean {
   const b = keys[j];
   const span = b.day - a.day;
   const t = span > 0 ? Math.min(1, Math.max(0, (d - a.day) / span)) : 1;
-  out.x = a.x + (b.x - a.x) * t;
-  out.y = a.y + (b.y - a.y) * t;
+  // A cubic Hermite in time through the keys (Track.vx, .vy).
+  const t2 = t * t;
+  const t3 = t2 * t;
+  const h00 = 2 * t3 - 3 * t2 + 1;
+  const h10 = (t3 - 2 * t2 + t) * span;
+  const h01 = 1 - h00;
+  const h11 = (t3 - t2) * span;
+  out.x = h00 * a.x + h10 * tr.vx[i] + h01 * b.x + h11 * tr.vx[j];
+  out.y = h00 * a.y + h10 * tr.vy[i] + h01 * b.y + h11 * tr.vy[j];
   out.anchored = Boolean(a.anchored && (b.anchored || t === 0));
   if (a.anchored && (b.anchored || i === j)) out.anchorage = 1;
   else {

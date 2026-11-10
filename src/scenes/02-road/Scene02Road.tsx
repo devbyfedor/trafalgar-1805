@@ -235,6 +235,14 @@ export function Scene02Road() {
                 drawn = -1;
                 return s.motion(p);
               },
+              pathParts: (p: number, step: number) => {
+                drawn = -1;
+                return s.pathParts(p, step);
+              },
+              ashore: (p: number) => {
+                drawn = -1;
+                return s.ashore(p);
+              },
               layoutDebug: (p: number) => {
                 drawn = -1;
                 return s.layoutDebug(p);
@@ -344,6 +352,10 @@ declare global {
       glyphNames: () => string[][];
       /** Development: each glyph's drawing and intended place at p (RoadStage.motion). */
       motion: (p: number) => number[][];
+      /** Development: each glyph's own motion and the camera's at p (RoadStage.pathParts). */
+      pathParts: (p: number, step: number) => number[][];
+      /** Development: each fleet ship against the coast at p (RoadStage.ashore). */
+      ashore: (p: number) => number[];
       /** Development: each squadron's layout at p (RoadStage.layoutDebug). */
       layoutDebug: (p: number) => Record<string, unknown>[];
       /** Development: a glyph's baked sizes by step (RoadStage.bakedSizes). */

@@ -9,19 +9,29 @@
 
 export type Keyframe = readonly [t: number, value: number];
 
+/**
+ * The slope at an end keyframe: its one interval's (`"secant"`), or none,
+ * so the value leaves the first or reaches the last at rest (`"rest"`).
+ */
+export type CurveEnd = "secant" | "rest";
+
 export function monotoneCurve(
   points: readonly Keyframe[],
+  /** Both ends alike (`"secant"` by default), or [first, last]. */
+  ends: CurveEnd | readonly [CurveEnd, CurveEnd] = "secant",
 ): (t: number) => number {
   const n = points.length;
   const xs = points.map((p) => p[0]);
   const ys = points.map((p) => p[1]);
+  if (n === 1) return () => ys[0];
+  const [first, last] = typeof ends === "string" ? [ends, ends] : ends;
   const d: number[] = [];
   for (let i = 0; i < n - 1; i++) {
     d.push((ys[i + 1] - ys[i]) / (xs[i + 1] - xs[i]));
   }
   const m: number[] = new Array(n);
-  m[0] = d[0];
-  m[n - 1] = d[n - 2];
+  m[0] = first === "rest" ? 0 : d[0];
+  m[n - 1] = last === "rest" ? 0 : d[n - 2];
   for (let i = 1; i < n - 1; i++) {
     m[i] = d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2;
   }

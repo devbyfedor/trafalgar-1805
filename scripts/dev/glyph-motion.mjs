@@ -90,6 +90,12 @@ for (let k = 1; k + 1 < frames.length; k++) {
     const c = frames[k + 1][layer];
     for (let i = 0; i < b.length / 6; i++) {
       const o = i * 6;
+      // A place, size or opacity that isn't a number is a fault, shown or
+      // not (comparisons with NaN are all false, so it would pass unseen).
+      if (b.slice(o, o + 6).some((v) => v === null || Number.isNaN(v))) {
+        flags.push({ p: ps[k], name: names[layer][i], what: "nan", v: 1 });
+        continue;
+      }
       const shown = Math.max(a[o + 3], b[o + 3], c[o + 3]);
       if (shown <= 0.1) continue;
       // On screen at all three steps (off it, or near the horizon, a
@@ -143,7 +149,7 @@ console.log(
 );
 const count = (w) => flags.filter((f) => f.what === w).length;
 console.log(
-  `  flags: ${flags.length} (fade ${count("fade")}, grow ${count("grow")}, move ${count("move")})`,
+  `  flags: ${flags.length} (fade ${count("fade")}, grow ${count("grow")}, move ${count("move")}, not a number ${count("nan")})`,
 );
 console.log(
   `  turns of the paths themselves (not flags): ${paths.length}, worst ${worstPath.toFixed(3)} of a glyph's height`,
@@ -159,7 +165,7 @@ for (const f of [...flags, ...paths]) {
   }
   byPlace.set(key, e);
 }
-for (const what of ["fade", "grow", "move", "path"])
+for (const what of ["nan", "fade", "grow", "move", "path"])
   for (const [k, e] of [...byPlace.entries()]
     .filter(([k]) => k.startsWith(what))
     .sort((a, b) => b[1].worst - a[1].worst)

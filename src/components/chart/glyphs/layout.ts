@@ -75,7 +75,15 @@ export interface Formation {
   meeting: number;
   /** In a meeting, its line is drawn above the other's on screen. */
   above?: boolean;
-  /** In a meeting, the action's course both squadrons take (radians). */
+  /**
+   * In a meeting, the action's course both squadrons take (radians),
+   * unwrapped against `heading`: the formation turns from its heading onto
+   * it in a straight line through the angles (`course - heading` is the
+   * turn, the way round included). The scene chooses the way round, so it
+   * never flips: taken the short way frame by frame, a squadron heading
+   * nearly opposite the course swung from one way round to the other as its
+   * own heading drifted, and its glyphs mirrored within a step.
+   */
   course?: number;
 }
 
@@ -277,6 +285,9 @@ export class GlyphLayout implements ChartLayer {
   private readonly oy0: Float64Array;
   private readonly ox1: Float64Array;
   private readonly oy1: Float64Array;
+  /** While baking the sizes, which way and how far each moves between steps (sweepFor, signed). */
+  private readonly osx: Float64Array;
+  private readonly osy: Float64Array;
   private obstacles = 0;
   /** Per member of the group being laid out. */
   private readonly fx: Float64Array;
@@ -323,9 +334,15 @@ export class GlyphLayout implements ChartLayer {
   private sweepX: Float64Array[] = [];
   private sweepY: Float64Array[] = [];
   private sweepOk: Uint8Array[] = [];
-  /** The sweep of the glyph being laid out: half-extents, px. */
+  /**
+   * The sweep of the glyph being laid out: half-extents, px, and the same
+   * signed (which way she moves on screen), for her motion against other
+   * glyphs'.
+   */
   private swX = 0;
   private swY = 0;
+  private swDX = 0;
+  private swDY = 0;
   /** The tables whose glyph sizes limit this frame's (none while baking). */
   private ratios: Bake | null = null;
   /** Each layer's index among the layers. */
@@ -363,6 +380,8 @@ export class GlyphLayout implements ChartLayer {
     this.oy0 = f64(total);
     this.ox1 = f64(total);
     this.oy1 = f64(total);
+    this.osx = f64(total);
+    this.osy = f64(total);
     this.fx = f64(largest);
     this.fy = f64(largest);
     this.bl = f64(largest);
@@ -546,16 +565,20 @@ export class GlyphLayout implements ChartLayer {
   private sweepFor(layer: Glyphs, i: number, fx: number, fy: number): void {
     this.swX = 0;
     this.swY = 0;
+    this.swDX = 0;
+    this.swDY = 0;
     if (!this.sweeping) return;
     const li = this.layerIndex.get(layer) ?? 0;
     if (!this.sweepOk[li][i]) return;
     const v = this.view;
     if (!v.project(this.sweepX[li][i], this.sweepY[li][i], 0)) return;
-    const dx = Math.abs(fx - v.px) / 2;
-    const dy = Math.abs(fy - v.py) / 2;
+    const dx = (fx - v.px) / 2;
+    const dy = (fy - v.py) / 2;
     if (Math.hypot(dx, dy) > SWEEP_MAX_PX * this.dpr) return;
-    this.swX = dx;
-    this.swY = dy;
+    this.swX = Math.abs(dx);
+    this.swY = Math.abs(dy);
+    this.swDX = dx;
+    this.swDY = dy;
   }
 
   /**
@@ -628,7 +651,8 @@ export class GlyphLayout implements ChartLayer {
   /**
    * Records a placed glyph's box as an obstacle for those placed after it:
    * member k's box at scale s, as much of it as its ink shows (shrunk about
-   * its foot by that weight, so a fading glyph frees its water smoothly).
+   * its foot by that weight, so a fading glyph frees its water smoothly),
+   * and while baking the sizes the way it moves (its sweep, sweepFor).
    */
   private addObstacle(
     fx: number,
@@ -644,12 +668,19 @@ export class GlyphLayout implements ChartLayer {
     this.ox1[o] = fx + w * this.br[k];
     this.oy0[o] = fy;
     this.oy1[o] = fy + w * this.bt[k];
+    this.osx[o] = this.swDX;
+    this.osy[o] = this.swDY;
   }
 
   /**
    * How far a box may grow about a point before it meets a placed glyph,
    * up to `limit`: at scale s it spans [ax + s·x0, ax + s·x1] ×
-   * [ay + s·y0, ay + s·y1].
+   * [ay + s·y0, ay + s·y1]. While baking the sizes the gap also takes in
+   * how far the two move against each other either way between steps (the
+   * difference of this glyph's sweep, set by sweepFor before the call, and
+   * the obstacle's; ships sailing together don't): two glyphs passing close
+   * met between two steps, and a frame there shrank one of them for itself
+   * alone (Calder's line parting from Villeneuve's off Finisterre).
    */
   private obstacleFit(
     ax: number,
@@ -663,6 +694,8 @@ export class GlyphLayout implements ChartLayer {
     let best = limit;
     const g = this.glyphGap;
     for (let k = 0; k < this.obstacles && best > 0; k++) {
+      const gx = g + Math.abs(this.swDX - this.osx[k]);
+      const gy = g + Math.abs(this.swDY - this.osy[k]);
       const s = contact(
         ax,
         ay,
@@ -670,10 +703,10 @@ export class GlyphLayout implements ChartLayer {
         x1,
         y0,
         y1,
-        this.ox0[k] - g,
-        this.oy0[k] - g,
-        this.ox1[k] + g,
-        this.oy1[k] + g,
+        this.ox0[k] - gx,
+        this.oy0[k] - gy,
+        this.ox1[k] + gx,
+        this.oy1[k] + gy,
       );
       if (s < best) best = s;
     }
@@ -973,8 +1006,8 @@ export class GlyphLayout implements ChartLayer {
       const r = this.br[k];
       const t = this.bt[k];
       const limit = Math.min(k === 0 ? 1 : common, this.bakedRatio(layer, i));
-      let s = this.obstacleFit(fx, fy, -l, r, 0, t, limit);
       this.sweepFor(layer, i, fx, fy);
+      let s = this.obstacleFit(fx, fy, -l, r, 0, t, limit);
       s = this.landFit(fx, fy, -l, r, 0, t, s, this.swX, this.swY);
       const h = s * this.h0[k];
       const alpha = it.opacity[i] * this.shownAt(layer, i, h);
@@ -1081,7 +1114,7 @@ export class GlyphLayout implements ChartLayer {
     const e = other && g.meeting > 0 ? g.meeting : 0;
     const heading =
       e > 0 && g.course !== undefined
-        ? turn(g.heading, g.course, e)
+        ? g.heading + (g.course - g.heading) * e
         : g.heading;
     if (!this.boxDims(g)) return plan;
     const { half, tall, h, presence } = this.dims;
@@ -1555,6 +1588,7 @@ export class GlyphLayout implements ChartLayer {
           : scale * (1 - going),
         this.bakedRatio(layer, i),
       );
+      this.sweepFor(layer, i, fx, fy);
       let s = this.obstacleFit(
         fx,
         fy,
@@ -1565,7 +1599,6 @@ export class GlyphLayout implements ChartLayer {
         limit,
       );
       const byObstacle = s;
-      this.sweepFor(layer, i, fx, fy);
       s = this.landFit(
         fx,
         fy,
@@ -2095,11 +2128,6 @@ function presentCount(g: Formation): number {
   let count = 0;
   for (const i of g.places) count += Math.min(1, it.opacity[i] / most);
   return count;
-}
-
-/** A heading turned toward another by a share t, the short way round (radians). */
-function turn(from: number, to: number, t: number): number {
-  return from + Math.atan2(Math.sin(to - from), Math.cos(to - from)) * t;
 }
 
 /**

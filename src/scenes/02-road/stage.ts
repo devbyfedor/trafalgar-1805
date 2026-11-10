@@ -79,6 +79,21 @@ export interface RoadStage {
    * head, a ship's own place) projects: [x, y, h, alpha, ix, iy] each.
    */
   motion(p: number): number[][];
+  /**
+   * Development: how abruptly each glyph's intended place moves on screen at
+   * p, split into its own motion on the chart and the camera's: the second
+   * differences over p - step, p, p + step (device px) of her place on the
+   * chart seen from p's camera, of p's place seen from each step's camera,
+   * and of both together, with her drawn height and opacity at p:
+   * [own, camera, both, h, alpha] each (scripts/dev/glyph-paths.mjs).
+   */
+  pathParts(p: number, step: number): number[][];
+  /**
+   * Development: each fleet ship's true place at p against the chart's
+   * coast (the layout's own CPU field): [coast km (negative on land), how
+   * far under way 0..1, opacity] each (scripts/dev/glyph-ashore.mjs).
+   */
+  ashore(p: number): number[];
   /** Development: draws the scene at p and returns each squadron's layout (GlyphLayout.debug). */
   layoutDebug(p: number): Record<string, unknown>[];
   /** Development: a glyph's baked sizes by step (GlyphLayout.bakedSizes). */
@@ -402,6 +417,91 @@ export async function createRoadStage(
           }
           return out;
         });
+      },
+      pathParts(p, step) {
+        sampled = Number.NaN;
+        const layers = [fleets, squadrons];
+        const qs = [p - step, p, p + step];
+        const cams = qs.map((q) => {
+          director.applyState(q);
+          chart.camera.updateMatrixWorld();
+          return chart.camera.clone();
+        });
+        const places = qs.map((q) => {
+          director.applyState(q);
+          return layers.map((l) => [
+            Float64Array.from(l.intent.x),
+            Float64Array.from(l.intent.y),
+          ]);
+        });
+        director.apply(p);
+        chart.frame(performance.now() / 1000);
+        const v = new Vector3();
+        const w = chart.renderer.domElement.width;
+        const h = chart.renderer.domElement.height;
+        // Off the frame (50 px of margin) or behind the eye, a projection
+        // means nothing: such a glyph is reported with a height of 0.
+        let off = false;
+        const screen = (cam: typeof chart.camera, x: number, y: number) => {
+          v.set(x, y, 0).project(cam);
+          const sx = (v.x * 0.5 + 0.5) * w;
+          const sy = (v.y * 0.5 + 0.5) * h;
+          if (
+            !(v.z < 1) ||
+            !(sx > -50 && sx < w + 50 && sy > -50 && sy < h + 50)
+          )
+            off = true;
+          return [sx, sy] as const;
+        };
+        const second = (
+          a: readonly [number, number],
+          b: readonly [number, number],
+          c: readonly [number, number],
+        ) => Math.hypot(a[0] - 2 * b[0] + c[0], a[1] - 2 * b[1] + c[1]);
+        return layers.map((l, li) => {
+          const out: number[] = [];
+          for (let i = 0; i < l.markCount; i++) {
+            const at = (k: number) =>
+              [places[k][li][0][i], places[k][li][1][i]] as const;
+            off = false;
+            const own = second(
+              screen(cams[1], ...at(0)),
+              screen(cams[1], ...at(1)),
+              screen(cams[1], ...at(2)),
+            );
+            const cam = second(
+              screen(cams[0], ...at(1)),
+              screen(cams[1], ...at(1)),
+              screen(cams[2], ...at(1)),
+            );
+            const both = second(
+              screen(cams[0], ...at(0)),
+              screen(cams[1], ...at(1)),
+              screen(cams[2], ...at(2)),
+            );
+            out.push(
+              own,
+              cam,
+              both,
+              off ? 0 : l.drawn.height[i],
+              l.drawn.alpha[i],
+            );
+          }
+          return out;
+        });
+      },
+      ashore(p) {
+        sampled = Number.NaN;
+        director.applyState(p);
+        const it = fleets.intent;
+        const out: number[] = [];
+        for (let i = 0; i < fleets.markCount; i++)
+          out.push(
+            coast ? coast.distance(it.x[i], it.y[i]) : Number.NaN,
+            it.wake[i],
+            it.opacity[i],
+          );
+        return out;
       },
       glyphNames() {
         return [fleetNames(), squadronNames()];

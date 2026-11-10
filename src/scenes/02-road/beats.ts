@@ -37,9 +37,10 @@ export const CAPTIONS: Record<
 
 /**
  * The story's clock: the day the chart shows, as a monotone curve through
- * (p, day) keys within each beat. Between beats the clock jumps (the scene
- * opens on 21 October, goes back to Boulogne and the spring, and returns),
- * so each beat has its own curve.
+ * (p, day) keys within each beat. Between the first beats the clock jumps
+ * (the scene opens on 21 October, goes back to Boulogne and the spring),
+ * so those have curves of their own; from the chase on it runs unbroken to
+ * the dawn of the 21st, one curve through every beat's keys (UNBROKEN).
  */
 const CLOCK: Record<BeatId, readonly Keyframe[]> = {
   transition: [
@@ -70,7 +71,12 @@ const CLOCK: Record<BeatId, readonly Keyframe[]> = {
     [0.516, day(7, 22)],
     [0.55, day(7, 22, 23.5)],
     [0.56, day(7, 24)],
-    [0.59, day(8, 15)],
+    // Out of Ferrol on the 13th, and on the evening of the 15th the turn
+    // south for Cádiz, the beat's turning point: slower, so the line bends
+    // over a stretch of scroll (at the old pace the squadron swung through
+    // 110° within three steps of p).
+    [0.584, day(8, 14, 6)],
+    [0.6, day(8, 16, 18)],
     [0.61, day(8, 20, 20)],
     // The army leaves Boulogne; then Nelson's passage from St Helens to the
     // fleet off Cádiz, which beat 4 takes up on the same day.
@@ -94,8 +100,36 @@ const CLOCK: Record<BeatId, readonly Keyframe[]> = {
   ],
 };
 
+/**
+ * The beats whose clock runs on unbroken, each ending on the day the next
+ * begins: their keys form one curve, so the clock's pace (and every ship's
+ * speed on screen with it) never changes in a step at their bounds. Each
+ * beat's own curve had turned its end on its own keys alone.
+ */
+const UNBROKEN: readonly BeatId[] = ["chase", "finisterre", "cadiz", "night"];
+
+function unbrokenKeys(): Keyframe[] {
+  const keys: Keyframe[] = [];
+  for (const id of UNBROKEN) {
+    for (const key of CLOCK[id]) {
+      const last = keys[keys.length - 1];
+      if (last && key[0] === last[0]) {
+        if (key[1] !== last[1])
+          throw new Error(`clock: ${id} begins on another day than it was`);
+        continue;
+      }
+      keys.push(key);
+    }
+  }
+  return keys;
+}
+
+const unbroken = monotoneCurve(unbrokenKeys());
 const curves = Object.fromEntries(
-  Object.entries(CLOCK).map(([id, keys]) => [id, monotoneCurve(keys)]),
+  Object.entries(CLOCK).map(([id, keys]) => [
+    id,
+    UNBROKEN.includes(id as BeatId) ? unbroken : monotoneCurve(keys),
+  ]),
 ) as Record<BeatId, (p: number) => number>;
 
 /** The beat at progress p. */

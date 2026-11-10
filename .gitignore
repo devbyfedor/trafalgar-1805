@@ -49,6 +49,9 @@ next-env.d.ts
 # cloudflare wrangler
 /.wrangler/
 
+# an editor's local history (copies of files as saved)
+/.history/
+
 # downloaded research material (PDFs, page images, saved pages): local only,
 # never published; see docs/research/README.md
 /docs/research/sources/

@@ -69,6 +69,11 @@ declare module "troika-three-text" {
     fillOpacity: number;
     /** Power of two; null for the builder's default. */
     sdfGlyphSize: number | null;
+    /**
+     * Draw the glyphs' distance fields on a WebGL canvas on the main thread
+     * (true, the default) or in JavaScript in worker threads (false).
+     */
+    gpuAccelerateSDF: boolean;
     unicodeFontsURL: string | null;
     sync(callback?: () => void): void;
     dispose(): void;

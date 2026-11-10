@@ -23,6 +23,25 @@ export const PIN_LENGTH = 3;
 /** The composition shown statically for reduced motion. */
 export const HERO_P = 0.7;
 
+/**
+ * The warm light on Victory's canvas (docs/research/perf-start-of-scroll.md).
+ * It is painted into her own compositor layer: given one of its own, the
+ * rigging it repaints composites darker under her pitch. So every change of
+ * its opacity repaints her whole layer, about 8 ms of the GPU's time, and
+ * the first one compiles the programs that draw it. Hence:
+ * - it changes in `steps` (a step moves the sails by at most about 1.3
+ *   levels of 255), not on every frame;
+ * - it stays between `floor` and `ceiling` and never reaches 0 or 1, where
+ *   the browser would stop drawing it or draw it another way: drawn one way
+ *   from the first paint on, nothing is compiled while scrolling. Neither
+ *   bound moves a pixel by a whole level.
+ */
+export const WARM_LIGHT = {
+  floor: 1 / 255,
+  ceiling: 254 / 255,
+  steps: 24,
+} as const;
+
 /** Beats, as p. */
 export const P = {
   dawn: 0.05,
@@ -259,10 +278,16 @@ export function buildChoreography(
     { opacity: 1, ease: "sine.inOut", duration: 0.52 },
     0.03,
   );
+  const warmIn = gsap.parseEase("sine.inOut");
   tl.fromTo(
     one("[data-el=victory] [data-layer=warm-light]"),
-    { opacity: 0 },
-    { opacity: 1, ease: "sine.inOut", duration: 0.33 },
+    { opacity: WARM_LIGHT.floor },
+    {
+      opacity: WARM_LIGHT.ceiling,
+      ease: (t: number) =>
+        Math.round(warmIn(t) * WARM_LIGHT.steps) / WARM_LIGHT.steps,
+      duration: 0.33,
+    },
     P.sunrise,
   );
 

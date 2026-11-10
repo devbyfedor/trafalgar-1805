@@ -23,7 +23,7 @@ The owner's note 2: the frame rate sometimes falls from 60 to about 40 at the ve
 - The look, compared on frozen frames: the strips' hint alone changes at most 0.47 % of pixels, invisibly; the full set up to 2.2 %, and promoting the warm-light layer (with the veil and the flags) visibly softens the Victory's rigging. The set without the warm-light layer (`fix-noheroplus.css`) gives 57–58 fps under load with the rigging unchanged.
 - Scene 1 is approved: any hint that changes its look needs the owner's eye. The candidate is `fix-noheroplus.css` (no change to the rigging), with the warm-light layer kept unpromoted and its opacity stepped more coarsely so it re-rasters about five times less.
 
-## The plan (not started)
+## The plan (session 15; done in session 16, below)
 
 1. Scene 1's compositor hints, beside the existing hint block in `src/app/globals.css` (from `fix-noheroplus.css`); check with the `regression` project and watch GPU memory (estimated +20–40 MB).
 2. Remove the GPU main-thread stalls: seed troika's batch geometry with a `Float32Array` for `aTroikaTextBatchMemberIndex` (its `cloneAndResize` keeps the array's type); compile the field passes' materials (decode, land, horizon, encode) with `renderer.compileAsync` before their first run; `renderer.debug.checkShaderErrors = false` in production; `drawn = state.p` after `warm()`; let `warm()` wait for troika's batch, then draw each layer once hidden, one or two materials a frame, uploading the big textures (glyph atlas, digits, troika's SDF) with `renderer.initTexture`, one a frame.
@@ -33,3 +33,13 @@ The owner's note 2: the frame rate sometimes falls from 60 to about 40 at the ve
 6. Optional: split the 222 ms startup task.
 
 To verify each step: `run.mjs` and `metrics.mjs` against the production preview, several runs right after load, on mains, nothing else on the GPU: no missed vsync in any band and no task over 50 ms after the first second; a `gpu.angle` trace with no `D3DCompile` or `MainLinkLoadEvent::wait` on the GPU main thread after first paint.
+
+## Session 16 (10 November 2026): done, and what it showed
+
+The plan's steps 1–5 are in, with what the measurements found on the way; the decisions and the numbers are in `docs/decisions.md`, "the frame drops at the start of scrolling (note 2)". In short:
+
+- Scene 1's hints went in without the warm-light layer (promoted, the rigging it repaints composites darker under Victory's pitch, up to 47 levels). The warm light instead steps its opacity (24 steps) between 1/255 and 254/255, so it is drawn one way from the first paint: its first draws at p 0.47 and its last at the fade's end had compiled Skia programs mid-scroll (18–36 ms frames), and every frame of the fade repainted her layer (about 8 ms of the GPU process).
+- Three causes the session-15 recordings had not separated: the digit atlas's `document.fonts.add` (a whole-page restyle that re-rasterised all of scene 1's layers at once; the atlas is now drawn in a worker), the glyph bake's end of pass (one task of up to 160 ms; now a generator run in slices) and the director's eased headings (35 ms in its constructor, 85 ms a dozen ships at a time; now sliced in `prepare`).
+- The warm frame drawn into the hidden canvas presented a frame every slice and cost the GPU 4–13 ms a slice; the warm-up now draws into a 4-pixel target, the same programs.
+- The instrumentation's own sync WebGL calls (GPU timer queries) add waits of their own; `run.mjs LIGHT=1` measures without them, and `PROFILE=<dir>` measures a repeat visit (warm shader caches).
+- Not done: the CPU decode of the tiles in a worker (step 3's last item). The readback's waits (12–24 ms each, on `getBufferSubData` behind a GPU process blocked in Present) no longer show among the late frames; the step stays open if the owner's runs say otherwise. The startup task (step 6) is unchanged.

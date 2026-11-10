@@ -28,6 +28,7 @@ import {
   type TileRole,
   tileRect,
 } from "../data/manifest";
+import { SLICE_MS, Slicer } from "../engine/slice";
 import { mercatorY } from "../geo/mercator";
 import { GLSL_FIELD, GLSL_GEO } from "../shaders/common";
 import { CoastField, type CoastTile } from "./coast";
@@ -83,6 +84,19 @@ const FADE_KM: Record<TileRole, number> = {
 };
 
 const LOAD_ORDER: readonly TileRole[] = ["overview", "surround", "detail"];
+
+/**
+ * How many texels a band of each load pass covers (TerrainField.runBanded):
+ * about 2 ms of the owner's GPU (the overview's decode ran 8 to 21 ms
+ * whole, the detail tile's horizon bake, 68 steps a texel, up to 47 ms).
+ */
+const BAND_TEXELS = {
+  decode: 200_000,
+  land: 400_000,
+  horizon: 40_000,
+  /** readBack's: its copy out of the GPU, 1.6 MB a band. */
+  encode: 400_000,
+} as const;
 
 /** Where a tile's coast distance stops (its code's range), km. */
 const saturation = (info: TileInfo) => info.sdfRange * info.cellKm * 0.98;
@@ -360,23 +374,39 @@ export class TerrainField {
       this.manifest.tiles.filter((t) => t.role === role),
     );
     const bitmaps = infos.map((t) => loadBitmap(t.file, signal));
+    // The passes' programs compiled off the main thread while the tiles
+    // load: compiled at first use, each held the main thread (and the GPU
+    // process's) 15 to 43 ms waiting for its link.
+    await this.compilePasses([
+      this.decodeMaterial,
+      this.landMaterial,
+      this.horizonMaterial,
+    ]);
+    signal?.throwIfAborted();
+    // Every pass in bands of rows, a band per idle slice (BAND_TEXELS): run
+    // whole, the overview's decode held the GPU 8 to 21 ms and a horizon
+    // bake up to 47 ms, while scene 1's compositor needed it every frame.
+    const slicer = new Slicer(SLICE_MS, signal);
     for (const [i, info] of infos.entries()) {
       const bitmap = await bitmaps[i];
       signal?.throwIfAborted();
       const tile = this.createTile(info, bitmap);
       this.tiles.push(tile);
-      this.decode(tile);
+      await this.decode(tile, slicer);
       this.bind(tile);
     }
-    for (const tile of this.tiles) this.bake(tile);
+    for (const tile of this.tiles) await this.bake(tile, slicer);
   }
 
   /**
    * Reads every tile's coast distance and height back to the CPU once, as
    * the GPU decoded them (terrain/coast.ts), without stalling: each tile is
-   * encoded as bytes by a pass and read asynchronously.
+   * encoded as bytes by a pass and read asynchronously, in bands of rows,
+   * a band per idle slice (each whole tile's copy out of the GPU had held
+   * the main thread 13 to 14 ms).
    */
-  async readBack(): Promise<CoastField> {
+  async readBack(signal?: AbortSignal): Promise<CoastField> {
+    const slicer = new Slicer(SLICE_MS, signal);
     const material = new ShaderMaterial({
       glslVersion: GLSL3,
       vertexShader: VERTEX,
@@ -391,6 +421,7 @@ export class TerrainField {
     });
     const tiles: CoastTile[] = [];
     try {
+      await this.compilePasses([material]);
       for (const tile of this.tiles) {
         const { info } = tile;
         const target = new WebGLRenderTarget(info.cols, info.rows, {
@@ -405,16 +436,23 @@ export class TerrainField {
           const range = info.sdfRange * info.cellKm;
           material.uniforms.uField.value = tile.field.texture;
           material.uniforms.uRange.value = range;
-          this.run(material, target);
           const bytes = new Uint8Array(info.cols * info.rows * 4);
-          await this.renderer.readRenderTargetPixelsAsync(
-            target,
-            0,
-            0,
-            info.cols,
-            info.rows,
-            bytes,
-          );
+          const band = Math.max(1, Math.floor(BAND_TEXELS.encode / info.cols));
+          target.scissorTest = true;
+          for (let y = 0; y < info.rows; y += band) {
+            const h = Math.min(band, info.rows - y);
+            target.scissor.set(0, y, info.cols, h);
+            this.run(material, target);
+            await this.renderer.readRenderTargetPixelsAsync(
+              target,
+              0,
+              y,
+              info.cols,
+              h,
+              bytes.subarray(y * info.cols * 4, (y + h) * info.cols * 4),
+            );
+            await slicer.next();
+          }
           const [x0, yTop, width, height] = tileRect(info);
           tiles.push({
             role: info.role,
@@ -448,13 +486,13 @@ export class TerrainField {
     if (azimuths[0] === this.azimuths[0] && azimuths[1] === this.azimuths[1])
       return;
     this.azimuths = azimuths;
-    for (const tile of this.tiles) this.bake(tile);
+    for (const tile of this.tiles) void this.bake(tile, null);
   }
 
-  /** After a lost context comes back: decode and bake everything again. */
+  /** After a lost context comes back: decode and bake everything again, at once. */
   restore(): void {
-    for (const tile of this.tiles) this.decode(tile);
-    for (const tile of this.tiles) this.bake(tile);
+    for (const tile of this.tiles) void this.decode(tile, null);
+    for (const tile of this.tiles) void this.bake(tile, null);
   }
 
   /** GPU memory held by the field, bytes (for the debug readout). */
@@ -543,6 +581,21 @@ export class TerrainField {
     };
   }
 
+  /**
+   * Compiles full-screen passes' programs ahead of their first use, with
+   * the parallel compile extension where there is one (three's
+   * compileAsync), so no pass waits on a link.
+   */
+  private async compilePasses(materials: ShaderMaterial[]): Promise<void> {
+    const scene = new Scene();
+    for (const material of materials) {
+      const mesh = new Mesh(this.pass.geometry, material);
+      mesh.frustumCulled = false;
+      scene.add(mesh);
+    }
+    await this.renderer.compileAsync(scene, this.passCamera);
+  }
+
   private run(material: ShaderMaterial, target: WebGLRenderTarget) {
     const previous = this.renderer.getRenderTarget();
     this.pass.material = material;
@@ -551,7 +604,46 @@ export class TerrainField {
     this.renderer.setRenderTarget(previous);
   }
 
-  private decode(tile: FieldTile) {
+  /**
+   * Runs a pass into a target, in bands of rows of about `texels` each, a
+   * band per idle slice (or whole, with no slicer). The target's mipmaps
+   * are made once, after the last band; its storage was made with them
+   * (initRenderTarget), since three sizes it by generateMipmaps when it
+   * first sets the target up.
+   */
+  private async runBanded(
+    material: ShaderMaterial,
+    target: WebGLRenderTarget,
+    texels: number,
+    slicer: Slicer | null,
+  ): Promise<void> {
+    if (!slicer) {
+      this.run(material, target);
+      return;
+    }
+    const { width, height } = target;
+    const rows = Math.max(1, Math.floor(texels / width));
+    const texture = target.texture;
+    const mips = texture.generateMipmaps;
+    this.renderer.initRenderTarget(target);
+    target.scissorTest = true;
+    try {
+      for (let y = 0; y < height; y += rows) {
+        const last = y + rows >= height;
+        texture.generateMipmaps = mips && last;
+        target.scissor.set(0, y, width, Math.min(rows, height - y));
+        this.run(material, target);
+        if (!last) await slicer.next();
+      }
+    } finally {
+      target.scissorTest = false;
+      target.scissor.set(0, 0, width, height);
+      texture.generateMipmaps = mips;
+    }
+    await slicer.next();
+  }
+
+  private async decode(tile: FieldTile, slicer: Slicer | null) {
     const packed = new Texture(tile.bitmap);
     packed.flipY = false;
     packed.generateMipmaps = false;
@@ -559,23 +651,38 @@ export class TerrainField {
     packed.magFilter = NearestFilter;
     packed.premultiplyAlpha = false;
     packed.needsUpdate = true;
+    if (slicer) {
+      // The packed tile's upload, a slice of its own.
+      this.renderer.initTexture(packed);
+      await slicer.next();
+    }
     const u = this.decodeMaterial.uniforms;
     u.uPacked.value = packed;
     u.uSdfRange.value = tile.info.sdfRange;
     u.uCellKm.value = tile.info.cellKm;
     u.uMercTop.value = tile.info.yTop + this.uniforms.uOriginMercY.value;
-    this.run(this.decodeMaterial, tile.field);
+    await this.runBanded(
+      this.decodeMaterial,
+      tile.field,
+      BAND_TEXELS.decode,
+      slicer,
+    );
     // The packed copy is only needed for this pass.
     packed.dispose();
     u.uPacked.value = null;
     const l = this.landMaterial.uniforms;
     l.uField.value = tile.field.texture;
     l.uCellKm.value = tile.info.cellKm;
-    this.run(this.landMaterial, tile.land);
+    await this.runBanded(
+      this.landMaterial,
+      tile.land,
+      BAND_TEXELS.land,
+      slicer,
+    );
     l.uField.value = null;
   }
 
-  private bake(tile: FieldTile) {
+  private async bake(tile: FieldTile, slicer: Slicer | null) {
     if (!tile.horizon) return;
     const u = this.horizonMaterial.uniforms;
     const detail = tile.info.role === "detail";
@@ -587,7 +694,12 @@ export class TerrainField {
     u.uStep0.value = tile.info.cellKm * 0.5;
     u.uGrowth.value = detail ? 1.12 : 1.1;
     u.uSteps.value = detail ? 68 : 52;
-    this.run(this.horizonMaterial, tile.horizon);
+    await this.runBanded(
+      this.horizonMaterial,
+      tile.horizon,
+      BAND_TEXELS.horizon,
+      slicer,
+    );
   }
 
   private bind(tile: FieldTile) {

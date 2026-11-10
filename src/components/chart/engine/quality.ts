@@ -24,6 +24,20 @@ export const QUALITY_LADDER: readonly QualityLevel[] = [
   { dpr: 0.85, effects: false },
 ];
 
+/**
+ * The pixel ratio the chart draws at on a rung of the ladder (the top by
+ * default), the device's own ratio capping it: a host creates its canvas at
+ * this size before the chart's context, so the context never reallocates
+ * its multisampled buffer to fit (Chart.applyQuality). No imports, so a
+ * page may use it without loading the chart.
+ */
+export function chartPixelRatio(level = 0): number {
+  const device =
+    typeof window === "undefined" ? 1 : window.devicePixelRatio || 1;
+  const rung = Math.min(QUALITY_LADDER.length - 1, Math.max(0, level));
+  return Math.min(device, QUALITY_LADDER[rung].dpr);
+}
+
 /** A frame slower than this missed a 60 Hz refresh (with some slack). */
 const MISS_MS = 19.5;
 const WINDOW = 90;

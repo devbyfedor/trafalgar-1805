@@ -83,6 +83,7 @@
             dur: s.duration,
             forced: s.forcedStyleAndLayoutDuration,
             pause: s.pauseDuration,
+            charPos: s.sourceCharPosition,
           })),
         });
       }
@@ -143,7 +144,10 @@
     };
   }
   const OWorker = window.Worker;
-  window.Worker = (url, opts) => {
+  // A plain function, so `new Worker(...)` works: as an arrow function it
+  // threw, and troika fell back to typesetting and drawing its glyphs on
+  // the main thread under the instrument (seconds-long tasks).
+  window.Worker = function Worker(url, opts) {
     ev("worker", String(url).slice(0, 60));
     return new OWorker(url, opts);
   };
@@ -217,7 +221,9 @@
   wrap2d("stroke", "stroke", false);
   wrap2d("drawImage", "drawImage", true);
   const OPath2D = window.Path2D;
-  window.Path2D = (arg) => {
+  // A plain function, so `new Path2D(...)` works (an arrow function can't
+  // be a constructor: the glyph atlas failed under the instrument).
+  window.Path2D = function Path2D(arg) {
     const t = now();
     const p = arg === undefined ? new OPath2D() : new OPath2D(arg);
     P.canvas2d.path2d.n++;
@@ -494,8 +500,12 @@
       };
     }
   };
-  wrapGL(WebGLRenderingContext.prototype, false);
-  wrapGL(WebGL2RenderingContext.prototype, true);
+  // LIGHT: frames only, no GL wrappers or GPU timer queries (their sync
+  // calls can wait on the GPU process and add late frames of their own).
+  if (!window.__perfLight) {
+    wrapGL(WebGLRenderingContext.prototype, false);
+    wrapGL(WebGL2RenderingContext.prototype, true);
+  }
 
   // Resource timing for scripts and chart assets, read at the end.
   P.resources = () =>

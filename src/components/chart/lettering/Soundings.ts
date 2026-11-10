@@ -9,6 +9,7 @@ import {
 } from "three";
 import type { SoundingSet, SoundingsIndex } from "../data/loaders";
 import type { ChartLayer, FrameInfo } from "../engine/Chart";
+import { SLICE_MS, Slicer } from "../engine/slice";
 import { type DigitAtlas, SOUNDING_CHARS } from "./digits";
 
 /**
@@ -103,12 +104,87 @@ export interface SoundingsOptions {
   showPx?: readonly [number, number];
   /** Strength of the ink (0..1). */
   opacity?: number;
-  /**
-   * Per detail tile, the plate's rotation, degrees anticlockwise from east
-   * to the figures' baseline: chosen so the figures read upright in the
-   * views of that water, and fixed on the chart, as an engraver set them.
-   */
-  angles?: Readonly<Record<string, number>>;
+}
+
+/**
+ * Per detail tile, the plate's rotation, degrees anticlockwise from east to
+ * the figures' baseline: chosen so the figures read upright in the views of
+ * that water, and fixed on the chart, as an engraver set them.
+ */
+export type SoundingAngles = Readonly<Record<string, number>>;
+
+/** Every figure of every sounding, one instance of the draw each. */
+export interface SoundingFigures {
+  /** Per figure: its sounding's site (world km), distance from the coast (km) and rank. */
+  sounding: Float32Array;
+  /** Per figure: its cell in the atlas, its centre's offset from the number's centre (ems), the plate's rotation (cos, sin). */
+  glyph: Float32Array;
+  count: number;
+}
+
+/**
+ * Lays out the figures of every sounding: each depth's figures and their
+ * offsets worked out once, then written straight into the instance arrays,
+ * in idle slices (engine/slice.ts). Built a figure at a time with an array
+ * or two each, the 13,000 soundings off Cádiz had been a task of 50 ms.
+ */
+export async function layOutSoundings(
+  sets: readonly SoundingSet[],
+  atlas: DigitAtlas,
+  angles: SoundingAngles = {},
+  signal?: AbortSignal,
+): Promise<SoundingFigures> {
+  const chars = [...SOUNDING_CHARS];
+  const cell = new Map(chars.map((c, i) => [c, i]));
+  // A depth (half-fathoms) → its figures' cells and their centres, ems.
+  const forms = new Map<number, { cells: number[]; centres: number[] }>();
+  const formOf = (halfFathoms: number) => {
+    let form = forms.get(halfFathoms);
+    if (!form) {
+      const text = [...soundingText(halfFathoms)];
+      const advances = text.map((ch) => atlas.advance[cell.get(ch) ?? 0]);
+      const total = advances.reduce((sum, a) => sum + a, 0);
+      let x = -total / 2;
+      form = { cells: [], centres: [] };
+      for (const [j, ch] of text.entries()) {
+        form.cells.push(cell.get(ch) ?? 0);
+        form.centres.push(x + advances[j] / 2);
+        x += advances[j];
+      }
+      forms.set(halfFathoms, form);
+    }
+    return form;
+  };
+  let count = 0;
+  for (const set of sets)
+    for (let i = 0; i < set.count; i++)
+      count += formOf(set.points[i * 4 + 2]).cells.length;
+  const sounding = new Float32Array(count * 4);
+  const glyph = new Float32Array(count * 4);
+  const slicer = new Slicer(SLICE_MS, signal);
+  let k = 0;
+  for (const set of sets) {
+    const angle = ((angles[set.tile] ?? 0) * Math.PI) / 180;
+    const c = Math.cos(angle);
+    const s = Math.sin(angle);
+    const { points, coastKm } = set;
+    for (let i = 0; i < set.count; i++) {
+      const form = formOf(points[i * 4 + 2]);
+      for (let j = 0; j < form.cells.length; j++, k++) {
+        const o = k * 4;
+        sounding[o] = points[i * 4];
+        sounding[o + 1] = points[i * 4 + 1];
+        sounding[o + 2] = coastKm[i];
+        sounding[o + 3] = points[i * 4 + 3];
+        glyph[o] = form.cells[j];
+        glyph[o + 1] = form.centres[j];
+        glyph[o + 2] = c;
+        glyph[o + 3] = s;
+      }
+      if ((i & 1023) === 1023) await slicer.check();
+    }
+  }
+  return { sounding, glyph, count };
 }
 
 /** The figures' middle above the baseline, ems (old-style figures). */
@@ -128,45 +204,10 @@ export class Soundings implements ChartLayer {
 
   constructor(
     index: SoundingsIndex,
-    sets: readonly SoundingSet[],
+    { sounding, glyph, count: figures }: SoundingFigures,
     atlas: DigitAtlas,
     options: SoundingsOptions = {},
   ) {
-    const chars = [...SOUNDING_CHARS];
-    const cell = new Map(chars.map((c, i) => [c, i]));
-    // One instance per figure of every sounding.
-    let figures = 0;
-    for (const set of sets)
-      for (let i = 0; i < set.count; i++)
-        figures += [...soundingText(set.points[i * 4 + 2])].length;
-    const sounding = new Float32Array(figures * 4);
-    const glyph = new Float32Array(figures * 4);
-    let k = 0;
-    for (const set of sets) {
-      const angle = ((options.angles?.[set.tile] ?? 0) * Math.PI) / 180;
-      const c = Math.cos(angle);
-      const s = Math.sin(angle);
-      for (let i = 0; i < set.count; i++) {
-        const text = [...soundingText(set.points[i * 4 + 2])];
-        const advances = text.map((ch) => atlas.advance[cell.get(ch) ?? 0]);
-        const total = advances.reduce((sum, a) => sum + a, 0);
-        let x = -total / 2;
-        for (const [j, ch] of text.entries()) {
-          sounding.set(
-            [
-              set.points[i * 4],
-              set.points[i * 4 + 1],
-              set.coastKm[i],
-              set.points[i * 4 + 3],
-            ],
-            k * 4,
-          );
-          glyph.set([cell.get(ch) ?? 0, x + advances[j] / 2, c, s], k * 4);
-          x += advances[j];
-          k++;
-        }
-      }
-    }
     const geometry = new InstancedBufferGeometry();
     geometry.setAttribute(
       "position",
@@ -196,7 +237,7 @@ export class Soundings implements ChartLayer {
       uCellEm: { value: [...atlas.cellEm] },
       uBaselineEm: { value: atlas.baselineEm },
       uAnchorEm: { value: ANCHOR_EM },
-      uGlyphs: { value: chars.length },
+      uGlyphs: { value: [...SOUNDING_CHARS].length },
       uAtlas: { value: atlas.texture },
       uInk: { value: this.ink },
       uWeight: { value: 0.03 },

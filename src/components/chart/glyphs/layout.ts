@@ -335,9 +335,20 @@ export class GlyphLayout implements ChartLayer {
   private sweepY: Float64Array[] = [];
   private sweepOk: Uint8Array[] = [];
   /**
-   * The sweep of the glyph being laid out: half-extents, px, and the same
-   * signed (which way she moves on screen), for her motion against other
-   * glyphs'.
+   * While baking the sizes: each glyph's foot on screen at the step before
+   * (as drawn there), and at this step as laid out so far. Against other
+   * glyphs what counts is how she moves on screen, the camera's own motion
+   * included: two ships at different distances part or close as the camera
+   * moves (a frigate passing the corner of the allied lead's box as the
+   * camera rose off the sea, squeezed for one frame between two steps).
+   */
+  private screenX: Float64Array[] = [];
+  private screenY: Float64Array[] = [];
+  private screenPrevX: Float64Array[] = [];
+  private screenPrevY: Float64Array[] = [];
+  /**
+   * The sweep of the glyph being laid out: half-extents, px, against the
+   * land; and signed, on screen, against other glyphs'.
    */
   private swX = 0;
   private swY = 0;
@@ -373,6 +384,10 @@ export class GlyphLayout implements ChartLayer {
     this.sweepX = this.layers.map((l) => new Float64Array(l.markCount));
     this.sweepY = this.layers.map((l) => new Float64Array(l.markCount));
     this.sweepOk = this.layers.map((l) => new Uint8Array(l.markCount));
+    this.screenX = this.layers.map((l) => new Float64Array(l.markCount));
+    this.screenY = this.layers.map((l) => new Float64Array(l.markCount));
+    this.screenPrevX = this.layers.map((l) => new Float64Array(l.markCount));
+    this.screenPrevY = this.layers.map((l) => new Float64Array(l.markCount));
     let total = 0;
     for (const l of this.layers) total += l.markCount;
     const f64 = (n: number) => new Float64Array(Math.max(1, n));
@@ -545,10 +560,12 @@ export class GlyphLayout implements ChartLayer {
           : 1;
         // And her nominal, to judge how much of her shows once eased.
         bake.nom[li][i * bake.steps + k] = laid ? d.nominal[i] : 0;
-        // Her foot on the chart, for the next step's sweep.
+        // Her foot on the chart and on screen, for the next step's sweeps.
         this.sweepOk[li][i] = laid ? 1 : 0;
         this.sweepX[li][i] = d.x[i];
         this.sweepY[li][i] = d.y[i];
+        this.screenPrevX[li][i] = this.screenX[li][i];
+        this.screenPrevY[li][i] = this.screenY[li][i];
       }
     }
   }
@@ -569,33 +586,48 @@ export class GlyphLayout implements ChartLayer {
     this.swDY = 0;
     if (!this.sweeping) return;
     const li = this.layerIndex.get(layer) ?? 0;
+    // Where she stands on screen this step, for the next one's.
+    this.screenX[li][i] = fx;
+    this.screenY[li][i] = fy;
     if (!this.sweepOk[li][i]) return;
+    const max = SWEEP_MAX_PX * this.dpr;
+    // Against other glyphs: half her motion on screen since the step
+    // before, the camera's included.
+    const sx = (fx - this.screenPrevX[li][i]) / 2;
+    const sy = (fy - this.screenPrevY[li][i]) / 2;
+    if (Math.hypot(sx, sy) <= max) {
+      this.swDX = sx;
+      this.swDY = sy;
+    }
+    // Against the land: her motion on the chart, seen from this step's eye.
     const v = this.view;
     if (!v.project(this.sweepX[li][i], this.sweepY[li][i], 0)) return;
     const dx = (fx - v.px) / 2;
     const dy = (fy - v.py) / 2;
-    if (Math.hypot(dx, dy) > SWEEP_MAX_PX * this.dpr) return;
+    if (Math.hypot(dx, dy) > max) return;
     this.swX = Math.abs(dx);
     this.swY = Math.abs(dy);
-    this.swDX = dx;
-    this.swDY = dy;
   }
 
   /**
-   * Ends a pass: eases the tables it filled. After the last, the frames
-   * read them.
+   * Ends a pass: eases the tables it filled, a squadron or a glyph a step,
+   * for the caller to run in idle slices (in one go, the sizes' pass was a
+   * task of up to 160 ms). After the last pass's last step, the frames read
+   * them.
    */
-  bakeEnd(pass: number): void {
+  *bakeEnd(pass: number): Generator<void, void, void> {
     const bake = this.bake;
     if (!bake) return;
     if (pass === 0) {
-      bake.finishDecisions();
+      yield* bake.finishDecisions();
       return;
     }
-    bake.finishSizes(
+    yield* bake.finishSizes(
       this.layers.map((l) => l.markCount),
       (h) => this.shows(h),
     );
+    // A new bake begun meanwhile replaces this one.
+    if (this.bake !== bake) return;
     this.baked = bake;
     this.bake = null;
   }
@@ -1642,6 +1674,7 @@ export class GlyphLayout implements ChartLayer {
         plan.leadX = fx;
         plan.leadY = fy;
         plan.leadH = hd;
+        plan.leadAlpha = alpha;
       }
     }
     if (this.debug)
@@ -1751,7 +1784,10 @@ export class GlyphLayout implements ChartLayer {
   signOf(g: Formation): SquadronSign {
     const plan = this.plans.get(g);
     const out = this.signOut;
-    out.sign = plan?.ok ? plan.sign * plan.presence : 0;
+    // As far as its lead shows: a sign squeezed out of sight (its lead
+    // given no room by the land, in the roads off a port seen from far
+    // off) had lettered its count over empty sea.
+    out.sign = plan?.ok ? plan.sign * Math.min(1, plan.leadAlpha) : 0;
     out.x = plan?.leadX ?? 0;
     out.y = plan?.leadY ?? 0;
     out.h = plan?.leadH ?? 0;
@@ -1770,7 +1806,7 @@ export class GlyphLayout implements ChartLayer {
 
 /** A squadron's sign this frame (GlyphLayout.signOf). */
 export interface SquadronSign {
-  /** How far it shows as its sign (0..1, its presence included). */
+  /** How far it shows as its sign (0..1, as far as its lead shows). */
   sign: number;
   /** Its lead's foot on screen (device px from the bottom left) and height. */
   x: number;
@@ -1825,6 +1861,8 @@ interface SquadronPlan {
   leadX: number;
   leadY: number;
   leadH: number;
+  /** How much of its lead shows as drawn (her opacity). */
+  leadAlpha: number;
 }
 
 function newPlan(n: number): SquadronPlan {
@@ -1860,6 +1898,7 @@ function newPlan(n: number): SquadronPlan {
     leadX: 0,
     leadY: 0,
     leadH: 0,
+    leadAlpha: 0,
   };
 }
 
@@ -1955,7 +1994,8 @@ class Bake {
     this.nom = marks.map((n) => new Float32Array(n * steps));
   }
 
-  finishDecisions(): void {
+  /** The decisions' tables eased, a step a squadron or a group (see bakeEnd). */
+  *finishDecisions(): Generator<void, void, void> {
     const reach = Math.round(BAKE_LEAST_P / this.step);
     const sigma = BAKE_EASE_P / this.step;
     for (const s of this.squad) {
@@ -1973,24 +2013,31 @@ class Bake {
       // ahead of the view that needs it), eased slower still, so its ranks
       // go over a stretch of scroll.
       ease(most(s.sign, reach), 2 * sigma, s.sign);
+      yield;
     }
-    for (const c of this.common) ease(least(c, reach), sigma, c);
+    for (const c of this.common) {
+      ease(least(c, reach), sigma, c);
+      yield;
+    }
     ease(least(this.shared, reach), sigma, this.shared);
   }
+
+  /** Development: the sizes as laid out, before easing. */
+  raw: Float32Array[] = [];
 
   /**
    * Each glyph's sizes: the least within the easing's whole reach, then
    * eased, so at every step the eased size is no more than the size laid
-   * out there.
+   * out there. A step a glyph (see bakeEnd).
    */
-  /** Development: the sizes as laid out, before easing. */
-  raw: Float32Array[] = [];
-
-  finishSizes(marks: readonly number[], shows: (h: number) => number): void {
+  *finishSizes(
+    marks: readonly number[],
+    shows: (h: number) => number,
+  ): Generator<void, void, void> {
     this.raw = this.ratio.map((t) => t.slice());
     const sigma = BAKE_SIZE_EASE_P / this.step;
     const reach = Math.ceil(3 * sigma);
-    marks.forEach((n, li) => {
+    for (const [li, n] of marks.entries()) {
       for (let i = 0; i < n; i++) {
         const from = i * this.steps;
         const to = from + this.steps;
@@ -2004,8 +2051,9 @@ class Bake {
         for (let k = 0; k < this.steps; k++)
           v[k] = nom[k] > 0 ? shows(nom[k] * t[k]) : 1;
         ease(least(v, reach), sigma, v);
+        yield;
       }
-    });
+    }
   }
 
   squadAt(i: number, p: number): BakedSquad {

@@ -11,6 +11,12 @@
 //   TRACE     1: record a Chrome trace (CDP tracing, whole browser)
 //   CATS      override trace categories (comma list)
 //   NOSCROLL  1: never scroll (load only)
+//   NOCHART   1: keep scene 2's chart from loading (scene 1 alone)
+//   LIGHT     1: frames, long tasks and LoAF only, no WebGL wrappers or GPU
+//             timer queries (their own sync calls add waits)
+//   PROFILE   a folder: a persistent profile, so shader and HTTP caches carry
+//             over between runs as in a browser that has seen the page (no TRACE)
+//   STYLE     CSS files to inject (comma list); INIT: JS init scripts to inject
 
 import { writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -50,12 +56,23 @@ const cats = (
   ].join(",")
 ).split(",");
 
-const browser = await chromium.launch({ channel: "chromium" });
-const context = await browser.newContext({
+// PROFILE=<dir>: a persistent profile, so the GPU's shader caches and the
+// HTTP cache carry over from run to run, as in a browser that has seen the
+// page before (no TRACE then: a persistent context has no Browser).
+const viewport = {
   viewport: { width: 1280, height: 720 },
   deviceScaleFactor: 1.5,
-});
-const page = await context.newPage();
+};
+const browser = process.env.PROFILE
+  ? null
+  : await chromium.launch({ channel: "chromium" });
+const context = browser
+  ? await browser.newContext(viewport)
+  : await chromium.launchPersistentContext(process.env.PROFILE, {
+      channel: "chromium",
+      ...viewport,
+    });
+const page = context.pages()[0] ?? (await context.newPage());
 
 if (process.env.STYLE) {
   const { readFileSync: readCss } = await import("node:fs");
@@ -79,9 +96,16 @@ page.on("console", (m) => {
   if (m.type() === "error" || m.type() === "warning")
     errors.push(`${m.type()}: ${m.text().slice(0, 300)}`);
 });
+// INIT=a.js,b.js: extra init scripts (prototypes of a fix, injected).
+for (const file of (process.env.INIT ?? "").split(",").filter(Boolean))
+  await page.addInitScript({ path: file });
 if (process.env.NOCHART === "1")
   await page.addInitScript(() => {
     window.__perfNoChart = true;
+  });
+if (process.env.LIGHT === "1")
+  await page.addInitScript(() => {
+    window.__perfLight = true;
   });
 if (process.env.CONVERT_U16 === "1")
   await page.addInitScript(() => {
@@ -93,7 +117,7 @@ if (process.env.FLUSH_TROIKA === "1")
   });
 await page.addInitScript({ path: join(here, "instrument.js") });
 
-if (trace) {
+if (trace && browser) {
   await browser.startTracing(page, {
     path: `${out}.trace.json`,
     screenshots: false,
@@ -129,8 +153,8 @@ const state = await page.evaluate(() => ({
   road: !!window.__road?.ready,
   stats: window.__road?.stats ?? null,
 }));
-if (trace) await browser.stopTracing();
-await browser.close();
+if (trace && browser) await browser.stopTracing();
+await (browser ?? context).close();
 
 const meta = {
   base,

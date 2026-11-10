@@ -1,4 +1,4 @@
-import { MeshBasicMaterial, Vector3 } from "three";
+import { InstancedBufferAttribute, MeshBasicMaterial, Vector3 } from "three";
 import { BatchedText, configureTextBuilder, Text } from "troika-three-text";
 import { createDerivedMaterial } from "troika-three-utils";
 import type { ChartLayer, FrameInfo } from "../engine/Chart";
@@ -195,6 +195,15 @@ export class Lettering implements ChartLayer {
     // Glyphs move in the shader; the batch's bounds don't know where.
     this.batch.frustumCulled = false;
     this.batch.renderOrder = 30;
+    // The batch's member index as floats from the start: troika keeps the
+    // type it finds (it seeds a Uint16Array), and ANGLE on Direct3D
+    // recompiled the text's vertex program at the first real draw to read
+    // 16-bit integers into its float attribute, a 50 ms stall of every frame
+    // (docs/research/perf-start-of-scroll.md).
+    this.batch.geometry.setAttribute(
+      "aTroikaTextBatchMemberIndex",
+      new InstancedBufferAttribute(new Float32Array(0), 1),
+    );
 
     const kinds: MarkKind[] = [];
     const syncs: Promise<void>[] = [];
@@ -208,6 +217,9 @@ export class Lettering implements ChartLayer {
       text.letterSpacing = label.tracking ?? 0;
       text.whiteSpace = "nowrap";
       text.sdfGlyphSize = SDF_GLYPH_SIZE;
+      // The glyphs' distance fields drawn in troika's workers, not on a
+      // second WebGL canvas on the main thread while scene 1 plays.
+      text.gpuAccelerateSDF = false;
       const angle = ((label.angle ?? 0) * Math.PI) / 180;
       text.rotation.z = angle;
       let offset: readonly [number, number] = [0, 0];

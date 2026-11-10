@@ -114,6 +114,39 @@
   will-change: transform;
 }
 
+/*
+ * Layers of their own for scene 1's elements whose opacity or transform its
+ * timeline animates, so a fade never repaints the layer it sits in: without
+ * them, over the first 1,200 px of scroll the eight wide sea strips and the
+ * sky's layers were re-rasterised every frame, filling the GPU process
+ * (docs/research/perf-start-of-scroll.md). Only how scene 1 is drawn
+ * changes, not how it looks. The warm light on Victory's canvas stays in
+ * her layer: promoted, the rigging it repaints composites darker under her
+ * pitch. It changes in steps instead (choreography.ts, WARM_LIGHT).
+ */
+[data-el="strip-dawn"],
+[data-el="stars"],
+[data-el="clouds-dawn"],
+[data-el="sun-reflection"],
+[data-el="sun-high"],
+[data-el="enemy-lights"],
+[data-el="enemy-group"],
+[data-el="cue"],
+[data-el="veil"],
+[data-flag-frame] {
+  will-change: opacity;
+}
+[data-el="sky-dawn"],
+[data-el="sun-glow"],
+[data-el="moon"],
+[data-el="sun-low"],
+[data-flag] {
+  will-change: transform, opacity;
+}
+[data-el="cue-line"] {
+  will-change: transform;
+}
+
 @layer base {
   html {
     background-color: var(--color-deep-sea);

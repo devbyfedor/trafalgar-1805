@@ -9,6 +9,7 @@ import {
 } from "three";
 import { buildShip } from "@/components/ship/geometry/index";
 import type { ShipSpec } from "@/components/ship/types";
+import { SLICE_MS, Slicer } from "../engine/slice";
 
 /**
  * The ship glyphs' atlas: scene 1's ships of each type, drawn at load from
@@ -311,21 +312,26 @@ function layout(aspect: number, types: number) {
   return { levels, height: y };
 }
 
-/** Yields to the browser between levels, so no task runs long. */
-const pause = () =>
-  new Promise<void>((resolve) => {
-    if (typeof requestAnimationFrame === "function")
-      requestAnimationFrame(() => resolve());
-    else setTimeout(resolve, 0);
-  });
-
 /** Channels drawn on their own canvases, as alpha. */
 type Channel = "canvas" | "dark" | "band" | "lit";
 
+/**
+ * Draws the atlas in idle slices of a few milliseconds (engine/slice.ts):
+ * each type's shape, each type at each level and the channels' copy by
+ * rows, so no task runs long while scene 1 plays. It had paused only
+ * between levels, and on requestAnimationFrame, so each level's 13 to 38 ms
+ * held back the frame it waited for.
+ */
 export async function buildGlyphAtlas(
   types: readonly GlyphType[],
+  signal?: AbortSignal,
 ): Promise<GlyphAtlas> {
-  const shapes = types.map(shapeOf);
+  const slicer = new Slicer(SLICE_MS, signal);
+  const shapes: Shape[] = [];
+  for (const type of types) {
+    shapes.push(shapeOf(type));
+    await slicer.check();
+  }
   const top = Math.max(FULL_HEIGHT_M, ...shapes.map((s) => s.top));
   const side = Math.max(...shapes.map((s) => Math.max(s.left, s.right)));
   // Metres to cell heights: the trucks FOOT under the top, the waterline FOOT over the foot.
@@ -367,7 +373,7 @@ export async function buildGlyphAtlas(
     }
     const s = level.cellH * unit; // px per metre
     const hint = hinting(s);
-    shapes.forEach((shape, i) => {
+    for (const [i, shape] of shapes.entries()) {
       const col = i % level.cols;
       const row = Math.floor(i / level.cols);
       const cx = col * level.strideX + level.cellW / 2;
@@ -389,7 +395,8 @@ export async function buildGlyphAtlas(
       }
       drawShape(canvases, shape, hint);
       for (const ctx of Object.values(canvases)) ctx.restore();
-    });
+      await slicer.check();
+    }
     // The lit share only where the canvas shows: alpha = lit × canvas, so
     // the shader reads the lit share as alpha over red, mipmaps and all.
     const lit = canvases.lit;
@@ -398,13 +405,15 @@ export async function buildGlyphAtlas(
     lit.drawImage(canvases.canvas.canvas, 0, 0);
     lit.globalCompositeOperation = "source-over";
     // Coverage (each canvas's alpha) into the atlas's channels.
-    const read = (c: Channel) => canvases[c].getImageData(0, 0, w, h).data;
-    const [cv, dk, bd, lt] = [
-      read("canvas"),
-      read("dark"),
-      read("band"),
-      read("lit"),
-    ];
+    const read = async (c: Channel) => {
+      const pixels = canvases[c].getImageData(0, 0, w, h).data;
+      await slicer.check();
+      return pixels;
+    };
+    const cv = await read("canvas");
+    const dk = await read("dark");
+    const bd = await read("band");
+    const lt = await read("lit");
     for (let y = 0; y < h; y++) {
       const out = ((level.y + y) * width + level.x) * 4;
       for (let x = 0; x < w; x++) {
@@ -415,6 +424,7 @@ export async function buildGlyphAtlas(
         data[o + 2] = bd[k];
         data[o + 3] = lt[k];
       }
+      await slicer.check();
     }
     // Each type's ink at this level, about its anchor (the cell's middle,
     // its waterline row), in cell heights, a texel and a half wider all
@@ -447,7 +457,7 @@ export async function buildGlyphAtlas(
       ink[o + 1] = (maxX + 1 - anchor + 1.5) / H;
       ink[o + 2] = (water - minY + 1.5) / H;
     });
-    await pause();
+    await slicer.check();
   }
 
   const texture = new DataTexture(

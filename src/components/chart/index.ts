@@ -45,7 +45,12 @@ export {
   Lettering,
   type MarkKind,
 } from "./lettering/Lettering";
-export { Soundings, type SoundingsOptions } from "./lettering/Soundings";
+export {
+  layOutSoundings,
+  type SoundingAngles,
+  Soundings,
+  type SoundingsOptions,
+} from "./lettering/Soundings";
 export { LIGHT_STATES, type LightId } from "./light/states";
 export { Rivers } from "./lines/Rivers";
 export { Route, type RoutePoint, type Waypoint } from "./lines/Route";

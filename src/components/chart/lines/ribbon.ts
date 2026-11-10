@@ -54,12 +54,15 @@ export function ribbonGeometry(lines: readonly Polyline[]): BufferGeometry {
   const index = wide
     ? new Uint32Array(segments * 6)
     : new Uint16Array(segments * 6);
+  // Element by element, with no array made per vertex: with them, the
+  // rivers' 400 lines took a 55 to 74 ms task as the chart loaded.
   let v = 0;
   let k = 0;
   for (const line of lines) {
     const xy = line.points;
     const n = xy.length / 2;
     if (n < 2) continue;
+    const t = line.tag ?? 0;
     let distance = 0;
     for (let i = 0; i < n; i++) {
       const x = xy[i * 2];
@@ -67,18 +70,28 @@ export function ribbonGeometry(lines: readonly Polyline[]): BufferGeometry {
       if (i > 0) distance += Math.hypot(x - xy[i * 2 - 2], y - xy[i * 2 - 1]);
       const p = Math.max(0, i - 1);
       const q = Math.min(n - 1, i + 1);
-      for (const side of [-1, 1]) {
-        position.set([x, y, side], v * 3);
-        prev.set([xy[p * 2], xy[p * 2 + 1]], v * 2);
-        next.set([xy[q * 2], xy[q * 2 + 1]], v * 2);
+      const w = line.widths ? line.widths[i] : line.width;
+      for (let side = -1; side <= 1; side += 2) {
+        position[v * 3] = x;
+        position[v * 3 + 1] = y;
+        position[v * 3 + 2] = side;
+        prev[v * 2] = xy[p * 2];
+        prev[v * 2 + 1] = xy[p * 2 + 1];
+        next[v * 2] = xy[q * 2];
+        next[v * 2 + 1] = xy[q * 2 + 1];
         along[v] = distance;
-        width[v] = line.widths ? line.widths[i] : line.width;
-        tag[v] = line.tag ?? 0;
+        width[v] = w;
+        tag[v] = t;
         v++;
       }
       if (i < n - 1) {
         const a = v - 2;
-        index.set([a, a + 2, a + 1, a + 1, a + 2, a + 3], k);
+        index[k] = a;
+        index[k + 1] = a + 2;
+        index[k + 2] = a + 1;
+        index[k + 3] = a + 1;
+        index[k + 4] = a + 2;
+        index[k + 5] = a + 3;
         k += 6;
       }
     }

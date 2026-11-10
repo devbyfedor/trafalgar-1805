@@ -243,11 +243,17 @@ export function ChartLab() {
           }
           disposeDigits = () => digits.texture.dispose();
           chart.addGpuBytes(digits.gpuBytes);
-          const soundings = new engine.Soundings(
-            soundingData.index,
+          const figures = await engine.layOutSoundings(
             soundingData.sets,
             digits,
-            { angles: SOUNDING_ANGLES },
+            SOUNDING_ANGLES,
+            controller.signal,
+          );
+          if (cancelled) return;
+          const soundings = new engine.Soundings(
+            soundingData.index,
+            figures,
+            digits,
           );
           chart.add(soundings, soundings.mesh);
         }

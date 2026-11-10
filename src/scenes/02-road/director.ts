@@ -1,6 +1,7 @@
 import { Vector3 } from "three";
 import type { Chart } from "@/components/chart";
 import type { CameraRig } from "@/components/chart/camera/rig";
+import { SLICE_MS, Slicer } from "@/components/chart/engine/slice";
 import { worldX, worldY } from "@/components/chart/geo/mercator";
 import { FOOT } from "@/components/chart/glyphs/atlas";
 import type { Glyphs, ShipMark } from "@/components/chart/glyphs/Glyphs";
@@ -643,8 +644,8 @@ export class RoadDirector {
   );
   private readonly ndc = new Vector3();
   private victoryIndex: number;
-  /** Each squadron's eased heading by step of p from the start of the chase. */
-  private readonly squadHeadings: Float32Array[];
+  /** Each squadron's eased heading by step of p from the start of the chase (prepare). */
+  private squadHeadings: Float32Array[] = [];
   /** Each ship's eased heading by step of p from FLEET_HEADING_P (prepare). */
   private fleetHeadings: Float32Array[] | null = null;
   /** Scene 1's Victory box, while the handoff runs. */
@@ -730,26 +731,32 @@ export class RoadDirector {
       return [{ a, b, p, course: (m.course * Math.PI) / 180 }];
     });
     this.victoryIndex = this.ships.findIndex((s) => s.name === "Victory");
-    // The squadrons' headings, eased (a few thousand steps in all).
-    const [p0, p1] = [BEATS.chase[0], SQUADRON_TABLE_END];
-    const steps = Math.round((p1 - p0) / HEADING_STEP) + 1;
-    this.squadHeadings = this.squads.map((squad) => {
-      const raw = new Float64Array(steps).fill(Number.NaN);
-      for (let k = 0; k < steps; k++) {
-        const p = Math.min(p1 - 1e-9, p0 + k * HEADING_STEP);
-        const head = this.squadronHead(squad, dayAt(p), p);
-        if (head) raw[k] = head.heading;
-      }
-      return easeHeadings(raw);
-    });
   }
 
   /**
-   * Eases every ship's heading through beats 4 and 5 ahead of time, a few
-   * ships between frames (`pause`), so no task runs long. Until it has run,
-   * ships take their headings straight from their tracks.
+   * Eases every squadron's heading through the chase and every ship's
+   * through beats 4 and 5 ahead of time, in idle slices (engine/slice.ts):
+   * the squadrons' in one go had been a task of about 35 ms, and a dozen
+   * ships' at a time up to 85 ms. Until it has run, squadrons and ships
+   * take their headings straight from their tracks.
    */
-  async prepare(pause: () => Promise<void>): Promise<void> {
+  async prepare(signal?: AbortSignal): Promise<void> {
+    const slicer = new Slicer(SLICE_MS, signal);
+    const [p0, p1] = [BEATS.chase[0], SQUADRON_TABLE_END];
+    const squadSteps = Math.round((p1 - p0) / HEADING_STEP) + 1;
+    const squads: Float32Array[] = [];
+    for (const squad of this.squads) {
+      const raw = new Float64Array(squadSteps).fill(Number.NaN);
+      for (let k = 0; k < squadSteps; k++) {
+        const p = Math.min(p1 - 1e-9, p0 + k * HEADING_STEP);
+        const head = this.squadronHead(squad, dayAt(p), p);
+        if (head) raw[k] = head.heading;
+        if (k % 64 === 63) await slicer.check();
+      }
+      squads.push(easeHeadings(raw));
+      await slicer.check();
+    }
+    this.squadHeadings = squads;
     const steps = Math.round((1 - FLEET_HEADING_P) / HEADING_STEP) + 1;
     const days = new Float64Array(steps);
     for (let k = 0; k < steps; k++)
@@ -758,10 +765,12 @@ export class RoadDirector {
     const s = { ...this.state };
     for (let i = 0; i < this.ships.length; i++) {
       const raw = new Float64Array(steps).fill(Number.NaN);
-      for (let k = 0; k < steps; k++)
+      for (let k = 0; k < steps; k++) {
         if (shipAt(this.ships[i], days[k], s)) raw[k] = s.heading;
+        if (k % 64 === 63) await slicer.check();
+      }
       out.push(easeHeadings(raw));
-      if (i % 12 === 11) await pause();
+      await slicer.check();
     }
     this.fleetHeadings = out;
   }
@@ -936,12 +945,9 @@ export class RoadDirector {
       const t = prev ? smooth(stageP[j], stageP[j] + CHANGE_P, p) : 1;
       const where = this.squadronHead(squad, d, p);
       if (where) {
-        where.heading = tableAt(
-          this.squadHeadings[s],
-          BEATS.chase[0],
-          HEADING_STEP,
-          p,
-        );
+        const headings = this.squadHeadings[s];
+        if (headings)
+          where.heading = tableAt(headings, BEATS.chase[0], HEADING_STEP, p);
         formation.x = where.x;
         formation.y = where.y;
         formation.heading = where.heading;
@@ -1008,13 +1014,10 @@ export class RoadDirector {
   ): number {
     const own = squad.formation.heading;
     const ref = p < (m.p[1] + m.p[2]) / 2 ? m.p[0] : m.p[3];
-    const s = this.squads.indexOf(squad);
-    const at = tableAt(
-      this.squadHeadings[s],
-      BEATS.chase[0],
-      HEADING_STEP,
-      ref,
-    );
+    const headings = this.squadHeadings[this.squads.indexOf(squad)];
+    const at = headings
+      ? tableAt(headings, BEATS.chase[0], HEADING_STEP, ref)
+      : own;
     const turnAtRef = wrapPi(m.course - at);
     return own + turnAtRef + wrapPi(m.course - own - turnAtRef);
   }

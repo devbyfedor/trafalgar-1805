@@ -1,6 +1,7 @@
 import { buildShip } from "@/components/ship/geometry/index";
 import { ShipOfTheLine } from "@/components/ship/ShipOfTheLine";
 import { VICTORY_1805 } from "@/components/ship/specs/victory-1805";
+import { WARM_LIGHT } from "../choreography";
 import {
   METRE_VH,
   VICTORY_FLAGS_AT_DAWN,
@@ -60,7 +61,7 @@ export function Victory() {
             spec={VICTORY_1805}
             detail="hero"
             lighting="dawn"
-            warmth={0}
+            warmth={WARM_LIGHT.floor}
             flying={VICTORY_FLAGS_AT_DAWN}
             style={{ position: "absolute", inset: 0 }}
           />

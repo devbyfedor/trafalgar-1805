@@ -1,11 +1,15 @@
 import {
   Frustum,
   LinearSRGBColorSpace,
+  type Material,
   Matrix4,
   PerspectiveCamera,
   Scene,
+  Texture,
+  Vector2,
   Vector3,
   WebGLRenderer,
+  WebGLRenderTarget,
 } from "three";
 import {
   type CameraRig,
@@ -24,6 +28,7 @@ import { TerrainField } from "../terrain/field";
 import { probeWaterLift, type WaterLift } from "../terrain/liftProbe";
 import { Terrain } from "../terrain/Terrain";
 import { QUALITY_LADDER, QualityLadder, type QualityLevel } from "./quality";
+import { SLICE_MS, Slicer } from "./slice";
 
 /**
  * The chart engine: a WebGL 2 renderer, the terrain, the sky and the layers
@@ -92,6 +97,13 @@ function smooth(e0: number, e1: number, x: number): number {
 
 export interface ChartOptions {
   canvas: HTMLCanvasElement;
+  /**
+   * The canvas's WebGL 2 context if the host made it already, with
+   * CHART_CONTEXT_ATTRIBUTES (chartContext): making one holds the main
+   * thread 15 to 190 ms on the owner's GPU, so a page makes it while it
+   * loads, not while it scrolls.
+   */
+  context?: WebGL2RenderingContext;
   /** Called when the chart can't go on (WebGL lost for good). */
   onFatal?: (reason: string) => void;
   /** Pins a quality level (lab and tests); otherwise the ladder adapts. */
@@ -121,6 +133,7 @@ export class Chart {
   };
 
   private readonly layers: ChartLayer[] = [];
+  private readonly drawingSize = new Vector2();
   private readonly terrain: Terrain;
   private readonly sky = new Sky();
   private readonly quality: QualityLadder;
@@ -138,14 +151,22 @@ export class Chart {
   static async create(options: ChartOptions): Promise<Chart> {
     const renderer = new WebGLRenderer({
       canvas: options.canvas,
+      context: options.context,
       antialias: true,
       alpha: false,
       stencil: false,
       powerPreference: "high-performance",
     });
+    // Given a context, three takes its clear alpha from the context's own
+    // alpha, which it always makes true: opaque, as on a context of its own.
+    if (options.context) renderer.setClearAlpha(1);
     // The chart writes sRGB values straight to the canvas (shaders/common.ts):
     // no output conversion, for its own materials and for troika's text.
     renderer.outputColorSpace = LinearSRGBColorSpace;
+    // Reading a program's logs waits for its link: worth it in development,
+    // where a shader error must show, not in production, where each wait
+    // held the main thread 15 to 43 ms while the chart loaded.
+    renderer.debug.checkShaderErrors = process.env.NODE_ENV !== "production";
     try {
       const ext = renderer.extensions;
       if (
@@ -160,7 +181,8 @@ export class Chart {
         loadLowres(manifest, options.signal),
         field.load(LightBlend.AZIMUTHS, options.signal),
       ]);
-      return new Chart(renderer, manifest, field, low, options);
+      const land = await landIndex(low, options.signal);
+      return new Chart(renderer, manifest, field, low, land.any, options);
     } catch (error) {
       renderer.dispose();
       throw error;
@@ -172,13 +194,22 @@ export class Chart {
     readonly manifest: ChartManifest,
     readonly field: TerrainField,
     readonly lowres: LowresHeights,
+    hasLand: (
+      x0: number,
+      y0: number,
+      size: number,
+      marginKm: number,
+    ) => boolean,
     private readonly options: ChartOptions,
   ) {
     this.terrain = new Terrain(field);
-    const land = landIndex(lowres);
-    this.terrain.cdlod.hasLand = land.any;
+    this.terrain.cdlod.hasLand = hasLand;
     this.scene.add(this.terrain.mesh, this.sky.mesh);
     this.camera.up.set(0, 0, 1);
+    // The canvas's own CSS size from the start, so a level forced now sizes
+    // its drawing buffer as it will stay (applyQuality).
+    this.cssWidth = Math.max(1, renderer.domElement.clientWidth);
+    this.cssHeight = Math.max(1, renderer.domElement.clientHeight);
     this.quality = new QualityLadder((level) => this.applyQuality(level));
     if (options.quality !== undefined) this.quality.force(options.quality);
     this.info = {
@@ -290,6 +321,32 @@ export class Chart {
   frame(time: number): void {
     if (this.lost || this.disposed) return;
     if (this.options.quality === undefined) this.quality.frame(time);
+    const dpr = this.prepareFrame(time);
+
+    this.renderer.render(this.scene, this.camera);
+
+    const r = this.renderer.info;
+    const s = this.stats;
+    s.calls = r.render.calls;
+    s.triangles = r.render.triangles;
+    s.textures = r.memory.textures;
+    s.programs = r.programs?.length ?? 0;
+    s.quality = this.quality.level;
+    s.width = this.renderer.domElement.width;
+    s.height = this.renderer.domElement.height;
+    s.dpr = dpr;
+    s.gpuMB = Math.round((this.field.gpuBytes + this.extraGpuBytes) / 1e5) / 10;
+    s.exaggeration = Math.round(this.info.exaggeration * 10) / 10;
+    s.altitude = Math.round(this.eye.z * 10) / 10;
+    s.nodes = this.terrain.cdlod.count;
+  }
+
+  /**
+   * Everything a frame sets before it draws: the frame's information, the
+   * terrain's patches and uniforms, the sky and every layer. Returns the
+   * pixel ratio.
+   */
+  private prepareFrame(time: number): number {
     const level = this.quality.current;
     const dpr = this.renderer.getPixelRatio();
     const exaggeration = exaggerationAt(Math.max(0.05, this.eye.z));
@@ -332,23 +389,7 @@ export class Chart {
     info.lodK = cdlod.k;
     this.sky.update(this.camera);
     for (const layer of this.layers) layer.update(info);
-
-    this.renderer.render(this.scene, this.camera);
-
-    const r = this.renderer.info;
-    const s = this.stats;
-    s.calls = r.render.calls;
-    s.triangles = r.render.triangles;
-    s.textures = r.memory.textures;
-    s.programs = r.programs?.length ?? 0;
-    s.quality = this.quality.level;
-    s.width = this.renderer.domElement.width;
-    s.height = this.renderer.domElement.height;
-    s.dpr = dpr;
-    s.gpuMB = Math.round((this.field.gpuBytes + this.extraGpuBytes) / 1e5) / 10;
-    s.exaggeration = Math.round(exaggeration * 10) / 10;
-    s.altitude = Math.round(this.eye.z * 10) / 10;
-    s.nodes = this.terrain.cdlod.count;
+    return dpr;
   }
 
   /**
@@ -370,19 +411,70 @@ export class Chart {
     return info;
   }
 
-  /** Compiles every material now, so the first visible frame never hitches. */
   /**
-   * Compiles every material and draws one frame, so the first visible frame
-   * never hitches. ANGLE on Direct3D (the owner's Intel Arc) finishes
-   * compiling at the first draw: on that GPU compileAsync alone left 15 to
-   * 55 ms for the first frame, with the extra draw 4 to 7 ms (research,
-   * three r186 notes). The host draws it while the chart is still hidden.
+   * Compiles every material and draws each object once, so the first
+   * visible frame never hitches. ANGLE on Direct3D (the owner's Intel Arc)
+   * finishes compiling at the first draw: on that GPU compileAsync alone
+   * left 15 to 55 ms for the first frame, with the extra draw 4 to 7 ms
+   * (research, three r186 notes). The host calls it while the chart is
+   * still hidden, under scene 1, and draws nothing until the chart comes
+   * near.
+   *
+   * Spread over idle slices (engine/slice.ts), since in one go the warm
+   * frame was a 41 to 62 ms task while scene 1 played, and light on the
+   * GPU, which scene 1 keeps busy: every texture uploaded in a slice of its
+   * own; then each of the scene's objects drawn alone into a target of a
+   * few pixels, its buffers uploaded and its programs finished (drawn into
+   * the canvas, a slice had cost the GPU 4 to 13 ms, and each presented a
+   * frame of the hidden canvas); then the canvas cleared once.
    */
-  async warm(): Promise<void> {
+  async warm(signal?: AbortSignal): Promise<void> {
     this.camera.updateMatrixWorld();
-    await this.renderer.compileAsync(this.scene, this.camera);
+    // Every object, shown now or not: three compiles only what is visible,
+    // and an object first shown mid-scene (a route in the chase) would
+    // compile and upload there.
+    const objects = [...this.scene.children];
+    const visible = objects.map((o) => o.visible);
+    const restore = () => {
+      objects.forEach((o, i) => {
+        o.visible = visible[i];
+      });
+    };
+    try {
+      for (const o of objects) o.visible = true;
+      await this.renderer.compileAsync(this.scene, this.camera);
+    } finally {
+      restore();
+    }
     if (this.disposed || this.lost) return;
-    this.frame(0);
+    const slicer = new Slicer(SLICE_MS, signal);
+    for (const texture of texturesOf(this.scene)) {
+      this.renderer.initTexture(texture);
+      await slicer.next();
+      if (this.disposed || this.lost) return;
+    }
+    const r = this.renderer;
+    // A target of a few pixels: three keys its programs as the canvas's
+    // (linear output, no tone mapping), and drawing there fills nothing and
+    // leaves the canvas alone, which presents a frame each time it is drawn.
+    const target = new WebGLRenderTarget(4, 4, { samples: 4 });
+    this.prepareFrame(0);
+    try {
+      r.setRenderTarget(target);
+      for (const object of objects) {
+        for (const o of objects) o.visible = o === object;
+        r.render(this.scene, this.camera);
+        await slicer.next();
+        if (this.disposed || this.lost) return;
+      }
+    } finally {
+      restore();
+      r.setRenderTarget(null);
+      target.dispose();
+    }
+    // The canvas's own buffers made once while it is hidden: a clear.
+    r.clear();
+    await slicer.next();
     this.quality.reset();
   }
 
@@ -409,8 +501,21 @@ export class Chart {
     const device =
       typeof window === "undefined" ? 1 : window.devicePixelRatio || 1;
     const dpr = Math.min(device, level.dpr);
-    this.renderer.setPixelRatio(dpr);
-    this.renderer.setSize(this.cssWidth, this.cssHeight, false);
+    // Only when the drawing buffer's size changes, and in one step: three's
+    // setPixelRatio sets the canvas's size and setSize again, and each
+    // change reallocates the multisampled buffer (a 42 to 54 ms task as the
+    // chart loaded). The host creates the canvas at this size to begin
+    // with (chartPixelRatio), so the first call changes nothing.
+    const canvas = this.renderer.domElement;
+    const size = this.renderer.getSize(this.drawingSize);
+    if (
+      this.renderer.getPixelRatio() !== dpr ||
+      size.x !== this.cssWidth ||
+      size.y !== this.cssHeight ||
+      canvas.width !== Math.floor(this.cssWidth * dpr) ||
+      canvas.height !== Math.floor(this.cssHeight * dpr)
+    )
+      this.renderer.setDrawingBufferSize(this.cssWidth, this.cssHeight, dpr);
     this.camera.aspect = this.cssWidth / this.cssHeight;
     this.camera.updateProjectionMatrix();
     this.quality.reset();
@@ -436,3 +541,31 @@ export class Chart {
 }
 
 export { QUALITY_LADDER };
+
+/**
+ * The textures a scene's materials sample that the renderer uploads itself
+ * (not render targets', which their passes make): their maps and their
+ * uniforms' values, each once.
+ */
+function texturesOf(scene: Scene): Texture[] {
+  const found = new Set<Texture>();
+  const take = (value: unknown) => {
+    if (Array.isArray(value)) {
+      for (const v of value) take(v);
+      return;
+    }
+    if (value instanceof Texture && !value.isRenderTargetTexture)
+      found.add(value);
+  };
+  scene.traverse((object) => {
+    const material = (object as { material?: Material | Material[] }).material;
+    if (!material) return;
+    for (const m of Array.isArray(material) ? material : [material]) {
+      for (const value of Object.values(m)) take(value);
+      const uniforms = (m as { uniforms?: Record<string, { value: unknown }> })
+        .uniforms;
+      if (uniforms) for (const u of Object.values(uniforms)) take(u?.value);
+    }
+  });
+  return [...found];
+}

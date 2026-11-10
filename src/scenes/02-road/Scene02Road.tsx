@@ -1,6 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { chartContext } from "@/components/chart/engine/context";
+import { chartPixelRatio } from "@/components/chart/engine/quality";
 import { registerChartReadout, reportProgress } from "@/lib/debug";
 import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
 import { DESKTOP_QUERY, isDebug, REDUCED_MOTION_QUERY } from "@/lib/media";
@@ -159,17 +161,31 @@ export function Scene02Road() {
           const canvas = document.createElement("canvas");
           canvas.className = "absolute inset-0 block h-full w-full";
           canvasHost.append(canvas);
+          // The canvas at the size the chart will draw at, and its context
+          // made now, while the page loads: making it waits on the GPU 15 to
+          // 190 ms, which nothing can slice, and a context resized after it
+          // was made reallocated its multisampled buffer in another long task
+          // (docs/research/perf-start-of-scroll.md). The chart itself loads
+          // later, in idle time.
+          const query = new URLSearchParams(window.location.search);
+          const quality = query.get("quality");
+          const dpr = chartPixelRatio(quality === null ? 0 : Number(quality));
+          canvas.width = Math.floor(canvasHost.clientWidth * dpr);
+          canvas.height = Math.floor(canvasHost.clientHeight * dpr);
+          const gl = chartContext(canvas) ?? undefined;
 
           const start = async () => {
             // Scene 1 first: the chart loads once the page is idle.
             await idle(2500, controller.signal);
             if (controller.signal.aborted) return;
             const { createRoadStage } = await import("./stage");
+            // The chunk's evaluation and the stage's start in tasks of their
+            // own (together, one of 47 to 128 ms).
+            await idle(500, controller.signal);
             if (controller.signal.aborted) return;
-            const query = new URLSearchParams(window.location.search);
-            const quality = query.get("quality");
             stage = await createRoadStage({
               canvas,
+              context: gl,
               labels: canvasHost,
               signal: controller.signal,
               quality: quality === null ? undefined : Number(quality),
@@ -184,9 +200,14 @@ export function Scene02Road() {
             observer.observe(canvasHost);
             size = sizeKey();
             stage.resize(canvasHost.clientWidth, canvasHost.clientHeight);
-            stage.director.apply(state.p);
-            await stage.chart.warm();
+            const warmed = state.p;
+            stage.director.apply(warmed);
+            await stage.chart.warm(controller.signal);
             if (controller.signal.aborted) return;
+            // Nothing to draw for this p while the chart is hidden: the first
+            // frame is drawn once it comes near (the scroll may have moved on
+            // while it warmed in idle slices).
+            drawn = warmed;
             const s = stage;
             const baking = () =>
               s.bake().then((done) => {
@@ -288,7 +309,7 @@ export function Scene02Road() {
   );
 
   return (
-    <div ref={wrapper} data-scene-wrapper="road" className="relative z-[1]">
+    <div ref={wrapper} data-scene-wrapper="road" className="relative z-1">
       <section
         ref={root}
         id="road"

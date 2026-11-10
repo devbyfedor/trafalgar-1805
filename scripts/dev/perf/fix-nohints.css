@@ -1,0 +1,19 @@
+/* Prototype: scene 1's compositor hints of note 2 taken off again (globals.css), to compare. */
+[data-el="strip-dawn"],
+[data-el="stars"],
+[data-el="clouds-dawn"],
+[data-el="sun-reflection"],
+[data-el="sun-high"],
+[data-el="enemy-lights"],
+[data-el="enemy-group"],
+[data-el="cue"],
+[data-el="veil"],
+[data-flag-frame],
+[data-el="sky-dawn"],
+[data-el="sun-glow"],
+[data-el="moon"],
+[data-el="sun-low"],
+[data-flag],
+[data-el="cue-line"] {
+  will-change: auto !important;
+}

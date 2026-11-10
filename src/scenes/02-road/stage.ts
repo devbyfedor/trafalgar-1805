@@ -9,6 +9,7 @@ import {
   type GlyphAtlas,
   Glyphs,
   Lettering,
+  layOutSoundings,
   loadRivers,
   loadSoundings,
   Rivers,
@@ -205,6 +206,8 @@ function idleSlice(): Promise<void> {
 
 export interface RoadStageOptions {
   canvas: HTMLCanvasElement;
+  /** The canvas's context, made while the page loaded (engine/context.ts). */
+  context?: WebGL2RenderingContext;
   signal: AbortSignal;
   /** The WebGL context is lost for good. */
   onFatal: (reason: string) => void;
@@ -219,6 +222,7 @@ export async function createRoadStage(
 ): Promise<RoadStage> {
   const chart = await Chart.create({
     canvas: options.canvas,
+    context: options.context,
     signal: options.signal,
     quality: options.quality,
     onFatal: options.onFatal,
@@ -243,7 +247,7 @@ export async function createRoadStage(
       chart.add(r, r.mesh);
     }
     // One atlas for both layers, drawn level by level between frames.
-    atlas = await buildGlyphAtlas(GLYPH_TYPES);
+    atlas = await buildGlyphAtlas(GLYPH_TYPES, options.signal);
     options.signal.throwIfAborted();
     chart.addGpuBytes(atlas.gpuBytes);
     const fleets = new Glyphs(atlas, fleetMarks());
@@ -255,15 +259,19 @@ export async function createRoadStage(
     // The depths written over the shoal water of the detail tiles.
     const soundingData = await loadSoundings(chart.manifest, options.signal);
     if (soundingData) {
-      digits = await buildDigitAtlas(fontUrl(SOUNDING_FONT_FILE));
+      digits = await buildDigitAtlas(
+        fontUrl(SOUNDING_FONT_FILE),
+        options.signal,
+      );
       options.signal.throwIfAborted();
       chart.addGpuBytes(digits.gpuBytes);
-      const soundings = new Soundings(
-        soundingData.index,
+      const figures = await layOutSoundings(
         soundingData.sets,
         digits,
-        { angles: SOUNDING_ANGLES },
+        SOUNDING_ANGLES,
+        options.signal,
       );
+      const soundings = new Soundings(soundingData.index, figures, digits);
       chart.add(soundings, soundings.mesh);
     }
     const rig = new CameraRig(ROAD_FLIGHT);
@@ -275,14 +283,12 @@ export async function createRoadStage(
       routes,
       legs,
     });
-    // Every ship's heading through beats 4 and 5, eased ahead of time.
-    await director.prepare(
-      () => new Promise<void>((resolve) => setTimeout(resolve, 0)),
-    );
+    // Every squadron's and ship's heading, eased ahead of time.
+    await director.prepare(options.signal);
     options.signal.throwIfAborted();
     // The chart's land on the CPU, so the glyph layout keeps every ship off
     // it; laid out before the glyph layers draw, each frame.
-    const coast = await chart.field.readBack();
+    const coast = await chart.field.readBack(options.signal);
     options.signal.throwIfAborted();
     const layout = new GlyphLayout(coast, director.layoutGroups());
     director.setLayout(layout);
@@ -310,7 +316,16 @@ export async function createRoadStage(
             k++;
           }
         }
-        layout.bakeEnd(pass);
+        // The pass's tables eased, in slices too.
+        const finish = layout.bakeEnd(pass);
+        let done = false;
+        while (!done) {
+          await idleSlice();
+          if (job.cancelled || options.signal.aborted) return false;
+          const start = performance.now();
+          while (!done && performance.now() - start < BAKE_SLICE_MS)
+            done = finish.next().done === true;
+        }
       }
       sampled = Number.NaN;
       return true;

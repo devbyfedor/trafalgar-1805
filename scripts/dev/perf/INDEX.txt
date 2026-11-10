@@ -43,3 +43,24 @@ In this repository
   Copied from the session scratchpad on 9 Nov 2026; the scripts write to runs/ here (git-ignored). Port 4391 was a
   read-only static server of out/ during the investigation; the project's own preview is npm run preview on 4173.
   Findings and the plan: docs/research/perf-start-of-scroll.md. Not linted (biome.json excludes this folder).
+
+Session 16 (10 Nov 2026): note 2 fixed and measured (docs/research/perf-start-of-scroll.md, "Session 16")
+  run.mjs gained LIGHT (no GL wrappers: frames, long tasks, LoAF with script positions), PROFILE (a warm
+  persistent profile, as a repeat visit) and INIT (inject JS); instrument.js records each LoAF script's
+  sourceCharPosition.
+  batch.sh             runs/<label>-w1-N and -w0-N against the preview, then metrics.mjs and late.mjs
+  late.mjs             every late frame after the first wheel, with scrollY and p
+  loafs.mjs            long animation frames with their scripts (MIN=ms)
+  compiles.mjs         every GPU-process shader compile (GrShaderCache::store) and the layers rastered then
+  flushes.mjs          GPU raster flushes by scroll band; renderer raster tasks per layer by band
+  perframe.mjs         GPU raster time per frame by scroll band
+  before-flush.mjs     the layers rastered just before the slowest flushes
+  gpuwin.mjs           the GPU process main thread in a window, nested
+  task-inside.mjs      a renderer task's nested events
+  stacks.mjs, selfprof.mjs   CPU profile stacks / self time in a window
+  blockmap.mjs         the regression check's block differences between two frames, as a map
+  fix-warm.css         the warm-light layer promoted: her repainted rigging composites darker (up to 47 levels)
+  fix-warm-off.css     the warm light off: its full effect (8-32 levels on the sails' sunward edges)
+  fix-title.css        the title letters given layers by transform: letters shift by a pixel (not used)
+  fix-title-op.css     the same by opacity: no change to the look (not needed in the end)
+  fix-nohints.css      scene 1's shipped hints taken off again, to compare frozen frames

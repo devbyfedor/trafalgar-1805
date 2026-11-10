@@ -1,3 +1,4 @@
+import { SLICE_MS, Slicer } from "../engine/slice";
 import { CHART_BASE, type ChartManifest } from "./manifest";
 
 /**
@@ -80,19 +81,26 @@ export function highestLand(
  * constant time: a summed-area table counts the land blocks of the low
  * resolution grid. Beyond the stage there is only open sea.
  */
-export function landIndex(low: LowresHeights): {
+export async function landIndex(
+  low: LowresHeights,
+  signal?: AbortSignal,
+): Promise<{
   /** True when a square (world km) or a margin around it holds any land. */
   any: (x0: number, y0: number, size: number, marginKm: number) => boolean;
-} {
+}> {
   const { cols, rows, cellKm, data } = low;
   const w = cols + 1;
   const sums = new Uint32Array(w * (rows + 1));
+  // By rows, in idle slices: in one go it was a 25 ms task as the chart
+  // loaded (engine/slice.ts).
+  const slicer = new Slicer(SLICE_MS, signal);
   for (let r = 0; r < rows; r++) {
     let line = 0;
     for (let c = 0; c < cols; c++) {
       line += data[r * cols + c] > 0 ? 1 : 0;
       sums[(r + 1) * w + c + 1] = sums[r * w + c + 1] + line;
     }
+    await slicer.check();
   }
   // Land cells in a square with a margin (none past the grid's edge, which
   // is open sea).

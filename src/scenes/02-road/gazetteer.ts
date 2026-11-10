@@ -185,6 +185,8 @@ export const GAZETTEER: readonly Label[] = [
     lat: 50.726,
     size: 14,
     mark: "town",
+    // Read in beat 1's low close-up (see Stage B's names below).
+    capPx: 40,
   },
   {
     text: "Portsmouth",
@@ -268,8 +270,15 @@ export const GAZETTEER: readonly Label[] = [
   // v-h5-names.md), each sized to read at about 12 CSS px at the farthest
   // view of the scene where its place is the subject
   // (scripts/dev/name-sizes.mjs).
-  // Beat 1: the coast round Boulogne from the close-up (about 70 km off),
-  // Dover and Calais from the approach.
+  // Beat 1: the coast round Boulogne from the close-up, Dover and Calais
+  // from the approach. The close-up looks up the Strait from low over the
+  // Channel: the coast's names lie 90-140 km off and are seen at an
+  // elevation of only 12-19 degrees, so lying flat on the chart their
+  // letters stand a quarter to a third as tall as their em. Their caps are
+  // raised so the foreshortened letters read (about 8 CSS px of capital);
+  // Ambleteuse, Vimereux and Deal, which would then overlap their
+  // neighbours, are left to the history notes (docs/decisions.md, "The
+  // names on screen").
   {
     text: "Dover",
     role: "place",
@@ -277,6 +286,7 @@ export const GAZETTEER: readonly Label[] = [
     lat: 51.126,
     size: 14,
     mark: "town",
+    capPx: 40,
   },
   {
     text: "Calais",
@@ -285,6 +295,7 @@ export const GAZETTEER: readonly Label[] = [
     lat: 50.956,
     size: 14,
     mark: "town",
+    capPx: 40,
   },
   {
     text: "Straits of Dover",
@@ -299,26 +310,9 @@ export const GAZETTEER: readonly Label[] = [
     role: "cape",
     lon: 1.584,
     lat: 50.87,
-    size: 1.2,
+    size: 3.4,
     side: "left",
-  },
-  {
-    text: "Ambleteuse",
-    role: "place",
-    lon: 1.605,
-    lat: 50.807,
-    size: 1,
-    mark: "town",
-    capPx: 16,
-  },
-  {
-    text: "Vimereux",
-    role: "place",
-    lon: 1.611,
-    lat: 50.77,
-    size: 1,
-    mark: "town",
-    capPx: 16,
+    capPx: 40,
   },
   {
     text: "Etaples",
@@ -329,15 +323,13 @@ export const GAZETTEER: readonly Label[] = [
     mark: "town",
     capPx: 16,
   },
-  { text: "The Downs", role: "water", lon: 1.45, lat: 51.22, size: 1.4 },
   {
-    text: "Deal",
-    role: "place",
-    lon: 1.402,
-    lat: 51.223,
-    size: 1,
-    mark: "town",
-    capPx: 16,
+    text: "The Downs",
+    role: "water",
+    lon: 1.53,
+    lat: 51.22,
+    size: 5.5,
+    showPx: [9, 90],
   },
   // Beat 2: the Mediterranean from the chase's opening (about 2,000 km up).
   {
@@ -460,6 +452,8 @@ export const GAZETTEER: readonly Label[] = [
     lat: 43.371,
     size: 22,
     mark: "town",
+    // West of its mark, over the sea: to the east it ran into Ferrol's.
+    side: "left",
   },
   {
     text: "Vigo",

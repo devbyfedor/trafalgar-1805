@@ -16,6 +16,8 @@ import {
   type DigitFieldRequest,
   drawDigitField,
   FONT_PX,
+  SOUNDING_CHARS,
+  SOUNDING_FONT_FILE,
 } from "./digit-field";
 
 /**
@@ -29,10 +31,7 @@ import {
  * draw text.
  */
 
-export const SOUNDING_CHARS = "0123456789½";
-
-/** The figures' face in public/fonts/3d (scripts/check-lettering.ts checks it covers them). */
-export const SOUNDING_FONT_FILE = "Baskervville-Italic.woff";
+export { SOUNDING_CHARS, SOUNDING_FONT_FILE };
 
 export interface DigitAtlas {
   texture: DataTexture;

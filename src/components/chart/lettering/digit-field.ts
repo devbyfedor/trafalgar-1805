@@ -7,6 +7,12 @@ import type { Slicer } from "../engine/slice";
  * three.js here, so the worker stays small.
  */
 
+/** The figures a sounding is written with. */
+export const SOUNDING_CHARS = "0123456789½";
+
+/** The figures' face in public/fonts/3d (scripts/check-lettering.ts checks it covers them). */
+export const SOUNDING_FONT_FILE = "Baskervville-Italic.woff";
+
 /** The font size the figures are drawn at, px. */
 export const FONT_PX = 64;
 /** A cell of the atlas, px: room for the italic's overhang and the spread. */

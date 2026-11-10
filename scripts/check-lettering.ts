@@ -3,7 +3,7 @@ import path from "node:path";
 import {
   SOUNDING_CHARS,
   SOUNDING_FONT_FILE,
-} from "../src/components/chart/lettering/digits.ts";
+} from "../src/components/chart/lettering/digit-field.ts";
 import {
   DEFAULT_FONT_FILE,
   FONT_FILES,

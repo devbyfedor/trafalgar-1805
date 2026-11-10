@@ -114,8 +114,9 @@ uniform float uStageFadeKm;
 // One lighting state's light on the relief. x: how the slope faces the
 // sun against flat ground, compressed to (-0.5, 1), so slopes toward a low
 // sun never blaze. y: the cast shadow, where the exaggerated horizon rises
-// above the sun. A state with no sun leaves the relief unlit.
-vec2 reliefLight(vec3 n, vec3 L, float horizonTan, float on) {
+// above the sun. A state with no sun leaves the relief unlit. horizonPx:
+// how much the horizon tangent changes from one pixel to the next.
+vec2 reliefLight(vec3 n, vec3 L, float horizonTan, float horizonPx, float on) {
   float tanSun = L.z / max(length(L.xy), 1e-4);
   // Shadows take a capped exaggeration: at continental scale a low sun
   // would otherwise throw shadows a hundred kilometres long across plains.
@@ -123,9 +124,16 @@ vec2 reliefLight(vec3 n, vec3 L, float horizonTan, float on) {
   // over a range that grows with the sun's height: a low hill that barely
   // clips a dawn sun casts only a faint wash (at full strength the lowland
   // read as dark blotches close up), a sierra its full long shadow.
-  float rise = min(uExag, uShadowExag) * horizonTan - tanSun;
+  float k = min(uExag, uShadowExag);
+  float rise = k * horizonTan - tanSun;
   float soft = max(0.04, 0.5 * tanSun);
-  float shadow = smoothstep(0.0, soft, rise);
+  // Its edge widened by the rise's own change across the pixel, as a pixel
+  // averages it: seen far off, a fine tile's ridges and gullies change the
+  // horizon from pixel to pixel, and a sharp edge sampled there speckled
+  // the far sierras with dark and bright points. Close up the change is
+  // tiny and the shadow as before.
+  float w = 2.0 * k * horizonPx;
+  float shadow = smoothstep(-0.5 * w, soft + 0.5 * w, rise);
   float facing = max(dot(n, L), 0.0) / max(L.z, 0.02) - 1.0;
   return on * vec2(facing / (1.0 + abs(facing)), shadow);
 }
@@ -308,8 +316,10 @@ void main() {
   float hl = max(h, 0.0);
   vec3 n = normalize(vec3(-uExag * fs.zw, 1.0));
   vec3 hz = vec3(sampleHorizon(p), 0.0);
-  vec2 lightA = reliefLight(n, uLightDirA, dot(hz, uSlotA), uLightOnA);
-  vec2 lightB = reliefLight(n, uLightDirB, dot(hz, uSlotB), uLightOnB);
+  float tanA = dot(hz, uSlotA);
+  float tanB = dot(hz, uSlotB);
+  vec2 lightA = reliefLight(n, uLightDirA, tanA, fwidth(tanA), uLightOnA);
+  vec2 lightB = reliefLight(n, uLightDirB, tanB, fwidth(tanB), uLightOnB);
   vec2 lit = mix(lightA, lightB, uLightMix);
   vec3 paper = mix(uPaperLow, uPaperHigh, smoothstep(50.0, 2200.0, hl));
   // Restrained hill shading: only real relief is shaded (true-scale slope,

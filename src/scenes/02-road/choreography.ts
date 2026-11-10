@@ -1,13 +1,7 @@
 import { DAWN_HANDOFF } from "../handoff";
 import { BEATS, CAPTIONS } from "./beats";
 import type { RoadCaption } from "./content";
-import {
-  CHAPTER_INK,
-  CHAPTER_INK_FADE,
-  CHART_INK,
-  DEEP_SCRIM,
-  PAGE_INK,
-} from "./ink";
+import { CHAPTER_SCRIM, DEEP_SCRIM, type ScrimRun } from "./ink";
 
 /**
  * Scene 2's HTML through the scroll: the handoff from scene 1's frame, the
@@ -98,40 +92,29 @@ export function buildRoadChoreography(
     0.008,
   );
 
-  // The marker's ink follows the ground under it (ink.ts): the chart's
-  // dark ink over the bright haze and land of the daylight views.
-  const chapter = one("[data-el=chapter]");
-  if (chapter) {
-    tl.set(chapter, { color: PAGE_INK }, 0);
-    for (const { from, dark } of CHAPTER_INK)
-      tl.to(
-        chapter,
-        {
-          color: dark ? CHART_INK : PAGE_INK,
-          ease: "none",
-          duration: CHAPTER_INK_FADE,
-        },
-        from,
-      );
-  }
-
-  // A deeper scrim where the card would stand on bright ground (ink.ts).
-  const deep = one("[data-el=scrim-deep]");
-  if (deep)
-    for (const [a, b, c, d] of DEEP_SCRIM) {
+  // Soft scrims where the text would stand on bright ground (ink.ts): the
+  // card's deeper one and the chapter marker's.
+  const scrimRuns = (el: HTMLElement | null, runs: readonly ScrimRun[]) => {
+    if (!el) return;
+    for (const [a, b, c, d, strength = 1] of runs) {
       tl.fromTo(
-        deep,
+        el,
         { opacity: 0 },
         {
-          opacity: 1,
+          opacity: strength,
           ease: "sine.inOut",
           duration: b - a,
           immediateRender: false,
         },
         a,
       );
-      tl.to(deep, { opacity: 0, ease: "sine.inOut", duration: d - c }, c);
+      // A run that lasts to the end stays.
+      if (c < 1)
+        tl.to(el, { opacity: 0, ease: "sine.inOut", duration: d - c }, c);
     }
+  };
+  scrimRuns(one("[data-el=scrim-deep]"), DEEP_SCRIM);
+  scrimRuns(one("[data-el=scrim-chapter]"), CHAPTER_SCRIM);
 
   // The date line holds its place from Boulogne on; its text runs with the
   // story (the scene writes it each frame).

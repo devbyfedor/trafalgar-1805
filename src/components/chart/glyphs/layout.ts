@@ -1019,6 +1019,18 @@ export class GlyphLayout implements ChartLayer {
         k,
         alpha * this.view.haze(this.distOf(layer, i)),
       );
+      // Development: each ship's foot, box and sizes (layoutDebug).
+      this.debug?.push({
+        free: i,
+        fx,
+        fy,
+        box: [l, r, t],
+        h0: this.h0[k],
+        common,
+        limit,
+        s,
+        alpha,
+      });
     }
   }
 

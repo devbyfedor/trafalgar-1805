@@ -12,12 +12,14 @@ Live checklist. A later session picks up from here. The briefs are `docs/scene-0
 - **Step 3, starts from anchor and turns: done** (this commit; `decisions.md`, "Scene 2, Stage B: getting under way and turning"): one clock through the story, legs timed through their dated points at rest at their ends, the roads' knee, an ease over the scroll in km, legs joined at sea, the meeting's way round, the bake's obstacles swept against each other, the fleets on a Hermite through their keys, Villeneuve's turn south given scroll and a camera key that keeps it clear of the caption. New tools: `scripts/dev/glyph-paths.mjs` (`__road.pathParts`), `scripts/dev/site-track.mjs` (sites against the frame), `scripts/dev/glyph-ashore.mjs` rewritten (`__road.ashore`).
 - **The editor overwrote `director.ts` twice** (19:27:23 and 19:27:49, from an older buffer: the local-history extension's `.history/` copies show the saves). The lost edits were re-applied and checked line by line. `.history/` is now git-ignored (and so ignored by Biome) and excluded from `tsconfig.json`. Edits to files open in the editor go through the Edit tool only.
 
+- **The owner's answer, the fleets eased apart: done** (this commit; `decisions.md`, "the fleets eased apart"): the last frame shows all 68 ships in it (35 before), the harbour's close view all 36 (3 before), at the owner's size and the large ones; two camera holds (the harbour 0.72–0.75, the last frame 0.986–1). Largest shift at dawn 4.22 km (2.28 nm, the Thémis), the line's ends about 3.0 km; at anchor 0.39 km. New tools: `fleet-hidden.mjs`, `fleet-layout.mjs` (the fleets in `layoutDebug`), `fleet-shift.mjs` (`__road.spreadShift`). To do with the history merge: add this licence to the "Scene 2" section's "Assumptions and licences".
+- **Seen, for note 3:** the chapter marker measures 1.1:1 at p 0.96 (the descent's new timing no longer matches its ink switches); note 3 replaces the switching.
+
 **Next steps, in order:**
-1. The owner's answer: spread the dawn positions and the anchorage (`fleets.ts`, `DAWN`, `ANCHORAGE`), keeping the fleets' distance and order; the largest shift into `decisions.md`; then the clash, motion and ashore checks.
-2. The full proof again on a production build (the scene and the lab, four sizes, clash and motion).
-3. Note 2, the frame drops (`docs/research/perf-start-of-scroll.md`, its plan in order).
-4. Note 3: the soft wide scrim, the chapter title light always, the far shadow speckle (before and after).
-5. Session 14's list (below, "Next steps (session 15)" 1–5), then `npm run check`, the report and the stop.
+1. The full proof again on a production build (the scene and the lab, four sizes, clash and motion).
+2. Note 2, the frame drops (`docs/research/perf-start-of-scroll.md`, its plan in order).
+3. Note 3: the soft wide scrim, the chapter title light always, the far shadow speckle (before and after).
+4. Session 14's list (below, "Next steps (session 15)" 1–5), then `npm run check`, the report and the stop.
 
 ## Session 15 (9 November 2026, from about 15:30): the owner's notes, then Stage B
 

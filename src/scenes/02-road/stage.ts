@@ -30,7 +30,7 @@ import {
   squadronMarks,
   squadronNames,
 } from "./director";
-import { GLYPH_TYPES } from "./fleets";
+import { anchorageSpreadShift, dawnSpreadShift, GLYPH_TYPES } from "./fleets";
 import { GAZETTEER } from "./gazetteer";
 import { NELSON, VILLENEUVE } from "./routes";
 import { SOUNDING_ANGLES } from "./soundings";
@@ -94,6 +94,15 @@ export interface RoadStage {
    * far under way 0..1, opacity] each (scripts/dev/glyph-ashore.mjs).
    */
   ashore(p: number): number[];
+  /**
+   * Development: how far each ship stands, at dawn and at anchor, from her
+   * place at the sources' spacing (the owner's licence of 10 November
+   * 2026; fleets.ts), km.
+   */
+  spreadShift(): {
+    dawn: { name: string; km: number }[];
+    anchorage: { name: string; km: number }[];
+  };
   /** Development: draws the scene at p and returns each squadron's layout (GlyphLayout.debug). */
   layoutDebug(p: number): Record<string, unknown>[];
   /** Development: a glyph's baked sizes by step (GlyphLayout.bakedSizes). */
@@ -502,6 +511,9 @@ export async function createRoadStage(
             it.opacity[i],
           );
         return out;
+      },
+      spreadShift() {
+        return { dawn: dawnSpreadShift(), anchorage: anchorageSpreadShift() };
       },
       glyphNames() {
         return [fleetNames(), squadronNames()];

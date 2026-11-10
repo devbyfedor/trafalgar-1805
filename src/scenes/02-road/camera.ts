@@ -33,6 +33,15 @@ const DAWN_EYE: Lla = offset(
 const LAST_EYE: Lla = [-6.6, 36.1, 6.5];
 
 /**
+ * Where the camera settles on the last frame and holds it to the scene's
+ * end: further back than the glyphs' eased visibility reaches from the end
+ * (the least within 0.006 of p, eased over about as much again;
+ * glyphs/layout.ts, BAKE_SIZE_EASE_P), about 300 px of scroll on the owner's
+ * screen.
+ */
+const LAST_HOLD = 0.986;
+
+/**
  * The harbour close up (beat 4): over the city, 3.5 km up, looking along 24°
  * across the bay at the combined fleet's three lines at anchor (fleets.ts,
  * ANCHORAGE), broadside to their heads (294°) and near enough that a row's
@@ -107,17 +116,27 @@ export const ROAD_FLIGHT: readonly CameraKey[] = [
   // Turned onto the bay while still high, then straight down the line of
   // sight to the harbour and back: turned low, the view whipped across.
   {
-    p: 0.712,
+    p: 0.705,
     eye: [-6.52, 36.21, 15],
     target: [ANCHORAGE_CENTRE[0], ANCHORAGE_CENTRE[1], 0],
   },
+  // Held over the harbour from a little before 7 a.m. on the 19th, as the
+  // first ships weigh and the frigates off the port make the first signal,
+  // so every ship at anchor comes in: their sizes and how much of each
+  // shows are eased over about 0.015 of p either way (glyphs/layout.ts),
+  // and a view still on its way down or up had kept the lines small.
   {
-    p: 0.735,
+    p: 0.72,
     eye: HARBOUR_EYE,
     target: [ANCHORAGE_CENTRE[0], ANCHORAGE_CENTRE[1], 0],
   },
   {
-    p: 0.758,
+    p: 0.75,
+    eye: HARBOUR_EYE,
+    target: [ANCHORAGE_CENTRE[0], ANCHORAGE_CENTRE[1], 0],
+  },
+  {
+    p: 0.764,
     eye: [-6.55, 36.22, 15],
     target: [ANCHORAGE_CENTRE[0], ANCHORAGE_CENTRE[1], 0],
   },
@@ -133,5 +152,10 @@ export const ROAD_FLIGHT: readonly CameraKey[] = [
   // foreground in its two bodies, the combined fleet's line strung across
   // the water beyond them under the coast of Cape Trafalgar, the frigates
   // between. Close enough, a few kilometres up, for both formations to read.
+  // The camera settles on it a little before the end and holds, so the scene
+  // ends on a still frame and every ship of both fleets has come in by then
+  // (the glyphs' sizes are eased over the scroll, and the last steps of a
+  // descent still under way had kept the allied line small).
+  { p: LAST_HOLD, eye: LAST_EYE, target: aim(LAST_EYE, DAWN_HEADING, -13, 30) },
   { p: 1, eye: LAST_EYE, target: aim(LAST_EYE, DAWN_HEADING, -13, 30) },
 ];

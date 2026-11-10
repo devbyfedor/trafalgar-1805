@@ -243,6 +243,7 @@ export function Scene02Road() {
                 drawn = -1;
                 return s.ashore(p);
               },
+              spreadShift: () => s.spreadShift(),
               layoutDebug: (p: number) => {
                 drawn = -1;
                 return s.layoutDebug(p);
@@ -356,6 +357,11 @@ declare global {
       pathParts: (p: number, step: number) => number[][];
       /** Development: each fleet ship against the coast at p (RoadStage.ashore). */
       ashore: (p: number) => number[];
+      /** Development: each ship's shift from her place at the sources' spacing, km (RoadStage.spreadShift). */
+      spreadShift: () => {
+        dawn: { name: string; km: number }[];
+        anchorage: { name: string; km: number }[];
+      };
       /** Development: each squadron's layout at p (RoadStage.layoutDebug). */
       layoutDebug: (p: number) => Record<string, unknown>[];
       /** Development: a glyph's baked sizes by step (RoadStage.bakedSizes). */

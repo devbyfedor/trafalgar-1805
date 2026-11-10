@@ -310,10 +310,33 @@ function strew(
   return points.map(([x, y]) => place(x, y));
 }
 
+/** How a ragged line is drawn beyond the sources' raggedness (DAWN_SPREAD). */
+interface LineDrawing {
+  /** Each step between 1 ∓ uneven/2 of the mean (0.9 at the sources' raggedness). */
+  uneven?: number;
+  /** The line drawn this many times its length about its middle. */
+  stretch?: number;
+  /** The gap between the divisions, in steps. */
+  divisionGap?: number;
+  /**
+   * The steps either side of ship `lead` this many times as long: a group's
+   * lead is drawn at her full size, about twice the others' in a crowd, and
+   * took her neighbours' room.
+   */
+  lead?: number;
+  leadRoom?: number;
+  /**
+   * The steps at the line's start this much longer than the mean, at its
+   * end as much shorter (in proportion): the start lies farther from the
+   * last frame's camera, so its ships stood closer together on screen.
+   */
+  taper?: number;
+}
+
 /**
  * A ragged line: `count` ships from `from` to `to` (degrees), in uneven
  * steps with a gap where `breakAt` (0..1 along it) splits it into two
- * divisions, each ship off the line by up to `wander` km.
+ * divisions, each ship off the line by up to `wander` km (LineDrawing).
  */
 function raggedLine(
   count: number,
@@ -322,12 +345,27 @@ function raggedLine(
   wander: number,
   breakAt: number,
   seed: number,
+  drawing: LineDrawing = {},
 ): [number, number][] {
+  const {
+    uneven = 0.9,
+    stretch = 1,
+    divisionGap = 3.2,
+    lead = -1,
+    leadRoom = 1,
+    taper = 0,
+  } = drawing;
   const rng = createRng(seed);
-  const x0 = worldX(from[0]);
-  const y0 = worldY(from[1]);
-  const x1 = worldX(to[0]);
-  const y1 = worldY(to[1]);
+  const ax = worldX(from[0]);
+  const ay = worldY(from[1]);
+  const bx = worldX(to[0]);
+  const by = worldY(to[1]);
+  const mx = (ax + bx) / 2;
+  const my = (ay + by) / 2;
+  const x0 = mx + (ax - mx) * stretch;
+  const y0 = my + (ay - my) * stretch;
+  const x1 = mx + (bx - mx) * stretch;
+  const y1 = my + (by - my) * stretch;
   const len = Math.hypot(x1 - x0, y1 - y0);
   const nx = -(y1 - y0) / len;
   const ny = (x1 - x0) / len;
@@ -335,9 +373,11 @@ function raggedLine(
   const steps: number[] = [];
   for (let i = 0; i < count - 1; i++) {
     const u = (i + 0.5) / (count - 1);
-    const gap = Math.abs(u - breakAt) < 0.5 / (count - 1) ? 3.2 : 1;
-    steps.push(gap * (0.55 + rng() * 0.9));
+    const gap = Math.abs(u - breakAt) < 0.5 / (count - 1) ? divisionGap : 1;
+    steps.push(gap * (1 + (rng() - 0.5) * uneven) * (1 + taper * (1 - 2 * u)));
   }
+  if (lead > 0) steps[lead - 1] *= leadRoom;
+  if (lead >= 0 && lead < count - 1) steps[lead] *= leadRoom;
   const total = steps.reduce((s, v) => s + v, 0);
   const out: [number, number][] = [];
   let u = 0;
@@ -368,7 +408,87 @@ function raggedLine(
  *   (west) of the van (the south end), heading 180–195° true on the
  *   starboard tack; its frigates to leeward, inshore.
  */
-function dawnBerths(): Map<Ship, Berth> {
+/** How the dawn fleets are laid out about their sources' places (DAWN_SPREAD). */
+interface DawnSpread {
+  /** The main body's line and Gravina's squadron's, drawn this many times their lengths. */
+  mainStretch: number;
+  gravinaStretch: number;
+  /** Their steps' unevenness (LineDrawing.uneven). */
+  uneven: number;
+  /** How far a ship stands off her line, km. */
+  mainWander: number;
+  gravinaWander: number;
+  /** The gap between the main body's two divisions, in steps. */
+  divisionGap: number;
+  /** The steps either side of a line's lead, scaled (LineDrawing.leadRoom). */
+  leadRoom: number;
+  /** The steps at a line's far (northern) end longer, its near end shorter (LineDrawing.taper). */
+  taper: number;
+  /** The British bodies drawn this much wider about their leads. */
+  britishStretch: number;
+  /** The French frigates this far farther inshore (east), km. */
+  frigatesInshore: number;
+}
+
+/** The layout of the sources' estimate, as session 9 drew it. */
+const SOURCES_SPREAD: DawnSpread = {
+  mainStretch: 1,
+  gravinaStretch: 1,
+  uneven: 0.9,
+  mainWander: 0.55,
+  gravinaWander: 0.7,
+  divisionGap: 3.2,
+  leadRoom: 1,
+  taper: 0,
+  britishStretch: 1,
+  frigatesInshore: 0,
+};
+
+/**
+ * The owner's licence of 10 November 2026: the dawn fleets eased apart a
+ * little, so the last frame shows every ship (at the sources' spacing the
+ * allied line's 33 stood about 9 CSS px apart there, under a glyph's
+ * width, and all but a few were hidden). The fleets' centres and so their
+ * distance apart stay true, and so does the order: the British in their
+ * two loose bodies, the allied line ragged across the water. The allied
+ * lines are drawn longer about their middles and their steps evened out;
+ * seen from the last frame they lie 19.5° off square to the view, so a
+ * third of each ship's distance off her line (its wander) moved her along
+ * it on screen, bunching some and opening others, and the far (northern)
+ * end stood 10 % closer together; each line's lead, drawn at her full
+ * size in a crowd, is given room. The British bodies are drawn a little
+ * wider about their leads, the French frigates a little farther inshore
+ * (from the last frame they stood among the line's glyphs). The largest
+ * shift from the sources' places is in decisions.md (dawnSpreadShift).
+ */
+const DAWN_SPREAD: DawnSpread = {
+  mainStretch: 1.5,
+  gravinaStretch: 1.2,
+  uneven: 0.12,
+  mainWander: 0.2,
+  gravinaWander: 0.3,
+  divisionGap: 1.3,
+  leadRoom: 1.6,
+  taper: 0.13,
+  britishStretch: 1.15,
+  frigatesInshore: 3,
+};
+
+/** Places about a centre (degrees) drawn `k` times as far from it. */
+function scaled(
+  at: [number, number][],
+  centre: readonly [number, number],
+  k: number,
+): [number, number][] {
+  const cx = worldX(centre[0]);
+  const cy = worldY(centre[1]);
+  return at.map(([lon, lat]) =>
+    place(cx + (worldX(lon) - cx) * k, cy + (worldY(lat) - cy) * k),
+  );
+}
+
+/** Both fleets at first light on 21 October (see the comments above), as `spread` lays them out. */
+function dawnBerths(spread: DawnSpread): Map<Ship, Berth> {
   const berths = new Map<Ship, Berth>();
   const rng = createRng(2110);
   const set = (ships: readonly Ship[], at: [number, number][], h: number) => {
@@ -380,25 +500,26 @@ function dawnBerths(): Map<Ship, Berth> {
   const nelson = BRITISH.filter((s) => s.group === "nelson");
   const africa = nelson.find((s) => s.name === "Africa");
   const nelsonBody = nelson.filter((s) => s !== africa);
+  const victory = [VICTORY_AT_DAWN.lon, VICTORY_AT_DAWN.lat] as const;
   set(
     nelsonBody,
-    strew(
-      nelsonBody.length,
-      [VICTORY_AT_DAWN.lon, VICTORY_AT_DAWN.lat],
-      3.6,
-      2.6,
-      140,
-      0.9,
-      11,
-      true,
+    scaled(
+      strew(nelsonBody.length, victory, 3.6, 2.6, 140, 0.9, 11, true),
+      victory,
+      spread.britishStretch,
     ),
     47,
   );
   if (africa) berths.set(africa, { lon: -6.5, lat: 36.35, heading: 47 });
   const collingwood = BRITISH.filter((s) => s.group === "collingwood");
+  const sovereign = [-6.452, 36.075] as const;
   set(
     collingwood,
-    strew(collingwood.length, [-6.452, 36.075], 3.8, 2.8, 150, 0.9, 12, true),
+    scaled(
+      strew(collingwood.length, sovereign, 3.8, 2.8, 150, 0.9, 12, true),
+      sovereign,
+      spread.britishStretch,
+    ),
     47,
   );
   const main = COMBINED.filter((s) => s.group === "main");
@@ -411,9 +532,17 @@ function dawnBerths(): Map<Ship, Berth> {
     order.length,
     [-6.222, 36.205],
     [-6.236, 36.118],
-    0.55,
+    spread.mainWander,
     0.45,
     13,
+    {
+      uneven: spread.uneven,
+      stretch: spread.mainStretch,
+      divisionGap: spread.divisionGap,
+      lead: order.findIndex((s) => s.lead),
+      leadRoom: spread.leadRoom,
+      taper: spread.taper,
+    },
   );
   order.forEach((s, i) => {
     const [lon, lat] = line[i];
@@ -424,15 +553,24 @@ function dawnBerths(): Map<Ship, Berth> {
     gravina.length,
     [-6.262, 36.16],
     [-6.268, 36.098],
-    0.7,
+    spread.gravinaWander,
     2,
     14,
+    {
+      uneven: spread.uneven,
+      stretch: spread.gravinaStretch,
+      lead: gravina.findIndex((s) => s.lead),
+      leadRoom: spread.leadRoom,
+      taper: spread.taper,
+    },
   );
   gravina.forEach((s, i) => {
     const [lon, lat] = squadron[i];
     berths.set(s, { lon, lat, heading: 188 + jitter(rng, 6) });
   });
-  // Frigates: the British between the fleets, the French inshore of theirs.
+  // Frigates: the British between the fleets, the French inshore of theirs
+  // (with DAWN_SPREAD a few km farther inshore, 6 km or more off the coast
+  // still, and spread along the longer line).
   const frigates = [
     ["Euryalus", -6.33, 36.17],
     ["Naiad", -6.36, 36.14],
@@ -444,22 +582,50 @@ function dawnBerths(): Map<Ship, Berth> {
     ["Rhin", -6.18, 36.17],
     ["Thémis", -6.2, 36.1],
   ] as const;
+  // The allied line's middle, north and south.
+  const lineMiddle = worldY(36.1615);
+  const along = (spread.mainStretch + spread.gravinaStretch) / 2;
   for (const [name, lon, lat] of frigates) {
     const s = [...BRITISH, ...COMBINED].find(
       (x) => x.name === name && x.group === "frigates",
     );
-    if (s) {
-      berths.set(s, {
-        lon,
-        lat,
-        heading: s.side === "british" ? 47 : 186 + jitter(rng, 5),
-      });
-    }
+    if (!s) continue;
+    // The French along the line as it is drawn, and inshore of it.
+    const [flon, flat] =
+      s.side === "combined"
+        ? place(
+            worldX(lon) + spread.frigatesInshore,
+            lineMiddle + (worldY(lat) - lineMiddle) * along,
+          )
+        : [lon, lat];
+    berths.set(s, {
+      lon: flon,
+      lat: flat,
+      heading: s.side === "british" ? 47 : 186 + jitter(rng, 5),
+    });
   }
   return berths;
 }
 
-export const DAWN: ReadonlyMap<Ship, Berth> = dawnBerths();
+export const DAWN: ReadonlyMap<Ship, Berth> = dawnBerths(DAWN_SPREAD);
+
+/**
+ * Development: how far each ship stands at dawn, as drawn (DAWN_SPREAD),
+ * from where the sources' estimate put her (SOURCES_SPREAD), km.
+ */
+export function dawnSpreadShift(): { name: string; km: number }[] {
+  const sources = dawnBerths(SOURCES_SPREAD);
+  return [...DAWN].map(([ship, b]) => {
+    const a = sources.get(ship) ?? b;
+    return {
+      name: ship.name,
+      km: Math.hypot(
+        worldX(b.lon) - worldX(a.lon),
+        worldY(b.lat) - worldY(a.lat),
+      ),
+    };
+  });
+}
 
 /**
  * The combined fleet at anchor off Cádiz, 10–19 October: out of range of
@@ -470,8 +636,17 @@ export const DAWN: ReadonlyMap<Ship, Berth> = dawnBerths();
  * a few ships (the Fougueux among them) at the outer end of the narrows
  * between the Puntal and Matagorda forts (a-h2c.md, H2-36c–e; history
  * notes, "Positions on the chart"). The frigates lie inside the lines.
+ *
+ * The owner's licence of 10 November 2026: the lines and the frigates
+ * inside them are drawn ANCHORAGE_SPREAD times as far from the
+ * anchorage's middle, so the harbour's close view (beat 4) shows every
+ * ship; at the sources' spacing its glyphs stood closer than their width
+ * and all but three were hidden. The narrows' ships stay where they were.
  */
-function anchorage(): Map<Ship, Berth> {
+const ANCHORAGE_SPREAD = 1.2;
+const ANCHORAGE_MIDDLE = [-6.2726, 36.5636] as const;
+
+function anchorage(spread: number): Map<Ship, Berth> {
   const berths = new Map<Ship, Berth>();
   const rng = createRng(1019);
   const heading = 294;
@@ -497,6 +672,12 @@ function anchorage(): Map<Ship, Berth> {
     { from: [-6.2835, 36.5655], to: [-6.2585, 36.5622] },
     { from: [-6.2805, 36.5688], to: [-6.2605, 36.566] },
   ] as const;
+  // Opened about the anchorage's middle (ANCHORAGE_SPREAD).
+  const [mx, my] = ANCHORAGE_MIDDLE;
+  const open = (lon: number, lat: number) => ({
+    lon: mx + (lon - mx) * spread,
+    lat: my + (lat - my) * spread,
+  });
   // The sortie's seven at the WNW ends of the rows, the rest after them.
   const queue = [...first, ...rest];
   const perRow = Math.ceil(queue.length / rows.length);
@@ -505,8 +686,10 @@ function anchorage(): Map<Ship, Berth> {
     const k = Math.floor(i / rows.length);
     const u = perRow > 1 ? k / (perRow - 1) : 0;
     berths.set(s, {
-      lon: r.from[0] + (r.to[0] - r.from[0]) * u + jitter(rng, 0.0006),
-      lat: r.from[1] + (r.to[1] - r.from[1]) * u + jitter(rng, 0.0004),
+      ...open(
+        r.from[0] + (r.to[0] - r.from[0]) * u + jitter(rng, 0.0006),
+        r.from[1] + (r.to[1] - r.from[1]) * u + jitter(rng, 0.0004),
+      ),
       heading: heading + jitter(rng, 3),
     });
   });
@@ -520,15 +703,32 @@ function anchorage(): Map<Ship, Berth> {
   const frigates = COMBINED.filter((s) => s.group === "frigates");
   frigates.forEach((s, i) => {
     berths.set(s, {
-      lon: -6.272 + i * 0.0035,
-      lat: 36.5555 + jitter(rng, 0.0004),
+      ...open(-6.272 + i * 0.0035, 36.5555 + jitter(rng, 0.0004)),
       heading: heading + jitter(rng, 3),
     });
   });
   return berths;
 }
 
-export const ANCHORAGE: ReadonlyMap<Ship, Berth> = anchorage();
+export const ANCHORAGE: ReadonlyMap<Ship, Berth> = anchorage(ANCHORAGE_SPREAD);
+
+/**
+ * Development: how far each ship at anchor stands, as drawn
+ * (ANCHORAGE_SPREAD), from her berth at the sources' spacing, km.
+ */
+export function anchorageSpreadShift(): { name: string; km: number }[] {
+  const sources = anchorage(1);
+  return [...ANCHORAGE].map(([ship, b]) => {
+    const a = sources.get(ship) ?? b;
+    return {
+      name: ship.name,
+      km: Math.hypot(
+        worldX(b.lon) - worldX(a.lon),
+        worldY(b.lat) - worldY(a.lat),
+      ),
+    };
+  });
+}
 
 /**
  * Stage A's proof, kept for the lab: the fleets at dawn on 21 October (now

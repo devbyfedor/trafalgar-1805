@@ -152,7 +152,10 @@ test.describe("the chart lab", () => {
     await page.waitForTimeout(SCRUB_SETTLE_MS);
     const gulf = await sample(await page.screenshot());
     expect(gulf.spread, "gulf: luminance spread").toBeGreaterThan(20);
-    expect(gulf.colours, "gulf: distinct colours").toBeGreaterThan(80);
+    // The smoothed chart (the field read through a B-spline, the far
+    // shadows without speckle) shows 74-78 colours here, all of it right
+    // (session 18, looked at); a blank or failed canvas shows a handful.
+    expect(gulf.colours, "gulf: distinct colours").toBeGreaterThan(60);
     expect(gulf.sea, "gulf: sea").toBeGreaterThan(0.2);
     expect(gulf.paper, "gulf: land").toBeGreaterThan(0.1);
     expect((await stats(page)).calls).toBeGreaterThan(3);

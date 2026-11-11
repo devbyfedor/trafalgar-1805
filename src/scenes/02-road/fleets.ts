@@ -898,14 +898,21 @@ function anchorage(spread: number): Map<Ship, Berth> {
   // The sortie's seven at the WNW ends of the rows, the rest after them.
   const queue = [...first, ...rest];
   const perRow = Math.ceil(queue.length / rows.length);
+  // The Argonaute, at the head of the outer row, stood beside the
+  // Santísima Trinidad of the next row on screen in the harbour's view and
+  // was drawn at half size there: a cable further toward the passes.
+  const NUDGE: Record<string, readonly [number, number]> = {
+    Argonaute: [-0.0012, 0.0003],
+  };
   queue.forEach((s, i) => {
     const r = rows[i % rows.length];
     const k = Math.floor(i / rows.length);
     const u = perRow > 1 ? k / (perRow - 1) : 0;
+    const [nx, ny] = NUDGE[s.name] ?? [0, 0];
     berths.set(s, {
       ...open(
-        r.from[0] + (r.to[0] - r.from[0]) * u + jitter(rng, 0.0006),
-        r.from[1] + (r.to[1] - r.from[1]) * u + jitter(rng, 0.0004),
+        r.from[0] + (r.to[0] - r.from[0]) * u + jitter(rng, 0.0006) + nx,
+        r.from[1] + (r.to[1] - r.from[1]) * u + jitter(rng, 0.0004) + ny,
       ),
       heading: heading + jitter(rng, 3),
     });

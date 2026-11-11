@@ -598,7 +598,7 @@ The owner's note 2 of 11 November: the shifts were promised as a few hundred met
 
 The south end moves a little more than the north: Gravina's flagship, now at the head where the sources have her and drawn at her full size, stands in front of it on screen. Shorter shifts were tried and dropped: a glyph floor of 11 CSS px needs 2.1 km and more; the line kept to its ragged steps (no step closing up) 2.07 km; easing ships out of the line in depth costs about five times as many metres on screen as along it (8 against 44 device px a km at 34 km). James's "nearly five miles" at daybreak is his own figure for all 33 ships at a cable's length apart (III 389), not a measurement; the chart gives the main body alone 5.2 nm at the sources' spacing.
 
-**At anchor:** 0.26 km at most (the Thémis), mean 0.15 km (`ANCHORAGE_SPREAD`, as session 16).
+**At anchor:** 0.26 km at most (the Thémis), mean 0.15 km (`ANCHORAGE_SPREAD`, as session 16); the Argonaute, at the head of the outer row, a cable further toward the passes (`NUDGE`): beside the Santísima Trinidad of the next row on screen she had been drawn at half size through the harbour's hold, as in session 16; all 40 now show at full size from p 0.73 to 0.74.
 
 **After** (dev server): the last frame shows all 72 ships in it at the four sizes from p 0.99 (the Africa 13 nm north and the Observateur at Cádiz lie outside it); the harbour's hold all 40 of the allies in it at p 0.735 (the Fougueux in the narrows lies outside it, as the history has it; the Argonaute, under the bake's sweep of ships weighing near her, half size at 0.73 and 0.74, as in session 16). The clash check over p 0–0.1 and 0.65–1 and the motion check over 0.65–1: zero; nothing under way within 1.82 km of the coast.
 

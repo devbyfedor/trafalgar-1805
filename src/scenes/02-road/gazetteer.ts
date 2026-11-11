@@ -193,7 +193,9 @@ export const GAZETTEER: readonly Label[] = [
     role: "place",
     lon: -1.088,
     lat: 50.82,
-    size: 12,
+    // Read from the far views of Nelson's passages (beat 3), where his
+    // August track ends and his September one begins; capped close up.
+    size: 48,
     mark: "town",
     side: "above",
   },
@@ -418,6 +420,8 @@ export const GAZETTEER: readonly Label[] = [
     lat: 16.74,
     size: 19,
     side: "left",
+    // Gives way to Antigua's name, which it ran into in the islands' views.
+    rank: 1,
   },
   {
     text: "Guadaloupe",
@@ -478,8 +482,11 @@ export const GAZETTEER: readonly Label[] = [
   },
   { text: "Salvages", role: "island", lon: -15.95, lat: 30.08, size: 14 },
   // Beat 3: Galicia from the Finisterre view; the Channel from the views of
-  // Nelson's passages (about 1,700 km up); Spithead and St. Helens, by
-  // Portsmouth, only for nearer views.
+  // Nelson's passages, about 1,700 km up and 3,500-3,950 km off at the
+  // farthest (p 0.6-0.645), each about 12 CSS px there
+  // (scripts/dev/name-sizes.mjs): Ushant and Portsmouth, where his tracks
+  // turn, always; the rest are minor names (rank) that show where they have
+  // room and give way where the narrow strip of the Channel crowds them.
   {
     text: "Corunna",
     role: "place",
@@ -523,7 +530,7 @@ export const GAZETTEER: readonly Label[] = [
     role: "island",
     lon: -5.2,
     lat: 48.459,
-    size: 24,
+    size: 43,
     side: "left",
   },
   {
@@ -531,7 +538,8 @@ export const GAZETTEER: readonly Label[] = [
     role: "island",
     lon: -6.42,
     lat: 49.93,
-    size: 22,
+    size: 45,
+    rank: 1,
     side: "left",
   },
   {
@@ -539,7 +547,8 @@ export const GAZETTEER: readonly Label[] = [
     role: "cape",
     lon: -5.206,
     lat: 49.957,
-    size: 20,
+    size: 45,
+    rank: 1,
     side: "left",
   },
   {
@@ -547,7 +556,8 @@ export const GAZETTEER: readonly Label[] = [
     role: "cape",
     lon: -3.642,
     lat: 50.222,
-    size: 18,
+    size: 46,
+    rank: 2,
     side: "right",
   },
   {
@@ -555,7 +565,8 @@ export const GAZETTEER: readonly Label[] = [
     role: "place",
     lon: -4.142,
     lat: 50.37,
-    size: 18,
+    size: 46,
+    rank: 1,
     mark: "town",
     side: "above",
   },
@@ -564,11 +575,26 @@ export const GAZETTEER: readonly Label[] = [
     role: "island",
     lon: -1.3,
     lat: 50.6,
-    size: 20,
+    size: 47,
+    rank: 1,
     side: "below",
   },
-  { text: "Spithead", role: "water", lon: -1.115, lat: 50.765, size: 3 },
-  { text: "St. Helens", role: "water", lon: -1.04, lat: 50.705, size: 2.5 },
+  {
+    text: "Spithead",
+    role: "water",
+    lon: -1.115,
+    lat: 50.765,
+    size: 47,
+    rank: 2,
+  },
+  {
+    text: "St. Helens",
+    role: "water",
+    lon: -1.04,
+    lat: 50.705,
+    size: 47,
+    rank: 3,
+  },
   // Beat 5: the march to Ulm, from the cut-away (about 750 km off); Vienna,
   // where it went on, from the continental views.
   {
@@ -657,9 +683,11 @@ export const GAZETTEER: readonly Label[] = [
   {
     text: "Danube",
     role: "water",
-    lon: 10.55,
-    lat: 48.6,
+    // East of Donawerth, on the reach toward Neuburg, where the river runs
+    // nearly east: between Ulm and Donawerth it lay over Donawerth's name.
+    lon: 11.22,
+    lat: 48.745,
     size: 9.4,
-    angle: 23,
+    angle: 4,
   },
 ];

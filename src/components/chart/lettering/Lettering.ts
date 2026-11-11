@@ -170,6 +170,8 @@ interface Placed {
    * its mark, four corners (x, y) in order; NaN when it doesn't show.
    */
   quad: Float64Array;
+  /** Its place in the labels' order (the gazetteer's), for ties of rank. */
+  order: number;
 }
 
 /** A name's state in the last frame, for development and tests. */
@@ -302,6 +304,7 @@ export class Lettering implements ChartLayer {
         emPx: 0,
         scale: 1,
         bounds: null,
+        order: this.placed.length,
         quad: new Float64Array(8),
       });
       const placed = this.placed[this.placed.length - 1];
@@ -421,7 +424,16 @@ export class Lettering implements ChartLayer {
       const rank = p.label.rank ?? 0;
       let keep = 1;
       for (const q of this.placed) {
-        if (q === p || (q.label.rank ?? 0) >= rank || q.opacity <= 0.001)
+        // Before it: a lower rank, or the same rank set earlier on the
+        // chart (the gazetteer's order), so two minor names never stand
+        // over each other either.
+        const qRank = q.label.rank ?? 0;
+        if (
+          q === p ||
+          q.opacity <= 0.001 ||
+          qRank > rank ||
+          (qRank === rank && q.order > p.order)
+        )
           continue;
         if (Number.isNaN(q.quad[0])) continue;
         const apart = quadsApart(p.quad, q.quad);

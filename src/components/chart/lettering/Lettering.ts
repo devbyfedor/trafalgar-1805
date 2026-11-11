@@ -29,6 +29,12 @@ import { MARK_HALF_EM, MARK_RING_EM, type MarkKind, Marks } from "./marks";
  * A town can have a mark on its site (marks.ts), with its name set beside
  * it; mark and name scale and fade together.
  *
+ * A minor name (rank above 0) gives way to the names that rank before it:
+ * it fades as its letters come near theirs on screen (YIELD_PX), so the
+ * chart shows it while it has room and never sets two names over each
+ * other. The fade follows the names' places on screen, which the camera
+ * moves smoothly, so it comes and goes with the scroll.
+ *
  * Fonts come only from this site (fonts.ts). troika fetches a fallback
  * font from a CDN for any character neither a label's font nor the default
  * font covers, and pointing its fallback at this site doesn't stop that (it
@@ -68,6 +74,12 @@ export interface Label {
    * and stays; 0 fades it out instead. Defaults by role, and for capitals.
    */
   capPx?: number;
+  /**
+   * A minor name's rank: it gives way to every name of a lower rank that
+   * shows, fading as its letters come near theirs (0, the default, never
+   * gives way).
+   */
+  rank?: number;
 }
 
 /**
@@ -115,6 +127,14 @@ uniform vec3 uInkDark;
 /** The gap between a mark's ring and its name, in ems. */
 const MARK_GAP_EM = 0.2;
 
+/**
+ * A minor name is gone while its box stands within YIELD_PX[0] of a
+ * higher-ranked name's on screen and fully there from YIELD_PX[1] (CSS
+ * px), easing between: it shows where it has room or not at all, never as
+ * a ghost crowding its neighbour.
+ */
+const YIELD_PX: readonly [number, number] = [4, 10];
+
 let configured = false;
 
 /** troika's global settings, before the first text is made. */
@@ -141,6 +161,13 @@ interface Placed {
   /** This frame's em size on screen (CSS px) and scale on the chart. */
   emPx: number;
   scale: number;
+  /** The typeset block in the text's own frame (world km at scale 1), once known. */
+  bounds: [number, number, number, number] | null;
+  /**
+   * Its outline on screen this frame, CSS px: the typeset block widened to
+   * its mark, four corners (x, y) in order; NaN when it doesn't show.
+   */
+  quad: Float64Array;
 }
 
 /** A name's state in the last frame, for development and tests. */
@@ -272,13 +299,18 @@ export class Lettering implements ChartLayer {
         opacity: 0,
         emPx: 0,
         scale: 1,
+        bounds: null,
+        quad: new Float64Array(8),
       });
       const placed = this.placed[this.placed.length - 1];
       syncs.push(
         new Promise((resolve) =>
           text.sync(() => {
             const b = text.textRenderInfo?.blockBounds;
-            if (b) placed.radius = 0.5 * Math.hypot(b[2] - b[0], b[3] - b[1]);
+            if (b) {
+              placed.radius = 0.5 * Math.hypot(b[2] - b[0], b[3] - b[1]);
+              placed.bounds = [b[0], b[1], b[2], b[3]];
+            }
             resolve();
           }),
         ),
@@ -286,7 +318,15 @@ export class Lettering implements ChartLayer {
     }
     this.marks = new Marks(field, kinds, this.uniforms, this.inkDark);
     this.ready = Promise.all(syncs).then(() => undefined);
+    // Minor names give way in order of rank, after the names before them.
+    this.ranked = this.placed
+      .filter((p) => (p.label.rank ?? 0) > 0)
+      .sort((a, b) => (a.label.rank ?? 0) - (b.label.rank ?? 0));
   }
+
+  /** The minor names, by rank. */
+  private readonly ranked: Placed[];
+  private readonly at = new Vector3();
 
   update(frame: FrameInfo): void {
     const u = this.uniforms;
@@ -320,7 +360,6 @@ export class Lettering implements ChartLayer {
       p.emPx = emPx * scale;
       p.scale = scale;
       const text = p.text;
-      text.fillOpacity = p.opacity;
       text.scale.setScalar(scale);
       const em = size * scale;
       text.position.set(
@@ -328,11 +367,100 @@ export class Lettering implements ChartLayer {
         p.at.y + p.offset[1] * em,
         0,
       );
+    }
+    if (this.ranked.length > 0) this.giveWay(frame);
+    for (const p of this.placed) {
+      p.text.fillOpacity = p.opacity;
       if (p.mark >= 0) {
+        const em = p.label.size * p.scale;
         this.marks.set(p.mark, p.at.x, p.at.y, MARK_HALF_EM * em, p.opacity);
       }
     }
     this.marks.commit();
+  }
+
+  /**
+   * Each minor name fades by how near its outline on screen comes to the
+   * outlines of the names that rank before it, as those show.
+   */
+  private giveWay(frame: FrameInfo): void {
+    for (const p of this.placed) this.outline(p, frame);
+    for (const p of this.ranked) {
+      if (p.opacity <= 0.001 || Number.isNaN(p.quad[0])) continue;
+      const rank = p.label.rank ?? 0;
+      let keep = 1;
+      for (const q of this.placed) {
+        if (q === p || (q.label.rank ?? 0) >= rank || q.opacity <= 0.001)
+          continue;
+        if (Number.isNaN(q.quad[0])) continue;
+        const apart = quadsApart(p.quad, q.quad);
+        // A name that shows at all counts in full (one in the haze still sets
+        // its letters there); one still coming in counts as it comes.
+        const there = smooth(0.03, 0.2, q.opacity);
+        keep *= 1 - there * (1 - smooth(YIELD_PX[0], YIELD_PX[1], apart));
+      }
+      p.opacity *= keep;
+    }
+  }
+
+  /**
+   * A name's outline on screen (CSS px): its typeset block in its own frame,
+   * widened to take in its mark's ring, its corners projected from the sea.
+   */
+  private outline(p: Placed, frame: FrameInfo): void {
+    const quad = p.quad;
+    quad[0] = Number.NaN;
+    const b = p.bounds;
+    if (!b || p.opacity <= 0.001) return;
+    const t = p.text;
+    const angle = t.rotation.z;
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    const k = p.scale;
+    let x0 = b[0];
+    let y0 = b[1];
+    let x1 = b[2];
+    let y1 = b[3];
+    if (p.mark >= 0) {
+      // The site in the text's own frame (at scale 1), and its ring.
+      const dx = (p.at.x - t.position.x) / k;
+      const dy = (p.at.y - t.position.y) / k;
+      const mx = dx * cos + dy * sin;
+      const my = -dx * sin + dy * cos;
+      const r = MARK_RING_EM * p.label.size;
+      x0 = Math.min(x0, mx - r);
+      y0 = Math.min(y0, my - r);
+      x1 = Math.max(x1, mx + r);
+      y1 = Math.max(y1, my + r);
+    }
+    const c = cos * k;
+    const s = sin * k;
+    const x = t.position.x;
+    const y = t.position.y;
+    if (
+      !this.corner(quad, 0, frame, x + x0 * c - y0 * s, y + x0 * s + y0 * c) ||
+      !this.corner(quad, 1, frame, x + x1 * c - y0 * s, y + x1 * s + y0 * c) ||
+      !this.corner(quad, 2, frame, x + x1 * c - y1 * s, y + x1 * s + y1 * c) ||
+      !this.corner(quad, 3, frame, x + x0 * c - y1 * s, y + x0 * s + y1 * c)
+    )
+      quad[0] = Number.NaN;
+  }
+
+  /** Projects a point on the sea to CSS px into quad corner i; false behind the eye. */
+  private corner(
+    quad: Float64Array,
+    i: number,
+    frame: FrameInfo,
+    x: number,
+    y: number,
+  ): boolean {
+    const cam = frame.camera;
+    const v = this.at.set(x, y, 0).applyMatrix4(cam.matrixWorldInverse);
+    if (v.z > -cam.near) return false;
+    v.applyMatrix4(cam.projectionMatrix);
+    quad[i * 2] = (v.x * 0.5 + 0.5) * (frame.width / frame.dpr);
+    quad[i * 2 + 1] = (0.5 - v.y * 0.5) * (frame.height / frame.dpr);
+    return true;
   }
 
   /** Every name's state in the last frame (development and tests). */
@@ -350,6 +478,42 @@ export class Lettering implements ChartLayer {
     this.batch.dispose();
     this.marks.dispose();
   }
+}
+
+/**
+ * How far apart two convex quadrilaterals are (corners x, y in order), by
+ * the separating axes of their edges: the widest gap between their
+ * shadows on any edge's normal, negative where they overlap (then the
+ * least overlap). No allocation.
+ */
+function quadsApart(a: Float64Array, b: Float64Array): number {
+  let best = Number.NEGATIVE_INFINITY;
+  for (let side = 0; side < 2; side++) {
+    const q = side === 0 ? a : b;
+    for (let e = 0; e < 4; e++) {
+      const ex = q[((e + 1) % 4) * 2] - q[e * 2];
+      const ey = q[((e + 1) % 4) * 2 + 1] - q[e * 2 + 1];
+      const len = Math.hypot(ex, ey);
+      if (len < 1e-9) continue;
+      const nx = -ey / len;
+      const ny = ex / len;
+      let amin = Number.POSITIVE_INFINITY;
+      let amax = Number.NEGATIVE_INFINITY;
+      let bmin = Number.POSITIVE_INFINITY;
+      let bmax = Number.NEGATIVE_INFINITY;
+      for (let i = 0; i < 4; i++) {
+        const pa = a[i * 2] * nx + a[i * 2 + 1] * ny;
+        const pb = b[i * 2] * nx + b[i * 2 + 1] * ny;
+        if (pa < amin) amin = pa;
+        if (pa > amax) amax = pa;
+        if (pb < bmin) bmin = pb;
+        if (pb > bmax) bmax = pb;
+      }
+      const gap = Math.max(bmin - amax, amin - bmax);
+      if (gap > best) best = gap;
+    }
+  }
+  return best;
 }
 
 function smooth(e0: number, e1: number, x: number): number {

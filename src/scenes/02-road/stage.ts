@@ -20,8 +20,10 @@ import {
 import { type BenchResult, benchFrames } from "@/components/chart/engine/bench";
 import { worldX, worldY } from "@/components/chart/geo/mercator";
 import type { ClashResult } from "@/components/chart/glyphs/clash";
+import { glyphPxAt } from "@/components/chart/glyphs/height";
 import { type Formation, GlyphLayout } from "@/components/chart/glyphs/layout";
 import { GlyphProbe } from "@/components/chart/glyphs/probe";
+import type { LabelState } from "@/components/chart/lettering/Lettering";
 import type { WaterLift } from "@/components/chart/terrain/liftProbe";
 import { ROAD_FLIGHT } from "./camera";
 import {
@@ -37,7 +39,6 @@ import {
   dawnSpreadShift,
   GLYPH_TYPES,
 } from "./fleets";
-import { glyphPxAt } from "@/components/chart/glyphs/height";
 import { GAZETTEER } from "./gazetteer";
 import { NELSON, VILLENEUVE } from "./routes";
 import { SOUNDING_ANGLES } from "./soundings";
@@ -133,6 +134,8 @@ export interface RoadStage {
     sizeRef: number;
     hazeVisibility: number;
   };
+  /** Development: draws the scene at p and returns every name's state (Lettering.snapshot). */
+  labels(p: number): LabelState[];
   /** Development: draws the scene at p and returns each squadron's layout (GlyphLayout.debug). */
   layoutDebug(p: number): Record<string, unknown>[];
   /** Development: a glyph's baked sizes by step (GlyphLayout.bakedSizes). */
@@ -557,6 +560,12 @@ export async function createRoadStage(
         return out;
       },
       dawnFleet,
+      labels(p) {
+        sampled = Number.NaN;
+        director.apply(p);
+        chart.frame(performance.now() / 1000);
+        return lettering.snapshot();
+      },
       fleetAt(p) {
         sampled = Number.NaN;
         director.applyState(p);

@@ -275,10 +275,11 @@ export const GAZETTEER: readonly Label[] = [
   // Channel: the coast's names lie 90-140 km off and are seen at an
   // elevation of only 12-19 degrees, so lying flat on the chart their
   // letters stand a quarter to a third as tall as their em. Their caps are
-  // raised so the foreshortened letters read (about 8 CSS px of capital);
-  // Ambleteuse, Vimereux and Deal, which would then overlap their
-  // neighbours, are left to the history notes (docs/decisions.md, "The
-  // names on screen").
+  // raised so the foreshortened letters read (about 8 CSS px of capital).
+  // Ambleteuse, Vimereux and Deal are minor names (rank): they show while
+  // the camera comes down and they have room, and give way smoothly to the
+  // names above as the close-up draws them together (the owner's answer of
+  // 11 November 2026; docs/decisions.md, "The names on screen").
   {
     text: "Dover",
     role: "place",
@@ -315,6 +316,39 @@ export const GAZETTEER: readonly Label[] = [
     capPx: 40,
   },
   {
+    text: "Vimereux",
+    role: "place",
+    lon: 1.611,
+    lat: 50.77,
+    size: 2,
+    mark: "town",
+    capPx: 34,
+    rank: 1,
+  },
+  {
+    text: "Ambleteuse",
+    role: "place",
+    lon: 1.605,
+    lat: 50.807,
+    size: 2,
+    mark: "town",
+    capPx: 34,
+    rank: 2,
+  },
+  {
+    text: "Deal",
+    role: "place",
+    lon: 1.402,
+    lat: 51.223,
+    size: 2,
+    mark: "town",
+    // Inland, west of the town: The Downs, the anchorage off it, is
+    // lettered over the water to the east.
+    side: "left",
+    capPx: 34,
+    rank: 1,
+  },
+  {
     text: "Etaples",
     role: "place",
     lon: 1.639,
@@ -326,9 +360,10 @@ export const GAZETTEER: readonly Label[] = [
   {
     text: "The Downs",
     role: "water",
-    lon: 1.53,
-    lat: 51.22,
-    size: 5.5,
+    // Over the roadstead toward the Goodwins, its west end clear of Deal.
+    lon: 1.575,
+    lat: 51.215,
+    size: 4.8,
     showPx: [9, 90],
   },
   // Beat 2: the Mediterranean from the chase's opening (about 2,000 km up).

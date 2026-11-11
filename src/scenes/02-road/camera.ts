@@ -33,7 +33,6 @@ const DAWN_EYE: Lla = offset(
 /** The last frame's eye: west of the British, 6.5 km up. */
 const LAST_EYE: Lla = [-6.6, 36.1, 6.5];
 
-
 /**
  * The harbour close up (beat 4): over the city, 3.5 km up, looking along 24°
  * across the bay at the combined fleet's three lines at anchor (fleets.ts,

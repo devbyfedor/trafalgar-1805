@@ -266,6 +266,10 @@ export function Scene02Road() {
               },
               spreadShift: () => s.spreadShift(),
               dawnFleet: () => s.dawnFleet(),
+              labels: (p: number) => {
+                drawn = -1;
+                return s.labels(p);
+              },
               fleetAt: (p: number) => {
                 drawn = -1;
                 return s.fleetAt(p);
@@ -392,6 +396,10 @@ declare global {
         dawn: { name: string; km: number }[];
         anchorage: { name: string; km: number }[];
       };
+      /** Development: every name's state at p (RoadStage.labels). */
+      labels: (
+        p: number,
+      ) => import("@/components/chart/lettering/Lettering").LabelState[];
       /** Development: both fleets at first light (RoadStage.dawnFleet). */
       dawnFleet: () => ReturnType<import("./stage").RoadStage["dawnFleet"]>;
       /** Development: each fleet ship's intended place at p (RoadStage.fleetAt). */

@@ -114,7 +114,25 @@ export function buildRoadChoreography(
     }
   };
   scrimRuns(one("[data-el=scrim-deep]"), DEEP_SCRIM);
-  scrimRuns(one("[data-el=scrim-chapter]"), CHAPTER_SCRIM);
+  // The chapter marker's scrim follows its curve, key to key.
+  const chapterScrim = one("[data-el=scrim-chapter]");
+  if (chapterScrim)
+    for (let i = 0; i + 1 < CHAPTER_SCRIM.length; i++) {
+      const [p0, o0] = CHAPTER_SCRIM[i];
+      const [p1, o1] = CHAPTER_SCRIM[i + 1];
+      if (p1 <= p0) continue;
+      tl.fromTo(
+        chapterScrim,
+        { opacity: o0 },
+        {
+          opacity: o1,
+          ease: "none",
+          duration: p1 - p0,
+          immediateRender: false,
+        },
+        p0,
+      );
+    }
 
   // The date line holds its place from Boulogne on; its text runs with the
   // story (the scene writes it each frame).

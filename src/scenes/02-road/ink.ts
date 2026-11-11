@@ -62,13 +62,52 @@ export const DEEP_SCRIM: readonly ScrimRun[] = [
 ];
 
 /**
- * Where the chapter marker, top left, would stand on the bright far haze or
- * land of the daylight views, its own soft scrim comes in: measured in
- * light ink with no scrim, it read 1.2-3.5:1 from the handoff to the night
- * (0.82; a few short stretches over the sea passed, too short to let the
- * scrim go) and again from the dawn's brightening (0.955).
+ * The chapter marker's own soft scrim, top left, as light as each view
+ * lets it be: its opacity over p (keys, joined by straight lines). Measured
+ * in light ink with no scrim the marker reads 1.2-1.5:1 over the brightest
+ * haze and land of the daylight views and 2-4:1 over many others; the
+ * curve gives each view the least opacity that keeps the marker at 4.7:1 or
+ * more at all four of the owner's and the large sizes, taken as the most
+ * any view within 0.02 of p needs, so it comes and goes over a stretch of
+ * scroll (scripts/dev/chapter-scrim.mjs, chapter-scrim-curve.mjs; the
+ * owner's answer of 11 November 2026: lighter in the bright daylight views,
+ * never under 4.5:1). Over the sea and at night it needs none.
  */
-export const CHAPTER_SCRIM: readonly ScrimRun[] = [
-  [0, 0.02, 0.815, 0.835],
-  [0.935, 0.952, 1, 1],
+export const CHAPTER_SCRIM: readonly (readonly [number, number])[] = [
+  [0, 0],
+  [0.02, 0.46],
+  [0.03, 0.54],
+  [0.04, 0.71],
+  [0.06, 0.82],
+  [0.25, 0.87],
+  [0.27, 0.86],
+  [0.28, 0.75],
+  [0.3, 0.76],
+  [0.31, 0.88],
+  [0.44, 0.87],
+  [0.5, 0.89],
+  [0.52, 0.69],
+  [0.53, 0.69],
+  [0.55, 0.88],
+  [0.59, 0.89],
+  [0.6, 0.88],
+  [0.65, 0.89],
+  [0.68, 0.83],
+  [0.71, 0.88],
+  [0.76, 0.88],
+  [0.79, 0.84],
+  [0.8, 0.84],
+  [0.81, 0.81],
+  [0.82, 0.65],
+  [0.83, 0.38],
+  [0.84, 0.14],
+  [0.85, 0],
+  [0.92, 0],
+  [0.93, 0.08],
+  [0.94, 0.19],
+  [0.95, 0.38],
+  [0.96, 0.53],
+  [0.97, 0.64],
+  [0.98, 0.67],
+  [1, 0.68],
 ];

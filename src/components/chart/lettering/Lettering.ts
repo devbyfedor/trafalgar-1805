@@ -33,7 +33,9 @@ import { MARK_HALF_EM, MARK_RING_EM, type MarkKind, Marks } from "./marks";
  * it fades as its letters come near theirs on screen (YIELD_PX), so the
  * chart shows it while it has room and never sets two names over each
  * other. The fade follows the names' places on screen, which the camera
- * moves smoothly, so it comes and goes with the scroll.
+ * moves smoothly, so it comes and goes with the scroll. Every name gives
+ * way alike to a keep-out on screen the host sets (setKeepOut: the
+ * caption's card while a caption shows), so no name lies under its text.
  *
  * Fonts come only from this site (fonts.ts). troika fetches a fallback
  * font from a CDN for any character neither a label's font nor the default
@@ -368,7 +370,7 @@ export class Lettering implements ChartLayer {
         0,
       );
     }
-    if (this.ranked.length > 0) this.giveWay(frame);
+    if (this.ranked.length > 0 || this.keepWeight > 0) this.giveWay(frame);
     for (const p of this.placed) {
       p.text.fillOpacity = p.opacity;
       if (p.mark >= 0) {
@@ -380,11 +382,40 @@ export class Lettering implements ChartLayer {
   }
 
   /**
-   * Each minor name fades by how near its outline on screen comes to the
-   * outlines of the names that rank before it, as those show.
+   * A region of the screen (CSS px, from the canvas's top left) where no
+   * name may lie, as strongly as `weight` (0..1): the caption's card while a
+   * caption shows. Names give way to it as minor names do to the others.
+   */
+  setKeepOut(x0: number, y0: number, x1: number, y1: number, weight: number) {
+    const k = this.keepQuad;
+    k[0] = x0;
+    k[1] = y0;
+    k[2] = x1;
+    k[3] = y0;
+    k[4] = x1;
+    k[5] = y1;
+    k[6] = x0;
+    k[7] = y1;
+    this.keepWeight = Math.min(1, Math.max(0, weight));
+  }
+
+  private readonly keepQuad = new Float64Array(8);
+  private keepWeight = 0;
+
+  /**
+   * Every name fades as its outline on screen comes near the keep-out
+   * (setKeepOut); then each minor name by how near it comes to the names
+   * that rank before it, as those show.
    */
   private giveWay(frame: FrameInfo): void {
     for (const p of this.placed) this.outline(p, frame);
+    if (this.keepWeight > 0)
+      for (const p of this.placed) {
+        if (p.opacity <= 0.001 || Number.isNaN(p.quad[0])) continue;
+        const apart = quadsApart(p.quad, this.keepQuad);
+        p.opacity *=
+          1 - this.keepWeight * (1 - smooth(YIELD_PX[0], YIELD_PX[1], apart));
+      }
     for (const p of this.ranked) {
       if (p.opacity <= 0.001 || Number.isNaN(p.quad[0])) continue;
       const rank = p.label.rank ?? 0;

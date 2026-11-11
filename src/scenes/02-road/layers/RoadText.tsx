@@ -17,9 +17,9 @@ const CHAPTER_PEAK = 0.65;
  * - A scrim behind the card, as strong as contrast needs over the chart;
  *   a deeper one where the camera passes over bright land between
  *   framings that keep the sea under the card (ink.ts, DEEP_SCRIM); and
- *   one behind the chapter marker where the daylight views put bright
- *   haze or land under it (CHAPTER_SCRIM). The deeper two are soft and
- *   wide, and come and go over a long stretch of scroll.
+ *   one behind the chapter marker, as strong as each daylight view's
+ *   haze or land under it needs (CHAPTER_SCRIM). The deeper two are soft
+ *   and wide, and come and go over a long stretch of scroll.
  *
  * Initial CSS state is the scene's first frame in motion mode (everything
  * transparent: scene 1's text is still showing). Opacity, never

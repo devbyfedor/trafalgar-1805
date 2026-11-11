@@ -25,6 +25,7 @@ import { type Formation, GlyphLayout } from "@/components/chart/glyphs/layout";
 import { GlyphProbe } from "@/components/chart/glyphs/probe";
 import type { LabelState } from "@/components/chart/lettering/Lettering";
 import type { WaterLift } from "@/components/chart/terrain/liftProbe";
+import { CAPTIONS } from "./beats";
 import { ROAD_FLIGHT } from "./camera";
 import {
   fleetMarks,
@@ -42,6 +43,12 @@ import {
 import { GAZETTEER } from "./gazetteer";
 import { NELSON, VILLENEUVE } from "./routes";
 import { SOUNDING_ANGLES } from "./soundings";
+
+/** smoothstep: 0 before a, 1 after b. */
+function rise(a: number, b: number, x: number): number {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+}
 
 /**
  * Scene 2's chart and everything on it. The scene imports this module
@@ -285,6 +292,29 @@ export async function createRoadStage(
     const fleets = new Glyphs(atlas, fleetMarks());
     const squadrons = new Glyphs(atlas, squadronMarks());
     const lettering = new Lettering(chart.field, GAZETTEER);
+    // The caption's card, lower left: no name lies under its text while a
+    // caption shows (Lettering.setKeepOut). Its box on the canvas, measured
+    // at each resize; how much a caption shows, from its run over p.
+    const card = { x0: 0, y0: 0, x1: 0, y1: 0 };
+    const measureCard = () => {
+      const host = options.labels;
+      const el =
+        host?.parentElement?.querySelector<HTMLElement>("[data-el=card]");
+      if (!host || !el) return;
+      const h = host.getBoundingClientRect();
+      const c = el.getBoundingClientRect();
+      card.x0 = c.left - h.left;
+      card.y0 = c.top - h.top;
+      card.x1 = c.right - h.left;
+      card.y1 = c.bottom - h.top;
+    };
+    measureCard();
+    const keepCard = (p: number) => {
+      let shows = 0;
+      for (const [a, b, c, d] of Object.values(CAPTIONS))
+        shows = Math.max(shows, rise(a, b, p) * (1 - rise(c, d, p)));
+      lettering.setKeepOut(card.x0, card.y0, card.x1, card.y1, shows);
+    };
     chart.add(lettering, lettering.batch, lettering.marks.mesh);
     await lettering.ready;
     options.signal.throwIfAborted();
@@ -388,6 +418,7 @@ export async function createRoadStage(
       draw(p, time) {
         sampled = Number.NaN;
         director.apply(p);
+        keepCard(p);
         chart.frame(time);
         signs.update();
       },
@@ -563,6 +594,7 @@ export async function createRoadStage(
       labels(p) {
         sampled = Number.NaN;
         director.apply(p);
+        keepCard(p);
         chart.frame(performance.now() / 1000);
         return lettering.snapshot();
       },
@@ -607,6 +639,7 @@ export async function createRoadStage(
       },
       resize(width, height) {
         chart.resize(width, height);
+        measureCard();
       },
       bake,
       dispose() {

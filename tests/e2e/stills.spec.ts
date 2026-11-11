@@ -21,16 +21,20 @@ const FRAMES: readonly [beat: string, p: number][] = [
   ["boulogne", 0.215],
   ["chase", 0.41],
   ["finisterre", 0.54],
-  ["cadiz", 0.745],
+  // The middle of the harbour's hold, every ship at anchor in.
+  ["cadiz", 0.735],
   ["night", 1],
 ];
 
 test("renders one still per beat", async ({ page }) => {
   test.setTimeout(300_000);
   await open(page, "/");
-  await page.waitForFunction(() => window.__road?.ready, null, {
-    timeout: 120_000,
-  });
+  // The glyph layout's tables baked for this viewport, as the frames read them.
+  await page.waitForFunction(
+    () => window.__road?.ready && window.__road.baked,
+    null,
+    { timeout: 180_000 },
+  );
   await page.addStyleTag({
     content: "#road [data-layer=text] { visibility: hidden !important; }",
   });

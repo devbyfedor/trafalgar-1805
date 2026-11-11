@@ -265,6 +265,15 @@ export function Scene02Road() {
                 return s.ashore(p);
               },
               spreadShift: () => s.spreadShift(),
+              dawnFleet: () => s.dawnFleet(),
+              fleetAt: (p: number) => {
+                drawn = -1;
+                return s.fleetAt(p);
+              },
+              cameraAt: (p: number) => {
+                drawn = -1;
+                return s.cameraAt(p);
+              },
               layoutDebug: (p: number) => {
                 drawn = -1;
                 return s.layoutDebug(p);
@@ -383,6 +392,14 @@ declare global {
         dawn: { name: string; km: number }[];
         anchorage: { name: string; km: number }[];
       };
+      /** Development: both fleets at first light (RoadStage.dawnFleet). */
+      dawnFleet: () => ReturnType<import("./stage").RoadStage["dawnFleet"]>;
+      /** Development: each fleet ship's intended place at p (RoadStage.fleetAt). */
+      fleetAt: (p: number) => number[];
+      /** Development: the camera at p (RoadStage.cameraAt). */
+      cameraAt: (
+        p: number,
+      ) => ReturnType<import("./stage").RoadStage["cameraAt"]>;
       /** Development: each squadron's layout at p (RoadStage.layoutDebug). */
       layoutDebug: (p: number) => Record<string, unknown>[];
       /** Development: a glyph's baked sizes by step (RoadStage.bakedSizes). */

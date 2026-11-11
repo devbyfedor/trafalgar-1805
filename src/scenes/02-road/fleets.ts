@@ -310,7 +310,11 @@ function strew(
   return points.map(([x, y]) => place(x, y));
 }
 
-/** How a ragged line is drawn beyond the sources' raggedness (DAWN_SPREAD). */
+/**
+ * How a ragged line is drawn (DawnSpread). Session 16 drew the dawn lines
+ * longer and evener through these; the owner's licence is now DAWN_EASE,
+ * ship by ship, and the lines are drawn as the sources' estimate has them.
+ */
 interface LineDrawing {
   /** Each step between 1 ∓ uneven/2 of the mean (0.9 at the sources' raggedness). */
   uneven?: number;
@@ -408,7 +412,7 @@ function raggedLine(
  *   (west) of the van (the south end), heading 180–195° true on the
  *   starboard tack; its frigates to leeward, inshore.
  */
-/** How the dawn fleets are laid out about their sources' places (DAWN_SPREAD). */
+/** How the dawn fleets are laid out (SOURCES_SPREAD: the sources' estimate). */
 interface DawnSpread {
   /** The main body's line and Gravina's squadron's, drawn this many times their lengths. */
   mainStretch: number;
@@ -442,36 +446,6 @@ const SOURCES_SPREAD: DawnSpread = {
   taper: 0,
   britishStretch: 1,
   frigatesInshore: 0,
-};
-
-/**
- * The owner's licence of 10 November 2026: the dawn fleets eased apart a
- * little, so the last frame shows every ship (at the sources' spacing the
- * allied line's 33 stood about 9 CSS px apart there, under a glyph's
- * width, and all but a few were hidden). The fleets' centres and so their
- * distance apart stay true, and so does the order: the British in their
- * two loose bodies, the allied line ragged across the water. The allied
- * lines are drawn longer about their middles and their steps evened out;
- * seen from the last frame they lie 19.5° off square to the view, so a
- * third of each ship's distance off her line (its wander) moved her along
- * it on screen, bunching some and opening others, and the far (northern)
- * end stood 10 % closer together; each line's lead, drawn at her full
- * size in a crowd, is given room. The British bodies are drawn a little
- * wider about their leads, the French frigates a little farther inshore
- * (from the last frame they stood among the line's glyphs). The largest
- * shift from the sources' places is in decisions.md (dawnSpreadShift).
- */
-const DAWN_SPREAD: DawnSpread = {
-  mainStretch: 1.5,
-  gravinaStretch: 1.2,
-  uneven: 0.12,
-  mainWander: 0.2,
-  gravinaWander: 0.3,
-  divisionGap: 1.3,
-  leadRoom: 1.6,
-  taper: 0.13,
-  britishStretch: 1.15,
-  frigatesInshore: 3,
 };
 
 /** Places about a centre (degrees) drawn `k` times as far from it. */
@@ -569,8 +543,8 @@ function dawnBerths(spread: DawnSpread): Map<Ship, Berth> {
     berths.set(s, { lon, lat, heading: 188 + jitter(rng, 6) });
   });
   // Frigates: the British between the fleets, the French inshore of theirs
-  // (with DAWN_SPREAD a few km farther inshore, 6 km or more off the coast
-  // still, and spread along the longer line).
+  // (frigatesInshore and the lines' stretch move them with a drawing that
+  // spreads the lines; the sources' estimate leaves them here).
   const frigates = [
     ["Euryalus", -6.33, 36.17],
     ["Naiad", -6.36, 36.14],
@@ -607,22 +581,168 @@ function dawnBerths(spread: DawnSpread): Map<Ship, Berth> {
   return berths;
 }
 
-export const DAWN: ReadonlyMap<Ship, Berth> = dawnBerths(DAWN_SPREAD);
+/** A ship's key: her side and name (both fleets had a Neptune, an Achille and a Swiftsure). */
+export function shipKey(ship: Ship): string {
+  return `${ship.side}:${ship.name}`;
+}
+
+/** Both fleets at first light as the sources' estimate lays them out (session 9). */
+export const DAWN_SOURCES: ReadonlyMap<Ship, Berth> =
+  dawnBerths(SOURCES_SPREAD);
+
+/** Metres over the ground per degree of latitude (and of longitude at the equator). */
+const M_PER_DEG = 111_195;
+
+/** Each ship moved from her place in `from` by `ease` (metres east and north over the ground). */
+function easedBerths(
+  from: ReadonlyMap<Ship, Berth>,
+  ease: Readonly<Record<string, readonly [number, number]>>,
+): Map<Ship, Berth> {
+  const out = new Map<Ship, Berth>();
+  for (const [ship, b] of from) {
+    const [east, north] = ease[shipKey(ship)] ?? [0, 0];
+    out.set(ship, {
+      lon: b.lon + east / (M_PER_DEG * Math.cos((b.lat * Math.PI) / 180)),
+      lat: b.lat + north / M_PER_DEG,
+      heading: b.heading,
+    });
+  }
+  return out;
+}
 
 /**
- * Development: how far each ship stands at dawn, as drawn (DAWN_SPREAD),
- * from where the sources' estimate put her (SOURCES_SPREAD), km.
+ * Development: a trial ease from the browser's storage (`road.dawnEase`,
+ * JSON in DAWN_EASE's form; `{}` for the sources' places), for
+ * scripts/dev/fleet-ease.mjs. Never in production.
+ */
+function trialEase(): Record<string, readonly [number, number]> | null {
+  if (process.env.NODE_ENV === "production" || typeof window === "undefined")
+    return null;
+  try {
+    const raw = window.localStorage.getItem("road.dawnEase");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The owner's licence of 10 November 2026, narrowed at his request on 11
+ * November: each ship's shift from her place at the sources' spacing,
+ * metres east and north over the ground (keys as shipKey). Found by
+ * scripts/dev/fleet-ease.mjs for the last frame on the owner's screen,
+ * where it is tightest: the least shifts that let every ship there stand at
+ * her group's common size, 10 CSS px or more, clear of every other glyph,
+ * as the glyph layout lays them out. The allied main body's line is spread
+ * along itself in its order (an L∞ isotonic fit: the least largest shift
+ * for the room its 21 ships need side by side on screen, the gap between
+ * its divisions kept); then the few ships still crowded (in the British
+ * bodies, Gravina's squadron and the frigates) are eased apart by a few
+ * tens of metres. Ships not listed stand at their places. Each shift over
+ * a kilometre and why: docs/decisions.md, "the fleets eased apart".
+ */
+const DAWN_EASE: Readonly<Record<string, readonly [number, number]>> = {
+  "british:Neptune": [23, 5],
+  "british:Conqueror": [-66, -15],
+  "british:Minotaur": [-20, -4],
+  "british:Tonnant": [-2, -8],
+  "british:Bellerophon": [2, 8],
+  "british:Swiftsure": [26, 6],
+  "british:Thunderer": [-5, -54],
+  "british:Defence": [4, 58],
+  "british:Prince": [-22, -5],
+  "combined:Bucentaure": [-1, -476],
+  "combined:Santísima Trinidad": [-30, -627],
+  "combined:Formidable": [173, 1937],
+  "combined:Neptune": [163, 1898],
+  "combined:Indomptable": [110, 1525],
+  "combined:Redoutable": [49, 1085],
+  "combined:Fougueux": [34, 1010],
+  "combined:Pluton": [-34, 509],
+  "combined:Mont-Blanc": [-101, 20],
+  "combined:Intrépide": [-136, -223],
+  "combined:Scipion": [-178, -539],
+  "combined:Duguay-Trouin": [-197, -648],
+  "combined:Héros": [-64, -807],
+  "combined:Santa Ana": [-87, -934],
+  "combined:Rayo": [-113, -1315],
+  "combined:Neptuno": [-157, -1368],
+  "combined:Monarca": [-182, -1520],
+  "combined:San Agustín": [-182, -1484],
+  "combined:San Francisco de Asís": [-203, -1615],
+  "combined:San Justo": [-226, -1763],
+  "combined:San Leandro": [-205, -1812],
+  "combined:Príncipe de Asturias": [68, -244],
+  "combined:Algésiras": [58, -214],
+  "combined:Achille": [47, -343],
+  "combined:Argonaute": [24, -149],
+  "combined:Berwick": [6, -38],
+  "combined:Aigle": [4, -32],
+  "combined:Swiftsure": [-60, 26],
+  "combined:San Ildefonso": [-52, -11],
+  "combined:Rhin": [-19, 90],
+};
+
+export const DAWN: ReadonlyMap<Ship, Berth> = easedBerths(
+  DAWN_SOURCES,
+  trialEase() ?? DAWN_EASE,
+);
+
+/** The great-circle distance between two places (degrees), metres. */
+function groundMetres(a: Berth, b: Berth): number {
+  const r = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * r;
+  const dLon = (b.lon - a.lon) * r;
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dLon / 2) ** 2;
+  return 2 * 6_371_008.8 * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+/**
+ * Development: how far each ship stands at dawn, as drawn, from where the
+ * sources' estimate put her, km over the ground. (Session 16 measured
+ * this in the chart's Mercator km, which run sec φ, about 1.24 times, the
+ * ground's here.)
  */
 export function dawnSpreadShift(): { name: string; km: number }[] {
-  const sources = dawnBerths(SOURCES_SPREAD);
-  return [...DAWN].map(([ship, b]) => {
-    const a = sources.get(ship) ?? b;
+  return [...DAWN].map(([ship, b]) => ({
+    name: shipKey(ship),
+    km: groundMetres(DAWN_SOURCES.get(ship) ?? b, b) / 1000,
+  }));
+}
+
+/**
+ * Development: both fleets at first light for scripts/dev/fleet-ease.mjs:
+ * each ship's key, group, lead, size and heading, and her place at the
+ * sources' spacing and as drawn (world km), in the fleets layer's mark
+ * order (BRITISH, then COMBINED).
+ */
+export function dawnFleet(): {
+  key: string;
+  side: Side;
+  group: Ship["group"];
+  lead: boolean;
+  size: number;
+  heading: number;
+  lat: number;
+  sources: [number, number];
+  drawn: [number, number];
+}[] {
+  return [...BRITISH, ...COMBINED].map((ship) => {
+    const a = DAWN_SOURCES.get(ship);
+    const b = DAWN.get(ship);
+    if (!a || !b) throw new Error(`no dawn berth for ${ship.name}`);
     return {
-      name: ship.name,
-      km: Math.hypot(
-        worldX(b.lon) - worldX(a.lon),
-        worldY(b.lat) - worldY(a.lat),
-      ),
+      key: shipKey(ship),
+      side: ship.side,
+      group: ship.group,
+      lead: Boolean(ship.lead),
+      size: ship.rig.size ?? 1,
+      heading: b.heading,
+      lat: a.lat,
+      sources: [worldX(a.lon), worldY(a.lat)],
+      drawn: [worldX(b.lon), worldY(b.lat)],
     };
   });
 }
@@ -718,16 +838,10 @@ export const ANCHORAGE: ReadonlyMap<Ship, Berth> = anchorage(ANCHORAGE_SPREAD);
  */
 export function anchorageSpreadShift(): { name: string; km: number }[] {
   const sources = anchorage(1);
-  return [...ANCHORAGE].map(([ship, b]) => {
-    const a = sources.get(ship) ?? b;
-    return {
-      name: ship.name,
-      km: Math.hypot(
-        worldX(b.lon) - worldX(a.lon),
-        worldY(b.lat) - worldY(a.lat),
-      ),
-    };
-  });
+  return [...ANCHORAGE].map(([ship, b]) => ({
+    name: shipKey(ship),
+    km: groundMetres(sources.get(ship) ?? b, b) / 1000,
+  }));
 }
 
 /**

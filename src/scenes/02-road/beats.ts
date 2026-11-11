@@ -36,6 +36,17 @@ export const CAPTIONS: Record<
 };
 
 /**
+ * Where the camera settles on the last frame and holds it to the scene's
+ * end (camera.ts), about 300 px of scroll on the owner's screen; the clock
+ * comes to dawn there, at rest, so the fleets stand at their dawn places
+ * through the hold: the still tableau scene 3 takes up. They had sailed on
+ * through it (from about 5.20 a.m.), the formations still opening into
+ * their dawn order, so the last frame's layout changed under a still
+ * camera and the eased sizes never settled before the end.
+ */
+export const LAST_HOLD = 0.978;
+
+/**
  * The story's clock: the day the chart shows, as a monotone curve through
  * (p, day) keys within each beat. Between the first beats the clock jumps
  * (the scene opens on 21 October, goes back to Boulogne and the spring),
@@ -96,6 +107,7 @@ const CLOCK: Record<BeatId, readonly Keyframe[]> = {
     [0.85, day(10, 20, 18)],
     [0.9, day(10, 20, 22)],
     [0.95, day(10, 21, 2)],
+    [LAST_HOLD, day(10, 21, 6.6)],
     [1, day(10, 21, 6.6)],
   ],
 };

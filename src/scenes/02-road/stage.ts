@@ -31,7 +31,13 @@ import {
   squadronMarks,
   squadronNames,
 } from "./director";
-import { anchorageSpreadShift, dawnSpreadShift, GLYPH_TYPES } from "./fleets";
+import {
+  anchorageSpreadShift,
+  dawnFleet,
+  dawnSpreadShift,
+  GLYPH_TYPES,
+} from "./fleets";
+import { glyphPxAt } from "@/components/chart/glyphs/height";
 import { GAZETTEER } from "./gazetteer";
 import { NELSON, VILLENEUVE } from "./routes";
 import { SOUNDING_ANGLES } from "./soundings";
@@ -103,6 +109,29 @@ export interface RoadStage {
   spreadShift(): {
     dawn: { name: string; km: number }[];
     anchorage: { name: string; km: number }[];
+  };
+  /** Development: both fleets at first light, at the sources' places and as drawn (fleets.ts, dawnFleet). */
+  dawnFleet(): ReturnType<typeof dawnFleet>;
+  /** Development: each fleet ship's intended place at p (world km) and her opacity: [x, y, opacity] each. */
+  fleetAt(p: number): number[];
+  /**
+   * Development: the camera at p, for laying out the dawn fleets off the
+   * page (scripts/dev/fleet-ease.mjs): its view and projection matrices
+   * (column-major), the canvas in device px, the device pixel ratio, the
+   * eye (world km), the glyph cell's height for its altitude (CSS px), the
+   * distance at which glyphs take their nominal size (km) and the haze's
+   * visibility (km).
+   */
+  cameraAt(p: number): {
+    view: number[];
+    projection: number[];
+    width: number;
+    height: number;
+    dpr: number;
+    eye: [number, number, number];
+    sizePx: number;
+    sizeRef: number;
+    hazeVisibility: number;
   };
   /** Development: draws the scene at p and returns each squadron's layout (GlyphLayout.debug). */
   layoutDebug(p: number): Record<string, unknown>[];
@@ -526,6 +555,40 @@ export async function createRoadStage(
             it.opacity[i],
           );
         return out;
+      },
+      dawnFleet,
+      fleetAt(p) {
+        sampled = Number.NaN;
+        director.applyState(p);
+        const it = fleets.intent;
+        const out: number[] = [];
+        for (let i = 0; i < fleets.markCount; i++)
+          out.push(it.x[i], it.y[i], it.opacity[i]);
+        return out;
+      },
+      cameraAt(p) {
+        sampled = Number.NaN;
+        director.applyState(p);
+        const camera = chart.camera;
+        camera.updateMatrixWorld();
+        const canvas = chart.renderer.domElement;
+        const frame = chart.peekFrame();
+        const eye = frame.eye;
+        return {
+          view: Array.from(camera.matrixWorldInverse.elements),
+          projection: Array.from(camera.projectionMatrix.elements),
+          width: canvas.width,
+          height: canvas.height,
+          dpr: chart.renderer.getPixelRatio(),
+          eye: [eye.x, eye.y, eye.z],
+          sizePx: glyphPxAt(eye.z),
+          hazeVisibility: frame.hazeVisibility,
+          sizeRef: Math.hypot(
+            frame.target.x - eye.x,
+            frame.target.y - eye.y,
+            eye.z,
+          ),
+        };
       },
       spreadShift() {
         return { dawn: dawnSpreadShift(), anchorage: anchorageSpreadShift() };

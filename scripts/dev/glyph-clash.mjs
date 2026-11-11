@@ -62,6 +62,20 @@ for (const size of sizes) {
   page.on("pageerror", (e) => errors.push(e.message));
   // The top quality, pinned: a step of the ladder would rescale the frame.
   if (page_ === "road") {
+    // EASE=<file>: a trial table of the dawn fleets' shifts (fleets.ts,
+    // DAWN_EASE's form; scripts/dev/fleet-ease.mjs), "{}" for the sources' places.
+    if (process.env.EASE) {
+      const { readFileSync } = await import("node:fs");
+      const ease =
+        process.env.EASE === "{}"
+          ? "{}"
+          : readFileSync(process.env.EASE, "utf8");
+      await page.addInitScript((json) => {
+        try {
+          window.localStorage.setItem("road.dawnEase", json);
+        } catch {}
+      }, ease);
+    }
     await page.goto(`${base}/?quality=0`);
     await page.waitForFunction(
       () => window.__road?.ready && window.__road.baked,

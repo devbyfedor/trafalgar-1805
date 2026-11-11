@@ -1,5 +1,6 @@
 import { aim, type Lla, offset } from "@/components/chart/camera/aim";
 import type { CameraKey } from "@/components/chart/camera/rig";
+import { LAST_HOLD } from "./beats";
 import { VICTORY_AT_DAWN } from "./fleets";
 
 /**
@@ -32,14 +33,6 @@ const DAWN_EYE: Lla = offset(
 /** The last frame's eye: west of the British, 6.5 km up. */
 const LAST_EYE: Lla = [-6.6, 36.1, 6.5];
 
-/**
- * Where the camera settles on the last frame and holds it to the scene's
- * end: further back than the glyphs' eased visibility reaches from the end
- * (the least within 0.006 of p, eased over about as much again;
- * glyphs/layout.ts, BAKE_SIZE_EASE_P), about 300 px of scroll on the owner's
- * screen.
- */
-const LAST_HOLD = 0.986;
 
 /**
  * The harbour close up (beat 4): over the city, 3.5 km up, looking along 24°
@@ -152,10 +145,12 @@ export const ROAD_FLIGHT: readonly CameraKey[] = [
   // foreground in its two bodies, the combined fleet's line strung across
   // the water beyond them under the coast of Cape Trafalgar, the frigates
   // between. Close enough, a few kilometres up, for both formations to read.
-  // The camera settles on it a little before the end and holds, so the scene
-  // ends on a still frame and every ship of both fleets has come in by then
-  // (the glyphs' sizes are eased over the scroll, and the last steps of a
-  // descent still under way had kept the allied line small).
+  // The camera settles on it a little before the end and holds (LAST_HOLD:
+  // further back than the glyphs' eased visibility reaches from the end, the
+  // least within 0.006 of p eased over about as much again; layout.ts,
+  // BAKE_SIZE_EASE_P), and the clock comes to dawn there, so the scene ends
+  // on a still frame and every ship of both fleets has come in by then (the
+  // last steps of a descent still under way had kept the allied line small).
   { p: LAST_HOLD, eye: LAST_EYE, target: aim(LAST_EYE, DAWN_HEADING, -13, 30) },
   { p: 1, eye: LAST_EYE, target: aim(LAST_EYE, DAWN_HEADING, -13, 30) },
 ];

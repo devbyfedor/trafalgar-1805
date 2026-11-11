@@ -9,6 +9,18 @@ import { chromium } from "@playwright/test";
 const base = process.env.BASE ?? "http://127.0.0.1:3000";
 const browser = await chromium.launch({ channel: "chromium" });
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+// EASE=<file>: a trial table of the dawn fleets' shifts (fleets.ts,
+// DAWN_EASE's form; scripts/dev/fleet-ease.mjs), "{}" for the sources' places.
+if (process.env.EASE) {
+  const { readFileSync } = await import("node:fs");
+  const ease =
+    process.env.EASE === "{}" ? "{}" : readFileSync(process.env.EASE, "utf8");
+  await page.addInitScript((json) => {
+    try {
+      window.localStorage.setItem("road.dawnEase", json);
+    } catch {}
+  }, ease);
+}
 await page.goto(`${base}/?quality=0`);
 await page.waitForFunction(() => window.__road?.ready, null, {
   timeout: 180_000,

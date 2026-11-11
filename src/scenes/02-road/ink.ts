@@ -10,6 +10,8 @@
  * over a long stretch of scroll (the owner's rule, 9 November 2026).
  */
 
+import type { CSSProperties } from "react";
+
 /** The scrims' colour, the night sea's (as scene 1's scrim). */
 const SCRIM_RGB = "11, 17, 23";
 
@@ -33,6 +35,70 @@ export function softScrim(
     stops.push(`rgba(${SCRIM_RGB}, ${a.toFixed(3)}) ${(t * 100).toFixed(1)}%`);
   }
   return `radial-gradient(ellipse ${ellipse} at ${at}, ${stops.join(", ")})`;
+}
+
+/** A band's guard at each end, where it is nothing (a pixel's sampling). */
+const GUARD = "2px";
+
+/**
+ * A fall's shape from its outer end (t = 0) to the even part (t = 1): a
+ * Gaussian of sigma a third of the fall, set to run from exactly nothing to
+ * full. Level where it meets the even part, it gives most of its strength
+ * away near the text and leaves a long faint tail, so a small scrim reads
+ * as a shadow, not a plate with a rim.
+ */
+function gauss(t: number): number {
+  const k = 4.5;
+  const floor = Math.exp(-k);
+  return (Math.exp(-k * (1 - t) * (1 - t)) - floor) / (1 - floor);
+}
+
+/**
+ * A mask that rises from nothing to full over `start` from its beginning,
+ * holds, and falls away over `end` to its end, each by `gauss`, drawn as a
+ * linear gradient of many stops.
+ */
+function softBand(
+  direction: string,
+  start: string,
+  end: string,
+  steps = 16,
+): string {
+  const rise: string[] = [];
+  const set: string[] = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const a = gauss(t).toFixed(4);
+    const at = (t * 100).toFixed(2);
+    rise.push(
+      `rgba(0, 0, 0, ${a}) calc(${GUARD} + (${start} - ${GUARD}) * ${at} / 100)`,
+    );
+    set.push(
+      `rgba(0, 0, 0, ${a}) calc(100% - ${GUARD} - (${end} - ${GUARD}) * ${at} / 100)`,
+    );
+  }
+  return `linear-gradient(${direction}, ${[...rise, ...set.reverse()].join(", ")})`;
+}
+
+/** A soft patch's falls: [top, right, bottom, left], as CSS lengths. */
+export type Falls = readonly [string, string, string, string];
+
+/**
+ * A soft patch: a scrim that hugs a line of text instead of a corner. Even
+ * over its box but for its outer falls (each side its own), over which it
+ * falls away by a smoothstep; the product of two soft bands, so its corners
+ * round off, with no edge anywhere. Set the box round the text so the text
+ * sits wholly in the even part.
+ */
+export function softPatch(peak: number, falls: Falls): CSSProperties {
+  const [top, right, bottom, left] = falls;
+  return {
+    background: `rgba(${SCRIM_RGB}, ${peak})`,
+    maskImage: `${softBand("to right", left, right)}, ${softBand("to bottom", top, bottom)}`,
+    maskRepeat: "no-repeat",
+    maskSize: "100% 100%",
+    maskComposite: "intersect",
+  };
 }
 
 /**

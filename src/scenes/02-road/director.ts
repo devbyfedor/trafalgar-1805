@@ -878,14 +878,18 @@ export class RoadDirector {
       const s = this.state;
       const inBeat0 = p < BEATS.boulogne[0] + 0.06;
       if (inBeat0) {
+        // At dawn: a ship with no place then (left in port, or gone) isn't
+        // drawn.
         const b = DAWN.get(ship);
-        if (b) {
-          s.x = worldX(b.lon);
-          s.y = worldY(b.lat);
-          s.heading = (b.heading * Math.PI) / 180;
-          s.anchored = false;
-          s.anchorage = 0;
+        if (!b) {
+          glyphs.setOpacity(i, 0);
+          return;
         }
+        s.x = worldX(b.lon);
+        s.y = worldY(b.lat);
+        s.heading = (b.heading * Math.PI) / 180;
+        s.anchored = false;
+        s.anchorage = 0;
       } else if (!shipAt(ship, d, s)) {
         glyphs.setOpacity(i, 0);
         return;
@@ -907,6 +911,10 @@ export class RoadDirector {
       else glyphs.setType(i, ship.rig.sail);
       glyphs.setUnderWay(i, 1 - k);
       let opacity = Math.min(1, shown);
+      // A ship leaving the story (the Weazle, bound for Gibraltar) fades
+      // out over its last few hours, out at sea.
+      if (ship.until !== undefined)
+        opacity *= 1 - smooth(ship.until - 0.12, ship.until, d);
       // Her glyph takes over from scene 1's painted Victory.
       if (i === this.victoryIndex && p < 0.2)
         opacity *= smooth(SWAP[0], SWAP[1], p);

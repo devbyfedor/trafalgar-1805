@@ -100,8 +100,11 @@ const SEPT_28 = day(9, 28, 12);
 
 /**
  * Who got out on 19 October: seven of the line with the frigates Rhin and
- * Hermione, the Thémis following in the evening (history notes, "Orders,
- * Rosily and the sortie").
+ * Hermione, towed out by their boats in the calm from the first signal;
+ * the Thémis in the evening, on the 4 p.m. signal to all the frigates,
+ * and with her, by the Hortense's report, the Cornélie and Hortense
+ * (history notes, "Orders, Rosily and the sortie"; research note
+ * scene-02/session-17/anchorage-19oct.md, section 6).
  */
 const SORTIE = [
   "Algésiras",
@@ -111,10 +114,21 @@ const SORTIE = [
   "Héros",
   "Duguay-Trouin",
   "Bahama",
-  "Rhin",
-  "Hermione",
 ];
-const SORTIE_EVENING = "Thémis";
+const SORTIE_TOWED: Record<string, number> = {
+  // The Rhin weighed at 6.15 by her journal, towed by her boats, and
+  // passed the passes with Magon's division between about 10 and 1
+  // (Desbrière p. 161). The Hermione weighed later in the morning (her
+  // report leaves the hour blank), towed out, and was reconnoitring
+  // outside by about 9.30-10 (annexes pp. 229, 242): about 8.15.
+  Rhin: day(10, 19, 6.25),
+  Hermione: day(10, 19, 8.25),
+};
+const SORTIE_EVENING: Record<string, number> = {
+  Thémis: day(10, 19, 16.5),
+  Cornélie: day(10, 19, 16.65),
+  Hortense: day(10, 19, 16.8),
+};
 
 /**
  * When each ship weighs (days). On the 19th from first light, about an
@@ -135,8 +149,15 @@ const WEIGH = new Map<string, number>();
   ]) {
     if (SORTIE.includes(s.name))
       WEIGH.set(s.name, day(10, 19, 7) + first++ * 0.04);
-    else if (s.name === SORTIE_EVENING) WEIGH.set(s.name, day(10, 19, 17));
+    else if (SORTIE_TOWED[s.name] !== undefined)
+      WEIGH.set(s.name, SORTIE_TOWED[s.name]);
+    else if (SORTIE_EVENING[s.name] !== undefined)
+      WEIGH.set(s.name, SORTIE_EVENING[s.name]);
     else if (s.name === "Rayo") WEIGH.set(s.name, day(10, 20, 8.3));
+    // The Argus weighed at 8.30 to wait for the Rayo and come out with
+    // her (her report, annexes p. 268); the Furet with the main body.
+    else if (s.name === "Argus") WEIGH.set(s.name, day(10, 20, 8.5));
+    else if (s.name === "Furet") WEIGH.set(s.name, day(10, 20, 6.9));
     else if (s.group === "frigates")
       WEIGH.set(s.name, day(10, 20, 7) + frigates++ * 0.003);
     else WEIGH.set(s.name, day(10, 20, 6) + rest++ * 0.0014);
@@ -177,8 +198,7 @@ function dawnOffset(ship: Ship, centre: readonly [number, number]) {
 function combinedKeys(ship: Ship, index: number): Key[] {
   const keys: Key[] = [];
   const berth = ANCHORAGE.get(ship);
-  const dawn = DAWN.get(ship);
-  if (!berth || !dawn) return keys;
+  if (!berth) return keys;
   const [bx, by] = at(berth.lon, berth.lat);
   keys.push({
     day: SEPT_28,
@@ -187,12 +207,29 @@ function combinedKeys(ship: Ship, index: number): Key[] {
     heading: berth.heading,
     anchored: true,
   });
+  // The Observateur stayed at anchor when the fleet sailed.
+  if (ship.stays) {
+    keys.push({
+      day: DAWN_DAY,
+      x: bx,
+      y: by,
+      heading: berth.heading,
+      anchored: true,
+    });
+    return keys;
+  }
+  const dawn = DAWN.get(ship);
+  if (!dawn) return [];
   const centre = centroid(
     COMBINED.filter((s) => s.group !== "frigates"),
     DAWN,
   );
   const [ox, oy] = dawnOffset(ship, centre);
-  const sortie = SORTIE.includes(ship.name) || ship.name === SORTIE_EVENING;
+  const towed = SORTIE_TOWED[ship.name] !== undefined;
+  const sortie =
+    SORTIE.includes(ship.name) ||
+    towed ||
+    SORTIE_EVENING[ship.name] !== undefined;
   const weigh = WEIGH.get(ship.name) ?? day(10, 20, 6);
   keys.push({
     day: weigh,
@@ -201,8 +238,13 @@ function combinedKeys(ship: Ship, index: number): Key[] {
     heading: berth.heading,
     anchored: true,
   });
-  // Out through the passes in an hour or two of light airs.
-  keys.push({ day: weigh + 0.07, x: MOUTH[0], y: MOUTH[1] });
+  // Out through the passes in an hour or two of light airs; the two
+  // frigates towed by their boats in the calm, in about four.
+  keys.push({
+    day: weigh + (ship.name === "Rhin" ? 0.17 : 0.07),
+    x: MOUTH[0],
+    y: MOUTH[1],
+  });
   if (sortie) {
     // Off the port through the afternoon and night of the 19th: about the
     // Algésiras's 4 p.m. bearing, 3¾ nm W by S of the passes.
@@ -231,6 +273,8 @@ function combinedKeys(ship: Ship, index: number): Key[] {
 
 function britishKeys(ship: Ship): Key[] {
   const keys: Key[] = [];
+  // The Weazle left for Gibraltar on the morning of the 19th.
+  if (ship.until !== undefined) return frigateKeys(ship, 0, 0, 0, false);
   const dawn = DAWN.get(ship);
   if (!dawn) return keys;
   const [dx, dy] = at(dawn.lon, dawn.lat);
@@ -238,7 +282,9 @@ function britishKeys(ship: Ship): Key[] {
   const ox = dx - victory[0];
   const oy = dy - victory[1];
   const chain = CHAIN[ship.name];
-  if (ship.group === "frigates") {
+  // The frigates and small craft with tracks of their own; the
+  // Entreprenante, the admiral's tender, keeps by the Victory with the body.
+  if (ship.group === "frigates" && ship.name !== "Entreprenante") {
     return frigateKeys(ship, dx, dy, dawn.heading);
   }
   // At the station, lying to in loose order, the Victory at its centre.
@@ -275,9 +321,20 @@ function britishKeys(ship: Ship): Key[] {
  * The inshore frigates: off the port on the 19th (the Sirius and Euryalus
  * within a few miles of San Sebastián, the Phoebe sent west at 7.20, the
  * Naiad between from 8.10), shadowing the enemy on the 20th, by him in
- * the night, between the fleets at dawn.
+ * the night, between the fleets at dawn. With them the small craft of
+ * Blackwood's squadron: the Pickle, close inshore at night, sent to Cape
+ * Spartel at 9 a.m. on the 19th, back with the fleet on the 20th and in
+ * company with the Sirius through the evening and night (NRS II 146, 312,
+ * 317); the Weazle, sent with the news to Gibraltar and Tetuan at the same
+ * hour, gone from the story that afternoon.
  */
-function frigateKeys(ship: Ship, dx: number, dy: number, dh: number): Key[] {
+function frigateKeys(
+  ship: Ship,
+  dx: number,
+  dy: number,
+  dh: number,
+  toDawn = true,
+): Key[] {
   const path: Record<string, [number, number, number][]> = {
     Sirius: [
       [SEPT_28, -6.36, 36.473],
@@ -307,12 +364,33 @@ function frigateKeys(ship: Ship, dx: number, dy: number, dh: number): Key[] {
       [day(10, 19, 12), -6.567, 36.508],
       [day(10, 21, 0), -6.44, 36.27],
     ],
+    Pickle: [
+      [SEPT_28, -6.375, 36.462],
+      [day(10, 19, 9), -6.38, 36.458],
+      [day(10, 19, 12), -6.33, 36.4],
+      // Off Cape Spartel (35°47′ N 5°55′ W) in the night.
+      [day(10, 19, 22), -5.97, 35.83],
+      // Back with the fleet between Trafalgar and Spartel in the morning,
+      // reconnoitring to the north-west from 2 p.m.; from 5.40 repeating
+      // the Sirius's signals, and with her until midnight.
+      [day(10, 20, 9), -6.02, 35.98],
+      [day(10, 20, 15), -6.45, 36.3],
+      [day(10, 20, 18), -6.47, 36.38],
+      [day(10, 21, 0), -6.44, 36.288],
+    ],
+    Weazle: [
+      [SEPT_28, -6.39, 36.452],
+      [day(10, 19, 9), -6.395, 36.448],
+      // South-south-east of the Euryalus at noon, bound for the Strait.
+      [day(10, 19, 12), -6.35, 36.39],
+      [day(10, 19, 18), -6.05, 36.12],
+    ],
   };
   const keys: Key[] = (path[ship.name] ?? []).map(([d, lon, lat]) => {
     const [x, y] = at(lon, lat);
     return { day: d, x, y };
   });
-  keys.push({ day: DAWN_DAY, x: dx, y: dy, heading: dh });
+  if (toDawn) keys.push({ day: DAWN_DAY, x: dx, y: dy, heading: dh });
   return keys;
 }
 

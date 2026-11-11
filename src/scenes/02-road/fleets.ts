@@ -5,6 +5,7 @@ import {
   worldY,
 } from "@/components/chart/geo/mercator";
 import type { GlyphType, ShipMark } from "@/components/chart/glyphs/Glyphs";
+import { buildCraft } from "@/components/ship/geometry/smallcraft";
 import { type DeriveOptions, deriveSpec } from "@/components/ship/specs/derive";
 import {
   BRITISH_74,
@@ -13,6 +14,7 @@ import {
 } from "@/components/ship/specs/fleet-1805";
 import { VICTORY_1805 } from "@/components/ship/specs/victory-1805";
 import { createRng, jitter } from "@/lib/random";
+import { day } from "./dates";
 
 /**
  * The ships on the chart: their glyph types, the two fleets ship by ship,
@@ -107,6 +109,14 @@ export const GLYPH_TYPES: readonly GlyphType[] = [
   frigate("british-frigate", "britain", "full", 3801),
   frigate("french-frigate", "france", "easy", 3802),
   frigate("french-frigate-anchored", "france", "furled", 3803),
+  // The vessels under the frigates (ship/geometry/smallcraft.ts), drawn at
+  // the one scale of every type: a brig's main truck stands about half as
+  // high as a seventy-four's.
+  { id: "french-brig", silhouette: buildCraft("brig", true) },
+  { id: "french-brig-anchored", silhouette: buildCraft("brig", false) },
+  { id: "british-brig", silhouette: buildCraft("brig", true) },
+  { id: "british-schooner", silhouette: buildCraft("schooner", true) },
+  { id: "british-cutter", silhouette: buildCraft("cutter", true) },
 ];
 
 /** The glyph type a ship flies under sail, and at anchor. */
@@ -125,6 +135,11 @@ const RIGS = {
   british74: { sail: "british-74" },
   british64: { sail: "british-74", size: 0.93 },
   britishFrigate: { sail: "british-frigate" },
+  /** The Weazle, a Cruizer-class brig-sloop of 30.5 m, a little larger than the French brigs. */
+  britishBrig: { sail: "british-brig", size: 1.03 },
+  schooner: { sail: "british-schooner" },
+  cutter: { sail: "british-cutter" },
+  frenchBrig: { sail: "french-brig", anchor: "french-brig-anchored" },
   french80: { sail: "french-80", anchor: "french-80-anchored" },
   french74: { sail: "french-74", anchor: "french-74-anchored" },
   frenchFrigate: { sail: "french-frigate", anchor: "french-frigate-anchored" },
@@ -157,13 +172,22 @@ export interface Ship {
   group: "nelson" | "collingwood" | "main" | "gravina" | "frigates";
   /** The group's lead, which stands for it from far off. */
   lead?: boolean;
+  /** Stayed at anchor in Cádiz when the fleet sailed: no place at dawn. */
+  stays?: boolean;
+  /** Left the story on this day (days since 1 January 1805): no place at dawn. */
+  until?: number;
 }
 
 /**
  * The British fleet at Trafalgar: 27 of the line (3 of 100 guns, 4 of 98,
- * 1 of 80, 16 of 74, 3 of 64) and four frigates (Nicolas VII 130). The
- * groups are the columns they formed in the morning; at dawn they lay in
- * loose order in two bodies strung north and south (history notes).
+ * 1 of 80, 16 of 74, 3 of 64), four frigates, the schooner Pickle and the
+ * cutter Entreprenante (Nicolas VII 130, 215; the Conqueror's log at
+ * daylight, NRS II 257); and the brig-sloop Weazle, with Blackwood's
+ * frigates off Cádiz until 9 a.m. on 19 October, when she sailed for
+ * Gibraltar and Tetuan with the news and missed the battle (NRS II 146,
+ * 312). The groups are the columns they formed in the morning; at dawn
+ * they lay in loose order in two bodies strung north and south (history
+ * notes). The small craft are listed with the frigates.
  */
 export const BRITISH: readonly Ship[] = [
   ["Victory", RIGS.victory, "nelson", true],
@@ -197,20 +221,29 @@ export const BRITISH: readonly Ship[] = [
   ["Naiad", RIGS.britishFrigate, "frigates"],
   ["Phoebe", RIGS.britishFrigate, "frigates"],
   ["Sirius", RIGS.britishFrigate, "frigates"],
-].map(([name, rig, group, lead]) => ({
+  ["Pickle", RIGS.schooner, "frigates"],
+  ["Entreprenante", RIGS.cutter, "frigates"],
+  ["Weazle", RIGS.britishBrig, "frigates", false, { until: day(10, 19, 16) }],
+].map(([name, rig, group, lead, more]) => ({
   name,
   side: "british",
   rig,
   group,
   lead: Boolean(lead),
+  ...(more as object),
 })) as Ship[];
 
 /**
  * The combined fleet: 33 of the line, 18 French (4 of 80, 14 of 74) and 15
  * Spanish (the Santísima Trinidad, two of 112, the Rayo of 100, two of 80,
- * eight of 74 and the San Leandro of 64), with five French frigates
- * (Collingwood's dispatch; James III 386). Gravina's squadron of
- * observation, twelve ships, lay to windward of the van at dawn.
+ * eight of 74 and the San Leandro of 64), with five French frigates and
+ * the brigs Argus and Furet (Collingwood's dispatch; James III 386; the
+ * Euryalus at 8 a.m. on the 21st, NRS II 149); and the brig Observateur,
+ * left at anchor in Cádiz by Villeneuve's order, her men drafted into the
+ * fleet (her letter of 20 October, Desbrière 1907, annexes p. 158).
+ * Gravina's squadron of observation, twelve ships, lay to windward of the
+ * van at dawn, his flagship leading the whole line. The brigs are listed
+ * with the frigates.
  */
 export const COMBINED: readonly Ship[] = [
   ["Bucentaure", RIGS.french80, "main", true],
@@ -251,13 +284,22 @@ export const COMBINED: readonly Ship[] = [
   ["Hortense", RIGS.frenchFrigate, "frigates"],
   ["Rhin", RIGS.frenchFrigate, "frigates"],
   ["Thémis", RIGS.frenchFrigate, "frigates"],
-].map(([name, rig, group, lead]) => ({
+  ["Argus", RIGS.frenchBrig, "frigates"],
+  ["Furet", RIGS.frenchBrig, "frigates"],
+  ["Observateur", RIGS.frenchBrig, "frigates", false, { stays: true }],
+].map(([name, rig, group, lead, more]) => ({
   name,
   side: "combined",
   rig,
   group,
   lead: Boolean(lead),
+  ...(more as object),
 })) as Ship[];
+
+/** Whether a ship has a place at dawn on 21 October (not one left in port, or gone). */
+export function atDawn(ship: Ship): boolean {
+  return !ship.stays && ship.until === undefined;
+}
 
 /** A ship's place at a moment: position (degrees) and heading (degrees true). */
 export interface Berth {
@@ -522,6 +564,9 @@ function dawnBerths(spread: DawnSpread): Map<Ship, Berth> {
     const [lon, lat] = line[i];
     berths.set(s, { lon, lat, heading: 186 + jitter(rng, 6) });
   });
+  // Gravina's flagship led the whole line at daybreak (the Príncipe de
+  // Asturias's journal, Desbrière 1907, annexes pp. 379, 384; Desbrière p.
+  // 165): on the starboard tack, heading south, the head is the south end.
   const gravina = COMBINED.filter((s) => s.group === "gravina");
   const squadron = raggedLine(
     gravina.length,
@@ -539,22 +584,39 @@ function dawnBerths(spread: DawnSpread): Map<Ship, Berth> {
     },
   );
   gravina.forEach((s, i) => {
-    const [lon, lat] = squadron[i];
+    const [lon, lat] = squadron[gravina.length - 1 - i];
     berths.set(s, { lon, lat, heading: 188 + jitter(rng, 6) });
   });
-  // Frigates: the British between the fleets, the French inshore of theirs
-  // (frigatesInshore and the lines' stretch move them with a drawing that
-  // spreads the lines; the sources' estimate leaves them here).
+  // Frigates and the small craft: no log fixes any of them at first light,
+  // so each is an estimate from where the night left her (research note
+  // scene-02/session-17/small-craft.md). The British frigates between the
+  // fleets, where the night chain had them; the Pickle in company with the
+  // Sirius, on the British side of her; the Entreprenante, the admiral's
+  // tender, about a mile on the Victory's lee. The French: the Cornélie
+  // close to leeward of the van since 11.30 p.m. (her report, annexes p.
+  // 159); the Hortense and the Furet to leeward of Villeneuve's own
+  // squadron, about the Bucentaure (order of battle of 6 October, annexes
+  // p. 124; Desbrière p. 174); the Rhin inshore; the Argus about a mile on
+  // the lee of the Príncipe de Asturias, her post (annexes p. 269); the
+  // Hermione and the Thémis to windward of the line, sent to reconnoitre by
+  // Villeneuve's signal at 6.15 a.m. (annexes p. 243; Desbrière pp. 166,
+  // 173-174). (frigatesInshore and the lines' stretch move the French with
+  // a drawing that spreads the lines; the sources' estimate leaves them
+  // here.)
   const frigates = [
     ["Euryalus", -6.33, 36.17],
     ["Naiad", -6.36, 36.14],
     ["Phoebe", -6.38, 36.12],
     ["Sirius", -6.34, 36.2],
-    ["Cornélie", -6.19, 36.19],
-    ["Hermione", -6.19, 36.15],
-    ["Hortense", -6.2, 36.12],
+    ["Pickle", -6.35, 36.1917],
+    ["Entreprenante", -6.4483, 36.1267],
+    ["Cornélie", -6.214, 36.106],
+    ["Hermione", -6.287, 36.142],
+    ["Hortense", -6.205, 36.168],
     ["Rhin", -6.18, 36.17],
-    ["Thémis", -6.2, 36.1],
+    ["Thémis", -6.29, 36.112],
+    ["Argus", -6.248, 36.098],
+    ["Furet", -6.211, 36.155],
   ] as const;
   // The allied line's middle, north and south.
   const lineMiddle = worldY(36.1615);
@@ -575,7 +637,12 @@ function dawnBerths(spread: DawnSpread): Map<Ship, Berth> {
     berths.set(s, {
       lon: flon,
       lat: flat,
-      heading: s.side === "british" ? 47 : 186 + jitter(rng, 5),
+      heading:
+        s.name === "Pickle"
+          ? 75
+          : s.side === "british"
+            ? 47
+            : 186 + jitter(rng, 5),
     });
   }
   return berths;
@@ -651,36 +718,45 @@ const DAWN_EASE: Readonly<Record<string, readonly [number, number]>> = {
   "british:Thunderer": [-5, -54],
   "british:Defence": [4, 58],
   "british:Prince": [-22, -5],
-  "combined:Bucentaure": [-1, -476],
-  "combined:Santísima Trinidad": [-30, -627],
-  "combined:Formidable": [173, 1937],
-  "combined:Neptune": [163, 1898],
-  "combined:Indomptable": [110, 1525],
-  "combined:Redoutable": [49, 1085],
-  "combined:Fougueux": [34, 1010],
-  "combined:Pluton": [-34, 509],
-  "combined:Mont-Blanc": [-101, 20],
-  "combined:Intrépide": [-136, -223],
-  "combined:Scipion": [-178, -539],
-  "combined:Duguay-Trouin": [-197, -648],
-  "combined:Héros": [-64, -807],
-  "combined:Santa Ana": [-87, -934],
-  "combined:Rayo": [-113, -1315],
-  "combined:Neptuno": [-157, -1368],
-  "combined:Monarca": [-182, -1520],
-  "combined:San Agustín": [-182, -1484],
-  "combined:San Francisco de Asís": [-203, -1615],
-  "combined:San Justo": [-226, -1763],
-  "combined:San Leandro": [-205, -1812],
-  "combined:Príncipe de Asturias": [68, -244],
-  "combined:Algésiras": [58, -214],
-  "combined:Achille": [47, -343],
-  "combined:Argonaute": [24, -149],
-  "combined:Berwick": [6, -38],
-  "combined:Aigle": [4, -32],
-  "combined:Swiftsure": [-60, 26],
-  "combined:San Ildefonso": [-52, -11],
-  "combined:Rhin": [-19, 90],
+  "combined:Bucentaure": [-39, -272],
+  "combined:Santísima Trinidad": [16, -923],
+  "combined:Formidable": [186, 1904],
+  "combined:Neptune": [176, 1865],
+  "combined:Indomptable": [122, 1492],
+  "combined:Redoutable": [60, 1052],
+  "combined:Fougueux": [45, 975],
+  "combined:Pluton": [-23, 474],
+  "combined:Mont-Blanc": [-81, -15],
+  "combined:Intrépide": [-125, -261],
+  "combined:Scipion": [-169, -576],
+  "combined:Duguay-Trouin": [-548, -951],
+  "combined:Héros": [-24, -1090],
+  "combined:Santa Ana": [-55, -1195],
+  "combined:Rayo": [-104, -1550],
+  "combined:Neptuno": [-137, -1587],
+  "combined:Monarca": [-167, -1728],
+  "combined:San Agustín": [-170, -1689],
+  "combined:San Francisco de Asís": [-195, -1813],
+  "combined:San Justo": [-221, -1962],
+  "combined:San Leandro": [-207, -2007],
+  "combined:Príncipe de Asturias": [-13, -876],
+  "combined:Algésiras": [-105, 32],
+  "combined:Achille": [13, -297],
+  "combined:Argonaute": [-8, 91],
+  "combined:Berwick": [-8, 96],
+  "combined:Aigle": [-101, 45],
+  "combined:Swiftsure": [22, -170],
+  "combined:Bahama": [27, -187],
+  "combined:Montañés": [53, -326],
+  "combined:Argonauta": [-55, 218],
+  "combined:San Ildefonso": [-54, 334],
+  "combined:Cornélie": [12, -683],
+  "combined:Hermione": [-29, 176],
+  "combined:Hortense": [-130, 810],
+  "combined:Rhin": [-39, 326],
+  "combined:Thémis": [-6, 107],
+  "combined:Argus": [0, -221],
+  "combined:Furet": [72, -285],
 };
 
 export const DAWN: ReadonlyMap<Ship, Berth> = easedBerths(
@@ -732,6 +808,18 @@ export function dawnFleet(): {
   return [...BRITISH, ...COMBINED].map((ship) => {
     const a = DAWN_SOURCES.get(ship);
     const b = DAWN.get(ship);
+    if (!atDawn(ship))
+      return {
+        key: shipKey(ship),
+        side: ship.side,
+        group: ship.group,
+        lead: false,
+        size: ship.rig.size ?? 1,
+        heading: 0,
+        lat: 36,
+        sources: [Number.NaN, Number.NaN],
+        drawn: [Number.NaN, Number.NaN],
+      };
     if (!a || !b) throw new Error(`no dawn berth for ${ship.name}`);
     return {
       key: shipKey(ship),
@@ -753,9 +841,18 @@ export function dawnFleet(): {
  * 294° true): the main body in three lines strung WNW–ESE in the outer bay
  * north-east of the entrance shoals (36°33.4′–34.1′ N, 6°15.5′–17.2′ W),
  * the seven that got out on the 19th at its WNW end toward the passes, and
- * a few ships (the Fougueux among them) at the outer end of the narrows
- * between the Puntal and Matagorda forts (a-h2c.md, H2-36c–e; history
- * notes, "Positions on the chart"). The frigates lie inside the lines.
+ * the Fougueux at the outer end of the narrows between the Puntal and
+ * Matagorda forts, the one ship any source places there, until she warped
+ * out to a berth abreast of the city at 5.30 p.m. on the 19th (her
+ * reports, Desbrière 1907, annexes pp. 213, 216; a-h2c.md, H2-36c–e;
+ * history notes, "Positions on the chart"). The Thémis lay at the head of
+ * the anchorage with the outermost ships (annexes p. 273), and the
+ * Hermione and Rhin, which weighed first that morning, with them; the
+ * Cornélie and Hortense inside the lines; the brigs, the admirals'
+ * repeaters, each by her admiral's flagship: the Furet and the
+ * Observateur by the Bucentaure, the Argus by the Príncipe de Asturias
+ * (no source gives their berths; research note
+ * scene-02/session-17/anchorage-19oct.md).
  *
  * The owner's licence of 10 November 2026: the lines and the frigates
  * inside them are drawn ANCHORAGE_SPREAD times as far from the
@@ -779,7 +876,7 @@ function anchorage(spread: number): Map<Ship, Berth> {
     "Duguay-Trouin",
     "Bahama",
   ];
-  const narrows = ["Fougueux", "San Justo"];
+  const narrows = ["Fougueux"];
   const ofLine = COMBINED.filter((s) => s.group !== "frigates");
   const first = ofLine.filter((s) => sortie.includes(s.name));
   const inner = ofLine.filter((s) => narrows.includes(s.name));
@@ -820,13 +917,45 @@ function anchorage(spread: number): Map<Ship, Berth> {
       heading: heading + jitter(rng, 3),
     });
   });
-  const frigates = COMBINED.filter((s) => s.group === "frigates");
-  frigates.forEach((s, i) => {
+  // The frigates: the Thémis, Hermione and Rhin at the head (the lines'
+  // WNW ends), the Cornélie and Hortense inside the lines as before.
+  const HEAD: Record<string, readonly [number, number]> = {
+    Thémis: [-6.286, 36.5585],
+    Rhin: [-6.2855, 36.564],
+    Hermione: [-6.283, 36.5675],
+  };
+  const frigates = COMBINED.filter(
+    (s) => s.group === "frigates" && s.rig === RIGS.frenchFrigate,
+  );
+  let inside = 0;
+  for (const s of frigates) {
+    const head = HEAD[s.name];
+    const jx = jitter(rng, 0.0004);
     berths.set(s, {
-      ...open(-6.272 + i * 0.0035, 36.5555 + jitter(rng, 0.0004)),
+      ...(head
+        ? open(head[0], head[1])
+        : open(-6.272 + inside++ * 0.0035 * 2.5, 36.5555 + jx)),
       heading: heading + jitter(rng, 3),
     });
-  });
+  }
+  // The brigs by their admirals' flagships, on the bay's side of them.
+  const BY: Record<string, readonly [string, number, number]> = {
+    Furet: ["Bucentaure", 0.0012, -0.0016],
+    Observateur: ["Bucentaure", -0.0014, -0.0017],
+    Argus: ["Príncipe de Asturias", 0.0012, -0.0016],
+  };
+  for (const s of COMBINED) {
+    const by = BY[s.name];
+    if (!by) continue;
+    const flagship = COMBINED.find((x) => x.name === by[0]);
+    const f = flagship && berths.get(flagship);
+    if (!f) continue;
+    berths.set(s, {
+      lon: f.lon + by[1],
+      lat: f.lat + by[2],
+      heading: heading + jitter(rng, 3),
+    });
+  }
   return berths;
 }
 

@@ -1110,7 +1110,8 @@ export const ROUTE_SQUADRON: readonly ShipMark[] = [
  * Gibraltar on the 17th. Counted in the fleet's strength while with it,
  * not drawn: the fleets' ships come in only where every one of them reads
  * one by one (glyphs/layout.ts, FreeGroup.gate), which off Cádiz is only
- * once all of these have gone (the director checks it, checkGate).
+ * once all of these have gone (scripts/dev/fleet-gates.mjs shows each
+ * side's gate, label and drawn ships over the scene).
  */
 export const NOT_AT_TRAFALGAR: readonly {
   name: string;

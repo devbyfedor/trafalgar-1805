@@ -9,7 +9,10 @@
 //   node scripts/dev/fleet-gates.mjs [from] [to] [step]
 // Default 0 to 1 by 0.005. A row is flagged (!) where a label shows more
 // than half while its side's ships of the line are drawn too (some at half
-// opacity or more on screen): beyond a crossfade between the two. Each row also gives, after the drawn
+// opacity or more on screen): beyond a crossfade between the two; or, with
+// FAINT (e.g. 0.05), while any of them shows more than that and the two
+// together more than a crossfade would (label and ship over 1.05).
+// Each row also gives the most any of the side's ships of the line shows. Each row also gives, after the drawn
 // count, how many of the side's ships of the line the scene has with the
 // fleet then ("drawn/present"; the figure also counts the ships it doesn't
 // draw, so before 17 October the British differ by those, and their gate
@@ -71,11 +74,17 @@ for (let s = 0; s <= steps; s++) {
   }, p);
   const drawn = [0, 0];
   const present = [0, 0];
+  const most = [0, 0];
   for (let i = 0; i < names.length; i++) {
     if (SMALL.has(names[i])) continue;
     const [x, y, , a] = row.v.slice(i * 4, i * 4 + 4);
     const on = x >= 0 && y >= 0 && x <= width * scale && y <= height * scale;
     if (a >= 0.5 && on) drawn[i < BRITISH_COUNT ? 0 : 1]++;
+    if (on)
+      most[i < BRITISH_COUNT ? 0 : 1] = Math.max(
+        most[i < BRITISH_COUNT ? 0 : 1],
+        a,
+      );
     if (row.present[i * 3 + 2] > 0.5) present[i < BRITISH_COUNT ? 0 : 1]++;
   }
   const label = (id) => {
@@ -90,12 +99,14 @@ for (let s = 0; s <= steps; s++) {
   };
   const lb = label("fleet-british");
   const lc = label("fleet-combined");
-  const bad = (l, n) => l.opacity > 0.5 && n > 0;
-  const flag = bad(lb, drawn[0]) || bad(lc, drawn[1]);
+  const faint = Number(process.env.FAINT ?? Number.NaN);
+  const bad = (l, n, m) =>
+    l.opacity > 0.5 && (n > 0 || (m > faint && l.opacity + m > 1.05));
+  const flag = bad(lb, drawn[0], most[0]) || bad(lc, drawn[1], most[1]);
   if (flag) flagged++;
   const f = (x) => x.toFixed(2);
   console.log(
-    `${flag ? "!" : " "} p ${p.toFixed(4)}  British gate ${f(row.g[0])} shown ${f(row.g[2])} drawn ${drawn[0]}/${present[0]} label "${lb.text}" ${f(lb.opacity)}  combined gate ${f(row.g[1])} shown ${f(row.g[3])} drawn ${drawn[1]}/${present[1]} label "${lc.text}" ${f(lc.opacity)}`,
+    `${flag ? "!" : " "} p ${p.toFixed(4)}  British gate ${f(row.g[0])} shown ${f(row.g[2])} drawn ${drawn[0]}/${present[0]} most ${f(most[0])} label "${lb.text}" ${f(lb.opacity)}  combined gate ${f(row.g[1])} shown ${f(row.g[3])} drawn ${drawn[1]}/${present[1]} most ${f(most[1])} label "${lc.text}" ${f(lc.opacity)}`,
   );
 }
 console.log(`flagged rows: ${flagged}`);

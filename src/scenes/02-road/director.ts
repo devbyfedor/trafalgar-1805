@@ -1107,8 +1107,14 @@ export class RoadDirector {
       (sched) => new Map(fleetCounts(sched).map((n, k) => [n, k] as const)),
     );
     const start = dayAt(BEATS.cadiz[0]);
+    // By her joining and her absence only: a ship left at anchor in port
+    // (the Observateur) is with the fleet there, and one leaving the story
+    // (the Weazle) fades out by the hour (applyFleets).
     this.shipBase = Uint8Array.from(this.ships, (ship) =>
-      withFleet(ship, start) ? 1 : 0,
+      (ship.joins === undefined || ship.joins <= start) &&
+      !(ship.away && start >= ship.away[0] && start < ship.away[1])
+        ? 1
+        : 0,
     );
     this.shipEvents = this.ships.map((ship) => {
       const sched = this.fleetSchedules[ship.side === "british" ? 0 : 1];
@@ -1808,20 +1814,23 @@ export class RoadDirector {
           w[index.get(lineStrength(fleet.side, sched.days[e])) ?? 0] += t;
         }
       }
+      // Among its ships, each counting as far as she is there, so a ship
+      // coming or going (fleetPresence) moves the label smoothly.
       let x = 0;
       let y = 0;
-      let count = 0;
+      let weight = 0;
       this.ships.forEach((ship, i) => {
         if (ship.side !== fleet.side || it.opacity[i] <= 0) return;
-        x += it.x[i];
-        y += it.y[i];
-        count++;
+        x += it.x[i] * it.opacity[i];
+        y += it.y[i] * it.opacity[i];
+        weight += it.opacity[i];
       });
-      const presence = count > 0 ? inStory : 0;
+      const there = weight > 1e-6;
+      const presence = there ? inStory : 0;
       heads.set(
         fleet.id,
-        count > 0 ? x / count : 0,
-        count > 0 ? y / count : 0,
+        there ? x / weight : 0,
+        there ? y / weight : 0,
         this.trail,
         0,
         presence,

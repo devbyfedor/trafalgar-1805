@@ -496,7 +496,7 @@ export class GlyphLayout implements ChartLayer {
     const baked = this.tablesFor(frame);
     this.usingTables = baked !== null;
     this.ratios = baked;
-    this.setGates(baked, 1);
+    this.setGates(baked);
     // The fleets at their true places first; the squadrons' symbols fit
     // round them.
     for (let i = 0; i < this.frees.length; i++) {
@@ -510,15 +510,17 @@ export class GlyphLayout implements ChartLayer {
   /**
    * How far each gate is open this frame: the least, over its groups that
    * show, of how far their ships each read one by one (as baked: how much
-   * its least visible ship shows at the sizes the frames draw, or pass 0's
-   * estimate while pass 1 runs; without tables, this frame's estimate);
-   * but only as far
-   * as the view looks down on the group. Low over the sea, ships hide each
-   * other by the perspective, not the zoom, and no label lying on the chart
-   * can be read there to stand for them (HeadLabels fades its labels over
-   * the same tilt): the gate stays open, and the group shows as it did.
+   * its least visible ship shows at the sizes the frames draw; without
+   * tables, this frame's estimate), but only as far as the view looks down
+   * on the group. Low over the sea, ships hide each other by the
+   * perspective, not the zoom, and no label lying on the chart can be read
+   * there to stand for them (HeadLabels fades its labels over the same
+   * tilt): the gate stays open, and the group shows as it did. The gates
+   * change only how much of a fleet shows, never a size or a place (its
+   * ships' room is their ungated opacity, layoutFree), so the bake's size
+   * pass lays out with them open.
    */
-  private setGates(bake: Bake | null, pass: 0 | 1): void {
+  private setGates(bake: Bake | null): void {
     this.gateValue.fill(1);
     for (let i = 0; i < this.frees.length; i++) {
       const g = this.frees[i];
@@ -526,7 +528,7 @@ export class GlyphLayout implements ChartLayer {
         continue;
       // Baked with the view's tilt and eased; or from this frame.
       let r: number;
-      if (bake) r = bake.readAt(pass, i, this.p);
+      if (bake) r = bake.readAt(i, this.p);
       else {
         const down = this.downOn(g);
         if (down <= 0) continue;
@@ -664,17 +666,12 @@ export class GlyphLayout implements ChartLayer {
       const g = this.frees[i];
       if (shownOf(g) <= SHOWN_MIN) {
         bake.common[i][k] = Number.NaN;
-        bake.readable[0][i][k] = Number.NaN;
         bake.down[i][k] = Number.NaN;
         continue;
       }
       const common = this.commonOf(g, null);
       bake.common[i][k] = common;
-      // Its estimate, as far as the view looks down on it (setGates).
-      bake.readable[0][i][k] =
-        g.gate === undefined
-          ? 1
-          : 1 - this.downOn(g) * (1 - this.readEstimate(g, common));
+      // How steeply the view meets it, for its gate (bakeEnd).
       bake.down[i][k] = g.gate === undefined ? 0 : this.downOn(g);
     }
     for (let i = 0; i < this.formations.length; i++) {
@@ -710,7 +707,7 @@ export class GlyphLayout implements ChartLayer {
     }
     if (k === 0) for (const ok of this.sweepOk) ok.fill(0);
     this.sweeping = true;
-    this.setGates(bake, 0);
+    this.gateValue.fill(1);
     for (let i = 0; i < this.frees.length; i++) {
       const g = this.frees[i];
       if (shownOf(g) > SHOWN_MIN) this.layoutFree(g, bake.at(i, this.p));
@@ -754,7 +751,9 @@ export class GlyphLayout implements ChartLayer {
     set: (p: number) => FrameInfo,
   ): Record<string, unknown>[] {
     const bake = this.baked;
-    if (!bake || k < 1 || k >= bake.steps) return [];
+    // Not while a bake runs: the replay overwrites the sweeps its size pass
+    // carries from one step to the next.
+    if (!bake || this.bake || k < 1 || k >= bake.steps) return [];
     for (const ok of this.sweepOk) ok.fill(0);
     let rows: Record<string, unknown>[] = [];
     for (const j of [k - 1, k]) {
@@ -766,7 +765,7 @@ export class GlyphLayout implements ChartLayer {
       }
       this.sweeping = true;
       this.debug = j === k ? [] : null;
-      this.setGates(bake, 1);
+      this.setGates(bake);
       for (let i = 0; i < this.frees.length; i++) {
         const g = this.frees[i];
         if (shownOf(g) > SHOWN_MIN) this.layoutFree(g, bake.at(i, this.p));
@@ -853,24 +852,39 @@ export class GlyphLayout implements ChartLayer {
     // the tilt's band within a few steps, as the ships go by the eye's
     // distance: eased as the sizes, the two together faded the frigates
     // with the combined fleet steeply).
+    // How far each gated group's ships read one by one: the least
+    // visibility among its ships laid out at a step (Bake.vis, each eased
+    // already), as far as the view looks down on it there (the tilt eased
+    // over the scroll: rising off the sea at dawn the camera crosses the
+    // tilt's band within a few steps). Where none of its ships is laid out
+    // (the group not shown, or all of them far off the screen) a step holds
+    // nothing and takes its neighbours' value: read as wholly readable
+    // there, the easing had opened the gate a little at each end of every
+    // stay, the leads showing faintly beside the label. Eased again whole,
+    // or taken the least within reach, the table had kept the harbour's
+    // fleet at a third, then four fifths, of its ink through the hold.
     const sigma = BAKE_EASE_P / bake.step;
+    const tilt = new Float32Array(bake.steps);
     for (let i = 0; i < this.frees.length; i++) {
       const g = this.frees[i];
-      const r = bake.readable[1][i];
+      const r = bake.readable[i];
       r.fill(1);
-      if (g.gate === undefined) continue;
+      if (g.gate === undefined || g.gateFollows) continue;
+      tilt.set(bake.down[i]);
+      fillGaps(tilt, 0);
+      ease(tilt, sigma, tilt);
       const li = this.layerIndex.get(g.layer) ?? 0;
       const vis = bake.vis[li];
       const nom = bake.nom[li];
-      for (const m of g.members) {
-        const o = m * bake.steps;
-        for (let k = 0; k < bake.steps; k++)
-          if (nom[o + k] > 0 && vis[o + k] < r[k]) r[k] = vis[o + k];
+      for (let k = 0; k < bake.steps; k++) {
+        let low = Number.NaN;
+        for (const m of g.members) {
+          const o = m * bake.steps + k;
+          if (nom[o] > 0 && !(vis[o] >= low)) low = vis[o];
+        }
+        r[k] = Number.isNaN(low) ? Number.NaN : 1 - tilt[k] * (1 - low);
       }
-      const down = bake.down[i];
-      for (let k = 0; k < bake.steps; k++)
-        r[k] = 1 - (Number.isNaN(down[k]) ? 0 : down[k]) * (1 - r[k]);
-      ease(r, sigma, r);
+      fillGaps(r, 1);
       yield;
     }
     // A new bake begun meanwhile replaces this one.
@@ -1472,11 +1486,14 @@ export class GlyphLayout implements ChartLayer {
     // heads' motion by different amounts where the camera's pace changed
     // (the hold over Finisterre ending): the lines closed on each other for
     // a few steps, and Calder's ships were squeezed between them.
+    // The other head projected here, not taken from the pair's plan: that
+    // is dropped while the other squadron has no ship there (pairOf), and
+    // the point would jump back to this head.
     let refX = headX;
     let refY = headY;
-    if (pair) {
-      refX += (pair.hx - headX) * e;
-      refY += (pair.hy - headY) * e;
+    if (other && e > 0 && v.project(other.x, other.y, 0)) {
+      refX += ((headX + v.px) / 2 - headX) * e;
+      refY += ((headY + v.py) / 2 - headY) * e;
     }
     let cap = 1;
     if (baked) {
@@ -1607,8 +1624,6 @@ export class GlyphLayout implements ChartLayer {
       pair = {
         frame: 0,
         ok: false,
-        hx: 0,
-        hy: 0,
         mx: 0,
         my: 0,
         step: 0,
@@ -1636,8 +1651,6 @@ export class GlyphLayout implements ChartLayer {
     if (!v.project(other.x, other.y, 0)) return null;
     const mx = (hx + v.px) / 2;
     const my = (hy + v.py) / 2;
-    pair.hx = mx;
-    pair.hy = my;
     const step = 2 * half + this.glyphGap + SLACK_PX;
     // Each line as long as its ships there.
     const countA = presentCount(g);
@@ -2056,8 +2069,13 @@ export class GlyphLayout implements ChartLayer {
     out[6] = v.qx;
     out[7] = v.qy;
     // As far as it is a line of the plan and shown (not dimmed by the haze:
-    // the label has its own).
-    return Math.min(1, g.meeting) * Math.min(1, plan.shown);
+    // the label has its own), and gone smoothly as its ships' ink goes (the
+    // plan counts as drawn while any of its ships shows more than 0.03).
+    return (
+      Math.min(1, g.meeting) *
+      Math.min(1, plan.shown) *
+      smoothstep(0.03, 0.1, plan.bAlpha)
+    );
   }
 
   /** A squadron's plan, if its ships were drawn this frame. */
@@ -2237,9 +2255,6 @@ function newPlan(n: number): SquadronPlan {
 interface PairPlan {
   frame: number;
   ok: boolean;
-  /** The middle of the two heads, device px: the point both lines are set from (prepare). */
-  hx: number;
-  hy: number;
   /** Where the lane between the two lines runs, device px. */
   mx: number;
   my: number;
@@ -2287,11 +2302,11 @@ class Bake {
   }[];
   readonly common: Float32Array[];
   /**
-   * Each free group's readability by step (how far its ships each read one
-   * by one; GlyphLayout.setGates): [0] estimated in pass 0, for pass 1's
-   * own layout; [1] for the frames, from pass 1's eased sizes (bakeEnd).
+   * Each gated free group's readability by step (how far its ships each
+   * read one by one, as far as the view looks down on it; GlyphLayout
+   * .setGates), from the size pass's eased sizes (bakeEnd).
    */
-  readonly readable: [Float32Array[], Float32Array[]];
+  readonly readable: Float32Array[];
   /** Each free group's view tilt by step (GlyphLayout.downOn; NaN where not shown). */
   readonly down: Float32Array[];
   /** The squadrons' shared scale. */
@@ -2325,10 +2340,10 @@ class Bake {
       side: new Float32Array(steps),
     }));
     this.common = Array.from({ length: frees }, () => new Float32Array(steps));
-    this.readable = [
-      Array.from({ length: frees }, () => new Float32Array(steps)),
-      Array.from({ length: frees }, () => new Float32Array(steps)),
-    ];
+    this.readable = Array.from(
+      { length: frees },
+      () => new Float32Array(steps),
+    );
     this.down = Array.from({ length: frees }, () =>
       new Float32Array(steps).fill(Number.NaN),
     );
@@ -2358,14 +2373,6 @@ class Bake {
       // Steps where the group wasn't shown hold none: from its neighbours.
       fillGaps(c, 1);
       ease(least(c, reach), sigma, c);
-      yield;
-    }
-    // Readability as the common scale: the least within reach first, so a
-    // gate opens after the last step where a ship would still not read, and
-    // closes before the first.
-    for (const r of this.readable[0]) {
-      fillGaps(r, 1);
-      ease(least(r, reach), sigma, r);
       yield;
     }
     ease(least(this.shared, reach), sigma, this.shared);
@@ -2418,9 +2425,9 @@ class Bake {
     return this.read(this.common[i], p);
   }
 
-  /** A free group's readability at p: pass 0's estimate, or pass 1's measure. */
-  readAt(pass: 0 | 1, i: number, p: number): number {
-    return this.read(this.readable[pass][i], p);
+  /** A gated free group's readability at p (readable). */
+  readAt(i: number, p: number): number {
+    return this.read(this.readable[i], p);
   }
 
   sharedAt(p: number): number {

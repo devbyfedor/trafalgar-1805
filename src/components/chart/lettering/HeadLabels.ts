@@ -203,6 +203,8 @@ export class HeadLabels implements ChartLayer {
   private anchors: ((id: string, out: Float64Array) => number) | null = null;
   private handover: ((id: string) => number) | null = null;
   private readonly anchor = new Float64Array(8);
+  /** A place's origin (origin), reused. */
+  private readonly at = new Float64Array(2);
   private hidden = false;
   private sized = false;
   private readonly trailPx = new Float64Array(2 * TRAIL_POINTS);
@@ -587,8 +589,9 @@ export class HeadLabels implements ChartLayer {
     return h.nameRight + SPACE_EM + widest;
   }
 
-  /** Where a place puts the label's left middle on the chart (world km). */
-  private origin(s: Slot, h: Head, em: number): [number, number] {
+  /** Where a place puts the label's left middle on the chart (world km), into `this.at` (no allocation a frame). */
+  private origin(s: Slot, h: Head, em: number): Float64Array {
+    const o = this.at;
     const w = this.width(h) * em;
     const gap = s.gap * em;
     // About its own ships (the middle of their box's edge on its side), or
@@ -605,19 +608,23 @@ export class HeadLabels implements ChartLayer {
     const hy = s.own ? h.own[k + 1] : h.y;
     switch (s.side) {
       case "right":
-        return [hx + gap, hy];
+        o[0] = hx + gap;
+        o[1] = hy;
+        return o;
       case "left":
-        return [hx - gap - w, hy];
+        o[0] = hx - gap - w;
+        o[1] = hy;
+        return o;
       default: {
-        const x =
+        o[0] =
           s.reach === 0
             ? hx - 0.5 * w
             : s.reach > 0
               ? hx - 0.6 * em
               : hx + 0.6 * em - w;
-        return s.side === "above"
-          ? [x, hy + gap - h.bottom * em]
-          : [x, hy - gap - h.top * em];
+        o[1] =
+          s.side === "above" ? hy + gap - h.bottom * em : hy - gap - h.top * em;
+        return o;
       }
     }
   }
@@ -635,7 +642,9 @@ export class HeadLabels implements ChartLayer {
     frame: FrameInfo,
     blockWeight: number,
   ): number {
-    const [ox, oy] = this.origin(s, h, em);
+    const at = this.origin(s, h, em);
+    const ox = at[0];
+    const oy = at[1];
     const w = this.width(h) * em;
     const y0 = oy + h.bottom * em;
     const y1 = oy + h.top * em;
@@ -773,7 +782,9 @@ export class HeadLabels implements ChartLayer {
     c.slot = slot;
     c.opacity = seen * s.weight;
     c.quad.set(s.quad);
-    const [ox, oy] = this.origin(s, h, em);
+    const at = this.origin(s, h, em);
+    const ox = at[0];
+    const oy = at[1];
     c.name.position.set(ox, oy, 0);
     c.name.scale.setScalar(em);
     c.name.fillOpacity = c.opacity;

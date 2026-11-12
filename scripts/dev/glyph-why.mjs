@@ -1,6 +1,6 @@
 // Why a squadron's ships are the size they are at the given points of scene
 // 2's progress: for each chosen place, the limit it was given (the shared
-// scale, its sign, its baked size), its scale after the glyphs placed before
+// scale, its baked size; how much of its squadron is shown), its scale after the glyphs placed before
 // it and after land, its baked size, and the height and opacity it is drawn
 // at (window.__road.layoutDebug's `why`, window.__road.motion). Development.
 //   WHO=nelson K=0,3,5 node scripts/dev/glyph-why.mjs 0.424 0.4245
@@ -50,7 +50,7 @@ for (const p of ps) {
       );
     }
     console.log(
-      `p ${p} scale ${f(r.scale)} sign ${f(r.sign)} | ${parts.join(" | ")}`,
+      `p ${p} scale ${f(r.scale)} shown ${f(r.shown)} | ${parts.join(" | ")}`,
     );
   }
 }

@@ -4,6 +4,7 @@ import { useRef } from "react";
 import type {
   ChartStats,
   Formation,
+  FreeGroup,
   LabelState,
   LightId,
 } from "@/components/chart";
@@ -209,17 +210,36 @@ export function ChartLab() {
           meets: null,
           meeting: 0,
         };
+        const dawnGroup: FreeGroup = {
+          kind: "free",
+          layer: glyphs,
+          members: index(0, LAB_DAWN),
+        };
+        const anchorGroup: FreeGroup = {
+          kind: "free",
+          layer: glyphs,
+          members: index(LAB_DAWN, LAB_MARKS.length - LAB_DAWN),
+        };
         chart.add(
-          new engine.GlyphLayout(coast, [
-            { kind: "free", layer: glyphs, members: index(0, LAB_DAWN) },
-            {
-              kind: "free",
-              layer: glyphs,
-              members: index(LAB_DAWN, LAB_MARKS.length - LAB_DAWN),
-            },
-            formation,
-          ]),
+          new engine.GlyphLayout(coast, [dawnGroup, anchorGroup, formation]),
         );
+        // Far off, the chart shows no ship (docs/decisions.md, "Ships only
+        // close up"): a group's ships come in within 250 km of the eye and
+        // go beyond 350. The scene decides along its scroll, ahead, with the
+        // two thresholds apart; the lab by each frame's distance.
+        const shownFrom = (x: number, y: number) => {
+          const e = chart.eye;
+          const t = Math.min(
+            1,
+            Math.max(0, (Math.hypot(x - e.x, y - e.y, e.z) - 250) / 100),
+          );
+          return 1 - t * t * (3 - 2 * t);
+        };
+        const groupShown = (g: FreeGroup) =>
+          shownFrom(
+            glyphs.intent.x[g.members[0]],
+            glyphs.intent.y[g.members[0]],
+          );
         chart.add(glyphs, glyphs.wakes, glyphs.ships);
         chart.addGpuBytes(atlas.gpuBytes);
         disposeAtlas = () => atlas.texture.dispose();
@@ -289,6 +309,9 @@ export function ChartLab() {
           formation.x = head.x;
           formation.y = head.y;
           formation.heading = head.heading;
+          formation.shown = shownFrom(head.x, head.y);
+          dawnGroup.shown = groupShown(dawnGroup);
+          anchorGroup.shown = groupShown(anchorGroup);
           for (let k = 0; k < ROUTE_SQUADRON.length; k++) {
             glyphs.place(squadron + k, head.x, head.y, head.heading);
             glyphs.setOpacity(

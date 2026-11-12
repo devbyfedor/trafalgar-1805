@@ -243,11 +243,77 @@ const SQUADRON_BEATS: readonly BeatId[] = ["chase", "finisterre"];
 const PASS_P = 0.008;
 const ARROW_HAND_P = 0.002;
 
+/**
+ * How far the fleets are in the story at p: seen at dawn (beat 0), off
+ * Cádiz (beat 4) and in the night and at dawn again (beat 5, after the
+ * cut-away to Ulm).
+ */
+function fleetsShownAt(p: number): number {
+  return Math.min(
+    1,
+    fade(p, [-1, 0, BEATS.transition[1] + 0.03, BEATS.transition[1] + 0.06]) +
+      fade(p, [0.655, 0.675, 0.835, 0.85]) +
+      fade(p, [0.905, 0.925, 2, 3]),
+  );
+}
+
 /** The p of the first step of a table (from the chase on) above a value; 1 for none. */
 function firstAbove(table: Float32Array, value: number): number {
   for (let k = 0; k < table.length; k++)
     if (table[k] > value) return BEATS.chase[0] + k * HEADING_STEP;
   return 1;
+}
+
+/**
+ * Far off, the chart shows a fleet by its track alone: its ships come in as
+ * the camera comes within SHIPS_IN_KM of them (the eye's distance), where
+ * every view close enough for them to read one by one stands (the Gulf of
+ * Cádiz about 120 to 150 km off, the anchorage 6, the dawn 60 or less), and
+ * go again only once it is beyond SHIPS_OUT_KM: two thresholds, so a view
+ * that hovers about one never flickers. Every far view (the Atlantic,
+ * Europe, the whole of Spain) stands 470 km off or more.
+ */
+const SHIPS_IN_KM = 250;
+const SHIPS_OUT_KM = 350;
+/** How much scroll (p) the ships take to come in, and to go. */
+const SHIPS_FADE_P = 0.004;
+
+/**
+ * How much of a group shows at each step of a table, from the eye's
+ * distance to it at each (NaN where it doesn't matter): in once nearer
+ * than SHIPS_IN_KM, out once farther than SHIPS_OUT_KM, as it was between
+ * them, read along p from the start; each stay in coming in over
+ * SHIPS_FADE_P from where it begins and gone by where it ends. A function of
+ * p, decided ahead, so the scene plays alike forward and back.
+ */
+function shownTable(dist: Float64Array, step: number): Float32Array {
+  const n = dist.length;
+  const inside = new Uint8Array(n);
+  let state = dist[0] <= 0.5 * (SHIPS_IN_KM + SHIPS_OUT_KM) ? 1 : 0;
+  for (let k = 0; k < n; k++) {
+    const d = dist[k];
+    if (d <= SHIPS_IN_KM) state = 1;
+    else if (d >= SHIPS_OUT_KM) state = 0;
+    inside[k] = state;
+  }
+  const fade = Math.max(1, SHIPS_FADE_P / step);
+  const out = new Float32Array(n);
+  let k = 0;
+  while (k < n) {
+    if (!inside[k]) {
+      k++;
+      continue;
+    }
+    let end = k;
+    while (end < n && inside[end]) end++;
+    for (let j = k; j < end; j++) {
+      const since = k === 0 ? Number.POSITIVE_INFINITY : j - k;
+      const until = end === n ? Number.POSITIVE_INFINITY : end - j;
+      out[j] = smooth(0, 1, Math.min(since, until) / fade);
+    }
+    k = end;
+  }
+  return out;
 }
 
 /** How much scroll (of p) a meeting takes to form, and to part. */
@@ -328,6 +394,8 @@ interface LegClock {
    */
   drawFrom: number;
   passFrom: number;
+  /** The squadron that sails it (its index), -1 for none. */
+  owner: number;
 }
 
 /**
@@ -385,6 +453,7 @@ function legClock(
     block: new Float32Array(0),
     drawFrom: 1,
     passFrom: 1,
+    owner: -1,
   };
 }
 
@@ -695,6 +764,17 @@ export class RoadDirector {
   private victoryIndex: number;
   /** Each squadron's eased heading by step of p from the start of the chase (prepare). */
   private squadHeadings: Float32Array[] = [];
+  /**
+   * How much of each squadron and each fleet group shows by step of p
+   * (prepare; shownTable): each squadron's from the start of the chase,
+   * each group's from 0. Until then, from the frame's own distance.
+   */
+  private squadShown: Float32Array[] = [];
+  private freeShown: Float32Array[] = [];
+  /** How much of each squadron shows this frame (applySquadrons). */
+  private readonly squadShownNow: Float64Array;
+  /** Both fleets' groups, as the glyph layout lays them out. */
+  private readonly frees: FreeGroup[];
   /** Each ship's eased heading by step of p from FLEET_HEADING_P (prepare). */
   private fleetHeadings: Float32Array[] | null = null;
   /** Scene 1's Victory box, while the handoff runs. */
@@ -766,14 +846,18 @@ export class RoadDirector {
     // Where each leg's drawing begins, and where it becomes a line already
     // sailed: as the next leg of its squadron begins, or as the squadron
     // leaves the story.
-    for (const squad of this.squads) {
+    this.squads.forEach((squad, s) => {
       const legs = squad.legs;
-      for (const c of legs) c.drawFrom = firstAbove(c.drawn, 0.001);
+      for (const c of legs) {
+        c.drawFrom = firstAbove(c.drawn, 0.001);
+        c.owner = s;
+      }
       legs.forEach((c, k) => {
         c.passFrom =
           k + 1 < legs.length ? legs[k + 1].drawFrom : squad.shownP[1];
       });
-    }
+    });
+    this.frees = this.freeGroups();
     this.meetings = MEETINGS.flatMap((m) => {
       const a = this.squads.find((s) => s.spec.id === m.above);
       const b = this.squads.find((s) => s.spec.id === m.below);
@@ -791,6 +875,7 @@ export class RoadDirector {
       return [{ a, b, p, course: (m.course * Math.PI) / 180 }];
     });
     this.victoryIndex = this.ships.findIndex((s) => s.name === "Victory");
+    this.squadShownNow = new Float64Array(this.squads.length);
   }
 
   /**
@@ -833,6 +918,108 @@ export class RoadDirector {
       await slicer.check();
     }
     this.fleetHeadings = out;
+    await this.prepareShown(slicer);
+  }
+
+  /**
+   * How much of each squadron and each fleet group shows over the scroll
+   * (shownTable), from the eye's distance to it at every step: a
+   * squadron's block, a group's ships' middle. Two squadrons meeting
+   * come in and go together, by the farther of the two.
+   */
+  private async prepareShown(slicer: Slicer): Promise<void> {
+    const { rig } = this.layers;
+    const eye = new Vector3();
+    const target = new Vector3();
+    const [p0, p1] = [BEATS.chase[0], SQUADRON_TABLE_END];
+    const squadSteps = Math.round((p1 - p0) / HEADING_STEP) + 1;
+    const squadDist = this.squads.map(() =>
+      new Float64Array(squadSteps).fill(Number.NaN),
+    );
+    for (let k = 0; k < squadSteps; k++) {
+      const p = Math.min(p1 - 1e-9, p0 + k * HEADING_STEP);
+      rig.evaluate(p, eye, target);
+      const d = dayAt(p);
+      this.squads.forEach((squad, s) => {
+        const head = this.squadronHead(squad, d, p);
+        if (head)
+          squadDist[s][k] = Math.hypot(head.x - eye.x, head.y - eye.y, eye.z);
+      });
+      if (k % 64 === 63) await slicer.check();
+    }
+    for (const m of this.meetings) {
+      const a = squadDist[this.squads.indexOf(m.a)];
+      const b = squadDist[this.squads.indexOf(m.b)];
+      const k0 = Math.max(
+        0,
+        Math.floor((m.p[0] - MEETING_P - p0) / HEADING_STEP),
+      );
+      const k1 = Math.min(
+        squadSteps - 1,
+        Math.ceil((m.p[3] + MEETING_P - p0) / HEADING_STEP),
+      );
+      for (let k = k0; k <= k1; k++) a[k] = b[k] = Math.max(a[k], b[k]);
+    }
+    this.squadShown = squadDist.map((t) => shownTable(t, HEADING_STEP));
+    await slicer.check();
+
+    const steps = Math.round(1 / HEADING_STEP) + 1;
+    const freeDist = this.frees.map(() =>
+      new Float64Array(steps).fill(Number.NaN),
+    );
+    const st = { ...this.state };
+    for (let k = 0; k < steps; k++) {
+      const p = Math.min(1, k * HEADING_STEP);
+      // Only where the fleets are in the story at all (applyFleets).
+      if (fleetsShownAt(p) <= 0) continue;
+      rig.evaluate(p, eye, target);
+      const d = dayAt(p);
+      this.frees.forEach((g, n) => {
+        let x = 0;
+        let y = 0;
+        let count = 0;
+        for (const i of g.members) {
+          if (!this.shipPlace(this.ships[i], p, d, st)) continue;
+          x += st.x;
+          y += st.y;
+          count++;
+        }
+        if (count > 0)
+          freeDist[n][k] = Math.hypot(
+            x / count - eye.x,
+            y / count - eye.y,
+            eye.z,
+          );
+      });
+      if (k % 16 === 15) await slicer.check();
+    }
+    this.freeShown = freeDist.map((t) => shownTable(t, HEADING_STEP));
+  }
+
+  /**
+   * Where a ship of the fleets stands at p (day d), into `out`: at dawn
+   * (beat 0) her dawn place, otherwise her track's; false where she has
+   * none then.
+   */
+  private shipPlace(ship: Ship, p: number, d: number, out: ShipState): boolean {
+    if (p < BEATS.boulogne[0] + 0.06) {
+      const b = DAWN.get(ship);
+      if (!b) return false;
+      out.x = worldX(b.lon);
+      out.y = worldY(b.lat);
+      out.heading = (b.heading * Math.PI) / 180;
+      out.anchored = false;
+      out.anchorage = 0;
+      return true;
+    }
+    return shipAt(ship, d, out);
+  }
+
+  /** How much of a group shows at p by the eye's distance to (x, y), with no table yet. */
+  private shownNow(x: number, y: number): number {
+    const e = this.layers.chart.eye;
+    const dist = Math.hypot(x - e.x, y - e.y, e.z);
+    return 1 - smooth(SHIPS_IN_KM, SHIPS_OUT_KM, dist);
   }
 
   /**
@@ -842,7 +1029,12 @@ export class RoadDirector {
    * yields; then the squadrons' symbols.
    */
   layoutGroups(): GlyphGroup[] {
-    const groups: GlyphGroup[] = [];
+    return [...this.frees, ...this.squads.map((squad) => squad.formation)];
+  }
+
+  /** Both fleets' groups, ship by ship, each with its lead first (layoutGroups). */
+  private freeGroups(): FreeGroup[] {
+    const groups: FreeGroup[] = [];
     const order: readonly (readonly [Ship["side"], Ship["group"]])[] = [
       ["british", "nelson"],
       ["british", "collingwood"],
@@ -867,15 +1059,10 @@ export class RoadDirector {
           kind: "free",
           layer: this.layers.fleets,
           members,
-        } satisfies FreeGroup);
+          shown: 1,
+        });
     }
-    for (const squad of this.squads) groups.push(squad.formation);
     return groups;
-  }
-
-  /** The squadrons' symbols, in order (for their counts' lettering). */
-  formations(): Formation[] {
-    return this.squads.map((s) => s.formation);
   }
 
   /** Scene 1's Victory box to hand over from (null: no scene 1 on the page). */
@@ -928,32 +1115,20 @@ export class RoadDirector {
 
   private applyFleets(p: number, d: number): void {
     const glyphs = this.layers.fleets;
-    // Seen at dawn (beat 0), off Cádiz (beat 4) and in the night and at
-    // dawn again (beat 5, after the cut-away to Ulm).
-    const shown =
-      fade(p, [-1, 0, BEATS.transition[1] + 0.03, BEATS.transition[1] + 0.06]) +
-      fade(p, [0.655, 0.675, 0.835, 0.85]) +
-      fade(p, [0.905, 0.925, 2, 3]);
+    const shown = fleetsShownAt(p);
     this.ships.forEach((ship, i) => {
       const s = this.state;
-      const inBeat0 = p < BEATS.boulogne[0] + 0.06;
-      if (inBeat0) {
-        // At dawn: a ship with no place then (left in port, or gone) isn't
-        // drawn.
-        const b = DAWN.get(ship);
-        if (!b) {
-          glyphs.setOpacity(i, 0);
-          return;
-        }
-        s.x = worldX(b.lon);
-        s.y = worldY(b.lat);
-        s.heading = (b.heading * Math.PI) / 180;
-        s.anchored = false;
-        s.anchorage = 0;
-      } else if (!shipAt(ship, d, s)) {
+      // At dawn a ship with no place then (left in port, or gone) isn't
+      // drawn.
+      if (!this.shipPlace(ship, p, d, s)) {
         glyphs.setOpacity(i, 0);
         return;
-      } else if (this.fleetHeadings && p >= FLEET_HEADING_P) {
+      }
+      if (
+        p >= BEATS.boulogne[0] + 0.06 &&
+        this.fleetHeadings &&
+        p >= FLEET_HEADING_P
+      ) {
         s.heading = tableAt(
           this.fleetHeadings[i],
           FLEET_HEADING_P,
@@ -979,6 +1154,17 @@ export class RoadDirector {
       if (i === this.victoryIndex && p < 0.2)
         opacity *= smooth(SWAP[0], SWAP[1], p);
       glyphs.setOpacity(i, opacity);
+    });
+    // Far off, the fleets' ships go (prepareShown).
+    this.frees.forEach((g, n) => {
+      const table = this.freeShown[n];
+      if (table) {
+        g.shown = Math.min(1, Math.max(0, tableAt(table, 0, HEADING_STEP, p)));
+        return;
+      }
+      const lead = this.layers.fleets.intent;
+      const i = g.members[0];
+      g.shown = this.shownNow(lead.x[i], lead.y[i]);
     });
   }
 
@@ -1020,6 +1206,17 @@ export class RoadDirector {
         formation.y = where.y;
         formation.heading = where.heading;
       }
+      // Far off, its ships go: its track's head shows it (prepareShown).
+      const table = this.squadShown[s];
+      formation.shown = table
+        ? Math.min(
+            1,
+            Math.max(0, tableAt(table, BEATS.chase[0], HEADING_STEP, p)),
+          )
+        : where
+          ? this.shownNow(where.x, where.y)
+          : 0;
+      this.squadShownNow[s] = formation.shown;
       for (let k = 0; k < n; k++) {
         const i = first + k;
         const now = cur[k] ?? null;
@@ -1165,10 +1362,12 @@ export class RoadDirector {
       track.emphasis = 1 - smooth(c.passFrom, c.passFrom + PASS_P, p);
       // The arrowhead at the squadron's head: the leg it sails or lies at
       // the end of, handed on to the next leg where that begins.
+      // Where its ships show at the head, they mark it.
       track.arrow =
         shown *
         smooth(c.drawFrom - ARROW_HAND_P, c.drawFrom, p) *
-        (1 - smooth(c.passFrom - ARROW_HAND_P, c.passFrom, p));
+        (1 - smooth(c.passFrom - ARROW_HAND_P, c.passFrom, p)) *
+        (c.owner >= 0 ? 1 - this.squadShownNow[c.owner] : 1);
     }
   }
 

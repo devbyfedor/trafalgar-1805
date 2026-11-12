@@ -38,10 +38,12 @@ import { glyphNominalPx } from "./height";
  * - A squadron (Formation) is a symbol at the head of its track: the lead
  *   in a row of her own, the others in level rows above and below,
  *   staggered, as a chart draws a fleet; pushed off the coast into open
- *   water; one scale shared by every squadron on screen; below a floor its
- *   sign (the lead alone, the others shrinking and fading where they are).
- *   Two squadrons meeting zip into two lines on the action's course, one
- *   above the other, a lane between.
+ *   water; one scale shared by every squadron on screen. Two squadrons
+ *   meeting zip into two lines on the action's course, one above the
+ *   other, a lane between.
+ * - A group shows as far as its host says (`shown`): far off, the chart
+ *   shows a fleet by its track alone, and its ships come in as the camera
+ *   comes down. A group not shown is not laid out at all.
  * - What would change at the story's pace (a squadron's fit, its push off
  *   the coast, a fleet's common size) is baked ahead over the scroll for
  *   the viewport and eased, the least fit within reach taken first, so a
@@ -56,6 +58,11 @@ export interface FreeGroup {
   layer: Glyphs;
   /** Mark indices, in priority order (the lead first). */
   members: readonly number[];
+  /**
+   * How much of the group shows (0..1, 1 when not set): its ships fade
+   * together, at their sizes, and a group not shown is not laid out.
+   */
+  shown?: number;
 }
 
 /** A squadron drawn as a symbol at the head of its track. */
@@ -85,18 +92,29 @@ export interface Formation {
    * own heading drifted, and its glyphs mirrored within a step.
    */
   course?: number;
+  /** How much of the squadron shows (0..1, 1 when not set), as FreeGroup.shown. */
+  shown?: number;
 }
 
 export type GlyphGroup = FreeGroup | Formation;
+
+/** Below this a group isn't laid out at all. */
+const SHOWN_MIN = 0.001;
+
+/** How much of a group shows (FreeGroup.shown, Formation.shown). */
+function shownOf(g: GlyphGroup): number {
+  return g.shown === undefined ? 1 : Math.min(1, Math.max(0, g.shown));
+}
 
 /** Below this height a glyph has faded out, CSS px. */
 const READABLE_PX = 7;
 /** It is fully there from this height, CSS px. */
 const FULL_PX = 9.5;
 /**
- * The least height a squadron's ships are drawn at, CSS px (the atlas's
- * 17 px drawing at the owner's 1.5 device pixels still shows a three-
- * master); a squadron that can't hold it turns into its sign.
+ * The least height the squadrons' shared scale draws their ships at, CSS
+ * px (the atlas's 17 px drawing at the owner's 1.5 device pixels still
+ * shows a three-master): a squadron squeezed by land below it shrinks
+ * alone, and never drags the others down with it.
  */
 const FLOOR_PX = 11;
 /** Clear water kept between a glyph's ink and the coastline's, CSS px. */
@@ -132,6 +150,15 @@ const BAKE_SIZE_EASE_P = 0.002;
 const SPECK_PX = 4.5;
 /** The most a glyph's foot may move in half a bake step and count as motion (CSS px). */
 const SWEEP_MAX_PX = 60;
+/**
+ * A glyph whose foot lies farther off the screen than this (CSS px) is not
+ * laid out: no box it can have (with its wake and the sweeps) reaches back
+ * onto the screen or near a glyph that does, so leaving it out changes
+ * nothing drawn. The lab's fleets stood thousands of pixels off screen as
+ * its flight climbed north, and their wakes' fits against the land, traced
+ * in a stretched corner of the projection, had cost 6 ms a frame.
+ */
+const OFF_SCREEN_PX = 400;
 
 const smoothstep = (e0: number, e1: number, x: number) => {
   const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
@@ -442,8 +469,11 @@ export class GlyphLayout implements ChartLayer {
     this.ratios = baked;
     // The fleets at their true places first; the squadrons' symbols fit
     // round them.
-    for (let i = 0; i < this.frees.length; i++)
-      this.layoutFree(this.frees[i], baked ? baked.at(i, this.p) : null);
+    for (let i = 0; i < this.frees.length; i++) {
+      const g = this.frees[i];
+      if (shownOf(g) > SHOWN_MIN)
+        this.layoutFree(g, baked ? baked.at(i, this.p) : null);
+    }
     this.layoutSquadrons(baked);
   }
 
@@ -505,8 +535,11 @@ export class GlyphLayout implements ChartLayer {
     }
     if (k === 0) bake.key = viewKey(frame);
     this.begin(frame);
-    for (let i = 0; i < this.frees.length; i++)
-      bake.common[i][k] = this.commonOf(this.frees[i], null);
+    for (let i = 0; i < this.frees.length; i++) {
+      const g = this.frees[i];
+      bake.common[i][k] =
+        shownOf(g) > SHOWN_MIN ? this.commonOf(g, null) : Number.NaN;
+    }
     for (let i = 0; i < this.formations.length; i++) {
       const g = this.formations[i];
       const plan = this.prepare(g, null);
@@ -516,11 +549,9 @@ export class GlyphLayout implements ChartLayer {
         f.offX[k] = Number.NaN;
         f.offY[k] = Number.NaN;
         f.side[k] = Number.NaN;
-        f.sign[k] = Number.NaN;
         continue;
       }
       f.fit[k] = plan.fit;
-      f.sign[k] = signOfFit(plan.fit, plan.floor);
       f.offX[k] = plan.ax - plan.headX;
       f.offY[k] = plan.ay - plan.headY;
       f.side[k] = plan.side;
@@ -542,8 +573,10 @@ export class GlyphLayout implements ChartLayer {
     }
     if (k === 0) for (const ok of this.sweepOk) ok.fill(0);
     this.sweeping = true;
-    for (let i = 0; i < this.frees.length; i++)
-      this.layoutFree(this.frees[i], bake.at(i, this.p));
+    for (let i = 0; i < this.frees.length; i++) {
+      const g = this.frees[i];
+      if (shownOf(g) > SHOWN_MIN) this.layoutFree(g, bake.at(i, this.p));
+    }
     this.layoutSquadrons(bake);
     this.sweeping = false;
     for (let li = 0; li < this.layers.length; li++) {
@@ -884,8 +917,10 @@ export class GlyphLayout implements ChartLayer {
     d.heading[index] = heading;
     d.height[index] = h;
     d.alpha[index] = alpha;
+    // A wake fitted only where it can show (the shader draws nothing under
+    // these).
     d.wakeShare[index] =
-      wakeShare > 0 && layer.intent.wake[index] > 0 && h > 0.01
+      wakeShare > 0 && layer.intent.wake[index] > 0 && h > 0.01 && alpha > 0.003
         ? wakeShare *
           this.wakeFit(d.x[index], d.y[index], fx, fy, heading, h * wakeShare)
         : wakeShare;
@@ -1025,7 +1060,10 @@ export class GlyphLayout implements ChartLayer {
     const it = layer.intent;
     const total = this.measureFree(g);
     if (total <= 0) return;
+    // Every ship counts toward the common scale, on screen or not, so her
+    // companions' sizes never depend on where the frame cuts the group.
     const common = baked ?? this.commonOf(g, total);
+    const shown = shownOf(g);
     // In priority order: each ship as large as the common scale (her
     // group's lead as large as she can be), her own water and the glyphs
     // placed before her allow.
@@ -1034,6 +1072,7 @@ export class GlyphLayout implements ChartLayer {
       const i = g.members[k];
       const fx = this.fx[k];
       const fy = this.fy[k];
+      if (this.offScreen(fx, fy)) continue;
       const l = this.bl[k];
       const r = this.br[k];
       const t = this.bt[k];
@@ -1042,7 +1081,7 @@ export class GlyphLayout implements ChartLayer {
       let s = this.obstacleFit(fx, fy, -l, r, 0, t, limit);
       s = this.landFit(fx, fy, -l, r, 0, t, s, this.swX, this.swY);
       const h = s * this.h0[k];
-      const alpha = it.opacity[i] * this.shownAt(layer, i, h);
+      const alpha = it.opacity[i] * this.shownAt(layer, i, h) * shown;
       this.draw(layer, i, fx, fy, it.heading[i], h, this.h0[k], alpha, 1);
       this.addObstacle(
         fx,
@@ -1064,6 +1103,13 @@ export class GlyphLayout implements ChartLayer {
         alpha,
       });
     }
+  }
+
+  /** A foot (device px) too far off the screen for its glyph to reach it (OFF_SCREEN_PX). */
+  private offScreen(fx: number, fy: number): boolean {
+    const m = OFF_SCREEN_PX * this.dpr;
+    const v = this.view;
+    return fx < -m || fx > v.w + m || fy < -m || fy > v.h + m;
   }
 
   private distOf(layer: Glyphs, i: number): number {
@@ -1094,9 +1140,9 @@ export class GlyphLayout implements ChartLayer {
 
   /**
    * The scale shared by the squadrons prepared this frame: the least of
-   * their fits, each counting as much as it shows: coming into the story,
-   * on screen (its shape's centre within its radius of the frame), and not
-   * given way to its sign (which it does below the floor).
+   * their fits (never under the floor), each counting as much as it shows:
+   * coming into the story, shown, and on screen (its shape's centre within
+   * its radius of the frame).
    */
   private sharedScale(): number {
     let shared = 1;
@@ -1104,14 +1150,11 @@ export class GlyphLayout implements ChartLayer {
     for (const g of this.formations) {
       const plan = this.plans.get(g);
       if (!plan?.ok || plan.frame !== this.frameNo) continue;
-      const sign = Number.isNaN(plan.bakedSign)
-        ? signOfFit(plan.fit, plan.floor)
-        : plan.bakedSign;
       const cx = plan.ax + plan.cx;
       const cy = plan.ay + plan.cy;
       const out = Math.max(-cx, cx - v.w, -cy, cy - v.h);
       const onScreen = 1 - smoothstep(0, plan.radius + 1, out);
-      const weight = plan.presence * onScreen * (1 - sign);
+      const weight = plan.presence * plan.shown * onScreen;
       shared = Math.min(
         shared,
         1 + (Math.max(plan.fit, plan.floor) - 1) * weight,
@@ -1144,6 +1187,8 @@ export class GlyphLayout implements ChartLayer {
       this.plans.set(g, plan);
     }
     plan.ok = false;
+    const shown = shownOf(g);
+    if (shown <= SHOWN_MIN) return plan;
     const v = this.view;
     const n = g.places.length;
     if (!v.project(g.x, g.y, 0)) return plan;
@@ -1183,6 +1228,13 @@ export class GlyphLayout implements ChartLayer {
     const zip = e;
     const lineStep = pair ? step + (pair.step - step) * e : step;
     this.shapeOffsets(plan, g, n, side, zip, lineStep, rowSep);
+    // Off the screen by more than the whole shape and its push can reach:
+    // nothing of it can show, nor stand near a glyph that does.
+    const reach = 3.5 * plan.radius + OFF_SCREEN_PX * this.dpr;
+    const ocx = headX + plan.cx;
+    const ocy = headY + plan.cy;
+    if (ocx < -reach || ocx > v.w + reach || ocy < -reach || ocy > v.h + reach)
+      return plan;
     let cap = 1;
     if (baked) {
       ax += baked.offX;
@@ -1225,6 +1277,7 @@ export class GlyphLayout implements ChartLayer {
     plan.half = half;
     plan.tall = tall;
     plan.presence = presence;
+    plan.shown = shown;
     plan.floor = (FLOOR_PX * this.dpr) / h;
     plan.cap = cap;
     plan.fit = baked
@@ -1233,7 +1286,6 @@ export class GlyphLayout implements ChartLayer {
     plan.frame = this.frameNo;
     plan.side = side;
     plan.facing = facing;
-    plan.bakedSign = baked ? baked.sign : Number.NaN;
     return plan;
   }
 
@@ -1530,7 +1582,7 @@ export class GlyphLayout implements ChartLayer {
       const need =
         (s * plan.hx + so * q.hx + this.glyphGap) * Math.abs(dx) +
         (s * plan.hy + so * q.hy + this.glyphGap) * Math.abs(dy);
-      const lack = (need - d) * q.presence * smoothstep(0, 6, d);
+      const lack = (need - d) * q.presence * q.shown * smoothstep(0, 6, d);
       if (lack <= 0) continue;
       tx += dx * lack;
       ty += dy * lack;
@@ -1577,9 +1629,7 @@ export class GlyphLayout implements ChartLayer {
 
   /**
    * Draws a squadron at the shared scale or less (its fit); then each ship
-   * against land and the glyphs before her. Below the floor, its sign: the
-   * rear ranks shrink and fade where they are, and once they have gone the
-   * lead grows to the shared scale.
+   * against land and the glyphs before her, as much of it as it is shown.
    */
   private drawSquadron(g: Formation, plan: SquadronPlan, shared: number): void {
     const layer = g.layer;
@@ -1587,12 +1637,6 @@ export class GlyphLayout implements ChartLayer {
     const n = g.places.length;
     const fit = plan.fit;
     const scale = Math.min(shared, fit);
-    // Its sign as baked (eased, so the ranks go over a stretch of scroll
-    // however fast the view pulls back), or from the fit.
-    const sign = Number.isNaN(plan.bakedSign)
-      ? signOfFit(fit, plan.floor)
-      : plan.bakedSign;
-    plan.sign = sign;
     const ox = plan.ax + plan.cx;
     const oy = plan.ay + plan.cy;
     const dist = Math.hypot(
@@ -1605,33 +1649,14 @@ export class GlyphLayout implements ChartLayer {
     for (let k = 0; k < n; k++) {
       const i = g.places[k];
       if (it.opacity[i] <= 0) continue;
-      let fx = ox + scale * (plan.ox[k] - plan.cx);
-      let fy = oy + scale * (plan.oy[k] - plan.cy);
-      // As a sign, the lead stands where the water was found for the whole
-      // squadron: she slides there along her own row (it holds no other
-      // ship) as the others go.
-      if (k === 0) {
-        const t = smoothstep(0, 1, sign);
-        fx += (ox - fx) * t;
-        fy += (oy - fy) * t;
-      }
+      const fx = ox + scale * (plan.ox[k] - plan.cx);
+      const fy = oy + scale * (plan.oy[k] - plan.cy);
+      if (this.offScreen(fx, fy)) continue;
       this.boxOf(layer, i, plan.heading, plan.h, NARROW_SYMBOL);
       this.bl[k] = this.boxL;
       this.br[k] = this.boxR;
       this.bt[k] = this.boxT;
-      // The rear ranks go first.
-      const rank = n > 1 ? k / (n - 1) : 0;
-      const going =
-        k === 0
-          ? 0
-          : smoothstep(0.6 * (1 - rank), 0.6 * (1 - rank) + 0.4, sign);
-      // The lead grows to the shared scale as the others go.
-      const limit = Math.min(
-        k === 0
-          ? scale + (Math.max(shared, scale) - scale) * smoothstep(0.5, 1, sign)
-          : scale * (1 - going),
-        this.bakedRatio(layer, i),
-      );
+      const limit = Math.min(scale, this.bakedRatio(layer, i));
       this.sweepFor(layer, i, fx, fy);
       let s = this.obstacleFit(
         fx,
@@ -1656,7 +1681,7 @@ export class GlyphLayout implements ChartLayer {
       );
       why?.push([k, limit, byObstacle, s, this.bakedRatio(layer, i)]);
       const hd = s * plan.h;
-      const alpha = it.opacity[i] * (1 - going) * this.shownAt(layer, i, hd);
+      const alpha = it.opacity[i] * this.shownAt(layer, i, hd) * plan.shown;
       this.draw(
         layer,
         i,
@@ -1670,12 +1695,6 @@ export class GlyphLayout implements ChartLayer {
         NARROW_SYMBOL,
       );
       this.addObstacle(fx, fy, s, k, alpha * haze);
-      if (k === 0) {
-        plan.leadX = fx;
-        plan.leadY = fy;
-        plan.leadH = hd;
-        plan.leadAlpha = alpha;
-      }
     }
     if (this.debug)
       this.debug.push({
@@ -1691,7 +1710,7 @@ export class GlyphLayout implements ChartLayer {
         fit,
         shared,
         scale,
-        sign,
+        shown: plan.shown,
         meeting: g.meeting,
         cx: plan.cx,
         cy: plan.cy,
@@ -1775,45 +1794,6 @@ export class GlyphLayout implements ChartLayer {
     this.pushX = tx;
     this.pushY = ty;
   }
-
-  /**
-   * Each squadron's sign this frame (for its count's lettering): how far
-   * it has turned into it (0..1), and its lead's foot and height on screen,
-   * device px from the bottom left.
-   */
-  signOf(g: Formation): SquadronSign {
-    const plan = this.plans.get(g);
-    const out = this.signOut;
-    // As far as its lead shows: a sign squeezed out of sight (its lead
-    // given no room by the land, in the roads off a port seen from far
-    // off) had lettered its count over empty sea.
-    out.sign = plan?.ok ? plan.sign * Math.min(1, plan.leadAlpha) : 0;
-    out.x = plan?.leadX ?? 0;
-    out.y = plan?.leadY ?? 0;
-    out.h = plan?.leadH ?? 0;
-    out.count = plan?.count ?? 0;
-    return out;
-  }
-
-  private readonly signOut: SquadronSign = {
-    sign: 0,
-    x: 0,
-    y: 0,
-    h: 0,
-    count: 0,
-  };
-}
-
-/** A squadron's sign this frame (GlyphLayout.signOf). */
-export interface SquadronSign {
-  /** How far it shows as its sign (0..1, as far as its lead shows). */
-  sign: number;
-  /** Its lead's foot on screen (device px from the bottom left) and height. */
-  x: number;
-  y: number;
-  h: number;
-  /** How many ships it is, in shares of those there. */
-  count: number;
 }
 
 /** A squadron's layout this frame, at scale 1 (GlyphLayout.prepare). */
@@ -1854,15 +1834,8 @@ interface SquadronPlan {
   floor: number;
   cap: number;
   presence: number;
-  /** How far it has turned into its sign; its lead's foot and height drawn. */
-  sign: number;
-  /** Its sign as baked (NaN: decided from the frame). */
-  bakedSign: number;
-  leadX: number;
-  leadY: number;
-  leadH: number;
-  /** How much of its lead shows as drawn (her opacity). */
-  leadAlpha: number;
+  /** How much of it is shown (Formation.shown). */
+  shown: number;
 }
 
 function newPlan(n: number): SquadronPlan {
@@ -1893,12 +1866,7 @@ function newPlan(n: number): SquadronPlan {
     floor: 0,
     cap: 1,
     presence: 0,
-    sign: 0,
-    bakedSign: Number.NaN,
-    leadX: 0,
-    leadY: 0,
-    leadH: 0,
-    leadAlpha: 0,
+    shown: 0,
   };
 }
 
@@ -1927,8 +1895,6 @@ interface BakedSquad {
   offY: number;
   /** Which way astern lies (-1 left .. 1 right). */
   side: number;
-  /** How far it has turned into its sign. */
-  sign: number;
 }
 
 /** The viewport a bake belongs to. */
@@ -1952,7 +1918,6 @@ class Bake {
     offX: Float32Array;
     offY: Float32Array;
     side: Float32Array;
-    sign: Float32Array;
   }[];
   readonly common: Float32Array[];
   /** The squadrons' shared scale. */
@@ -1968,7 +1933,6 @@ class Bake {
     offX: 0,
     offY: 0,
     side: -1,
-    sign: 0,
   };
 
   constructor(
@@ -1985,7 +1949,6 @@ class Bake {
       offX: new Float32Array(steps),
       offY: new Float32Array(steps),
       side: new Float32Array(steps),
-      sign: new Float32Array(steps),
     }));
     this.common = Array.from({ length: frees }, () => new Float32Array(steps));
     this.shared = new Float32Array(steps);
@@ -2003,19 +1966,16 @@ class Bake {
       fillGaps(s.offX, 0);
       fillGaps(s.offY, 0);
       fillGaps(s.side, -1);
-      fillGaps(s.sign, 0);
       ease(least(s.fit, reach), sigma, s.fit);
       ease(s.offX, sigma, s.offX);
       ease(s.offY, sigma, s.offY);
       // A side change slides whole rows across the lead: slower still.
       ease(s.side, 2 * sigma, s.side);
-      // Its sign: the most within reach (a squadron turns into its sign
-      // ahead of the view that needs it), eased slower still, so its ranks
-      // go over a stretch of scroll.
-      ease(most(s.sign, reach), 2 * sigma, s.sign);
       yield;
     }
     for (const c of this.common) {
+      // Steps where the group wasn't shown hold none: from its neighbours.
+      fillGaps(c, 1);
       ease(least(c, reach), sigma, c);
       yield;
     }
@@ -2062,7 +2022,6 @@ class Bake {
     this.out.offX = this.read(s.offX, p);
     this.out.offY = this.read(s.offY, p);
     this.out.side = this.read(s.side, p);
-    this.out.sign = this.read(s.sign, p);
     return this.out;
   }
 
@@ -2126,27 +2085,6 @@ function fillGaps(t: Float32Array, fallback: number): void {
     else last = t[i];
   }
   for (let i = 0; i < t.length; i++) if (Number.isNaN(t[i])) t[i] = fallback;
-}
-
-/** The greatest value within `reach` steps either side. */
-function most(t: Float32Array, reach: number): Float32Array {
-  const out = new Float32Array(t.length);
-  for (let i = 0; i < t.length; i++) {
-    let m = Number.NEGATIVE_INFINITY;
-    const end = Math.min(t.length - 1, i + reach);
-    for (let k = Math.max(0, i - reach); k <= end; k++) m = Math.max(m, t[k]);
-    out[i] = m;
-  }
-  return out;
-}
-
-/**
- * How far a squadron has turned into its sign at a fit (0 a block, 1 its
- * lead alone): below the floor (the least scale its ships still read at)
- * its ranks give way.
- */
-function signOfFit(fit: number, floor: number): number {
-  return 1 - smoothstep(0.8 * floor, floor, fit);
 }
 
 /** The least value within `reach` steps either side. */

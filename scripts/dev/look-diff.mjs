@@ -14,7 +14,7 @@
 // the build's own shot-to-shot noise before judging a change by it.
 //
 // Only the chart is compared: scene 2's HTML (captions, date line, chapter
-// marker, scrims, the squadrons' counts) and the whole of scene 1, whose
+// marker, scrims, anything lettered over the canvas) and the whole of scene 1, whose
 // painted layers and Victory lie over the chart through the handoff and
 // move by themselves, are hidden for the shots, so a difference always
 // means the canvas changed. The quality level is pinned to the top (0).
@@ -90,8 +90,8 @@ function pointsOf(page, size) {
   );
 }
 
-// Everything but the canvas: scene 1 whole, scene 2's text layer and the
-// counts lettered over its canvas.
+// Everything but the canvas: scene 1 whole, scene 2's text layer and
+// anything lettered over its canvas.
 const HIDE = `
 [data-scene-wrapper=dawn] { visibility: hidden !important; }
 [data-scene=road] [data-layer=text] { visibility: hidden !important; }

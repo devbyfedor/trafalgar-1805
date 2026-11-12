@@ -8,7 +8,9 @@
 // more (sample), its label's opacity (routeLabels) and its best place's
 // room and what limits it (routeLabels(true): on the frame, clean ground,
 // clear of the names and the card, of the labels before it, of the tracks,
-// of its own block). A row is flagged (!) where a side has ships in the
+// of its own block), and how far its ships' middle lies into the haze
+// (the label is gone by 0.55 of the haze's visibility) and how steeply the
+// view looks down on it. A row is flagged (!) where a side has ships in the
 // frame, its label under half and none drawn. Development only.
 //   node scripts/dev/fleet-frame.mjs <p> [<p> ...]
 //   node scripts/dev/fleet-frame.mjs --range <from> <to> <step>
@@ -96,11 +98,15 @@ for (const p of ps) {
     let present = 0;
     let inFrame = 0;
     let drawn = 0;
+    let cx = 0;
+    let cy = 0;
     for (let i = 0; i < names.length; i++) {
       if (SMALL.has(names[i]) || (i < BRITISH_COUNT ? 0 : 1) !== side) continue;
       const [x, y, o] = row.present.slice(i * 3, i * 3 + 3);
       if (!(o > 0.5)) continue;
       present++;
+      cx += x;
+      cy += y;
       const ndc = project(row.cam, x, y);
       if (ndc && Math.abs(ndc[0]) <= 1 && Math.abs(ndc[1]) <= 1) inFrame++;
       const [sx, sy, , a] = row.v.slice(i * 4, i * 4 + 4);
@@ -121,10 +127,17 @@ for (const p of ps) {
           .map(([n, w]) => `${n} ${w.toFixed(2)}`)
           .join(", ") || "none"
       : "no place";
+    // Where the label stands (its ships' middle): how far into the haze
+    // (HeadLabels: gone by 0.55 of the haze's visibility) and how steeply
+    // the view looks down on it (gone under 0.1).
+    const e = row.cam.eye;
+    const dist = Math.hypot(cx / present - e[0], cy / present - e[1], e[2]);
+    const hx = dist / row.cam.hazeVisibility;
+    const tilt = e[2] / dist;
     const bad = inFrame > 0 && label < 0.5 && drawn === 0;
     flag ||= bad;
     out.push(
-      `${side ? "combined" : "British"} ${present} present, ${inFrame} in frame, ${drawn} drawn, gate ${row.g[side].toFixed(2)}, label ${label.toFixed(2)}${best ? ` (best place ${best.side}${best.own ? " own" : ""}, room ${best.why[0].toFixed(2)}; limited by ${limits})` : " (no place tried)"}`,
+      `${side ? "combined" : "British"} ${present} present, ${inFrame} in frame, ${drawn} drawn, gate ${row.g[side].toFixed(2)}, haze ${hx.toFixed(2)}, tilt ${tilt.toFixed(2)}, label ${label.toFixed(2)}${best ? ` (best place ${best.side}${best.own ? " own" : ""}, room ${best.why[0].toFixed(2)}; limited by ${limits})` : " (no place tried)"}`,
     );
   }
   if (flag) flagged++;

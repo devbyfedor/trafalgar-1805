@@ -51,6 +51,19 @@ const HARBOUR_EYE: Lla = offset(
   3.5,
 );
 
+/**
+ * The camera over the action off Finisterre (22 July, 43°35′ N 11°40′ W;
+ * routes.ts): south of it, 85 km up, looking a little east of north at the
+ * middle of the two squadrons, about 170 and 200 km (of the chart's
+ * Mercator km) from them. Both lines on the action's course (247°) and
+ * Villeneuve bearing away for Vigo afterwards (about 122°) are seen near
+ * broadside from here (looking along the line to the cape, his departure
+ * was end-on, and his block folded onto its lead); the lettering lies
+ * level; the caption's card stands over the open sea.
+ */
+const FINISTERRE_EYE: Lla = [-11.75, 42.62, 85];
+const FINISTERRE_TARGET: Lla = [-11.6, 43.7, 0];
+
 /** Rising off the sea beside her, turning north and pitching down. */
 const RISING_EYE: Lla = offset(
   VICTORY_AT_DAWN.lon,
@@ -94,8 +107,17 @@ export const ROAD_FLIGHT: readonly CameraKey[] = [
   // Back across: the return crossings.
   { p: 0.47, eye: [-35, -7, 5000], target: [-31, 28, 0], fov: 52 },
   { p: 0.5, eye: [-22, 30, 2300], target: [-13, 42, 0] },
-  // 3. Finisterre, then south to Cádiz and the army's turn east.
-  { p: 0.535, eye: [-14.6, 40.1, 460], target: [-11.5, 43.5, 0] },
+  // 3. Finisterre: down to the action off the cape on 22 July, close enough
+  // for both squadrons' ships to come in and read one by one (the eye
+  // within 250 km of them; director.ts, SHIPS_IN_KM), their two lines
+  // facing each other as a plan of the battle draws them, the coast of
+  // Galicia and Cape Finisterre on the right and the sea under the caption;
+  // held, pushing in a little, while the lines stand (p 0.505-0.548); the
+  // ships go as it rises, before the lines part (director.ts, MEETINGS).
+  // Then up, south to Cádiz and the army's turn east.
+  { p: 0.513, eye: [-13.4, 40.6, 560], target: [-11.5, 43.4, 0] },
+  { p: 0.527, eye: FINISTERRE_EYE, target: FINISTERRE_TARGET },
+  { p: 0.548, eye: [-11.74, 42.69, 79], target: [-11.58, 43.68, 0] },
   { p: 0.575, eye: [-17, 33.5, 1750], target: [-7.2, 41, 0] },
   // Villeneuve's turn south off Finisterre on the evening of 15 August
   // (the clock slows for it, beats.ts) and his run down the coast of

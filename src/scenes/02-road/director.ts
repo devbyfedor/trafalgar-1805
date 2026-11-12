@@ -349,7 +349,12 @@ const MEETINGS: readonly {
     above: "villeneuve",
     below: "calder",
     course: 247,
-    days: [day(7, 22, 0), day(7, 22, 4.2), day(7, 22, 21.9), day(7, 23, 14)],
+    // The lines stand until the evening of the 23rd: the fleets lay in
+    // sight of each other through that day, neither renewing the action
+    // (a licence of the plan; decisions.md, session 20), and they part as
+    // the camera rises, the ships already gone from the view (their
+    // unzipping, close up, had squeezed a line's ships to nothing).
+    days: [day(7, 22, 0), day(7, 22, 4.2), day(7, 23, 18), day(7, 24, 12)],
   },
 ];
 

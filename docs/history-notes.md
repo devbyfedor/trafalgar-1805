@@ -92,6 +92,23 @@ After the 1800–1803 great repair. The most valuable source is the contemporary
 - Whether the Spanish coast was visible from deck at first light (certainly seen later in the morning).
 - Not consulted first-hand: McKay's *Anatomy of the Ship* drawings and spar tables, McGowan (2003), Goodwin's *Pocket Manual* (2015) and his 2013 *Mariner's Mirror* article.
 
+## Scene 2: the strengths lettered at the tracks' heads (session 20)
+
+On the far views of scene 2 each squadron is lettered at its track's head with its commander and its strength ("Villeneuve, 20 sail"). This section records what the label counts and where the sources part; it joins the Scene 2 section when that is merged (`docs/research/scene-02/session-17/history-scene-02-wip.md`, "Fleet sizes at each stage", holds the figures and their sources stage by stage).
+
+**What "sail" counts.** Where a dispatch gave a fleet's strength it counted ships of the line apart from the rest: Calder's own dispatch has the enemy at "20 Sail of the Line", with ships armed en flûte, frigates and brigs listed after them, and his own as 15 of the line, two frigates, a cutter and a lugger (Naval Chronicle XIV, p. 163); Nelson's frigates reported the Toulon fleet as eleven of the line, seven frigates and two brigs (Nicolas VI, p. 396). Where strength was the subject, bare "sail" meant ships of the line too: Nelson's memorandum of 9 October gives the enemy as "thirty-four sail" (Nicolas VII, pp. 89–92). In a sighting the same word took in every vessel in view (the Defiance's "24, then 27 sail" when 20 of the line were there; Corbett, p. 196). So the label counts ships of the line under the commander's flag; frigates, small craft and prizes are not counted, since the sources agree on the line at every stage and differ on the rest.
+
+**The labels' figures** (the day each takes effect; squadrons.ts, fleets.ts): Villeneuve 11 (30 March, Toulon), 14 (10 April, out of Cádiz), 17 (14 May, Martinique), 18 (16 May, the San Rafael), 20 (4 June, Magon), 18 (22 July, about 8.25 p.m., the San Rafael and Firme struck), 15 (31 July, out of Vigo), 29 (13 August, out of Ferrol); Nelson 11 (3 April), 10 (11 May, the Royal Sovereign gone), 12 (4 June, Barbados), 11 (13 June, homeward), 2 (15 August, off Ushant with the Superb), none while the Victory lay at Spithead without his flag (19 August to 14 September), "Victory" from St Helens on 15 September, 3 from 18 September (the Ajax and Thunderer); Orde 5, then 6 (the Renown, 9 April); Calder 15 throughout; Collingwood 3, then 4 when the Mars came back from Tangier about midnight on 20–21 August (Desbrière, p. 107; added this session); the October fleets 27 British and 33 combined, as drawn.
+
+**Where the sources part (questions for the owner):**
+1. Ships of the line only (as lettered) or every vessel? Toulon would then read 19, not 11 (with six frigates and two brigs; Nelson's frigates counted seven).
+2. Villeneuve on the crossing: 14, the ships that sailed with him from Cádiz (Reille in Desbrière, Troude; 13 in company until the América rejoined on 12 April), against 18, all he had at Cádiz with the Spaniards who followed on their own; James has 17 getting under way together and the San Rafael following.
+3. Nelson's fleet off Cádiz in October: 27, the ships drawn (the fleet at Trafalgar; James, Beatty), or the strength by date: 29 when he joined on 28 September (his log; his letter to Acton), 23 by 5 October after Louis's five sailed for Gibraltar, then 24, 26, 27, 28, and 27 from the 17th.
+
+**Settled without the owner, recorded here:** Calder's label stays 15 after the action, without his two prizes (James III 365 counts 14 engaged, the Dragon coming up at the close); the counts change on the French records' dates where James's are a day early (Martinique 14 May, Vigo 31 July, Ferrol 13 August); Villeneuve's 29 out of Ferrol is James's "exclusive of frigates and corvettes" (he dates it the 11th); Collingwood's "36 sail of men-of-war" off Cádiz on 20 August counted frigates with the 29 of the line.
+
+**Drawn with other types, not counted wrong** (they show only in the close views): Nelson's ten after 11 May keep a 98 where the Royal Sovereign had gone (the Canopus and Tigre were 80-gun two-deckers); Spanish 80s and 64s, Calder's Malta (80) and two 64s, and four of Ferrol's six French 80s are drawn as 74s.
+
 ## Key sources
 
 Full lists with every URL are at the end of each file in `docs/research/`.

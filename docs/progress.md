@@ -2,6 +2,25 @@
 
 Live checklist. A later session picks up from here. The briefs are `docs/scene-01-brief.md` and `docs/scene-02-brief.md`; decisions and deviations are in `docs/decisions.md`.
 
+## Session 22 (12 November 2026, from 23:00): the chapter scrim and Boulogne
+
+**The owner's word** (complete; it ends "Конец сообщения"): he watched the production preview several times and in detail. He likes the new routes, the labels, Finisterre and the Gulf, and sees no frame dips. So: (a) the start-up work is closed: `s21-load-wip` is neither merged nor deleted; its note goes to main and `backlog.md` records what is parked and what was proposed (scene 1's idle loops started late, a patched copy of troika's file); (b) his answer on the Gulf: yes, that is what he meant: **a fleet shows either as its label or as all its ships at once; never a frame with neither, never a lone flagship.** A short session (little of his limit left): subagents only where nothing else will do; big files, logs and frames read by scripts.
+
+**Stage B's remainder in three sessions** (his plan):
+1. This one: the chapter title's scrim, and Boulogne.
+2. The next: branch 2 (the smoke, the night lights, the relay), the signal relay in beat 4, and the history section.
+3. The last: the stills, the final check at the four sizes, and the README.
+
+**This session's order**, only these steps:
+1. The load note to main and `backlog.md`, as above.
+2. The scrim: finish the checks on `s21-scrim` and merge it. Contrast never under 4.5:1 anywhere, p 0.275 included.
+3. Boulogne: branch 3 (the camps and the flotilla) onto today's main, checked, merged. Branch 1 (the Channel tile) goes in with it only if Boulogne's close view looks worse without it; if it isn't needed, it goes into `backlog.md`.
+
+**His rules for the branches:** keep main's `smallcraft.ts` and `Lettering.ts`'s `rank`, `giveWay` and `setKeepOut`. Everything new obeys the new scheme: nothing ship-like on the far views; vessels and the flotilla come in only where they read one by one; no land, no overlaps, no jerks. After a merge, a quick check at the laptop size: clashes, jerks, contrast, the frame budget. Approved work stays: scene 1's regression passes, and `look-diff.mjs` wherever nothing was changed. **Never run `npm run screenshots`.** Branch 2, the relay and the history section are not to be started. Commit after each step; the report in Russian, plain short sentences, no tables, at most three questions; then stop.
+
+- **Start:** 23:00, clean tree at `4a2f6ba`. Branches: `s21-scrim` (3 ahead of its base `9f41b56`), `s21-perf` (3), `s21-load-wip` (1, on `53899e6`), `worktree-wf_016f0c7a-068-1` (the Channel tile, 7 on `c8ee83b`, 32 behind), `-3` (Boulogne, 1 on `b9960ae`, 55 behind).
+- **Step 1: done** (this commit): `docs/research/perf-load-s21.md` brought to main from `s21-perf` with a status line (closed; the tools on `s21-perf`, the changes on `s21-load-wip`); `backlog.md`, "The start-up dip"; `research/README.md` lists both perf notes. Session 21's questions are answered or closed: (1) and (3) closed with the load work; (2) yes, as above.
+
 ## Session 21 (12 November 2026): Finisterre, the strengths by date, the scrim, the full proof, the start-up dip
 
 **The owner's order** (complete this time; it ends "Конец сообщения"), only these steps, in order; branches 1–3, the signal relay, the stills, the history section and Stage B's final check are for the next session and are not to be started:

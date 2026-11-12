@@ -69,7 +69,7 @@ export interface HeadLabelState {
 }
 
 /** The most points of its line a head is given (HeadLabels.set). */
-export const TRAIL_POINTS = 12;
+export const TRAIL_POINTS = 24;
 /** The em on screen (CSS px): a share of the viewport's height, within bounds. */
 const EM_VH = 0.018;
 const EM_MIN_PX = 12;
@@ -96,6 +96,12 @@ const GROUND_SAMPLES = 6;
 const LAND_CLEAR_PX: readonly [number, number] = [4, 10];
 /** The edge of the frame a label keeps clear of, CSS px. */
 const EDGE_PX = 10;
+/**
+ * Toward the horizon the haze brightens the sea under a label past what its
+ * ink can read against: it is gone by this share of the haze's visibility
+ * (in from the first), where the ground's luminance passes about 0.15.
+ */
+const HAZE_CLEAR: readonly [number, number] = [0.42, 0.55];
 /**
  * The ink on the sea: the chart's pale ink lightened toward the page's, so
  * the label reads over the whole sea, the brighter haze toward the horizon
@@ -352,7 +358,11 @@ export class HeadLabels implements ChartLayer {
       // and with the haze, as the names do.
       const tilt = smooth(0.1, 0.25, eye.z / dist);
       const hx = dist / frame.hazeVisibility;
-      const seen = h.presence * tilt * Math.exp(-hx * hx);
+      const seen =
+        h.presence *
+        tilt *
+        Math.exp(-hx * hx) *
+        (1 - smooth(HAZE_CLEAR[0], HAZE_CLEAR[1], hx));
       h.emPx = emPx;
       for (const s of h.slots) s.weight = 0;
       if (!this.sized || seen <= 0.001) {

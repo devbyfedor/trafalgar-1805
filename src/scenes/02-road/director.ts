@@ -1499,7 +1499,7 @@ export class RoadDirector {
       if (total > 1e-6) {
         x /= total;
         y /= total;
-        if (main) trail = this.trailOf(main, p);
+        if (main) trail = this.trailOf(main);
       } else if (squad.legs.length > 0) {
         // Before its first leg is drawn, where it begins; after its last,
         // where it ends.
@@ -1568,26 +1568,16 @@ export class RoadDirector {
   }
 
   /**
-   * A leg's drawn line back from its head into `trail` (TRAIL_POINTS world
-   * points), far enough to pass the squadron's block (in the roads, it
-   * stands back along the line) by about 90 CSS px on screen: what its label
-   * keeps clear of. Returns how many points.
+   * A leg's drawn line, from its head back to where it begins, into `trail`
+   * (TRAIL_POINTS world points): what every label keeps clear of (the leg
+   * being sailed is drawn strong), its own squadron's included, whose block
+   * stands back along it in port. Returns how many points.
    */
-  private trailOf(c: LegClock, p: number): number {
+  private trailOf(c: LegClock): number {
     const track = c.track;
     const head = Math.max(0, Math.min(track.length, track.headKm));
-    const { chart } = this.layers;
-    const camera = chart.camera;
-    const cssH = chart.renderer.domElement.clientHeight || 720;
-    const cssPerRad = cssH / (2 * Math.tan((camera.fov * Math.PI) / 360));
-    track.pointAt(head, this.at);
-    const e = chart.eye;
-    const kmPx = Math.hypot(this.at.x - e.x, this.at.y - e.y, e.z) / cssPerRad;
-    const block = curveKm(c, easedProgress(c, "block", p));
-    const back = Math.max(0, head - block) + 90 * kmPx;
-    const from = Math.max(0, head - back);
     for (let i = 0; i < TRAIL_POINTS; i++) {
-      track.pointAt(head - ((head - from) * i) / (TRAIL_POINTS - 1), this.at);
+      track.pointAt(head - (head * i) / (TRAIL_POINTS - 1), this.at);
       this.trail[i * 2] = this.at.x;
       this.trail[i * 2 + 1] = this.at.y;
     }

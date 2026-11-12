@@ -194,6 +194,22 @@ export interface Ship {
   stays?: boolean;
   /** Left the story on this day (days since 1 January 1805): no place at dawn. */
   until?: number;
+  /**
+   * Joined the fleet off Cádiz (or in it) on this day; not with it before
+   * (lineStrength; the director fades her in over the scroll).
+   */
+  joins?: number;
+  /** Away from the fleet between these days (the Leviathan at Gibraltar). */
+  away?: readonly [number, number];
+}
+
+/** Whether a ship is with her fleet on day d (Ship.joins, away, until). */
+export function withFleet(ship: Ship, d: number): boolean {
+  if (ship.stays) return false;
+  if (ship.until !== undefined && d >= ship.until) return false;
+  if (ship.joins !== undefined && d < ship.joins) return false;
+  if (ship.away && d >= ship.away[0] && d < ship.away[1]) return false;
+  return true;
 }
 
 /**
@@ -211,17 +227,41 @@ export const BRITISH: readonly Ship[] = [
   ["Victory", RIGS.victory, "nelson", true],
   ["Téméraire", RIGS.british98, "nelson"],
   ["Neptune", RIGS.british98, "nelson"],
-  ["Leviathan", RIGS.british74, "nelson"],
+  // At Gibraltar from the evening of 2 October (the day she went is not
+  // recorded) until the 8th (strengths-by-date.md, 2.1).
+  [
+    "Leviathan",
+    RIGS.british74,
+    "nelson",
+    false,
+    { away: [day(10, 2, 18), day(10, 8, 16)] },
+  ],
   ["Britannia", RIGS.firstRate, "nelson"],
   ["Conqueror", RIGS.british74, "nelson"],
-  ["Agamemnon", RIGS.british64, "nelson"],
+  // The ships that joined Nelson off Cádiz in October, each from the day
+  // she did (history-notes.md, "Scene 2: the strengths lettered at the
+  // tracks' heads"); the Africa's joining, by the forenoon of the 14th, is
+  // taken with the Prince of Wales's going on the evening of the 13th.
+  ["Agamemnon", RIGS.british64, "nelson", false, { joins: day(10, 13, 10) }],
   ["Ajax", RIGS.british74, "nelson"],
   ["Orion", RIGS.british74, "nelson"],
   ["Minotaur", RIGS.british74, "nelson"],
   ["Spartiate", RIGS.british74, "nelson"],
-  ["Africa", RIGS.british64, "nelson"],
-  ["Royal Sovereign", RIGS.firstRate, "collingwood", true],
-  ["Belleisle", RIGS.british74, "collingwood"],
+  ["Africa", RIGS.british64, "nelson", false, { joins: day(10, 13, 18) }],
+  [
+    "Royal Sovereign",
+    RIGS.firstRate,
+    "collingwood",
+    true,
+    { joins: day(10, 8, 16) },
+  ],
+  [
+    "Belleisle",
+    RIGS.british74,
+    "collingwood",
+    false,
+    { joins: day(10, 10, 15) },
+  ],
   ["Mars", RIGS.british74, "collingwood"],
   ["Tonnant", RIGS.british80, "collingwood"],
   ["Bellerophon", RIGS.british74, "collingwood"],
@@ -231,7 +271,7 @@ export const BRITISH: readonly Ship[] = [
   ["Polyphemus", RIGS.british64, "collingwood"],
   ["Revenge", RIGS.british74, "collingwood"],
   ["Swiftsure", RIGS.british74, "collingwood"],
-  ["Defiance", RIGS.british74, "collingwood"],
+  ["Defiance", RIGS.british74, "collingwood", false, { joins: day(10, 7, 9) }],
   ["Thunderer", RIGS.british74, "collingwood"],
   ["Defence", RIGS.british74, "collingwood"],
   ["Prince", RIGS.british98, "collingwood"],
@@ -277,7 +317,9 @@ export const COMBINED: readonly Ship[] = [
   ["Scipion", RIGS.french74, "main"],
   ["Duguay-Trouin", RIGS.french74, "main"],
   ["Héros", RIGS.french74, "main"],
-  ["Santa Ana", RIGS.spanish112, "main"],
+  // Just out of dock at La Carraca on 28 September, ready with the fleet in
+  // the first days of October (strengths-by-date.md, 3.2; the day taken).
+  ["Santa Ana", RIGS.spanish112, "main", false, { joins: day(10, 3, 12) }],
   ["Rayo", RIGS.spanish100, "main"],
   ["Neptuno", RIGS.spanish80, "main"],
   ["Monarca", RIGS.spanish74, "main"],
@@ -1059,19 +1101,58 @@ export const ROUTE_SQUADRON: readonly ShipMark[] = [
 ];
 
 /**
+ * The ships of the line with the fleet off Cádiz in the weeks before the
+ * battle that were not at Trafalgar, each until the day she left it
+ * (history-notes.md, "Scene 2: the strengths lettered at the tracks'
+ * heads"; research/scene-02/session-21/strengths-by-date.md): Louis's five
+ * for Gibraltar and Tetuan on the evening of 2 October, the Prince of
+ * Wales home with Calder on the evening of the 13th, the Donegal to
+ * Gibraltar on the 17th. Counted in the fleet's strength while with it,
+ * not drawn: the fleets' ships come in only where every one of them reads
+ * one by one (glyphs/layout.ts, FreeGroup.gate), which off Cádiz is only
+ * once all of these have gone (the director checks it, checkGate).
+ */
+export const NOT_AT_TRAFALGAR: readonly {
+  name: string;
+  side: Side;
+  until: number;
+}[] = [
+  { name: "Queen", side: "british", until: day(10, 2, 18) },
+  { name: "Canopus", side: "british", until: day(10, 2, 18) },
+  { name: "Spencer", side: "british", until: day(10, 2, 18) },
+  { name: "Tigre", side: "british", until: day(10, 2, 18) },
+  { name: "Zealous", side: "british", until: day(10, 2, 18) },
+  { name: "Prince of Wales", side: "british", until: day(10, 13, 18) },
+  { name: "Donegal", side: "british", until: day(10, 17, 15) },
+];
+
+/**
  * A fleet's strength on a day as lettered beside it on the far views
- * (HeadLabels): its ships of the line in the story then, the unit in which
- * the dispatches gave a fleet's strength; frigates and the small craft are
- * not counted, nor a ship left at anchor or gone by then.
+ * (HeadLabels): its ships of the line with it then, the unit in which the
+ * dispatches gave a fleet's strength (withFleet; NOT_AT_TRAFALGAR); frigates
+ * and the small craft are not counted, nor a ship left at anchor or gone.
+ * By date, as the owner ruled on 12 November 2026: 29 on Nelson's arrival,
+ * 23 by 5 October, then 24, 26, 27, 28 and 27 from the 17th; the combined
+ * fleet 32 ready in Cádiz on 28 September, 33 with the Santa Ana.
  */
 export function lineStrength(side: Side, d: number): number {
   let n = 0;
   for (const ship of side === "british" ? BRITISH : COMBINED)
-    if (
-      LINE_RIGS.has(ship.rig) &&
-      !ship.stays &&
-      (ship.until === undefined || d < ship.until)
-    )
-      n++;
+    if (LINE_RIGS.has(ship.rig) && withFleet(ship, d)) n++;
+  for (const ship of NOT_AT_TRAFALGAR)
+    if (ship.side === side && d < ship.until) n++;
   return n;
+}
+
+/** Every day a fleet's ships of the line come or go (Ship.joins, away; NOT_AT_TRAFALGAR), sorted. */
+export function strengthDays(side: Side): number[] {
+  const days = new Set<number>();
+  for (const ship of side === "british" ? BRITISH : COMBINED) {
+    if (!LINE_RIGS.has(ship.rig)) continue;
+    if (ship.joins !== undefined) days.add(ship.joins);
+    if (ship.away) for (const d of ship.away) days.add(d);
+  }
+  for (const ship of NOT_AT_TRAFALGAR)
+    if (ship.side === side) days.add(ship.until);
+  return [...days].sort((a, b) => a - b);
 }

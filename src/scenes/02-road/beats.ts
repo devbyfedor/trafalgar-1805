@@ -82,6 +82,15 @@ const CLOCK: Record<BeatId, readonly Keyframe[]> = {
     [0.516, day(7, 22)],
     [0.55, day(7, 22, 23.5)],
     [0.56, day(7, 24)],
+    // Room for the strengths lettered at Villeneuve's head as they change
+    // two or three days apart (director.ts, changeWindows): out of Vigo with
+    // 15 on 31 July and 13 at A Coruña on 2 August, then 26 in the bay of
+    // Ares on the 10th and 29 out of Ferrol on the 13th, each figure about
+    // 85 px of scroll from the next (the story's pace had put them 40 to 80
+    // px apart, too close for a figure to read); the days between faster.
+    [0.565, day(7, 30, 12)],
+    [0.573, day(8, 3, 12)],
+    [0.577, day(8, 10, 6)],
     // Out of Ferrol on the 13th, and on the evening of the 15th the turn
     // south for Cádiz, the beat's turning point: slower, so the line bends
     // over a stretch of scroll (at the old pace the squadron swung through
@@ -89,6 +98,9 @@ const CLOCK: Record<BeatId, readonly Keyframe[]> = {
     [0.584, day(8, 14, 6)],
     [0.6, day(8, 16, 18)],
     [0.61, day(8, 20, 20)],
+    // Collingwood's four (the Mars back at midnight on the 20th) read before
+    // his label goes as Bickerton's ships join him on the 22nd.
+    [0.6145, day(8, 22, 12)],
     // The army leaves Boulogne; then Nelson's passage from St Helens to the
     // fleet off Cádiz, which beat 4 takes up on the same day.
     [0.62, day(8, 28)],
@@ -97,6 +109,12 @@ const CLOCK: Record<BeatId, readonly Keyframe[]> = {
   ],
   cadiz: [
     [0.65, day(9, 28)],
+    // Room for the British fleet's strength as ships join a day apart (24
+    // with the Defiance on the morning of 7 October, 26 with the Leviathan
+    // and Royal Sovereign on the afternoon of the 8th, 27 with the Belleisle
+    // on the 10th): each figure about 85 px of scroll from the next.
+    [0.664, day(10, 6, 12)],
+    [0.6705, day(10, 8, 16)],
     [0.69, day(10, 18)],
     [0.7, day(10, 19, 6)],
     [0.78, day(10, 19, 9.6)],

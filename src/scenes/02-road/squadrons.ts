@@ -40,64 +40,184 @@ const S112 = "spanish-112";
 const B98 = "british-98";
 const B74 = "british-74";
 const VIC = "victory";
-const BFR = "british-frigate";
 
-const repeat = (type: string, n: number) =>
-  Array.from({ length: n }, () => type);
+/**
+ * A ship in a squadron's place: her type, the day she is in it from, and
+ * the day she leaves it (none: to the end of the squadron's story).
+ */
+interface Berth {
+  type: string;
+  from: number;
+  until?: number;
+}
 
-/** Villeneuve's eleven out of Toulon: four 80s and seven 74s. */
-const TOULON = [F80, F80, F80, F80, ...repeat(F74, 7)];
+/**
+ * A squadron's make-up over time from its places, each holding its ships
+ * in turn (a place left empty by one ship may be taken by another later):
+ * a stage at every day a ship comes or goes, listing each place's ship
+ * then (null where empty); under no flag between `unflagged`'s days.
+ */
+function stagesOf(
+  places: readonly (readonly Berth[])[],
+  unflagged?: readonly [number, number],
+): Composition[] {
+  const days = new Set<number>();
+  for (const place of places)
+    for (const b of place) {
+      days.add(b.from);
+      if (b.until !== undefined) days.add(b.until);
+    }
+  if (unflagged) for (const d of unflagged) days.add(d);
+  const stages: Composition[] = [];
+  for (const from of [...days].sort((a, b) => a - b)) {
+    const types = places.map(
+      (place) =>
+        place.find(
+          (b) => b.from <= from && (b.until === undefined || from < b.until),
+        )?.type ?? null,
+    );
+    const flagless =
+      unflagged !== undefined && from >= unflagged[0] && from < unflagged[1];
+    const last = stages[stages.length - 1];
+    if (
+      last &&
+      Boolean(last.unflagged) === flagless &&
+      last.types.every((t, k) => t === types[k])
+    )
+      continue;
+    stages.push(flagless ? { from, types, unflagged: true } : { from, types });
+  }
+  return stages;
+}
 
+/** A place held by one ship from a day on (to the end, or to `until`). */
+const berth = (type: string, from: number, until?: number): Berth[] => [
+  until === undefined ? { type, from } : { type, from, until },
+];
+
+/**
+ * Villeneuve's days (docs/research/scene-02/session-21/strengths-by-date.md
+ * and history-notes.md): out of Toulon; out of Cádiz with the 14 the owner
+ * counts as going with him (about 2 a.m. on 10 April); the Firme, Terrible
+ * and España found off Fort-de-France (14 May); the San Rafael in with the
+ * fleet (the afternoon of the 16th); Magon's two (4 June); the Firme and
+ * San Rafael struck (about 8.30 p.m. on 22 July); out of Vigo without the
+ * Atlas, España and América (31 July); the Argonauta and Terrible into
+ * Ferrol, the French at A Coruña (2 August); Gourdon's five and eight
+ * Spaniards in the bay of Ares (about 2 p.m. on 10 August); the last three
+ * (the forenoon of the 13th).
+ */
+const V = {
+  toulon: day(3, 30),
+  cadiz: day(4, 10, 2),
+  martinique: day(5, 14, 16),
+  sanRafael: day(5, 16, 15),
+  magon: day(6, 4),
+  struck: day(7, 22, 20.5),
+  vigo: day(7, 31),
+  coruna: day(8, 2),
+  ares: day(8, 10, 14),
+  ferrol: day(8, 13, 9),
+};
+
+/**
+ * Nelson's days: out of Pula Roads (3 April); the Royal Sovereign gone with
+ * Knight (about 5 p.m. on 11 May); the Northumberland and Spartiate at
+ * Barbados (about 5 p.m. on 4 June); homeward without the Northumberland
+ * (noon on 13 June); off Ushant on with the Superb, nine left with
+ * Cornwallis (the evening of 15 August); his flag struck at Spithead (19
+ * August) and hoisted again at St Helens (11.30 a.m. on 14 September); the
+ * Ajax and Thunderer off the Lizard (18 September).
+ */
+const N = {
+  med: day(4, 3),
+  knight: day(5, 11, 17),
+  barbados: day(6, 4, 17),
+  homeward: day(6, 13, 12),
+  ushant: day(8, 15, 18),
+  spithead: day(8, 19, 12),
+  stHelens: day(9, 14, 11.5),
+  lizard: day(9, 18),
+};
+
+/**
+ * The squadrons at the tracks' heads, each a block of its ships of the
+ * line only, the ships its label counts (strengthOf): the label's figure
+ * and the ships that come in at the head as the camera nears are the same
+ * (the owner's rule of 12 November 2026), so no frigate sails in a block
+ * (the Euryalus with the Victory in September) and no prize (Calder's San
+ * Rafael and Firme). Each place is one ship's, or holds ships in turn.
+ */
 export const SQUADRONS: readonly SquadronSpec[] = [
   {
     id: "villeneuve",
     side: "combined",
     shown: [day(3, 30, 15), day(8, 21)],
-    stages: [
-      { from: day(3, 30), types: TOULON },
-      // At Cádiz the Aigle and Gravina's ships came out; 14 crossed in
-      // company (12 French, the Argonauta and the América).
-      { from: day(4, 10, 2), types: [...TOULON, F74, S74, S74] },
-      // Martinique: the Firme, Terrible and España on 14 May, the San
-      // Rafael (an 80) on the 16th: 18.
-      {
-        from: day(5, 14, 16),
-        types: [...TOULON, F74, S74, S74, S74, S74, S74],
-      },
-      {
-        from: day(5, 16),
-        types: [...TOULON, F74, S74, S74, S74, S74, S74, S74],
-      },
-      // Magon with the Algésiras and Achille, 4 June: 20.
-      {
-        from: day(6, 4),
-        types: [...TOULON, F74, F74, F74, ...repeat(S74, 6)],
-      },
-      // Off Finisterre the San Rafael and the Firme were taken: 18.
-      {
-        from: day(7, 22, 20.5),
-        types: [...TOULON, F74, F74, F74, S74, S74, S74, S74],
-      },
-      // Out of Vigo with 15, the Atlas, España and América left behind.
-      {
-        from: day(7, 31),
-        types: [...TOULON.slice(0, 10), F74, F74, F74, S74, S74],
-      },
-      // Out of Ferrol with 29: Gourdon's five and nine Spaniards, the
-      // Príncipe de Asturias among them.
-      {
-        from: day(8, 13),
-        types: [
-          ...TOULON.slice(0, 10),
-          F74,
-          F74,
-          F74,
-          ...repeat(F74, 5),
-          S112,
-          ...repeat(S74, 10),
-        ],
-      },
-    ],
+    stages: stagesOf([
+      // Bucentaure, Formidable, Neptune, Indomptable.
+      berth(F80, V.toulon),
+      berth(F80, V.toulon),
+      berth(F80, V.toulon),
+      berth(F80, V.toulon),
+      // Pluton, Mont-Blanc, Berwick, Swiftsure, Scipion, Intrépide.
+      berth(F74, V.toulon),
+      berth(F74, V.toulon),
+      berth(F74, V.toulon),
+      berth(F74, V.toulon),
+      berth(F74, V.toulon),
+      berth(F74, V.toulon),
+      // The Atlas, left at Vigo; then the Fougueux (Gourdon's).
+      [
+        { type: F74, from: V.toulon, until: V.vigo },
+        { type: F74, from: V.ares },
+      ],
+      // The Aigle.
+      berth(F74, V.cadiz),
+      // The Argonauta, into Ferrol; then the Redoutable.
+      [
+        { type: S74, from: V.cadiz, until: V.coruna },
+        { type: F74, from: V.ares },
+      ],
+      // The América, left at Vigo; then the Argonaute.
+      [
+        { type: S74, from: V.cadiz, until: V.vigo },
+        { type: F74, from: V.ares },
+      ],
+      // The Firme, struck; then the Duguay-Trouin.
+      [
+        { type: S74, from: V.martinique, until: V.struck },
+        { type: F74, from: V.ares },
+      ],
+      // The Terrible, into Ferrol; then the Héros.
+      [
+        { type: S74, from: V.martinique, until: V.coruna },
+        { type: F74, from: V.ares },
+      ],
+      // The España, left at Vigo; then the Príncipe de Asturias.
+      [
+        { type: S74, from: V.martinique, until: V.vigo },
+        { type: S112, from: V.ares },
+      ],
+      // The San Rafael, struck; then a Spaniard from Ferrol.
+      [
+        { type: S74, from: V.sanRafael, until: V.struck },
+        { type: S74, from: V.ares },
+      ],
+      // The Algésiras and Achille (Magon).
+      berth(F74, V.magon),
+      berth(F74, V.magon),
+      // Six more Spaniards out of Ferrol on the 10th, the last three on
+      // the 13th.
+      berth(S74, V.ares),
+      berth(S74, V.ares),
+      berth(S74, V.ares),
+      berth(S74, V.ares),
+      berth(S74, V.ares),
+      berth(S74, V.ares),
+      berth(S74, V.ferrol),
+      berth(S74, V.ferrol),
+      berth(S74, V.ferrol),
+    ]),
   },
   {
     id: "nelson",
@@ -105,64 +225,83 @@ export const SQUADRONS: readonly SquadronSpec[] = [
     // On to Spithead in August; in September from St Helens back to the
     // fleet off Cádiz (history notes, "Nelson's passage").
     shown: [day(4, 3, 5), day(9, 28, 18)],
-    stages: [
-      // Eleven of the line in the Mediterranean, the Royal Sovereign among them.
-      { from: day(4, 3), types: [VIC, B98, ...repeat(B74, 9)] },
-      // The Royal Sovereign went with Knight on 11 May: ten crossed.
-      { from: day(5, 11, 17), types: [VIC, B98, ...repeat(B74, 8)] },
-      // The Northumberland and Spartiate at Barbados: twelve.
-      { from: day(6, 4, 17), types: [VIC, B98, ...repeat(B74, 10)] },
-      // Homeward with eleven; the Northumberland stayed.
-      { from: day(6, 13, 12), types: [VIC, B98, ...repeat(B74, 9)] },
-      // Off Ushant he left Cornwallis nine and went on with the Superb.
-      { from: day(8, 15, 18), types: [VIC, B74] },
-      // At Spithead he struck his flag (19 August): the Victory alone.
-      { from: day(8, 19, 12), types: [VIC], unflagged: true },
-      // From St Helens on 15 September with the frigate Euryalus.
-      { from: day(9, 15, 8), types: [VIC, BFR] },
-      // The Ajax and Thunderer join off the Lizard on the 18th.
-      { from: day(9, 18), types: [VIC, BFR, B74, B74] },
-      // The Euryalus sent ahead to Collingwood at 4 p.m. on the 26th.
-      { from: day(9, 26, 16), types: [VIC, null, B74, B74] },
-    ],
+    stages: stagesOf(
+      [
+        berth(VIC, N.med),
+        // The Royal Sovereign (drawn as a 98), gone with Knight; the
+        // Northumberland from Barbados to Antigua; the Ajax.
+        [
+          { type: B98, from: N.med, until: N.knight },
+          { type: B74, from: N.barbados, until: N.homeward },
+          { type: B74, from: N.lizard },
+        ],
+        // The Canopus (an 80, drawn as a 74), left off Ushant; the Thunderer.
+        [
+          { type: B74, from: N.med, until: N.ushant },
+          { type: B74, from: N.lizard },
+        ],
+        // The Superb, with him to Spithead.
+        berth(B74, N.med, N.spithead),
+        // Spencer, Swiftsure, Belleisle, Conqueror, Tigre (an 80), Leviathan
+        // and Donegal, left with Cornwallis off Ushant.
+        berth(B74, N.med, N.ushant),
+        berth(B74, N.med, N.ushant),
+        berth(B74, N.med, N.ushant),
+        berth(B74, N.med, N.ushant),
+        berth(B74, N.med, N.ushant),
+        berth(B74, N.med, N.ushant),
+        berth(B74, N.med, N.ushant),
+        // The Spartiate, from Barbados, left off Ushant.
+        berth(B74, N.barbados, N.ushant),
+      ],
+      [N.spithead, N.stHelens],
+    ),
   },
   {
     id: "orde",
     side: "british",
     // Off Cádiz when the French passed, drawing off toward Lagos.
     shown: [day(4, 8), day(4, 11)],
-    stages: [
-      { from: day(4, 8), types: [B98, B74, B74, B74, B74] },
-      { from: day(4, 9, 12), types: [B98, B74, B74, B74, B74, B74] },
-    ],
+    stages: stagesOf([
+      // The Glory; the Defence; the Polyphemus, Agamemnon and Ruby (64s,
+      // drawn as 74s); Strachan's Renown about midday on the 9th.
+      berth(B98, day(4, 8)),
+      berth(B74, day(4, 8)),
+      berth(B74, day(4, 8)),
+      berth(B74, day(4, 8)),
+      berth(B74, day(4, 8)),
+      berth(B74, day(4, 9, 12)),
+    ]),
   },
   {
     id: "calder",
     side: "british",
-    // Fifteen of the line off Finisterre: four 98s, one 80, eight 74s, two 64s.
+    // Fifteen of the line off Finisterre: four 98s, one 80, eight 74s and
+    // two 64s (the 80 and 64s drawn as 74s). His two prizes are not his
+    // strength and are not drawn; the Windsor Castle went home with them at
+    // 8 p.m. on the 26th, after his window.
     shown: [day(7, 20), day(7, 26)],
-    stages: [
-      {
-        from: day(7, 20),
-        types: [B98, B98, B98, B98, B74, ...repeat(B74, 10)],
-      },
-      // With the San Rafael and the Firme as prizes.
-      {
-        from: day(7, 22, 20.5),
-        types: [B98, B98, B98, B98, B74, ...repeat(B74, 10), S74, S74],
-      },
-    ],
+    stages: stagesOf([
+      ...Array.from({ length: 4 }, () => berth(B98, day(7, 20))),
+      ...Array.from({ length: 11 }, () => berth(B74, day(7, 20))),
+    ]),
   },
   {
     id: "collingwood",
     side: "british",
     // Off Cádiz on 20 August with three of the line; the Mars, back from
-    // Tangier, made four about midnight (Desbrière 1907, p. 107).
-    shown: [day(8, 19), day(8, 22)],
-    stages: [
-      { from: day(8, 19), types: [B98, B74, B74] },
-      { from: day(8, 21, 0), types: [B98, B74, B74, B74] },
-    ],
+    // Tangier, made four about midnight (Desbrière 1907, p. 107; James III
+    // 375). His window closes as Bickerton's four join on the 22nd: from
+    // there he is the fleet off Cádiz, which the scene letters only with
+    // Nelson's arrival.
+    shown: [day(8, 19), day(8, 22, 12)],
+    stages: stagesOf([
+      // The Dreadnought; the Colossus and Achille; the Mars.
+      berth(B98, day(8, 19)),
+      berth(B74, day(8, 19)),
+      berth(B74, day(8, 19)),
+      berth(B74, day(8, 21, 0)),
+    ]),
   },
 ];
 

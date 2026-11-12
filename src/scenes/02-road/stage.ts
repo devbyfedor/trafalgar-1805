@@ -164,6 +164,14 @@ export interface RoadStage {
   /** Development: the bake's sizes pass replayed at step k (GlyphLayout.traceBakeStep). */
   bakeTrace(k: number): Record<string, unknown>[];
   /**
+   * Development and checks: the scene drawn at p, each fleet gate's
+   * opening and how much its ships show (GlyphLayout.gateOpen, gateShown):
+   * [British open, combined open, British shown, combined shown].
+   */
+  gates(p: number): number[];
+  /** Development: every change of a label's strength (RoadDirector.labelChanges). */
+  labelChanges(): ReturnType<RoadDirector["labelChanges"]>;
+  /**
    * Development: where a site on the sea level stands in the frame at p
    * (normalised device coordinates), how far from the eye (km), how steeply
    * the view meets the chart there (the sine of its elevation) and the
@@ -326,6 +334,15 @@ export async function createRoadStage(
       const formation = director.formationOf(id);
       return formation ? layout.lineAnchorOf(formation, out) : 0;
     });
+    // The October fleets' labels give way to their ships of the line as
+    // they come in (the director's gates: 0 the British, 1 the combined).
+    heads.setHandover((id) =>
+      id === "fleet-british"
+        ? layout.gateShown(0)
+        : id === "fleet-combined"
+          ? layout.gateShown(1)
+          : 0,
+    );
     chart.add(heads, ...heads.objects);
     chart.add(tracks, ...tracks.objects);
     chart.add(fleets, fleets.wakes, fleets.ships);
@@ -437,6 +454,20 @@ export async function createRoadStage(
       },
       bakedSizes(layer, i, k0, k1) {
         return layout.bakedSizes(layer, i, k0, k1);
+      },
+      labelChanges() {
+        return director.labelChanges();
+      },
+      gates(p) {
+        sampled = Number.NaN;
+        director.apply(p);
+        chart.frame(performance.now() / 1000);
+        return [
+          layout.gateOpen(0),
+          layout.gateOpen(1),
+          layout.gateShown(0),
+          layout.gateShown(1),
+        ];
       },
       bakeTrace(k) {
         sampled = Number.NaN;

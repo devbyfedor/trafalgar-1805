@@ -241,6 +241,11 @@ export function Scene02Road() {
               sample: (p: number, mode?: number) => s.sample(p, mode),
               bakedSizes: (layer: number, i: number, k0: number, k1: number) =>
                 s.bakedSizes(layer, i, k0, k1),
+              labelChanges: () => s.labelChanges(),
+              gates: (p: number) => {
+                drawn = -1;
+                return s.gates(p);
+              },
               bakeTrace: (k: number) => {
                 drawn = -1;
                 return s.bakeTrace(k);
@@ -436,6 +441,12 @@ declare global {
       ) => number[][];
       /** Development: the bake's sizes pass replayed at step k (RoadStage.bakeTrace). */
       bakeTrace: (k: number) => Record<string, unknown>[];
+      /** Development and checks: the fleet gates at p (RoadStage.gates). */
+      gates: (p: number) => number[];
+      /** Development: every change of a label's strength (RoadStage.labelChanges). */
+      labelChanges: () => ReturnType<
+        import("./stage").RoadStage["labelChanges"]
+      >;
       /**
        * Development: frames at p timed on the GPU and the CPU; with
        * `alternate`, the chart's objects of that name drawn on even frames

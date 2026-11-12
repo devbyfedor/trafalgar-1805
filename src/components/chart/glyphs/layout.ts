@@ -63,6 +63,19 @@ export interface FreeGroup {
    * together, at their sizes, and a group not shown is not laid out.
    */
   shown?: number;
+  /**
+   * Groups with the same gate come in together, and only where every one
+   * of their ships reads one by one (a fleet's ships of the line, whose
+   * label gives way to them as they come in: gateShown). Without a gate a
+   * group's lead stands for it where its ships are too crowded to read.
+   */
+  gate?: number;
+  /**
+   * The group comes and goes with its gate but doesn't hold it (small
+   * craft keeping with a fleet's body, uncounted: neither must they read
+   * for it to come in).
+   */
+  gateFollows?: boolean;
 }
 
 /** A squadron drawn as a symbol at the head of its track. */
@@ -159,6 +172,12 @@ const SWEEP_MAX_PX = 60;
  * in a stretched corner of the projection, had cost 6 ms a frame.
  */
 const OFF_SCREEN_PX = 400;
+/**
+ * A gate holds only as far as the view looks down on its group: the eye's
+ * height over its distance (as HeadLabels fades its labels, which can't be
+ * read on a chart seen this low).
+ */
+const GATE_TILT: readonly [number, number] = [0.1, 0.25];
 /** How far a meeting line's label anchors stand off its ships' box (lineAnchorOf), CSS px. */
 const LINE_LABEL_CLEAR_PX = 12;
 
@@ -385,6 +404,8 @@ export class GlyphLayout implements ChartLayer {
   private swDY = 0;
   /** Development: the obstacle that last limited obstacleFit (-1 for none). */
   private hit = -1;
+  /** Each gate's opening this frame (setGates; FreeGroup.gate). */
+  private readonly gateValue: Float64Array;
   /** The tables whose glyph sizes limit this frame's (none while baking). */
   private ratios: Bake | null = null;
   /** Each layer's index among the layers. */
@@ -410,6 +431,10 @@ export class GlyphLayout implements ChartLayer {
       (g): g is Formation => g.kind === "formation",
     );
     this.frees = groups.filter((g): g is FreeGroup => g.kind === "free");
+    let gates = 0;
+    for (const g of this.frees)
+      if (g.gate !== undefined) gates = Math.max(gates, g.gate + 1);
+    this.gateValue = new Float64Array(Math.max(1, gates));
     for (let i = 0; i < this.layers.length; i++)
       this.layerIndex.set(this.layers[i], i);
     this.sweepX = this.layers.map((l) => new Float64Array(l.markCount));
@@ -471,6 +496,7 @@ export class GlyphLayout implements ChartLayer {
     const baked = this.tablesFor(frame);
     this.usingTables = baked !== null;
     this.ratios = baked;
+    this.setGates(baked, 1);
     // The fleets at their true places first; the squadrons' symbols fit
     // round them.
     for (let i = 0; i < this.frees.length; i++) {
@@ -479,6 +505,101 @@ export class GlyphLayout implements ChartLayer {
         this.layoutFree(g, baked ? baked.at(i, this.p) : null);
     }
     this.layoutSquadrons(baked);
+  }
+
+  /**
+   * How far each gate is open this frame: the least, over its groups that
+   * show, of how far their ships each read one by one (as baked: how much
+   * its least visible ship shows at the sizes the frames draw, or pass 0's
+   * estimate while pass 1 runs; without tables, this frame's estimate);
+   * but only as far
+   * as the view looks down on the group. Low over the sea, ships hide each
+   * other by the perspective, not the zoom, and no label lying on the chart
+   * can be read there to stand for them (HeadLabels fades its labels over
+   * the same tilt): the gate stays open, and the group shows as it did.
+   */
+  private setGates(bake: Bake | null, pass: 0 | 1): void {
+    this.gateValue.fill(1);
+    for (let i = 0; i < this.frees.length; i++) {
+      const g = this.frees[i];
+      if (g.gate === undefined || g.gateFollows || shownOf(g) <= SHOWN_MIN)
+        continue;
+      // Baked with the view's tilt and eased; or from this frame.
+      let r: number;
+      if (bake) r = bake.readAt(pass, i, this.p);
+      else {
+        const down = this.downOn(g);
+        if (down <= 0) continue;
+        const total = this.measureFree(g);
+        r = this.readEstimate(g, this.commonOf(g, total));
+        r = 1 - down * (1 - Math.min(1, Math.max(0, r)));
+      }
+      this.gateValue[g.gate] = Math.min(
+        this.gateValue[g.gate],
+        Math.min(1, Math.max(0, r)),
+      );
+    }
+  }
+
+  /** How steeply the view meets a group this frame, at its lead, as far as its gate holds (GATE_TILT). */
+  private downOn(g: FreeGroup): number {
+    const v = this.view;
+    const lead = g.members[0];
+    const it = g.layer.intent;
+    const dist = Math.hypot(it.x[lead] - v.ex, it.y[lead] - v.ey, v.ez);
+    return smoothstep(GATE_TILT[0], GATE_TILT[1], v.ez / dist);
+  }
+
+  /** Development and checks: how far a gate is open this frame (setGates). */
+  gateOpen(gate: number): number {
+    return gate < this.gateValue.length ? this.gateValue[gate] : 1;
+  }
+
+  /**
+   * How much a gate's ships show as drawn this frame (0..1): the mean, over
+   * its groups' ships laid out on screen and with their fleet, of how much
+   * of each the frame draws (her group shown, the gate open, her size).
+   * Where they show, the label standing for them gives way, exactly as
+   * they come in (HeadLabels.setHandover): read from the gate alone, the
+   * label had gone before ships still too small to show had come in.
+   */
+  gateShown(gate: number): number {
+    let sum = 0;
+    let count = 0;
+    for (const g of this.frees) {
+      if (g.gate !== gate || g.gateFollows || shownOf(g) <= SHOWN_MIN) continue;
+      const it = g.layer.intent;
+      const d = g.layer.drawn;
+      for (const i of g.members) {
+        if (it.opacity[i] <= 0.05 || !(d.nominal[i] > 0)) continue;
+        sum += Math.min(1, d.alpha[i] / it.opacity[i]);
+        count++;
+      }
+    }
+    return count > 0 ? sum / count : 0;
+  }
+
+  /**
+   * How far a group's ships each read one by one, estimated from the last
+   * measureFree and commonOf (this.near, h0, wt): the least of its ships'
+   * (readsAt), each at the scale she would be drawn at (the lead at hers,
+   * the rest at the common scale or the room their nearest companion
+   * leaves them). Ships hardly there (by date, or in the haze) don't count.
+   */
+  private readEstimate(g: FreeGroup, common: number): number {
+    let r = 1;
+    for (let k = 0; k < g.members.length; k++) {
+      if (this.wt[k] <= 0.05 || this.offScreen(this.fx[k], this.fy[k]))
+        continue;
+      const s = k === 0 ? 1 : Math.min(common, this.near[k]);
+      r = Math.min(r, this.readsAt(s * this.h0[k]));
+    }
+    return r;
+  }
+
+  /** Whether a ship drawn h device px tall reads one by one (0..1), as her glyph shows (shows). */
+  private readsAt(h: number): number {
+    return smoothstep(READABLE_PX * this.dpr, FULL_PX * this.dpr, h);
   }
 
   dispose(): void {}
@@ -541,8 +662,20 @@ export class GlyphLayout implements ChartLayer {
     this.begin(frame);
     for (let i = 0; i < this.frees.length; i++) {
       const g = this.frees[i];
-      bake.common[i][k] =
-        shownOf(g) > SHOWN_MIN ? this.commonOf(g, null) : Number.NaN;
+      if (shownOf(g) <= SHOWN_MIN) {
+        bake.common[i][k] = Number.NaN;
+        bake.readable[0][i][k] = Number.NaN;
+        bake.down[i][k] = Number.NaN;
+        continue;
+      }
+      const common = this.commonOf(g, null);
+      bake.common[i][k] = common;
+      // Its estimate, as far as the view looks down on it (setGates).
+      bake.readable[0][i][k] =
+        g.gate === undefined
+          ? 1
+          : 1 - this.downOn(g) * (1 - this.readEstimate(g, common));
+      bake.down[i][k] = g.gate === undefined ? 0 : this.downOn(g);
     }
     for (let i = 0; i < this.formations.length; i++) {
       const g = this.formations[i];
@@ -577,6 +710,7 @@ export class GlyphLayout implements ChartLayer {
     }
     if (k === 0) for (const ok of this.sweepOk) ok.fill(0);
     this.sweeping = true;
+    this.setGates(bake, 0);
     for (let i = 0; i < this.frees.length; i++) {
       const g = this.frees[i];
       if (shownOf(g) > SHOWN_MIN) this.layoutFree(g, bake.at(i, this.p));
@@ -632,6 +766,7 @@ export class GlyphLayout implements ChartLayer {
       }
       this.sweeping = true;
       this.debug = j === k ? [] : null;
+      this.setGates(bake, 1);
       for (let i = 0; i < this.frees.length; i++) {
         const g = this.frees[i];
         if (shownOf(g) > SHOWN_MIN) this.layoutFree(g, bake.at(i, this.p));
@@ -710,6 +845,34 @@ export class GlyphLayout implements ChartLayer {
       this.layers.map((l) => l.markCount),
       (h) => this.shows(h),
     );
+    // Each gated group's readability for the frames: at each step, how much
+    // its least visible ship laid out there shows, as eased (Bake.vis), so
+    // its ships come in together, as the last of them comes to read; as far
+    // as the view looks down on it there (setGates), eased over the scroll
+    // as the decisions are (the camera rising off the sea at dawn crosses
+    // the tilt's band within a few steps, as the ships go by the eye's
+    // distance: eased as the sizes, the two together faded the frigates
+    // with the combined fleet steeply).
+    const sigma = BAKE_EASE_P / bake.step;
+    for (let i = 0; i < this.frees.length; i++) {
+      const g = this.frees[i];
+      const r = bake.readable[1][i];
+      r.fill(1);
+      if (g.gate === undefined) continue;
+      const li = this.layerIndex.get(g.layer) ?? 0;
+      const vis = bake.vis[li];
+      const nom = bake.nom[li];
+      for (const m of g.members) {
+        const o = m * bake.steps;
+        for (let k = 0; k < bake.steps; k++)
+          if (nom[o + k] > 0 && vis[o + k] < r[k]) r[k] = vis[o + k];
+      }
+      const down = bake.down[i];
+      for (let k = 0; k < bake.steps; k++)
+        r[k] = 1 - (Number.isNaN(down[k]) ? 0 : down[k]) * (1 - r[k]);
+      ease(r, sigma, r);
+      yield;
+    }
     // A new bake begun meanwhile replaces this one.
     if (this.bake !== bake) return;
     this.baked = bake;
@@ -1136,14 +1299,25 @@ export class GlyphLayout implements ChartLayer {
       let s = this.obstacleFit(fx, fy, -l, r, 0, t, limit);
       s = this.landFit(fx, fy, -l, r, 0, t, s, this.swX, this.swY);
       const h = s * this.h0[k];
-      const alpha = it.opacity[i] * this.shownAt(layer, i, h) * shown;
+      // A gated group's ships all at their gate's opening (the least of
+      // theirs, so the same for each), never more than her own. Her room
+      // for the glyphs placed after her is as much as she shows without the
+      // gate: the gate decides how much of a fleet shows, never anyone's
+      // size or place, so the bake (which lays the frames out under an
+      // estimate of it) and the frames agree.
+      const shows = this.shownAt(layer, i, h);
+      const ungated = it.opacity[i] * shown * shows;
+      const alpha =
+        g.gate === undefined
+          ? ungated
+          : it.opacity[i] * shown * Math.min(shows, this.gateValue[g.gate]);
       this.draw(layer, i, fx, fy, it.heading[i], h, this.h0[k], alpha, 1);
       this.addObstacle(
         fx,
         fy,
         s,
         k,
-        alpha * this.view.haze(this.distOf(layer, i)),
+        ungated * this.view.haze(this.distOf(layer, i)),
       );
       // Development: each ship's foot, box and sizes (layoutDebug).
       this.debug?.push({
@@ -2112,6 +2286,14 @@ class Bake {
     side: Float32Array;
   }[];
   readonly common: Float32Array[];
+  /**
+   * Each free group's readability by step (how far its ships each read one
+   * by one; GlyphLayout.setGates): [0] estimated in pass 0, for pass 1's
+   * own layout; [1] for the frames, from pass 1's eased sizes (bakeEnd).
+   */
+  readonly readable: [Float32Array[], Float32Array[]];
+  /** Each free group's view tilt by step (GlyphLayout.downOn; NaN where not shown). */
+  readonly down: Float32Array[];
   /** The squadrons' shared scale. */
   readonly shared: Float32Array;
   /** Per layer, per glyph (steps apart), its height against its nominal. */
@@ -2143,6 +2325,13 @@ class Bake {
       side: new Float32Array(steps),
     }));
     this.common = Array.from({ length: frees }, () => new Float32Array(steps));
+    this.readable = [
+      Array.from({ length: frees }, () => new Float32Array(steps)),
+      Array.from({ length: frees }, () => new Float32Array(steps)),
+    ];
+    this.down = Array.from({ length: frees }, () =>
+      new Float32Array(steps).fill(Number.NaN),
+    );
     this.shared = new Float32Array(steps);
     this.ratio = marks.map((n) => new Float32Array(n * steps).fill(1));
     this.vis = marks.map((n) => new Float32Array(n * steps).fill(1));
@@ -2169,6 +2358,14 @@ class Bake {
       // Steps where the group wasn't shown hold none: from its neighbours.
       fillGaps(c, 1);
       ease(least(c, reach), sigma, c);
+      yield;
+    }
+    // Readability as the common scale: the least within reach first, so a
+    // gate opens after the last step where a ship would still not read, and
+    // closes before the first.
+    for (const r of this.readable[0]) {
+      fillGaps(r, 1);
+      ease(least(r, reach), sigma, r);
       yield;
     }
     ease(least(this.shared, reach), sigma, this.shared);
@@ -2219,6 +2416,11 @@ class Bake {
 
   at(i: number, p: number): number {
     return this.read(this.common[i], p);
+  }
+
+  /** A free group's readability at p: pass 0's estimate, or pass 1's measure. */
+  readAt(pass: 0 | 1, i: number, p: number): number {
+    return this.read(this.readable[pass][i], p);
   }
 
   sharedAt(p: number): number {

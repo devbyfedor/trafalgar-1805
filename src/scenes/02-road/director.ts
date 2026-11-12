@@ -31,7 +31,9 @@ import {
   DAWN,
   lineStrength,
   type Ship,
+  strengthDays,
   VICTORY_AT_DAWN,
+  withFleet,
 } from "./fleets";
 import { type ShipState, shipAt } from "./movements";
 import type { DatedWaypoint, Leg } from "./routes";
@@ -707,13 +709,82 @@ const FLEET_HEADS: readonly {
     slots: ["above", "below", "right", "left"],
   },
 ];
-const FLEET_DAYS = [day(9, 28, 18), day(10, 19, 9), day(10, 21, 7)];
+/**
+ * Changes of strength over the scroll, a label's and its ships' together:
+ * each change at its p crossfades over a window of its own, CHANGE_P or
+ * less, never reaching the next change (nor `end`, where the label leaves
+ * the story), so at most two figures ever share the label and each change
+ * has finished before the next begins: a figure never flickers through
+ * another. The ships that come or go fade over the same windows, so the
+ * figure and the ships at the head agree throughout (the owner's rule of
+ * 12 November 2026). Where two changes would fall too close for a window
+ * to read, the story's clock gives them room (beats.ts).
+ */
+function changeWindows(ps: readonly number[], end: number): number[] {
+  return ps.map((p, k) => {
+    const next = k + 1 < ps.length ? ps[k + 1] : end;
+    return Math.max(1e-6, Math.min(CHANGE_P, CHANGE_SHARE * (next - p)));
+  });
+}
+/** How much of the scroll to the next change a change's window may take. */
+const CHANGE_SHARE = 0.85;
+
+/**
+ * The beats in which the October fleets' strengths change, by the story's
+ * unbroken clock (from Nelson's arrival on 28 September to the dawn).
+ */
+const FLEET_BEATS: readonly BeatId[] = ["cadiz", "night"];
+
+/**
+ * A fleet's strength over the scroll (FLEET_HEADS): from the start of beat
+ * 4, every day its ships of the line come or go (fleets.ts, strengthDays),
+ * at its p and over its window.
+ */
+interface FleetSchedule {
+  side: Ship["side"];
+  days: number[];
+  p: number[];
+  w: number[];
+}
+
+function fleetSchedule(side: Ship["side"]): FleetSchedule {
+  const start = dayAt(BEATS.cadiz[0]);
+  const days = strengthDays(side).filter((d) => d > start);
+  const p = days.map((d) => pOfDay(d, FLEET_BEATS));
+  // The windows of the days its figure changes on, from those days alone:
+  // a ship exchanged for another (the Prince of Wales gone and the Africa
+  // come on the evening of 13 October) changes no figure and takes no room
+  // from one that does; such a day's own window, from all of them.
+  const figure = (d: number) => lineStrength(side, d);
+  const changes = days.map(
+    (d, k) => figure(d) !== figure(k ? days[k - 1] : start),
+  );
+  const own = changeWindows(
+    p.filter((_, k) => changes[k]),
+    1,
+  );
+  const all = changeWindows(p, 1);
+  let c = 0;
+  const w = days.map((_, k) => (changes[k] ? own[c++] : all[k]));
+  return { side, days, p, w };
+}
+
+/** Every strength a fleet's label shows, from beat 4's start to the dawn. */
+function fleetCounts(s: FleetSchedule): number[] {
+  return [
+    ...new Set([
+      lineStrength(s.side, dayAt(BEATS.cadiz[0])),
+      ...s.days.map((d) => lineStrength(s.side, d)),
+      lineStrength(s.side, dayAt(1)),
+    ]),
+  ];
+}
 
 /**
  * Every label at a fleet's head (lettering/HeadLabels.ts): each squadron's,
  * in the order of SQUADRONS, with every strength it is lettered with
  * (squadrons.ts, strengthOf); then the October fleets' (fleets.ts,
- * lineStrength).
+ * lineStrength), by date.
  */
 export function roadHeads(): HeadSpec[] {
   const specs: HeadSpec[] = SQUADRONS.map((spec) => ({
@@ -732,11 +803,7 @@ export function roadHeads(): HeadSpec[] {
     specs.push({
       id: fleet.id,
       name: `${fleet.name},`,
-      counts: [
-        ...new Set(
-          FLEET_DAYS.map((d) => `${lineStrength(fleet.side, d)} sail`),
-        ),
-      ],
+      counts: fleetCounts(fleetSchedule(fleet.side)).map((n) => `${n} sail`),
       slots: fleet.slots,
     });
   return specs;
@@ -748,8 +815,9 @@ interface Squad {
   /** Its first glyph in the squadrons' layer, and how many it holds. */
   first: number;
   n: number;
-  /** The p at which each of its stages begins. */
+  /** The p at which each of its stages begins, and the window its change takes (changeWindows; [0] unused). */
   stageP: number[];
+  stageW: number[];
   /** The p at which it comes into the story and leaves it (spec.shown). */
   shownP: [number, number];
   /** The legs it sails, in order, and the p at which each begins. */
@@ -896,6 +964,18 @@ export class RoadDirector {
   private readonly headWeights: Float64Array[];
   /** Each squadron's stages as the index of their strength in its label (-1 for none). */
   private readonly stageCounts: number[][];
+  /** Each October fleet's strength over the scroll (FLEET_HEADS order), and each strength's index in its label. */
+  private readonly fleetSchedules = FLEET_HEADS.map((f) =>
+    fleetSchedule(f.side),
+  );
+  private readonly fleetCountIndex: Map<number, number>[];
+  /**
+   * Each fleet ship's comings and goings over the scroll from beat 4 on
+   * (fleetPresence): whether she is with the fleet at its start, and each
+   * change at its p, over its window, +1 joining or -1 leaving.
+   */
+  private readonly shipBase: Uint8Array;
+  private readonly shipEvents: { p: number; w: number; sign: number }[][];
   /** How far each squadron is in the story this frame (applySquadrons). */
   private readonly squadVisible: Float64Array;
   private readonly at = { x: 0, y: 0, heading: 0 };
@@ -937,15 +1017,18 @@ export class RoadDirector {
       const n = Math.max(...spec.stages.map((x) => x.types.length));
       const ids = SQUADRON_LEGS[spec.id] ?? [];
       const legs = this.clocks.filter((c) => ids.includes(c.leg.id));
+      const stageP = spec.stages.map((x) => pOfDay(x.from, SQUADRON_BEATS));
+      const shownP: [number, number] = [
+        pOfDay(spec.shown[0], SQUADRON_BEATS),
+        pOfDay(spec.shown[1], SQUADRON_BEATS),
+      ];
       const s: Squad = {
         spec,
         first,
         n,
-        stageP: spec.stages.map((x) => pOfDay(x.from, SQUADRON_BEATS)),
-        shownP: [
-          pOfDay(spec.shown[0], SQUADRON_BEATS),
-          pOfDay(spec.shown[1], SQUADRON_BEATS),
-        ],
+        stageP,
+        stageW: [0, ...changeWindows(stageP.slice(1), shownP[1])],
+        shownP,
         legs,
         legP: legs.map((c) => pOfDay(c.first, SQUADRON_BEATS)),
         formation: {
@@ -1020,6 +1103,41 @@ export class RoadDirector {
         return text === null ? -1 : this.headSpecs[s].counts.indexOf(text);
       }),
     );
+    this.fleetCountIndex = this.fleetSchedules.map(
+      (sched) => new Map(fleetCounts(sched).map((n, k) => [n, k] as const)),
+    );
+    const start = dayAt(BEATS.cadiz[0]);
+    this.shipBase = Uint8Array.from(this.ships, (ship) =>
+      withFleet(ship, start) ? 1 : 0,
+    );
+    this.shipEvents = this.ships.map((ship) => {
+      const sched = this.fleetSchedules[ship.side === "british" ? 0 : 1];
+      const at = (d: number, sign: number) => {
+        const e = sched.days.indexOf(d);
+        return e < 0 ? [] : [{ p: sched.p[e], w: sched.w[e], sign }];
+      };
+      return [
+        ...(ship.joins !== undefined && ship.joins > start
+          ? at(ship.joins, 1)
+          : []),
+        ...(ship.away ? [...at(ship.away[0], -1), ...at(ship.away[1], 1)] : []),
+      ];
+    });
+  }
+
+  /**
+   * How far a fleet ship is with her fleet at p: before beat 4 as at dawn
+   * on the 21st (when every ship drawn is); from its start, each coming and
+   * going faded over the window its label's change takes (fleetSchedule),
+   * so the figure and her glyph agree.
+   */
+  private fleetPresence(i: number, p: number): number {
+    // At dawn on the 21st (beat 0), through its fade into beat 1, whose
+    // clock has gone back to August.
+    if (p < BEATS.cadiz[0]) return withFleet(this.ships[i], dayAt(0)) ? 1 : 0;
+    let v = this.shipBase[i];
+    for (const e of this.shipEvents[i]) v += e.sign * smooth(e.p, e.p + e.w, p);
+    return Math.min(1, Math.max(0, v));
   }
 
   /**
@@ -1137,6 +1255,27 @@ export class RoadDirector {
       });
       if (k % 16 === 15) await slicer.check();
     }
+    // Groups that come in together (one gate) by the farthest of the ones
+    // holding it, as squadrons meeting do; the small craft that follow it
+    // (gateFollows) with them.
+    const gates = new Set<number>();
+    for (const g of this.frees) if (g.gate !== undefined) gates.add(g.gate);
+    for (const gate of gates) {
+      const members: number[] = [];
+      this.frees.forEach((g, n) => {
+        if (g.gate === gate) members.push(n);
+      });
+      for (let k = 0; k < steps; k++) {
+        let far = Number.NaN;
+        for (const n of members) {
+          const v = freeDist[n][k];
+          if (!this.frees[n].gateFollows && !Number.isNaN(v) && !(v <= far))
+            far = v;
+        }
+        if (Number.isNaN(far)) continue;
+        for (const n of members) freeDist[n][k] = far;
+      }
+    }
     this.freeShown = freeDist.map((t) => shownTable(t, HEADING_STEP));
   }
 
@@ -1179,18 +1318,34 @@ export class RoadDirector {
   /** Both fleets' groups, ship by ship, each with its lead first (layoutGroups). */
   private freeGroups(): FreeGroup[] {
     const groups: FreeGroup[] = [];
-    const order: readonly (readonly [Ship["side"], Ship["group"]])[] = [
-      ["british", "nelson"],
-      ["british", "collingwood"],
-      ["combined", "main"],
-      ["combined", "gravina"],
-      ["british", "frigates"],
-      ["combined", "frigates"],
-    ];
-    for (const [side, group] of order) {
+    // The small craft that keep with a fleet's main body (the cutter by the
+    // Victory; the combined fleet's frigates and brigs, at anchor with it
+    // and at sea about it) come and go with its ships of the line, without
+    // holding them back (FreeGroup.gateFollows): alone at the fleet's place
+    // while it was only lettered, the Entreprenante had read as one ship of
+    // it. The British frigates watching the port come in as they read.
+    const withBody = (ship: Ship) =>
+      ship.group === "frigates" &&
+      (ship.side === "combined" || ship.name === "Entreprenante");
+    const order: readonly (readonly [Ship["side"], Ship["group"], boolean])[] =
+      [
+        ["british", "nelson", false],
+        ["british", "collingwood", false],
+        ["combined", "main", false],
+        ["combined", "gravina", false],
+        ["british", "frigates", false],
+        ["british", "frigates", true],
+        ["combined", "frigates", true],
+      ];
+    for (const [side, group, body] of order) {
       const members = this.ships
         .map((ship, i) => ({ ship, i }))
-        .filter(({ ship }) => ship.side === side && ship.group === group)
+        .filter(
+          ({ ship }) =>
+            ship.side === side &&
+            ship.group === group &&
+            (ship.group !== "frigates" || withBody(ship) === body),
+        )
         .sort(
           (a, b) =>
             Number(b.ship.lead) - Number(a.ship.lead) ||
@@ -1198,15 +1353,56 @@ export class RoadDirector {
             a.i - b.i,
         )
         .map(({ i }) => i);
+      // Each side's ships of the line come in together, and only where
+      // every one of them reads one by one (FreeGroup.gate): its label's
+      // figure and the ships that come in agree (the owner's rule of 12
+      // November 2026); over the Gulf they had shown only their leads.
+      // The frigates and small craft, uncounted, come in as they read, or
+      // with their fleet's body.
+      const gate =
+        group === "frigates" && !body ? undefined : side === "british" ? 0 : 1;
       if (members.length > 0)
         groups.push({
           kind: "free",
           layer: this.layers.fleets,
           members,
           shown: 1,
+          ...(gate === undefined ? {} : { gate }),
+          ...(body ? { gateFollows: true } : {}),
         });
     }
     return groups;
+  }
+
+  /**
+   * Development: every change of a label's strength over the scroll, at its
+   * p and over its window (changeWindows), with the figure after it: each
+   * squadron's by its stages, then the October fleets'.
+   */
+  labelChanges(): { id: string; p: number; w: number; text: string }[] {
+    const out: { id: string; p: number; w: number; text: string }[] = [];
+    for (const squad of this.squads)
+      squad.spec.stages.forEach((stage, j) => {
+        if (j === 0) return;
+        out.push({
+          id: squad.spec.id,
+          p: squad.stageP[j],
+          w: squad.stageW[j],
+          text: strengthOf(squad.spec, stage) ?? "none",
+        });
+      });
+    FLEET_HEADS.forEach((fleet, f) => {
+      const sched = this.fleetSchedules[f];
+      sched.days.forEach((d, e) =>
+        out.push({
+          id: fleet.id,
+          p: sched.p[e],
+          w: sched.w[e],
+          text: `${lineStrength(fleet.side, d)} sail`,
+        }),
+      );
+    });
+    return out;
   }
 
   /** A squadron's symbol by its id, as the glyph layout lays it out. */
@@ -1239,7 +1435,7 @@ export class RoadDirector {
     this.applyFleets(p, d);
     this.applySquadrons(p, d);
     this.applyTracks(p, d);
-    this.applyHeads(p, d);
+    this.applyHeads(p);
     this.layout?.setProgress(p);
   }
 
@@ -1300,6 +1496,9 @@ export class RoadDirector {
       // out over its last few hours, out at sea.
       if (ship.until !== undefined)
         opacity *= 1 - smooth(ship.until - 0.12, ship.until, d);
+      // With the fleet by date (fleets.ts, withFleet): she comes and goes
+      // as its label's figure changes (fleetPresence).
+      opacity *= this.fleetPresence(i, p);
       // Her glyph takes over from scene 1's painted Victory.
       if (i === this.victoryIndex && p < 0.2)
         opacity *= smooth(SWAP[0], SWAP[1], p);
@@ -1330,7 +1529,7 @@ export class RoadDirector {
       BEATS.finisterre[1] + 0.008,
     ]);
     this.squads.forEach((squad, s) => {
-      const { spec, first, n, stageP, shownP, formation } = squad;
+      const { spec, first, n, stageP, stageW, shownP, formation } = squad;
       // In and out over a stretch of scroll, as its changes are: in story
       // days, the clock's fast stretches popped them in a step.
       const visible =
@@ -1347,7 +1546,7 @@ export class RoadDirector {
       const stages = spec.stages;
       const cur = stages[j].types;
       const prev = j > 0 ? stages[j - 1].types : null;
-      const t = prev ? smooth(stageP[j], stageP[j] + CHANGE_P, p) : 1;
+      const t = prev ? smooth(stageP[j], stageP[j] + stageW[j], p) : 1;
       const where = this.squadronHead(squad, d, p);
       if (where) {
         const headings = this.squadHeadings[s];
@@ -1372,16 +1571,15 @@ export class RoadDirector {
         const i = first + k;
         const now = cur[k] ?? null;
         const before = prev?.[k] ?? null;
-        // Her presence, each change fading from wherever the one before had
-        // got to: where the story runs fast (Nelson's September passage) a
-        // change's fade outlasts the next stage, and cutting it short would
-        // pop. Changes further apart than a fade are as before.
+        // Her presence, each change fading over its window (changeWindows,
+        // which never reach the next change), from wherever the one before
+        // had got to.
         let start = stages[0].types[k] ? 1 : 0;
         for (let m = 1; m <= j; m++) {
           const ran =
             m === 1
               ? 1
-              : smooth(stageP[m - 1], stageP[m - 1] + CHANGE_P, stageP[m]);
+              : smooth(stageP[m - 1], stageP[m - 1] + stageW[m - 1], stageP[m]);
           start += ((stages[m - 1].types[k] ? 1 : 0) - start) * ran;
         }
         const presence = start + ((now ? 1 : 0) - start) * t;
@@ -1519,7 +1717,7 @@ export class RoadDirector {
    * got to; the October fleets' among their ships, while the camera is too
    * far off for the ships to show.
    */
-  private applyHeads(p: number, d: number): void {
+  private applyHeads(p: number): void {
     const heads = this.layers.heads;
     this.squads.forEach((squad, s) => {
       const w = this.headWeights[s];
@@ -1527,7 +1725,7 @@ export class RoadDirector {
       w.fill(0);
       if (index[0] >= 0) w[index[0]] = 1;
       for (let m = 1; m < squad.spec.stages.length; m++) {
-        const t = smooth(squad.stageP[m], squad.stageP[m] + CHANGE_P, p);
+        const t = smooth(squad.stageP[m], squad.stageP[m] + squad.stageW[m], p);
         if (t <= 0) break;
         for (let c = 0; c < w.length; c++) w[c] *= 1 - t;
         if (index[m] >= 0) w[index[m]] += t;
@@ -1585,17 +1783,31 @@ export class RoadDirector {
         w,
       );
     });
-    // The October fleets, while too far off for their ships to show.
+    // The October fleets, their strength by date, each change over its
+    // window (fleetSchedule), as their ships come and go; lettered while
+    // too far off for their ships to read one by one, the glyph layout
+    // handing the label over to them as they come in (stage.ts,
+    // HeadLabels.setHandover; glyphs/layout.ts, FreeGroup.gate).
     const it = this.layers.fleets.intent;
     const inStory = fleetsShownAt(p);
     FLEET_HEADS.forEach((fleet, f) => {
       const h = this.squads.length + f;
       const w = this.headWeights[h];
+      const index = this.fleetCountIndex[f];
       w.fill(0);
-      const k = this.headSpecs[h].counts.indexOf(
-        `${lineStrength(fleet.side, d)} sail`,
-      );
-      if (k >= 0) w[k] = 1;
+      const sched = this.fleetSchedules[f];
+      if (p < BEATS.cadiz[0]) {
+        // At dawn on the 21st (beat 0), through its fade into beat 1.
+        w[index.get(lineStrength(fleet.side, dayAt(0))) ?? 0] = 1;
+      } else {
+        w[index.get(lineStrength(fleet.side, dayAt(BEATS.cadiz[0]))) ?? 0] = 1;
+        for (let e = 0; e < sched.p.length; e++) {
+          const t = smooth(sched.p[e], sched.p[e] + sched.w[e], p);
+          if (t <= 0) break;
+          for (let c = 0; c < w.length; c++) w[c] *= 1 - t;
+          w[index.get(lineStrength(fleet.side, sched.days[e])) ?? 0] += t;
+        }
+      }
       let x = 0;
       let y = 0;
       let count = 0;
@@ -1605,11 +1817,7 @@ export class RoadDirector {
         y += it.y[i];
         count++;
       });
-      let shown = 0;
-      for (const g of this.frees)
-        if (this.ships[g.members[0]].side === fleet.side)
-          shown = Math.max(shown, g.shown ?? 1);
-      const presence = count > 0 && k >= 0 ? inStory * (1 - shown) : 0;
+      const presence = count > 0 ? inStory : 0;
       heads.set(
         fleet.id,
         count > 0 ? x / count : 0,

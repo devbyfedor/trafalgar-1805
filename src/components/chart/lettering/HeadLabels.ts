@@ -201,6 +201,7 @@ export class HeadLabels implements ChartLayer {
   private coast: CoastField | null = null;
   private blocks: ((id: string, out: Float64Array) => number) | null = null;
   private anchors: ((id: string, out: Float64Array) => number) | null = null;
+  private handover: ((id: string) => number) | null = null;
   private readonly anchor = new Float64Array(8);
   private hidden = false;
   private sized = false;
@@ -337,6 +338,16 @@ export class HeadLabels implements ChartLayer {
   }
 
   /**
+   * How far a head's label has given way to its fleet's ships, read as it
+   * updates (0..1; 0 for none): a fleet lettered while its ships are too
+   * far off or too crowded to read one by one hands its label over to them
+   * as they come in (glyphs/layout.ts, GlyphLayout.gateShown).
+   */
+  setHandover(handover: ((id: string) => number) | null): void {
+    this.handover = handover;
+  }
+
+  /**
    * A head for this frame: where its label stands by (world km: the fleet,
    * which in port lies in the roads off its line's head), its line from the
    * head back past there (world x, y pairs, up to TRAIL_POINTS; none for no
@@ -401,6 +412,7 @@ export class HeadLabels implements ChartLayer {
       const hx = dist / frame.hazeVisibility;
       const seen =
         h.presence *
+        (this.handover ? 1 - this.handover(h.spec.id) : 1) *
         tilt *
         Math.exp(-hx * hx) *
         (1 - smooth(HAZE_CLEAR[0], HAZE_CLEAR[1], hx));

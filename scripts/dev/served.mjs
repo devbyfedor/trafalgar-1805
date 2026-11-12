@@ -9,7 +9,8 @@
 //   node scripts/dev/served.mjs http://127.0.0.1:4173 [folder]
 //     exit 0 only if the server answers with the production build last made
 //     in `folder` (default: the current directory), and that folder's source
-//     (commit and uncommitted changes) is still what the build was made from
+//     (what a build reads: src, public and the configs, committed or not) is
+//     still what the build was made from; docs and dev scripts don't count
 //     (.next/build-stamp.json, written by build-stamp.mjs after the build).
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -101,20 +102,19 @@ if (stamp && built && stamp.buildId !== built)
   problems.push(
     `the stamp is of build ${stamp.buildId}, not ${built} (built without the stamp?)`,
   );
+let moved = "";
 if (stamp) {
   const now = sourceState(dir);
-  if (now.commit !== stamp.commit)
+  if (now.source !== stamp.source)
     problems.push(
-      `built from ${stamp.commit.slice(0, 7)}, the folder is now at ${now.commit.slice(0, 7)}`,
+      `the source a build reads has changed since (built from ${stamp.commit.slice(0, 7)}${stamp.dirty ? " with changes" : ""}, source ${stamp.source}; now ${now.commit.slice(0, 7)}${now.dirty ? " with changes" : ""}, source ${now.source})`,
     );
-  else if (now.changes !== stamp.changes)
-    problems.push(
-      `the folder's uncommitted changes differ from the build's (${stamp.changes} then, ${now.changes} now)`,
-    );
+  else if (now.commit !== stamp.commit)
+    moved = `; the folder has moved on to ${now.commit.slice(0, 7)} since, with the same source`;
 }
 
 const what = stamp
-  ? `${stamp.commit.slice(0, 7)}${stamp.dirty ? ` + changes ${stamp.changes}` : ""}`
+  ? `${stamp.commit.slice(0, 7)}${stamp.dirty ? " with uncommitted changes" : ""} (source ${stamp.source})`
   : "?";
 if (problems.length) {
   console.error(`MISMATCH at ${base}${who ? ` (${who})` : ""}:`);
@@ -122,5 +122,5 @@ if (problems.length) {
   process.exit(1);
 }
 console.log(
-  `OK: ${base} serves build ${served}, made from ${what} in ${dir}, source unchanged since${who ? `; ${who}` : ""}`,
+  `OK: ${base} serves build ${served}, made from ${what} in ${dir}, source unchanged since${moved}${who ? `; ${who}` : ""}`,
 );

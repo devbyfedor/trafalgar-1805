@@ -1,7 +1,7 @@
 // Stamps a production build with what it was built from: run by npm after
 // `npm run build` (the `postbuild` script). Writes `.next/build-stamp.json`
 // (never into `out/`, so nothing of it is deployed): the build's id as Next
-// wrote it, the folder, the commit and a hash of the uncommitted changes, so
+// wrote it, the folder, the commit and an id of the source it read, so
 // `scripts/dev/served.mjs` can tell whether a server answers with this build
 // and whether the source has changed since. Never fails the build.
 
@@ -10,6 +10,22 @@ import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
+/** What a build reads: a change anywhere else (the docs, the dev scripts) leaves a build as it was. */
+const BUILT_FROM = [
+  "src",
+  "public",
+  "next.config.ts",
+  "package.json",
+  "package-lock.json",
+  "tsconfig.json",
+  "postcss.config.mjs",
+];
+
+/**
+ * The folder's commit, and an id of the source a build reads (its tree at
+ * the commit, its uncommitted changes and its untracked files, by
+ * content), so a commit of docs alone keeps the id.
+ */
 export function sourceState(dir) {
   const git = (...args) =>
     execFileSync("git", ["-C", dir, ...args], {
@@ -18,18 +34,14 @@ export function sourceState(dir) {
     });
   const commit = git("rev-parse", "HEAD").toString().trim();
   const hash = createHash("sha1");
-  // Tracked changes, then untracked files that a build reads, by content.
-  hash.update(git("diff", "HEAD", "--binary"));
+  hash.update(git("ls-tree", "-r", "HEAD", "--", ...BUILT_FROM));
+  hash.update(git("diff", "HEAD", "--binary", "--", ...BUILT_FROM));
   const untracked = git(
     "ls-files",
     "--others",
     "--exclude-standard",
     "--",
-    "src",
-    "public",
-    "next.config.ts",
-    "package.json",
-    "tsconfig.json",
+    ...BUILT_FROM,
   )
     .toString()
     .split("\n")
@@ -39,8 +51,11 @@ export function sourceState(dir) {
     hash.update(f);
     hash.update(readFileSync(join(dir, f)));
   }
-  const dirty = git("status", "--porcelain").toString().trim().length > 0;
-  return { commit, dirty, changes: hash.digest("hex").slice(0, 12) };
+  const dirty =
+    git("status", "--porcelain", "--", ...BUILT_FROM)
+      .toString()
+      .trim().length > 0;
+  return { commit, dirty, source: hash.digest("hex").slice(0, 12) };
 }
 
 const isMain =
@@ -60,7 +75,7 @@ if (isMain) {
       `${JSON.stringify(stamp, null, 2)}\n`,
     );
     console.log(
-      `build stamp: ${buildId} from ${stamp.commit.slice(0, 7)}${stamp.dirty ? ` + changes ${stamp.changes}` : ""} in ${dir}`,
+      `build stamp: ${buildId} from ${stamp.commit.slice(0, 7)}${stamp.dirty ? " with uncommitted changes" : ""}, source ${stamp.source}, in ${dir}`,
     );
   } catch (e) {
     console.warn(`build stamp: not written (${e.message})`);

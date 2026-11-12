@@ -89,12 +89,17 @@ export const ROAD_FLIGHT: readonly CameraKey[] = [
   // The Gulf of Cádiz from the south-south-west: both fleets face right.
   { p: 0.085, eye: [-6.78, 35.52, 72], target: [-6.36, 36.22, 0] },
   // 1. North over Iberia and France to the Channel.
-  { p: 0.12, eye: [-7.6, 33.6, 950], target: [-3.6, 44, 0] },
-  { p: 0.165, eye: [-5.2, 46.4, 420], target: [1.0, 50.3, 0] },
+  { p: 0.114, eye: [-7.6, 33.6, 950], target: [-3.6, 44, 0] },
+  { p: 0.151, eye: [-5.2, 46.4, 420], target: [1.0, 50.3, 0] },
   // Boulogne from over the Channel to its south-west, looking up the
   // Strait: the camps and the flotilla on the right, England across the
-  // water at the top left, the sea under the caption.
-  { p: 0.2, eye: [0.85, 50.5, 32], target: [1.5, 50.85, 0] },
+  // water at the top left, the sea under the caption. The camera arrives
+  // at 0.18 and holds to the beat's end with a slight push in, so the
+  // flotilla shows whole for about a screen of scroll (the owner's order of
+  // 13 November 2026; it had arrived at 0.2, and the craft showed whole for
+  // a third of a screen): the way there from the Gulf (0.085-0.18) runs a
+  // sixth quicker than it did.
+  { p: 0.18, eye: [0.85, 50.5, 29.4], target: [1.5, 50.85, 0] },
   { p: 0.235, eye: [0.92, 50.53, 28], target: [1.52, 50.86, 0] },
   // 2. The western Mediterranean: Toulon to Gibraltar and Cádiz.
   { p: 0.27, eye: [-18, 33, 2000], target: [-2, 41.5, 0] },

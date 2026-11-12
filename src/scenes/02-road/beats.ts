@@ -28,7 +28,7 @@ export const CAPTIONS: Record<
   keyof typeof roadContent.captions,
   readonly [number, number, number, number]
 > = {
-  boulogne: [0.168, 0.182, 0.222, 0.234],
+  boulogne: [0.1535, 0.165, 0.222, 0.234],
   chase: [0.25, 0.264, 0.486, 0.499],
   finisterre: [0.512, 0.526, 0.636, 0.649],
   cadiz: [0.672, 0.686, 0.806, 0.819],

@@ -9,7 +9,7 @@ import type { LabDemo, LabDemoContext } from "./index";
  * The detail tiles and their shared layer (terrain/field.ts, slot.ts):
  * `/lab/chart?demo=detail` flies a stretch of scene 2's own camera, by
  * default from the rising shot off Cádiz (its p = 0.05) through the Gulf,
- * north over Iberia and France to Boulogne close up (p = 0.2 to 0.235),
+ * north over Iberia and France to Boulogne close up (p = 0.18 to 0.235),
  * then up and south over the western Mediterranean (p = 0.31), so the layer
  * passes from the Cádiz tile to the Channel tile and back as it does in the
  * scene. `?from=` and `?to=` choose another stretch of the scene's p;

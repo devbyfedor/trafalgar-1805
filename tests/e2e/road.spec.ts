@@ -128,7 +128,7 @@ test.describe("scene 2", () => {
     // The Channel from high up, the whole Atlantic, the harbour of Cadiz
     // close up, and the last frame at dawn.
     const beats = [
-      { p: 0.165, sea: 0.06, paper: 0.25 },
+      { p: 0.151, sea: 0.06, paper: 0.25 },
       { p: 0.35, sea: 0.3, paper: 0.05 },
       { p: 0.735, sea: 0.4, paper: 0.02 },
       { p: 1, sea: 0.3, paper: 0 },

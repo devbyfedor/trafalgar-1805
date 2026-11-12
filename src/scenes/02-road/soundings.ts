@@ -6,7 +6,7 @@
  * a view toward the north-east (bearing 50°), between beat 4's views up
  * the coast (bearings 0-26°) and the descent and the last frame's
  * (52-77.5°). The Channel's stand upright for beat 1's views of Boulogne
- * up the Strait (bearings 49-50° at p = 0.2 and 0.235, the only views
+ * up the Strait (bearings 49-50° at p = 0.18 and 0.235, the only views
  * close enough to show them).
  */
 export const SOUNDING_ANGLES: Readonly<Record<string, number>> = {

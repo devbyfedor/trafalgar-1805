@@ -861,14 +861,18 @@ const CAMPS_WINDOW = [0.1, 0.12, 0.25, 0.262] as const;
 /**
  * Where the flotilla can show (p): only while the camera looks down on the
  * roads at least as steeply as a gate holds (the layout's GATE_TILT: the
- * eye's height over its distance 0.25 or more), from p 0.195 coming down to
- * 0.233 going up. Seen lower, a gate stays open (no label can stand for
+ * eye's height over its distance 0.25 or more), from p 0.175 coming down to
+ * 0.235, the camera still over the roads (it climbs away from there, and
+ * the view flattens fast as it moves off south-west). The craft come in
+ * over about 0.015 of p after the window opens (the layout eases them in)
+ * and show whole from about 0.194 to 0.228, about a screen of scroll (the
+ * owner's order of 13 November 2026; scripts/dev/flotilla-hold.mjs). Seen lower, a gate stays open (no label can stand for
  * ships there), and the lead could have shown alone. Coming down, the
  * window opens while the gate is still shut and the craft come in by the
  * gate; going up, the whole group fades with the window (the layout reads
  * the gate where its craft are laid out, so it stays open to the end).
  */
-const FLOTILLA_WINDOW = [0.195, 0.2, 0.226, 0.233] as const;
+const FLOTILLA_WINDOW = [0.175, 0.18, 0.229, 0.235] as const;
 
 /**
  * The flotilla's group: its prames first (the largest), then the rest in

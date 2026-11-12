@@ -23,6 +23,10 @@ import type { ClashResult } from "@/components/chart/glyphs/clash";
 import { glyphPxAt } from "@/components/chart/glyphs/height";
 import { GlyphLayout } from "@/components/chart/glyphs/layout";
 import { GlyphProbe } from "@/components/chart/glyphs/probe";
+import {
+  type HeadLabelState,
+  HeadLabels,
+} from "@/components/chart/lettering/HeadLabels";
 import type { LabelState } from "@/components/chart/lettering/Lettering";
 import type { WaterLift } from "@/components/chart/terrain/liftProbe";
 import { CAPTIONS } from "./beats";
@@ -31,6 +35,7 @@ import {
   fleetMarks,
   fleetNames,
   RoadDirector,
+  roadHeads,
   squadronMarks,
   squadronNames,
 } from "./director";
@@ -145,6 +150,15 @@ export interface RoadStage {
   labels(p: number): LabelState[];
   /** Development: draws the scene at p and returns each squadron's layout (GlyphLayout.debug). */
   layoutDebug(p: number): Record<string, unknown>[];
+  /**
+   * Development and the contrast check: the fleets' labels as they stood in
+   * the frame last drawn (HeadLabels.snapshot), and hiding them for a shot
+   * of the chart under them.
+   */
+  routeLabels(
+    explain?: boolean,
+  ): HeadLabelState[] | ReturnType<HeadLabels["explain"]>;
+  hideRouteLabels(hidden: boolean): void;
   /** Development: a glyph's baked sizes by step (GlyphLayout.bakedSizes). */
   bakedSizes(layer: number, i: number, k0: number, k1: number): number[][];
   /**
@@ -220,6 +234,8 @@ export async function createRoadStage(
       ...legTracks(VILLENEUVE),
       ...legTracks(NELSON),
     ]);
+    // The fleets' labels at their heads: commander and strength.
+    const heads = new HeadLabels(chart.field, roadHeads());
     // One atlas for both layers, drawn level by level between frames.
     atlas = await buildGlyphAtlas(GLYPH_TYPES, options.signal);
     options.signal.throwIfAborted();
@@ -253,9 +269,13 @@ export async function createRoadStage(
     chart.add(lettering, lettering.batch, lettering.marks.mesh);
     await lettering.ready;
     options.signal.throwIfAborted();
-    tracks.setKeepClear(lettering.screen);
-    chart.add(tracks, ...tracks.objects);
-    await tracks.ready;
+    // The heads' labels keep clear of the names and the caption's card,
+    // the tracks' dates of both; added after the glyph layout below (the
+    // labels keep clear of the squadrons' ships where they show), each
+    // updating after what it keeps clear of.
+    heads.setKeepClear([lettering.screen]);
+    tracks.setKeepClear([lettering.screen, heads.screen]);
+    await Promise.all([tracks.ready, heads.ready]);
     options.signal.throwIfAborted();
     // The depths written over the shoal water of the detail tiles.
     const soundingData = await loadSoundings(chart.manifest, options.signal);
@@ -282,6 +302,7 @@ export async function createRoadStage(
       fleets,
       squadrons,
       tracks,
+      heads,
       legs,
     });
     // Every squadron's and ship's heading, eased ahead of time.
@@ -294,6 +315,13 @@ export async function createRoadStage(
     const layout = new GlyphLayout(coast, director.layoutGroups());
     director.setLayout(layout);
     chart.add(layout);
+    heads.setCoast(coast);
+    heads.setBlocks((id, out) => {
+      const formation = director.formationOf(id);
+      return formation ? layout.blockOf(formation, out) : 0;
+    });
+    chart.add(heads, ...heads.objects);
+    chart.add(tracks, ...tracks.objects);
     chart.add(fleets, fleets.wakes, fleets.ships);
     chart.add(squadrons, squadrons.wakes, squadrons.ships);
     // The glyph layout's tables, baked ahead over the scroll for the
@@ -523,6 +551,12 @@ export async function createRoadStage(
         return out;
       },
       dawnFleet,
+      routeLabels(explain) {
+        return explain ? heads.explain() : heads.snapshot();
+      },
+      hideRouteLabels(hidden) {
+        heads.setHidden(hidden);
+      },
       labels(p) {
         sampled = Number.NaN;
         director.apply(p);

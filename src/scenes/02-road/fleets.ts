@@ -160,6 +160,24 @@ const RIGS = {
 
 export type Side = "british" | "combined";
 
+/** The rigs of ships of the line (the rest: frigates and the small craft). */
+const LINE_RIGS: ReadonlySet<Rig> = new Set<Rig>([
+  RIGS.victory,
+  RIGS.firstRate,
+  RIGS.british98,
+  RIGS.british80,
+  RIGS.british74,
+  RIGS.british64,
+  RIGS.french80,
+  RIGS.french74,
+  RIGS.trinidad,
+  RIGS.spanish112,
+  RIGS.spanish100,
+  RIGS.spanish80,
+  RIGS.spanish74,
+  RIGS.spanish64,
+]);
+
 export interface Ship {
   name: string;
   side: Side;
@@ -1039,3 +1057,21 @@ export const ROUTE_SQUADRON: readonly ShipMark[] = [
     opacity: 0,
   },
 ];
+
+/**
+ * A fleet's strength on a day as lettered beside it on the far views
+ * (HeadLabels): its ships of the line in the story then, the unit in which
+ * the dispatches gave a fleet's strength; frigates and the small craft are
+ * not counted, nor a ship left at anchor or gone by then.
+ */
+export function lineStrength(side: Side, d: number): number {
+  let n = 0;
+  for (const ship of side === "british" ? BRITISH : COMBINED)
+    if (
+      LINE_RIGS.has(ship.rig) &&
+      !ship.stays &&
+      (ship.until === undefined || d < ship.until)
+    )
+      n++;
+  return n;
+}

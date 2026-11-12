@@ -12,6 +12,12 @@ import type {
   GlyphGroup,
   GlyphLayout,
 } from "@/components/chart/glyphs/layout";
+import {
+  type HeadLabels,
+  type HeadSlot,
+  type HeadSpec,
+  TRAIL_POINTS,
+} from "@/components/chart/lettering/HeadLabels";
 import type { LightId } from "@/components/chart/light/states";
 import type { Track, Tracks } from "@/components/chart/lines/Track";
 import { monotoneCurve } from "@/lib/curve";
@@ -19,10 +25,22 @@ import { METRE_VH, VICTORY_X } from "@/scenes/01-dawn/composition";
 import { VICTORY_BOX } from "@/scenes/01-dawn/layers/Victory";
 import { BEATS, type BeatId, dayAt } from "./beats";
 import { day } from "./dates";
-import { BRITISH, COMBINED, DAWN, type Ship, VICTORY_AT_DAWN } from "./fleets";
+import {
+  BRITISH,
+  COMBINED,
+  DAWN,
+  lineStrength,
+  type Ship,
+  VICTORY_AT_DAWN,
+} from "./fleets";
 import { type ShipState, shipAt } from "./movements";
 import type { DatedWaypoint, Leg } from "./routes";
-import { SQUADRONS, type SquadronSpec } from "./squadrons";
+import {
+  COMMANDERS,
+  SQUADRONS,
+  type SquadronSpec,
+  strengthOf,
+} from "./squadrons";
 
 /**
  * Scene 2's director: everything the chart shows is a pure function of the
@@ -396,6 +414,8 @@ interface LegClock {
   passFrom: number;
   /** The squadron that sails it (its index), -1 for none. */
   owner: number;
+  /** This frame: how far its head is its squadron's (applyTracks). */
+  headWeight: number;
 }
 
 /**
@@ -454,6 +474,7 @@ function legClock(
     drawFrom: 1,
     passFrom: 1,
     owner: -1,
+    headWeight: 0,
   };
 }
 
@@ -636,6 +657,78 @@ const STATIONS: Record<string, readonly [number, number, number]> = {
   collingwood: [-6.45, 36.3, 150],
 };
 
+/**
+ * Where each squadron's label tries to stand beside its head, in order:
+ * Villeneuve's above, the British below, as their lines stand off
+ * Finisterre (his above Calder's), so two labels side by side keep apart.
+ */
+const HEAD_SLOTS: Readonly<Record<string, readonly HeadSlot[]>> = {
+  villeneuve: ["above", "below", "right", "left"],
+  nelson: ["below", "above", "left", "right"],
+  orde: ["below", "above", "right", "left"],
+  calder: ["below", "above", "left", "right"],
+  collingwood: ["below", "above", "right", "left"],
+};
+
+/**
+ * The fleets of beats 0, 4 and 5, lettered by their commanders where they
+ * are seen from afar (at dawn as the camera rises, off Cádiz as it comes
+ * down, in the night): their sides, and the days their strength is taken.
+ */
+const FLEET_HEADS: readonly {
+  id: string;
+  side: Ship["side"];
+  name: string;
+  slots: readonly HeadSlot[];
+}[] = [
+  {
+    id: "fleet-british",
+    side: "british",
+    name: "Nelson",
+    slots: ["below", "above", "left", "right"],
+  },
+  {
+    id: "fleet-combined",
+    side: "combined",
+    name: "Villeneuve",
+    slots: ["above", "below", "right", "left"],
+  },
+];
+const FLEET_DAYS = [day(9, 28, 18), day(10, 19, 9), day(10, 21, 7)];
+
+/**
+ * Every label at a fleet's head (lettering/HeadLabels.ts): each squadron's,
+ * in the order of SQUADRONS, with every strength it is lettered with
+ * (squadrons.ts, strengthOf); then the October fleets' (fleets.ts,
+ * lineStrength).
+ */
+export function roadHeads(): HeadSpec[] {
+  const specs: HeadSpec[] = SQUADRONS.map((spec) => ({
+    id: spec.id,
+    name: `${COMMANDERS[spec.id] ?? spec.id},`,
+    counts: [
+      ...new Set(
+        spec.stages
+          .map((stage) => strengthOf(spec, stage))
+          .filter((t): t is string => t !== null),
+      ),
+    ],
+    slots: HEAD_SLOTS[spec.id] ?? ["above", "below", "right", "left"],
+  }));
+  for (const fleet of FLEET_HEADS)
+    specs.push({
+      id: fleet.id,
+      name: `${fleet.name},`,
+      counts: [
+        ...new Set(
+          FLEET_DAYS.map((d) => `${lineStrength(fleet.side, d)} sail`),
+        ),
+      ],
+      slots: fleet.slots,
+    });
+  return specs;
+}
+
 /** A squadron as the director plays it. */
 interface Squad {
   spec: SquadronSpec;
@@ -678,6 +771,8 @@ export interface RoadLayers {
   squadrons: Glyphs;
   /** The legs' tracks, one per leg by its id. */
   tracks: Tracks;
+  /** The labels at the fleets' heads (roadHeads). */
+  heads: HeadLabels;
   legs: readonly Leg[];
 }
 
@@ -775,6 +870,16 @@ export class RoadDirector {
   private readonly squadShownNow: Float64Array;
   /** Both fleets' groups, as the glyph layout lays them out. */
   private readonly frees: FreeGroup[];
+  /** The heads' labels (roadHeads), and each one's strengths' shares this frame. */
+  private readonly headSpecs = roadHeads();
+  private readonly headWeights: Float64Array[];
+  /** Each squadron's stages as the index of their strength in its label (-1 for none). */
+  private readonly stageCounts: number[][];
+  /** How far each squadron is in the story this frame (applySquadrons). */
+  private readonly squadVisible: Float64Array;
+  private readonly at = { x: 0, y: 0, heading: 0 };
+  /** A head's line back from it, world x, y pairs (applyHeads). */
+  private readonly trail = new Float64Array(2 * TRAIL_POINTS);
   /** Each ship's eased heading by step of p from FLEET_HEADING_P (prepare). */
   private fleetHeadings: Float32Array[] | null = null;
   /** Scene 1's Victory box, while the handoff runs. */
@@ -876,6 +981,16 @@ export class RoadDirector {
     });
     this.victoryIndex = this.ships.findIndex((s) => s.name === "Victory");
     this.squadShownNow = new Float64Array(this.squads.length);
+    this.squadVisible = new Float64Array(this.squads.length);
+    this.headWeights = this.headSpecs.map(
+      (h) => new Float64Array(h.counts.length),
+    );
+    this.stageCounts = this.squads.map((squad, s) =>
+      squad.spec.stages.map((stage) => {
+        const text = strengthOf(squad.spec, stage);
+        return text === null ? -1 : this.headSpecs[s].counts.indexOf(text);
+      }),
+    );
   }
 
   /**
@@ -1065,6 +1180,11 @@ export class RoadDirector {
     return groups;
   }
 
+  /** A squadron's symbol by its id, as the glyph layout lays it out. */
+  formationOf(id: string): Formation | null {
+    return this.squads.find((s) => s.spec.id === id)?.formation ?? null;
+  }
+
   /** Scene 1's Victory box to hand over from (null: no scene 1 on the page). */
   setPainted(el: HTMLElement | null): void {
     if (this.painted && this.painted !== el) this.restorePainted();
@@ -1090,6 +1210,7 @@ export class RoadDirector {
     this.applyFleets(p, d);
     this.applySquadrons(p, d);
     this.applyTracks(p, d);
+    this.applyHeads(p, d);
     this.layout?.setProgress(p);
   }
 
@@ -1187,6 +1308,7 @@ export class RoadDirector {
         beat *
         smooth(shownP[0] - CHANGE_P, shownP[0], p) *
         (1 - smooth(shownP[1], shownP[1] + CHANGE_P, p));
+      this.squadVisible[s] = visible;
       // The stage in force and the one before it: a ship that joins fades
       // in, one that leaves (or is taken) fades out, one replaced by
       // another type crossfades.
@@ -1336,6 +1458,142 @@ export class RoadDirector {
     return this.head;
   }
 
+  /**
+   * Each fleet's label for the frame (HeadLabels): a squadron's at the head
+   * of the leg it sails (across the hand-on from one leg to the next,
+   * between the two), or at its station, lettered with its strength at the
+   * day, each change of strength fading from wherever the one before had
+   * got to; the October fleets' among their ships, while the camera is too
+   * far off for the ships to show.
+   */
+  private applyHeads(p: number, d: number): void {
+    const heads = this.layers.heads;
+    this.squads.forEach((squad, s) => {
+      const w = this.headWeights[s];
+      const index = this.stageCounts[s];
+      w.fill(0);
+      if (index[0] >= 0) w[index[0]] = 1;
+      for (let m = 1; m < squad.spec.stages.length; m++) {
+        const t = smooth(squad.stageP[m], squad.stageP[m] + CHANGE_P, p);
+        if (t <= 0) break;
+        for (let c = 0; c < w.length; c++) w[c] *= 1 - t;
+        if (index[m] >= 0) w[index[m]] += t;
+      }
+      let sum = 0;
+      for (let c = 0; c < w.length; c++) sum += w[c];
+      if (sum > 1e-6) for (let c = 0; c < w.length; c++) w[c] /= sum;
+      const presence = this.squadVisible[s] * Math.min(1, sum);
+      let x = 0;
+      let y = 0;
+      let total = 0;
+      let main: LegClock | null = null;
+      for (const c of squad.legs) {
+        if (c.headWeight <= 0) continue;
+        c.track.pointAt(Math.max(0, c.track.headKm), this.at);
+        x += this.at.x * c.headWeight;
+        y += this.at.y * c.headWeight;
+        total += c.headWeight;
+        if (!main || c.headWeight > main.headWeight) main = c;
+      }
+      let trail = 0;
+      if (total > 1e-6) {
+        x /= total;
+        y /= total;
+        if (main) trail = this.trailOf(main, p);
+      } else if (squad.legs.length > 0) {
+        // Before its first leg is drawn, where it begins; after its last,
+        // where it ends.
+        const first = squad.legs[0];
+        const before = p < first.drawFrom;
+        const c = before ? first : squad.legs[squad.legs.length - 1];
+        c.track.pointAt(before ? 0 : c.track.length, this.at);
+        x = this.at.x;
+        y = this.at.y;
+      } else {
+        const st = STATIONS[squad.spec.id];
+        if (st) {
+          x = worldX(st[0]);
+          y = worldY(st[1]);
+        }
+      }
+      // The label stands by the squadron: in port, in the roads off its
+      // line's head, out in the open water, not on the town and its name.
+      const at = squad.formation;
+      const by = squad.legs.length > 0 && presence > 0;
+      heads.set(
+        squad.spec.id,
+        by ? at.x : x,
+        by ? at.y : y,
+        this.trail,
+        trail,
+        presence,
+        w,
+      );
+    });
+    // The October fleets, while too far off for their ships to show.
+    const it = this.layers.fleets.intent;
+    const inStory = fleetsShownAt(p);
+    FLEET_HEADS.forEach((fleet, f) => {
+      const h = this.squads.length + f;
+      const w = this.headWeights[h];
+      w.fill(0);
+      const k = this.headSpecs[h].counts.indexOf(
+        `${lineStrength(fleet.side, d)} sail`,
+      );
+      if (k >= 0) w[k] = 1;
+      let x = 0;
+      let y = 0;
+      let count = 0;
+      this.ships.forEach((ship, i) => {
+        if (ship.side !== fleet.side || it.opacity[i] <= 0) return;
+        x += it.x[i];
+        y += it.y[i];
+        count++;
+      });
+      let shown = 0;
+      for (const g of this.frees)
+        if (this.ships[g.members[0]].side === fleet.side)
+          shown = Math.max(shown, g.shown ?? 1);
+      const presence = count > 0 && k >= 0 ? inStory * (1 - shown) : 0;
+      heads.set(
+        fleet.id,
+        count > 0 ? x / count : 0,
+        count > 0 ? y / count : 0,
+        this.trail,
+        0,
+        presence,
+        w,
+      );
+    });
+  }
+
+  /**
+   * A leg's drawn line back from its head into `trail` (TRAIL_POINTS world
+   * points), far enough to pass the squadron's block (in the roads, it
+   * stands back along the line) by about 90 CSS px on screen: what its label
+   * keeps clear of. Returns how many points.
+   */
+  private trailOf(c: LegClock, p: number): number {
+    const track = c.track;
+    const head = Math.max(0, Math.min(track.length, track.headKm));
+    const { chart } = this.layers;
+    const camera = chart.camera;
+    const cssH = chart.renderer.domElement.clientHeight || 720;
+    const cssPerRad = cssH / (2 * Math.tan((camera.fov * Math.PI) / 360));
+    track.pointAt(head, this.at);
+    const e = chart.eye;
+    const kmPx = Math.hypot(this.at.x - e.x, this.at.y - e.y, e.z) / cssPerRad;
+    const block = curveKm(c, easedProgress(c, "block", p));
+    const back = Math.max(0, head - block) + 90 * kmPx;
+    const from = Math.max(0, head - back);
+    for (let i = 0; i < TRAIL_POINTS; i++) {
+      track.pointAt(head - ((head - from) * i) / (TRAIL_POINTS - 1), this.at);
+      this.trail[i * 2] = this.at.x;
+      this.trail[i * 2 + 1] = this.at.y;
+    }
+    return TRAIL_POINTS;
+  }
+
   private applyTracks(p: number, d: number): void {
     // Drawn day by day in beats 2 and 3 (Nelson's September passage ends
     // the drawing at the turn of beat 4), then put away as the camera comes
@@ -1362,11 +1620,13 @@ export class RoadDirector {
       track.emphasis = 1 - smooth(c.passFrom, c.passFrom + PASS_P, p);
       // The arrowhead at the squadron's head: the leg it sails or lies at
       // the end of, handed on to the next leg where that begins.
+      c.headWeight =
+        smooth(c.drawFrom - ARROW_HAND_P, c.drawFrom, p) *
+        (1 - smooth(c.passFrom - ARROW_HAND_P, c.passFrom, p));
       // Where its ships show at the head, they mark it.
       track.arrow =
         shown *
-        smooth(c.drawFrom - ARROW_HAND_P, c.drawFrom, p) *
-        (1 - smooth(c.passFrom - ARROW_HAND_P, c.passFrom, p)) *
+        c.headWeight *
         (c.owner >= 0 ? 1 - this.squadShownNow[c.owner] : 1);
     }
   }

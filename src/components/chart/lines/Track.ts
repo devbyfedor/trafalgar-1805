@@ -402,8 +402,11 @@ export class Tracks implements ChartLayer {
     wash: [0, 0],
   };
   /** The lettering the tracks' own keeps clear of on screen (setKeepClear). */
-  private keepClear: ScreenText | null = null;
+  private keepClear: readonly ScreenText[] = [];
   private readonly quad = new Float64Array(8);
+  /** Each mark's outline on screen and how much of it shows, this frame. */
+  private readonly markQuads: Float64Array[];
+  private readonly markShown: Float32Array;
   private readonly v = new Vector3();
   private sized = false;
 
@@ -415,6 +418,8 @@ export class Tracks implements ChartLayer {
     this.markSeen = this.marks.map(() => seen());
     this.endsSeen = this.marks.map(() => seen());
     this.circleAlpha = new Float32Array(this.circles.length);
+    this.markQuads = this.marks.map(() => new Float64Array(8));
+    this.markShown = new Float32Array(this.marks.length);
     this.extent = new Float32Array(this.marks.length);
     rankNeighbours(this.circles);
     rankNeighbours(this.marks);
@@ -558,10 +563,28 @@ export class Tracks implements ChartLayer {
       if (!this.sized) alpha = 0;
       this.labels.set(m.index, em, alpha);
       // Clear of the chart's names and the caption's card.
-      if (alpha > 0.001 && this.keepClear) {
-        alpha *= this.clearOf(this.keepClear, m.index, frame);
+      if (alpha > 0.001 && this.keepClear.length > 0) {
+        alpha *= this.clearOf(m.index, frame);
         this.labels.set(m.index, em, alpha);
       }
+      // Clear of the dates of the tracks before this one (their marks come
+      // first): two tracks running side by side never set their dates on
+      // each other; within a track they thin by rank (room).
+      const q = this.markQuads[i];
+      if (alpha > 0.001 && this.labels.outline(m.index, frame, q)) {
+        let keep = 1;
+        for (let j = 0; j < i && keep > 0.001; j++) {
+          const shown = this.markShown[j];
+          if (shown <= 0.001 || this.marks[j].track === m.track) continue;
+          const apart = quadsApart(q, this.markQuads[j]);
+          keep *= 1 - shown * (1 - smooth(YIELD_PX[0], YIELD_PX[1], apart));
+        }
+        if (keep < 1) {
+          alpha *= keep;
+          this.labels.set(m.index, em, alpha);
+        }
+      } else alpha = 0;
+      this.markShown[i] = alpha;
     }
     this.labels.update(frame);
   }
@@ -573,21 +596,22 @@ export class Tracks implements ChartLayer {
    * Updated before the tracks each frame (the chart's layers update in the
    * order they were added).
    */
-  setKeepClear(screen: ScreenText | null): void {
-    this.keepClear = screen;
+  setKeepClear(screens: readonly ScreenText[]): void {
+    this.keepClear = screens;
   }
 
   /** How much of label i may show for the lettering it must keep clear of. */
-  private clearOf(screen: ScreenText, i: number, frame: FrameInfo): number {
+  private clearOf(i: number, frame: FrameInfo): number {
     if (!this.labels.outline(i, frame, this.quad)) return 1;
     let keep = 1;
-    for (let j = 0; j < screen.count; j++) {
-      const w = screen.weights[j];
-      if (w <= 0.001) continue;
-      const apart = quadsApart(this.quad, screen.quads[j]);
-      keep *= 1 - w * (1 - smooth(YIELD_PX[0], YIELD_PX[1], apart));
-      if (keep <= 0.001) return 0;
-    }
+    for (const screen of this.keepClear)
+      for (let j = 0; j < screen.count; j++) {
+        const w = screen.weights[j];
+        if (w <= 0.001 || Number.isNaN(screen.quads[j][0])) continue;
+        const apart = quadsApart(this.quad, screen.quads[j]);
+        keep *= 1 - w * (1 - smooth(YIELD_PX[0], YIELD_PX[1], apart));
+        if (keep <= 0.001) return 0;
+      }
     return keep;
   }
 

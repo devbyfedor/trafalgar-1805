@@ -17,6 +17,11 @@ export interface Composition {
    */
   from: number;
   types: readonly (string | null)[];
+  /**
+   * Under no commander's flag (the Victory at Spithead while Nelson was
+   * ashore): no strength is lettered at the head (strengthOf).
+   */
+  unflagged?: boolean;
 }
 
 export interface SquadronSpec {
@@ -112,7 +117,7 @@ export const SQUADRONS: readonly SquadronSpec[] = [
       // Off Ushant he left Cornwallis nine and went on with the Superb.
       { from: day(8, 15, 18), types: [VIC, B74] },
       // At Spithead he struck his flag (19 August): the Victory alone.
-      { from: day(8, 19, 12), types: [VIC] },
+      { from: day(8, 19, 12), types: [VIC], unflagged: true },
       // From St Helens on 15 September with the frigate Euryalus.
       { from: day(9, 15, 8), types: [VIC, BFR] },
       // The Ajax and Thunderer join off the Lizard on the 18th.
@@ -151,9 +156,13 @@ export const SQUADRONS: readonly SquadronSpec[] = [
   {
     id: "collingwood",
     side: "british",
-    // Off Cádiz on 20 August with three of the line.
+    // Off Cádiz on 20 August with three of the line; the Mars, back from
+    // Tangier, made four about midnight (Desbrière 1907, p. 107).
     shown: [day(8, 19), day(8, 22)],
-    stages: [{ from: day(8, 19), types: [B98, B74, B74] }],
+    stages: [
+      { from: day(8, 19), types: [B98, B74, B74] },
+      { from: day(8, 21, 0), types: [B98, B74, B74, B74] },
+    ],
   },
 ];
 
@@ -161,3 +170,43 @@ export const SQUADRONS: readonly SquadronSpec[] = [
 export function largest(spec: SquadronSpec): number {
   return Math.max(...spec.stages.map((s) => s.types.length));
 }
+
+/** Each type of ship of the line, and her side (the rest are frigates). */
+const LINE_TYPES: Readonly<Record<string, SquadronSpec["side"]>> = {
+  [VIC]: "british",
+  [B98]: "british",
+  [B74]: "british",
+  [F80]: "combined",
+  [F74]: "combined",
+  [S74]: "combined",
+  [S112]: "combined",
+};
+
+/**
+ * A stage's strength as lettered at its track's head (HeadLabels), after
+ * the commander's name: its ships of the line under his flag, the unit in
+ * which the dispatches gave a squadron's strength ("20 Sail of the Line"),
+ * so frigates, small craft and prizes (Calder's two Spaniards) are not
+ * counted. A squadron of one ship of the line is lettered with her name
+ * ("Nelson, Victory"); one under no flag not at all (null).
+ */
+export function strengthOf(
+  spec: SquadronSpec,
+  stage: Composition,
+): string | null {
+  if (stage.unflagged) return null;
+  const line = stage.types.filter(
+    (t): t is string => t !== null && LINE_TYPES[t] === spec.side,
+  );
+  if (line.length === 1 && line[0] === VIC) return "Victory";
+  return line.length > 0 ? `${line.length} sail` : null;
+}
+
+/** The commander lettered at a squadron's head. */
+export const COMMANDERS: Readonly<Record<string, string>> = {
+  villeneuve: "Villeneuve",
+  nelson: "Nelson",
+  orde: "Orde",
+  calder: "Calder",
+  collingwood: "Collingwood",
+};

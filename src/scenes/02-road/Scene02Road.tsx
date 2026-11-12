@@ -270,6 +270,11 @@ export function Scene02Road() {
                 drawn = -1;
                 return s.labels(p);
               },
+              routeLabels: (explain?: boolean) => s.routeLabels(explain),
+              hideRouteLabels: (hidden: boolean) => {
+                s.hideRouteLabels(hidden);
+                drawn = -1;
+              },
               fleetAt: (p: number) => {
                 drawn = -1;
                 return s.fleetAt(p);
@@ -400,6 +405,14 @@ declare global {
       labels: (
         p: number,
       ) => import("@/components/chart/lettering/Lettering").LabelState[];
+      /**
+       * Development and the contrast check: the fleets' labels in the frame
+       * last drawn, and hiding them (RoadStage.routeLabels).
+       */
+      routeLabels: (
+        explain?: boolean,
+      ) => ReturnType<import("./stage").RoadStage["routeLabels"]>;
+      hideRouteLabels: (hidden: boolean) => void;
       /** Development: both fleets at first light (RoadStage.dawnFleet). */
       dawnFleet: () => ReturnType<import("./stage").RoadStage["dawnFleet"]>;
       /** Development: each fleet ship's intended place at p (RoadStage.fleetAt). */

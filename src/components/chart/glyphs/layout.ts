@@ -1646,6 +1646,11 @@ export class GlyphLayout implements ChartLayer {
     );
     const haze = this.view.haze(dist);
     const why = this.debug ? ([] as number[][]) : null;
+    plan.bAlpha = 0;
+    plan.bx0 = Number.POSITIVE_INFINITY;
+    plan.by0 = Number.POSITIVE_INFINITY;
+    plan.bx1 = Number.NEGATIVE_INFINITY;
+    plan.by1 = Number.NEGATIVE_INFINITY;
     for (let k = 0; k < n; k++) {
       const i = g.places[k];
       if (it.opacity[i] <= 0) continue;
@@ -1695,6 +1700,13 @@ export class GlyphLayout implements ChartLayer {
         NARROW_SYMBOL,
       );
       this.addObstacle(fx, fy, s, k, alpha * haze);
+      if (alpha * haze > 0.03) {
+        plan.bx0 = Math.min(plan.bx0, fx - s * this.boxL);
+        plan.bx1 = Math.max(plan.bx1, fx + s * this.boxR);
+        plan.by0 = Math.min(plan.by0, fy);
+        plan.by1 = Math.max(plan.by1, fy + s * this.boxT);
+        plan.bAlpha = Math.max(plan.bAlpha, alpha * haze);
+      }
     }
     if (this.debug)
       this.debug.push({
@@ -1719,6 +1731,41 @@ export class GlyphLayout implements ChartLayer {
         // after land, and her baked size.
         why,
       });
+  }
+
+  /**
+   * A squadron's ships on screen this frame, with the line it meets: their
+   * box (CSS px from the canvas's top left, four corners into `out`) and
+   * how much the most shown of them shows (0 for none). For lettering that
+   * keeps clear of them (the label at its head).
+   */
+  blockOf(g: Formation, out: Float64Array): number {
+    const a = this.drawnPlan(g);
+    const b = g.meeting > 0 && g.meets ? this.drawnPlan(g.meets) : null;
+    if (!a && !b) return 0;
+    const x0 = Math.min(a?.bx0 ?? Infinity, b?.bx0 ?? Infinity);
+    const y0 = Math.min(a?.by0 ?? Infinity, b?.by0 ?? Infinity);
+    const x1 = Math.max(a?.bx1 ?? -Infinity, b?.bx1 ?? -Infinity);
+    const y1 = Math.max(a?.by1 ?? -Infinity, b?.by1 ?? -Infinity);
+    const d = this.dpr;
+    const h = this.view.h;
+    out[0] = x0 / d;
+    out[1] = (h - y1) / d;
+    out[2] = x1 / d;
+    out[3] = out[1];
+    out[4] = out[2];
+    out[5] = (h - y0) / d;
+    out[6] = out[0];
+    out[7] = out[5];
+    return Math.max(a?.bAlpha ?? 0, b?.bAlpha ?? 0);
+  }
+
+  /** A squadron's plan, if its ships were drawn this frame. */
+  private drawnPlan(g: Formation): SquadronPlan | null {
+    const plan = this.plans.get(g);
+    return plan?.ok && plan.frame === this.frameNo && plan.bAlpha > 0
+      ? plan
+      : null;
   }
 
   /**
@@ -1836,6 +1883,12 @@ interface SquadronPlan {
   presence: number;
   /** How much of it is shown (Formation.shown). */
   shown: number;
+  /** Its ships as drawn this frame: their box (device px from the bottom left) and how much the most shown of them shows. */
+  bx0: number;
+  by0: number;
+  bx1: number;
+  by1: number;
+  bAlpha: number;
 }
 
 function newPlan(n: number): SquadronPlan {
@@ -1867,6 +1920,11 @@ function newPlan(n: number): SquadronPlan {
     cap: 1,
     presence: 0,
     shown: 0,
+    bx0: 0,
+    by0: 0,
+    bx1: 0,
+    by1: 0,
+    bAlpha: 0,
   };
 }
 

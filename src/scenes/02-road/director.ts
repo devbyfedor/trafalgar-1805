@@ -1010,6 +1010,8 @@ export class RoadDirector {
   private readonly frees: FreeGroup[];
   /** The flotilla's craft, one group behind a gate of its own (FLOTILLA_GATE). */
   private readonly flotilla: FreeGroup;
+  /** Whether the camps' layer is drawn (applyBoulogne). */
+  private campsOn = true;
   /** The heads' labels (roadHeads), and each one's strengths' shares this frame. */
   private readonly headSpecs = roadHeads();
   private readonly headWeights: Float64Array[];
@@ -1516,7 +1518,14 @@ export class RoadDirector {
     this.flotilla.shown = within(FLOTILLA_WINDOW);
     const camps = within(CAMPS_WINDOW);
     this.layers.camps.opacity = camps;
-    this.layers.camps.mesh.visible = camps > 0;
+    // Out of its window the layer isn't drawn at all; set only as it
+    // crosses the window's ends, so a timing that hides it by name on
+    // alternate frames (Chart.showNamed, road-bench.mjs AB=camps) can.
+    const on = camps > 0;
+    if (on !== this.campsOn) {
+      this.campsOn = on;
+      this.layers.camps.mesh.visible = on;
+    }
   }
 
   /** The glyph layout that draws this scene's ships (it reads the scene's progress). */

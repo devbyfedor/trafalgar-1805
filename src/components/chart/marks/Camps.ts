@@ -228,6 +228,7 @@ export class Camps implements ChartLayer {
       },
     });
     this.mesh = new Mesh(geometry, material);
+    this.mesh.name = "camps";
     // Huts move in the shader; the mesh's bounds don't know where.
     this.mesh.frustumCulled = false;
     // On the land with the other ink, under the ships standing off it.

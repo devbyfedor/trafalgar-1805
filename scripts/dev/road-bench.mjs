@@ -7,7 +7,8 @@
 // first five after each jump are left out. The page is scrolled into scene
 // 2 first, so scene 1's own loops are paused. AB=<name> times the frame
 // with and without the chart's objects of that name (Chart.showNamed:
-// terrain, sky, glyphs, wakes, lettering, marks, soundings, rivers, route)
+// terrain, sky, glyphs, wakes, lettering, marks, soundings, rivers, route,
+// tracks, camps)
 // at each p instead, on alternate frames, so both are timed at the same
 // clock (on battery, or under a sustained load, the GPU's clock moves
 // within a second).

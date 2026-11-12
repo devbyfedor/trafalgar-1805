@@ -188,11 +188,15 @@ uniform vec4 uLineStyle[LINES];
 uniform vec4 uLineInk[LINES];
 uniform vec4 uLineWash[LINES];
 uniform vec4 uLineState[LINES];
+// Its arrowhead at the drawing head: opacity, length and half width (CSS
+// px), and how deep its back is hollowed (a share of its length).
+uniform vec4 uLineHead[LINES];
 flat out vec4 vPiece;
 flat out vec4 vStyle;
 flat out vec4 vInk;
 flat out vec4 vWash;
 flat out vec4 vState;
+flat out vec4 vHead;
 #endif
 
 // A point on the relief, read where the terrain mesh reads it (its cells
@@ -249,6 +253,7 @@ void main() {
   vInk = uLineInk[line];
   vWash = uLineWash[line];
   vState = uLineState[line] * vec4(1.0, 1.0, uDpr, uDpr);
+  vHead = uLineHead[line] * vec4(1.0, uDpr, uDpr, 1.0);
 #endif
 }
 `;
@@ -314,6 +319,7 @@ flat in vec4 vStyle;
 flat in vec4 vInk;
 flat in vec4 vWash;
 flat in vec4 vState;
+flat in vec4 vHead;
 uniform float uDpr;
 uniform float uHazeVisibility;
 uniform sampler2D uCircles;
@@ -414,12 +420,31 @@ float circleGap(float d, float index, float kmPx) {
   return mix(1.0, outside, c.g);
 }
 
+// A moving head's arrowhead (vHead): a slim point whose tip is the head,
+// its back hollowed a little, as a draughtsman pointed a track; behind is
+// the distance back from the tip and x across the line, device px.
+float arrowhead(float behind, float x) {
+  float l = vHead.y;
+  float w = vHead.z;
+  float ax = abs(x);
+  // Inside both flanks, from the tip to the barbs at (l, ±w).
+  float flank = (w * behind - l * ax) / sqrt(l * l + w * w);
+  // In front of the back, hollowed from the barbs in to l·(1 − depth).
+  float back = l * (1.0 - vHead.w * (1.0 - min(ax / w, 1.0))) - behind;
+  return clamp(min(flank, back) + 0.5, 0.0, 1.0) * clamp(behind + 0.5, 0.0, 1.0);
+}
+
 void main() {
   // Km per device pixel along the line here.
   float kmPx = max(length(vec2(dFdx(vAlong), dFdy(vAlong))), 1e-9);
   float head = vState.x;
   if (vAlong > head + kmPx) discard;
   float x = vAcross;
+  float arrow = 0.0;
+  if (vHead.x > 0.0) {
+    float behind = (head - vAlong) / kmPx;
+    if (behind < vHead.y + 1.0) arrow = arrowhead(behind, x) * vHead.x;
+  }
   float inked = ink(x, kmPx) * vInk.a;
 
   // The wash, 60 to 200 px between its swells on screen.
@@ -431,16 +456,21 @@ void main() {
   float washed = clamp(0.5 * washWidth - abs(x - off) + 0.5, 0.0, 1.0);
   washed *= vWash.a * (0.8 + 0.4 * n3);
 
+  // The line's opacity and the haze; the arrow is not cut by the circles.
+  float h = vDist / uHazeVisibility;
+  float seen = vState.y * vFade * exp(-h * h);
   float k = clamp((head - vAlong) / kmPx + 0.5, 0.0, 1.0);
   k *= circleGap(vAlong - vPiece.x, vPiece.z, kmPx);
   k *= circleGap(vPiece.y - vAlong, vPiece.w, kmPx);
-  float h = vDist / uHazeVisibility;
-  k *= vState.y * vFade * exp(-h * h);
-  // Premultiplied: the ink under the wash.
+  k *= seen;
+  arrow *= seen;
+  // Premultiplied: the ink under the wash, the arrowhead over both.
   vec3 color = vInk.rgb * inked * (1.0 - washed) + vWash.rgb * washed;
   float alpha = 1.0 - (1.0 - inked) * (1.0 - washed);
-  if (alpha * k < 0.002) discard;
-  fragColor = vec4(color * k, alpha * k);
+  color = vInk.rgb * arrow + color * k * (1.0 - arrow);
+  alpha = arrow + alpha * k * (1.0 - arrow);
+  if (alpha < 0.002) discard;
+  fragColor = vec4(color, alpha);
 }
 `;
 
@@ -538,6 +568,7 @@ export class PatternMaterial extends ShaderMaterial {
   private readonly ink: Float32Array;
   private readonly wash: Float32Array;
   private readonly state: Float32Array;
+  private readonly head: Float32Array;
   private readonly circles: DataTexture;
 
   constructor(
@@ -563,6 +594,7 @@ export class PatternMaterial extends ShaderMaterial {
     const ink = new Float32Array(n * 4);
     const wash = new Float32Array(n * 4);
     const state = new Float32Array(n * 4);
+    const head = new Float32Array(n * 4);
     super({
       glslVersion: GLSL3,
       vertexShader: VERTEX,
@@ -587,6 +619,7 @@ export class PatternMaterial extends ShaderMaterial {
         uLineInk: { value: ink },
         uLineWash: { value: wash },
         uLineState: { value: state },
+        uLineHead: { value: head },
         uCircles: { value: texture },
       },
     });
@@ -594,6 +627,7 @@ export class PatternMaterial extends ShaderMaterial {
     this.ink = ink;
     this.wash = wash;
     this.state = state;
+    this.head = head;
     this.circles = texture;
   }
 
@@ -619,6 +653,25 @@ export class PatternMaterial extends ShaderMaterial {
   setState(line: number, headKm: number, opacity: number): void {
     this.state[line * 4] = headKm;
     this.state[line * 4 + 1] = opacity;
+  }
+
+  /**
+   * The arrowhead at the line's head: its opacity (0 for none), length and
+   * half width (CSS px), and how deep its back is hollowed (a share of its
+   * length). The line's ribbon must be wide enough to hold it.
+   */
+  setArrow(
+    line: number,
+    opacity: number,
+    length: number,
+    halfWidth: number,
+    hollow: number,
+  ): void {
+    const h = this.head;
+    h[line * 4] = opacity;
+    h[line * 4 + 1] = length;
+    h[line * 4 + 2] = halfWidth;
+    h[line * 4 + 3] = hollow;
   }
 
   /** The ink's colour (sRGB 0..1) and opacity. */

@@ -13,9 +13,9 @@ import {
   loadRivers,
   loadSoundings,
   Rivers,
-  Route,
   SOUNDING_FONT_FILE,
   Soundings,
+  Tracks,
 } from "@/components/chart";
 import { type BenchResult, benchFrames } from "@/components/chart/engine/bench";
 import { worldX, worldY } from "@/components/chart/geo/mercator";
@@ -41,7 +41,7 @@ import {
   GLYPH_TYPES,
 } from "./fleets";
 import { GAZETTEER } from "./gazetteer";
-import { NELSON, VILLENEUVE } from "./routes";
+import { legTracks, NELSON, VILLENEUVE } from "./routes";
 import { SOUNDING_ANGLES } from "./soundings";
 
 /** smoothstep: 0 before a, 1 after b. */
@@ -273,18 +273,12 @@ export async function createRoadStage(
     const rivers = new Rivers(chart.field, riverData);
     chart.add(rivers, rivers.mesh);
     const legs = [...VILLENEUVE, ...NELSON];
-    const routes = legs.map(
-      (leg) =>
-        new Route(
-          chart.field,
-          leg.waypoints.map((w) => [w.lon, w.lat] as const),
-          { width: leg.side === "british" ? 2 : 1.8 },
-        ),
-    );
-    for (const r of routes) {
-      r.setProgress(0);
-      chart.add(r, r.mesh);
-    }
+    // The fleets' tracks, drawn by date as the period's track charts drew
+    // them; added after the lettering, whose names their dates keep clear of.
+    const tracks = new Tracks(chart.field, [
+      ...legTracks(VILLENEUVE),
+      ...legTracks(NELSON),
+    ]);
     // One atlas for both layers, drawn level by level between frames.
     atlas = await buildGlyphAtlas(GLYPH_TYPES, options.signal);
     options.signal.throwIfAborted();
@@ -318,6 +312,10 @@ export async function createRoadStage(
     chart.add(lettering, lettering.batch, lettering.marks.mesh);
     await lettering.ready;
     options.signal.throwIfAborted();
+    tracks.setKeepClear(lettering.screen);
+    chart.add(tracks, ...tracks.objects);
+    await tracks.ready;
+    options.signal.throwIfAborted();
     // The depths written over the shoal water of the detail tiles.
     const soundingData = await loadSoundings(chart.manifest, options.signal);
     if (soundingData) {
@@ -342,7 +340,7 @@ export async function createRoadStage(
       rig,
       fleets,
       squadrons,
-      routes,
+      tracks,
       legs,
     });
     // Every squadron's and ship's heading, eased ahead of time.

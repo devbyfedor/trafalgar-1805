@@ -122,7 +122,19 @@ const MARK_GAP_EM = 0.2;
  * px), easing between: it shows where it has room or not at all, never as
  * a ghost crowding its neighbour.
  */
-const YIELD_PX: readonly [number, number] = [4, 10];
+export const YIELD_PX: readonly [number, number] = [4, 10];
+
+/**
+ * Lettering's outlines on screen in the last frame (CSS px, four corners
+ * each) and how firmly each holds its place (0..1): what other lettering
+ * keeps clear of (the tracks' dates, the routes' heads).
+ */
+export interface ScreenText {
+  readonly quads: readonly Float64Array[];
+  readonly weights: Float64Array;
+  /** How many of them hold this frame's outlines. */
+  count: number;
+}
 
 interface Placed {
   label: Label;
@@ -173,6 +185,8 @@ export class Lettering implements ChartLayer {
   };
   private readonly inkDark = new Vector3();
   private readonly inkPale = new Vector3();
+  /** The names' outlines and the keep-out, as they stood in the last frame. */
+  readonly screen: ScreenText;
 
   constructor(field: TerrainField, labels: readonly Label[]) {
     configureFonts();
@@ -272,6 +286,11 @@ export class Lettering implements ChartLayer {
     this.ranked = this.placed
       .filter((p) => (p.label.rank ?? 0) > 0)
       .sort((a, b) => (a.label.rank ?? 0) - (b.label.rank ?? 0));
+    this.screen = {
+      quads: [...this.placed.map((p) => p.quad), this.keepQuad],
+      weights: new Float64Array(this.placed.length + 1),
+      count: 0,
+    };
   }
 
   /** The minor names, by rank. */
@@ -319,6 +338,16 @@ export class Lettering implements ChartLayer {
       );
     }
     if (this.ranked.length > 0 || this.keepWeight > 0) this.giveWay(frame);
+    else for (const p of this.placed) this.outline(p, frame);
+    // What other lettering keeps clear of: each name as firmly as it shows
+    // (one coming in counts as it comes, as in giveWay), and the keep-out.
+    const weights = this.screen.weights;
+    for (let i = 0; i < this.placed.length; i++) {
+      const p = this.placed[i];
+      weights[i] = Number.isNaN(p.quad[0]) ? 0 : smooth(0.03, 0.2, p.opacity);
+    }
+    weights[this.placed.length] = this.keepWeight;
+    this.screen.count = this.placed.length + 1;
     for (const p of this.placed) {
       p.text.fillOpacity = p.opacity;
       if (p.mark >= 0) {
@@ -474,7 +503,7 @@ export class Lettering implements ChartLayer {
  * shadows on any edge's normal, negative where they overlap (then the
  * least overlap). No allocation.
  */
-function quadsApart(a: Float64Array, b: Float64Array): number {
+export function quadsApart(a: Float64Array, b: Float64Array): number {
   let best = Number.NEGATIVE_INFINITY;
   for (let side = 0; side < 2; side++) {
     const q = side === 0 ? a : b;

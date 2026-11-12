@@ -56,6 +56,8 @@ interface Placed {
   /** The visible text's width and height, ems. */
   width: number;
   height: number;
+  /** From the site to the visible text's centre, ems, along the label's direction. */
+  reach: number;
   opacity: number;
   em: number;
 }
@@ -115,6 +117,7 @@ export class TrackLabels {
         oy: 0,
         width: 0,
         height: 0,
+        reach: 0,
         opacity: 0,
         em: 0,
       };
@@ -181,6 +184,37 @@ export class TrackLabels {
     this.rings.set(index, x, y, half, opacity);
   }
 
+  /**
+   * Label `index`'s visible text on screen this frame (CSS px, four corners
+   * in order), as set; false when it doesn't show or lies behind the eye.
+   */
+  outline(index: number, frame: FrameInfo, out: Float64Array): boolean {
+    const p = this.placed[index];
+    if (p.opacity <= 0.001 || p.width <= 0) return false;
+    const { x, y, angle, dirX, dirY } = p.label;
+    const cx = x + dirX * p.reach * p.em;
+    const cy = y + dirY * p.reach * p.em;
+    const c = Math.cos(angle);
+    const s = Math.sin(angle);
+    const hw = 0.5 * p.width * p.em;
+    const hh = 0.5 * p.height * p.em;
+    for (let i = 0; i < 4; i++) {
+      const u = i === 0 || i === 3 ? -hw : hw;
+      const v = i < 2 ? -hh : hh;
+      const wx = cx + u * c - v * s;
+      const wy = cy + u * s + v * c;
+      const at = this.at.set(wx, wy, 0);
+      at.applyMatrix4(frame.camera.matrixWorldInverse);
+      if (at.z > -frame.camera.near) return false;
+      at.applyMatrix4(frame.camera.projectionMatrix);
+      out[i * 2] = (at.x * 0.5 + 0.5) * (frame.width / frame.dpr);
+      out[i * 2 + 1] = (0.5 - at.y * 0.5) * (frame.height / frame.dpr);
+    }
+    return true;
+  }
+
+  private readonly at = new Vector3();
+
   update(frame: FrameInfo): void {
     const u = this.uniforms;
     u.uExag.value = frame.exaggeration;
@@ -229,6 +263,7 @@ export class TrackLabels {
     const ty = -dirX * s + dirY * c;
     const reach =
       clear + 0.5 * (Math.abs(tx) * p.width + Math.abs(ty) * p.height);
+    p.reach = reach;
     const cx = 0.5 * (b[0] + b[2]);
     const cy = 0.5 * (b[1] + b[3]);
     p.ox = dirX * reach - (cx * c - cy * s);

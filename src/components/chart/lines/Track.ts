@@ -7,6 +7,7 @@ import {
 } from "three";
 import type { ChartLayer, FrameInfo } from "../engine/Chart";
 import { worldX, worldY } from "../geo/mercator";
+import { quadsApart, type ScreenText, YIELD_PX } from "../lettering/Lettering";
 import {
   RING_STOP_EM,
   type TrackLabel,
@@ -17,6 +18,7 @@ import type { TerrainField } from "../terrain/field";
 import { dateOf, dayAndMonth, dayNumeral } from "./dates";
 import { type RoutePoint, smoothPath } from "./Route";
 import {
+  type LinePattern,
   type LineStyle,
   PatternMaterial,
   type Polyline,
@@ -94,63 +96,78 @@ export interface TrackSpec {
   side?: LabelSide;
 }
 
+/** How strongly a line is drawn: its pen, its wash and their opacities. */
+interface Weight {
+  /** The ink's pen width, CSS px: a dot's diameter, a dash's width. */
+  pen: number;
+  /** The wash's width, narrowest and widest, CSS px. */
+  wash: readonly [number, number];
+  ink: number;
+  washOpacity: number;
+}
+
 interface StyleSpec {
-  line: LineStyle;
+  pattern: LinePattern;
+  /** The pattern's period on screen and a dash's length, CSS px. */
+  period: number;
+  dash: number;
   /** Pale ink for the sea, the land's dark ink for a march over it. */
   ink: "pale" | "dark";
-  inkOpacity: number;
-  /** The wash, an sRGB colour, and its opacity. */
+  /** The wash, an sRGB colour. */
   wash: number;
-  washOpacity: number;
+  /**
+   * The line being sailed (Track.emphasis 1), and one already sailed (0):
+   * the one strong, the others thinned to a light ink line without their
+   * wash, so the chart shows where the story is and never turns into a web
+   * of equal lines.
+   */
+  active: Weight;
+  passed: Weight;
 }
 
 /**
  * The styles. Carmine, on the dark slate sea, is a rose carmine laid thin:
  * it reads by its hue, lighter than the sea, and stays a crimson (blue in
  * its red) rather than turning toward terracotta. The combined fleet's
- * wash is the slate violet of its glyphs, faint.
+ * wash is the slate violet of its glyphs.
  */
 const STYLES: Record<TrackStyle, StyleSpec> = {
   british: {
-    line: {
-      pattern: "dotted",
-      width: 1.3,
-      period: 3.6,
-      dash: 0,
-      wash: [1.5, 2.5],
-    },
+    pattern: "dotted",
+    period: 3.6,
+    dash: 0,
     ink: "pale",
-    inkOpacity: 0.9,
     wash: 0xc0425f,
-    washOpacity: 0.55,
+    active: { pen: 1.6, wash: [2.3, 3.4], ink: 1, washOpacity: 0.8 },
+    passed: { pen: 1.1, wash: [1.4, 2.2], ink: 0.4, washOpacity: 0 },
   },
   combined: {
-    line: {
-      pattern: "dashdot",
-      width: 1.15,
-      period: 11,
-      dash: 5,
-      wash: [1.5, 2.5],
-    },
+    pattern: "dashdot",
+    period: 11,
+    dash: 5,
     ink: "pale",
-    inkOpacity: 0.85,
     wash: 0x9c97b8,
-    washOpacity: 0.32,
+    active: { pen: 1.45, wash: [2.3, 3.4], ink: 1, washOpacity: 0.6 },
+    passed: { pen: 1.05, wash: [1.4, 2.2], ink: 0.4, washOpacity: 0 },
   },
   army: {
-    line: {
-      pattern: "dashed",
-      width: 1.4,
-      period: 8,
-      dash: 4.5,
-      wash: [0, 0],
-    },
+    pattern: "dashed",
+    period: 8,
+    dash: 4.5,
     ink: "dark",
-    inkOpacity: 0.85,
     wash: 0,
-    washOpacity: 0,
+    active: { pen: 1.6, wash: [0, 0], ink: 0.9, washOpacity: 0 },
+    passed: { pen: 1.2, wash: [0, 0], ink: 0.45, washOpacity: 0 },
   },
 };
+
+/**
+ * A moving head's arrowhead, CSS px: a slim point, its back hollowed by a
+ * share of its length, in the line's ink, its tip on the head.
+ */
+const ARROW_LENGTH_PX = 10;
+const ARROW_HALF_PX = 3.4;
+const ARROW_HOLLOW = 0.28;
 
 /**
  * The tracks' lettering, em on screen (CSS px): the day numerals are the
@@ -209,6 +226,13 @@ export class Track {
   readonly waypointIndex: readonly number[];
   /** The whole track's opacity (0 hides it). */
   opacity = 1;
+  /**
+   * How strongly it is drawn: 1 the line being sailed (its wash, its pen
+   * and its day marks), 0 a line already sailed (a light ink line alone).
+   */
+  emphasis = 1;
+  /** Its head's arrowhead (0..1): where a fleet sails at its head. */
+  arrow = 0;
   /** The drawing head, km along the curve; negative before the track starts. */
   headKm: number;
   private readonly days: number[] = [];
@@ -369,6 +393,17 @@ export class Tracks implements ChartLayer {
   private readonly extent: Float32Array;
   private readonly wash: Vector3[];
   private readonly color = new Vector3();
+  /** This frame's style of the line being set (Tracks.update). */
+  private readonly lineStyle: LineStyle & { wash: [number, number] } = {
+    pattern: "solid",
+    width: 1,
+    period: 1,
+    dash: 0,
+    wash: [0, 0],
+  };
+  /** The lettering the tracks' own keeps clear of on screen (setKeepClear). */
+  private keepClear: ScreenText | null = null;
+  private readonly quad = new Float64Array(8);
   private readonly v = new Vector3();
   private sized = false;
 
@@ -392,11 +427,7 @@ export class Tracks implements ChartLayer {
       this.circles.length,
       { lift: true },
     );
-    this.wash = this.tracks.map((track) => {
-      const style = STYLES[track.style];
-      material.setStyle(track.line, style.line);
-      return hexColor(style.wash);
-    });
+    this.wash = this.tracks.map((track) => hexColor(STYLES[track.style].wash));
     this.mesh = new Mesh(ribbonGeometry(lines), material);
     this.mesh.name = "tracks";
     this.mesh.frustumCulled = false;
@@ -431,17 +462,38 @@ export class Tracks implements ChartLayer {
     const light = frame.light;
     for (const track of this.tracks) {
       const style = STYLES[track.style];
+      const { active: a, passed: b } = style;
+      const e = Math.min(1, Math.max(0, track.emphasis));
+      const ls = this.lineStyle;
+      ls.pattern = style.pattern;
+      ls.width = mix(b.pen, a.pen, e);
+      ls.period = style.period;
+      ls.dash = style.dash;
+      ls.wash[0] = mix(b.wash[0], a.wash[0], e);
+      ls.wash[1] = mix(b.wash[1], a.wash[1], e);
+      material.setStyle(track.line, ls);
       material.setState(track.line, track.headKm, track.opacity);
+      material.setArrow(
+        track.line,
+        Math.min(1, Math.max(0, track.arrow)),
+        ARROW_LENGTH_PX,
+        ARROW_HALF_PX,
+        ARROW_HOLLOW,
+      );
       material.setInk(
         track.line,
         style.ink === "pale" ? light.inkPale : light.ink,
-        style.inkOpacity,
+        mix(b.ink, a.ink, e),
       );
       // Pigment on the chart darkens with the night.
       this.color
         .copy(this.wash[track.line])
         .multiplyScalar(1 - 0.5 * light.night);
-      material.setWash(track.line, this.color, style.washOpacity);
+      material.setWash(
+        track.line,
+        this.color,
+        mix(b.washOpacity, a.washOpacity, e),
+      );
     }
 
     const camera = frame.camera;
@@ -468,7 +520,8 @@ export class Tracks implements ChartLayer {
         reveal(c) *
         smooth(0.7 * CIRCLE_ROOM_PX, CIRCLE_ROOM_PX, room) *
         this.legible(frame, s.dist) *
-        c.track.opacity;
+        c.track.opacity *
+        c.track.emphasis;
       this.circleAlpha[i] = alpha;
       const em = (EM_PX * s.dist) / cssPerRadian;
       this.labels.setRing(c.index, c.x, c.y, em, alpha);
@@ -480,8 +533,13 @@ export class Tracks implements ChartLayer {
       const m = this.marks[i];
       const s = this.markSeen[i];
       const em = (EM_PX * s.dist) / cssPerRadian;
+      // Day marks only on the line being sailed.
       let alpha =
-        s.front * reveal(m) * this.legible(frame, s.dist) * m.track.opacity;
+        s.front *
+        reveal(m) *
+        this.legible(frame, s.dist) *
+        m.track.opacity *
+        m.track.emphasis;
       if (m.ends) {
         // A legend shows where its stretch is long enough on screen.
         const e = this.endsSeen[i];
@@ -497,9 +555,40 @@ export class Tracks implements ChartLayer {
         alpha *= smooth(0.8 * need, need, this.room(this.markSeen, m.above, s));
         if (m.circle >= 0) alpha = Math.min(alpha, this.circleAlpha[m.circle]);
       }
-      this.labels.set(m.index, em, this.sized ? alpha : 0);
+      if (!this.sized) alpha = 0;
+      this.labels.set(m.index, em, alpha);
+      // Clear of the chart's names and the caption's card.
+      if (alpha > 0.001 && this.keepClear) {
+        alpha *= this.clearOf(this.keepClear, m.index, frame);
+        this.labels.set(m.index, em, alpha);
+      }
     }
     this.labels.update(frame);
+  }
+
+  /**
+   * Lettering on screen the tracks' dates keep clear of: the chart's names
+   * and the caption's card (Lettering.screen). A date fades as it comes
+   * near them, as a minor name gives way to the names that rank before it.
+   * Updated before the tracks each frame (the chart's layers update in the
+   * order they were added).
+   */
+  setKeepClear(screen: ScreenText | null): void {
+    this.keepClear = screen;
+  }
+
+  /** How much of label i may show for the lettering it must keep clear of. */
+  private clearOf(screen: ScreenText, i: number, frame: FrameInfo): number {
+    if (!this.labels.outline(i, frame, this.quad)) return 1;
+    let keep = 1;
+    for (let j = 0; j < screen.count; j++) {
+      const w = screen.weights[j];
+      if (w <= 0.001) continue;
+      const apart = quadsApart(this.quad, screen.quads[j]);
+      keep *= 1 - w * (1 - smooth(YIELD_PX[0], YIELD_PX[1], apart));
+      if (keep <= 0.001) return 0;
+    }
+    return keep;
   }
 
   /** Every label's state in the last frame (development and tests). */
@@ -704,8 +793,9 @@ export class Tracks implements ChartLayer {
 
   /** A track's line, cut into pieces at its circles. */
   private pieces(track: Track, lines: Polyline[]): void {
-    const style = STYLES[track.style].line;
-    const width = Math.max(style.width, style.wash[1] + 0.6);
+    // Wide enough for the strongest line, its wash and its arrowhead.
+    const a = STYLES[track.style].active;
+    const width = Math.max(a.pen, a.wash[1] + 0.6, 2 * ARROW_HALF_PX + 1);
     const n = track.points.length / 2;
     const circleAt = new Map<number, number>();
     for (const c of this.circles) {
@@ -832,6 +922,10 @@ function hexColor(hex: number): Vector3 {
     ((hex >> 8) & 255) / 255,
     (hex & 255) / 255,
   );
+}
+
+function mix(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
 }
 
 function smooth(e0: number, e1: number, x: number): number {

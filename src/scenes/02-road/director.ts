@@ -13,8 +13,7 @@ import type {
   GlyphLayout,
 } from "@/components/chart/glyphs/layout";
 import type { LightId } from "@/components/chart/light/states";
-import type { Route } from "@/components/chart/lines/Route";
-import type { RibbonMaterial } from "@/components/chart/lines/ribbon";
+import type { Track, Tracks } from "@/components/chart/lines/Track";
 import { monotoneCurve } from "@/lib/curve";
 import { METRE_VH, VICTORY_X } from "@/scenes/01-dawn/composition";
 import { VICTORY_BOX } from "@/scenes/01-dawn/layers/Victory";
@@ -236,6 +235,21 @@ const SQUADRON_BEATS: readonly BeatId[] = ["chase", "finisterre"];
  * the smoke. The plan holds through the 22nd, which the clock spreads over
  * the hold (beats.ts). Days: forming from, formed, parting from, apart.
  */
+/**
+ * A leg already sailed thins to a light ink line over this much scroll
+ * (p) as the next begins; a moving head's arrowhead is handed on from one
+ * leg to the next over ARROW_HAND_P.
+ */
+const PASS_P = 0.008;
+const ARROW_HAND_P = 0.002;
+
+/** The p of the first step of a table (from the chase on) above a value; 1 for none. */
+function firstAbove(table: Float32Array, value: number): number {
+  for (let k = 0; k < table.length; k++)
+    if (table[k] > value) return BEATS.chase[0] + k * HEADING_STEP;
+  return 1;
+}
+
 /** How much scroll (of p) a meeting takes to form, and to part. */
 const MEETING_P = 0.03;
 
@@ -283,9 +297,11 @@ function fade(
  */
 interface LegClock {
   leg: Leg;
-  route: Route;
+  track: Track;
   /** The leg's length along its straight legs, km. */
   length: number;
+  /** Each waypoint's distance along the straight legs, km (curveKm). */
+  straight: Float64Array;
   first: number;
   last: number;
   /** km along the leg at a day (between `first` and `last`). */
@@ -305,6 +321,13 @@ interface LegClock {
    */
   drawn: Float32Array;
   block: Float32Array;
+  /**
+   * Where its drawing begins (p), and where the line after it begins, or
+   * its squadron leaves the story: from there it is a line already sailed
+   * (applyTracks).
+   */
+  drawFrom: number;
+  passFrom: number;
 }
 
 /**
@@ -314,7 +337,7 @@ interface LegClock {
  */
 function legClock(
   leg: Leg,
-  route: Route,
+  track: Track,
   seaStart: boolean,
   seaEnd: boolean,
 ): LegClock {
@@ -347,8 +370,9 @@ function legClock(
   const share = Math.min(1, length / (2 * Math.max(1e-9, a + b)));
   return {
     leg,
-    route,
+    track,
     length,
+    straight: along,
     first: keys[0][0],
     last: keys[keys.length - 1][0],
     km,
@@ -359,7 +383,32 @@ function legClock(
     blockTo: 1,
     drawn: new Float32Array(0),
     block: new Float32Array(0),
+    drawFrom: 1,
+    passFrom: 1,
   };
+}
+
+/**
+ * A share of a leg along its straight legs (its clock's measure) as a
+ * distance along its drawn curve, km: through each waypoint's place on
+ * both, so the head reaches a dated waypoint (and its day circle) on its
+ * day. A share of the curve's length instead had brought it near the
+ * circle, not onto it, where the curve and the straight legs differ.
+ */
+function curveKm(c: LegClock, share: number): number {
+  const s = c.straight;
+  const target = Math.min(1, Math.max(0, share)) * c.length;
+  let lo = 0;
+  let hi = s.length - 1;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (s[mid] <= target) lo = mid;
+    else hi = mid;
+  }
+  const span = s[hi] - s[lo];
+  const t = span > 0 ? Math.min(1, (target - s[lo]) / span) : 0;
+  const km = c.track.waypointKm;
+  return km[lo] + (km[hi] - km[lo]) * t;
 }
 
 /**
@@ -541,7 +590,7 @@ function blockAt(
   p: number,
   out: { x: number; y: number; heading: number },
 ): void {
-  c.route.pointAt(easedProgress(c, "block", p), out);
+  c.track.pointAt(curveKm(c, easedProgress(c, "block", p)), out);
 }
 
 /** A heading turned toward another by a share t, the short way round (radians). */
@@ -558,8 +607,8 @@ export interface RoadLayers {
   fleets: Glyphs;
   /** The squadrons of beats 2 and 3, each a block of glyphs. */
   squadrons: Glyphs;
-  /** A route per leg, in the order of `legs`. */
-  routes: readonly Route[];
+  /** The legs' tracks, one per leg by its id. */
+  tracks: Tracks;
   legs: readonly Leg[];
 }
 
@@ -659,10 +708,10 @@ export class RoadDirector {
       ids.forEach((id, n) => {
         if (SEA_JOINS.has(id) && n + 1 < ids.length) seaStarts.add(ids[n + 1]);
       });
-    this.clocks = layers.legs.map((leg, i) =>
+    this.clocks = layers.legs.map((leg) =>
       legClock(
         leg,
-        layers.routes[i],
+        layers.tracks.track(leg.id),
         seaStarts.has(leg.id),
         SEA_JOINS.has(leg.id),
       ),
@@ -714,6 +763,17 @@ export class RoadDirector {
       first += n;
       return s;
     });
+    // Where each leg's drawing begins, and where it becomes a line already
+    // sailed: as the next leg of its squadron begins, or as the squadron
+    // leaves the story.
+    for (const squad of this.squads) {
+      const legs = squad.legs;
+      for (const c of legs) c.drawFrom = firstAbove(c.drawn, 0.001);
+      legs.forEach((c, k) => {
+        c.passFrom =
+          k + 1 < legs.length ? legs[k + 1].drawFrom : squad.shownP[1];
+      });
+    }
     this.meetings = MEETINGS.flatMap((m) => {
       const a = this.squads.find((s) => s.spec.id === m.above);
       const b = this.squads.find((s) => s.spec.id === m.below);
@@ -842,7 +902,7 @@ export class RoadDirector {
     const d = dayAt(p);
     this.applyFleets(p, d);
     this.applySquadrons(p, d);
-    this.applyRoutes(p, d);
+    this.applyTracks(p, d);
     this.layout?.setProgress(p);
   }
 
@@ -1079,7 +1139,7 @@ export class RoadDirector {
     return this.head;
   }
 
-  private applyRoutes(p: number, d: number): void {
+  private applyTracks(p: number, d: number): void {
     // Drawn day by day in beats 2 and 3 (Nelson's September passage ends
     // the drawing at the turn of beat 4), then put away as the camera comes
     // down to the harbour.
@@ -1090,18 +1150,25 @@ export class RoadDirector {
       BEATS.finisterre[1] + 0.012,
     ]);
     for (const c of this.clocks) {
-      const before = p < BEATS.chase[0];
       // Eased as the blocks are, so the line's tip keeps with its lead.
-      c.route.setProgress(
-        before
+      const share =
+        p < BEATS.chase[0]
           ? 0
           : p <= SQUADRON_TABLE_END
             ? easedProgress(c, "drawn", p)
-            : legProgress(c, d),
-      );
-      c.route.mesh.visible = shown > 0.002;
-      (c.route.mesh.material as RibbonMaterial).uniforms.uOpacity.value =
-        0.9 * shown;
+            : legProgress(c, d);
+      const track = c.track;
+      track.headKm = share > 0 ? curveKm(c, share) : -1e9;
+      track.opacity = share > 0 ? shown : 0;
+      // The leg being sailed is drawn strong; one already sailed thins to a
+      // light ink line as the next begins (or its squadron leaves).
+      track.emphasis = 1 - smooth(c.passFrom, c.passFrom + PASS_P, p);
+      // The arrowhead at the squadron's head: the leg it sails or lies at
+      // the end of, handed on to the next leg where that begins.
+      track.arrow =
+        shown *
+        smooth(c.drawFrom - ARROW_HAND_P, c.drawFrom, p) *
+        (1 - smooth(c.passFrom - ARROW_HAND_P, c.passFrom, p));
     }
   }
 

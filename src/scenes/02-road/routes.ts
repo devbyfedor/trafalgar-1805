@@ -1,4 +1,5 @@
 import type { Waypoint } from "@/components/chart/lines/Route";
+import type { TrackSpec } from "@/components/chart/lines/Track";
 import { day } from "./dates";
 
 /**
@@ -442,3 +443,33 @@ export const NELSON: readonly Leg[] = [
 /** The Toulon–Cádiz leg as plain waypoints, for the lab's Stage A flight. */
 export const TOULON_TO_CADIZ: readonly Waypoint[] =
   villeneuveToulonCadiz.waypoints.map((w) => [w.lon, w.lat] as const);
+
+/**
+ * Legs as tracks (components/chart/lines/Track.ts), in their order: each in
+ * its side's style, its noon positions its day circles. A leg that takes
+ * up where the one before ended, on the same day at the same place (the
+ * West Indies leg handing on to the return at sea on 10 June), leaves that
+ * day's circle to the leg before, so no day is ringed and numbered twice.
+ */
+export function legTracks(legs: readonly Leg[]): TrackSpec[] {
+  let lastMark: DatedWaypoint | null = null;
+  return legs.map((leg) => {
+    const points = leg.waypoints.map((w, i) => {
+      const repeated =
+        i === 0 &&
+        lastMark !== null &&
+        lastMark.lon === w.lon &&
+        lastMark.lat === w.lat &&
+        lastMark.day === w.day;
+      return {
+        lon: w.lon,
+        lat: w.lat,
+        day: w.day,
+        noon: w.mark === true && !repeated,
+      };
+    });
+    const end = leg.waypoints[leg.waypoints.length - 1];
+    lastMark = end.mark ? end : null;
+    return { id: leg.id, style: leg.side, points };
+  });
+}

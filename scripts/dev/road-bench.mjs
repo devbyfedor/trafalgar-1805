@@ -163,11 +163,15 @@ if (ab) {
         triangles: stats.triangles,
         altitude: stats.altitude,
       };
+      // The sweep with the best GPU time is kept whole; cpuP95Min is the
+      // CPU's own best over the sweeps (one's slow sweep is not the other's).
+      row.cpuP95Min = Math.min(row.cpuP95, best?.cpuP95Min ?? row.cpuP95);
       if (!best || row.gpuP95 < best.gpuP95) best = row;
+      else best.cpuP95Min = row.cpuP95Min;
     }
     rows.push(best);
     console.log(
-      `${p.toFixed(3).padStart(5)} | ${ms(best.gpuMedian)} ${ms(best.gpuP95)} ${ms(best.gpuMax)} | ${ms(best.cpuMedian)} ${ms(best.cpuP95)} | ${String(best.calls).padStart(5)} ${String(best.triangles).padStart(9)}  ${best.altitude} km${best.disjoint ? `  (${best.disjoint} disjoint)` : ""}`,
+      `${p.toFixed(3).padStart(5)} | ${ms(best.gpuMedian)} ${ms(best.gpuP95)} ${ms(best.gpuMax)} | ${ms(best.cpuMedian)} ${ms(best.cpuP95)}${sweeps > 1 ? ` (least ${ms(best.cpuP95Min).trim()})` : ""} | ${String(best.calls).padStart(5)} ${String(best.triangles).padStart(9)}  ${best.altitude} km${best.disjoint ? `  (${best.disjoint} disjoint)` : ""}`,
     );
   }
   const worst = (key) =>

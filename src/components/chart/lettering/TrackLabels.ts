@@ -1,11 +1,13 @@
 import type { Object3D } from "three";
 import { Vector3 } from "three";
-import { BatchedText, Text } from "troika-three-text";
+import type { BatchedText, Text } from "troika-three-text";
 import type { FrameInfo } from "../engine/Chart";
 import type { TerrainField } from "../terrain/field";
 import { FONT_FILES, fontUrl } from "./fonts";
 import { MARK_HALF_EM, MARK_RING_EM, Marks } from "./marks";
 import {
+  chartText,
+  chartTextBatch,
   chartTextMaterial,
   configureFonts,
   type DrapeUniforms,
@@ -88,27 +90,17 @@ export class TrackLabels {
     circles: number,
   ) {
     configureFonts();
-    this.batch = new BatchedText();
-    this.batch.material = chartTextMaterial(
-      field,
-      this.uniforms,
-      this.inkPale,
-      this.inkDark,
+    this.batch = chartTextBatch(
+      "track-lettering",
+      chartTextMaterial(field, this.uniforms, this.inkPale, this.inkDark),
+      31,
     );
-    // Glyphs move in the shader; the batch's bounds don't know where.
-    this.batch.frustumCulled = false;
-    this.batch.renderOrder = 31;
 
     const syncs: Promise<void>[] = [];
     for (const label of labels) {
-      const text = new Text();
-      text.text = label.text;
-      text.font = fontUrl(FONT_FILES.note);
-      // One em is one unit; the text is scaled to its em on the chart.
-      text.fontSize = 1;
-      text.whiteSpace = "nowrap";
-      // The gazetteer's size: one atlas for all the chart's lettering.
-      text.sdfGlyphSize = 128;
+      // One em is one unit; the text is scaled to its em on the chart. The
+      // gazetteer's glyph size: one atlas for all the chart's lettering.
+      const text = chartText(label.text, fontUrl(FONT_FILES.note), 1, 128);
       text.anchorX = "center";
       text.anchorY = "middle";
       text.rotation.z = label.angle;
@@ -144,6 +136,7 @@ export class TrackLabels {
       this.inkPale,
     );
     this.rings.mesh.renderOrder = 23;
+    this.rings.mesh.name = "track-rings";
     this.ready = Promise.all(syncs).then(() => undefined);
   }
 

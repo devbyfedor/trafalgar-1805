@@ -1,11 +1,16 @@
-import { InstancedBufferAttribute, Vector3 } from "three";
-import { BatchedText, Text } from "troika-three-text";
+import { Vector3 } from "three";
+import type { BatchedText, Text } from "troika-three-text";
 import type { ChartLayer, FrameInfo } from "../engine/Chart";
 import { worldX, worldY } from "../geo/mercator";
 import type { TerrainField } from "../terrain/field";
 import { FONT_FILES, fontUrl, type LabelRole } from "./fonts";
 import { MARK_HALF_EM, MARK_RING_EM, type MarkKind, Marks } from "./marks";
-import { chartTextMaterial, configureFonts } from "./material";
+import {
+  chartText,
+  chartTextBatch,
+  chartTextMaterial,
+  configureFonts,
+} from "./material";
 
 /**
  * Lettering lying on the chart and tilting with it, as on a real chart
@@ -177,37 +182,20 @@ export class Lettering implements ChartLayer {
       this.inkPale,
       this.inkDark,
     );
-    this.batch = new BatchedText();
-    this.batch.name = "lettering";
-    this.batch.material = base;
-    // Glyphs move in the shader; the batch's bounds don't know where.
-    this.batch.frustumCulled = false;
-    this.batch.renderOrder = 30;
-    // The batch's member index as floats from the start: troika keeps the
-    // type it finds (it seeds a Uint16Array), and ANGLE on Direct3D
-    // recompiled the text's vertex program at the first real draw to read
-    // 16-bit integers into its float attribute, a 50 ms stall of every frame
-    // (docs/research/perf-start-of-scroll.md).
-    this.batch.geometry.setAttribute(
-      "aTroikaTextBatchMemberIndex",
-      new InstancedBufferAttribute(new Float32Array(0), 1),
-    );
+    this.batch = chartTextBatch("lettering", base, 30);
 
     const kinds: MarkKind[] = [];
     const syncs: Promise<void>[] = [];
     for (const label of labels) {
-      const text = new Text();
-      text.text = label.text;
-      text.font = fontUrl(FONT_FILES[label.role]);
-      text.fontSize = label.size;
+      const text = chartText(
+        label.text,
+        fontUrl(FONT_FILES[label.role]),
+        label.size,
+        SDF_GLYPH_SIZE,
+      );
       // In ems: troika 0.52.5 multiplies it by fontSize (its README says
       // local units).
       text.letterSpacing = label.tracking ?? 0;
-      text.whiteSpace = "nowrap";
-      text.sdfGlyphSize = SDF_GLYPH_SIZE;
-      // The glyphs' distance fields drawn in troika's workers, not on a
-      // second WebGL canvas on the main thread while scene 1 plays.
-      text.gpuAccelerateSDF = false;
       const angle = ((label.angle ?? 0) * Math.PI) / 180;
       text.rotation.z = angle;
       let offset: readonly [number, number] = [0, 0];

@@ -398,6 +398,7 @@ export class Tracks implements ChartLayer {
       return hexColor(style.wash);
     });
     this.mesh = new Mesh(ribbonGeometry(lines), material);
+    this.mesh.name = "tracks";
     this.mesh.frustumCulled = false;
     this.mesh.renderOrder = 21;
 

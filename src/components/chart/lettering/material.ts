@@ -1,5 +1,10 @@
-import { MeshBasicMaterial, type Vector3 } from "three";
-import { configureTextBuilder } from "troika-three-text";
+import {
+  InstancedBufferAttribute,
+  type Material,
+  MeshBasicMaterial,
+  type Vector3,
+} from "three";
+import { BatchedText, configureTextBuilder, Text } from "troika-three-text";
 import { createDerivedMaterial } from "troika-three-utils";
 import type { TerrainField } from "../terrain/field";
 import { DRAPE, GROUND } from "./drape";
@@ -38,6 +43,55 @@ export function configureFonts(): void {
   if (configured) return;
   configured = true;
   configureTextBuilder({ defaultFontURL: fontUrl(DEFAULT_FONT_FILE) });
+}
+
+/**
+ * A batch of chart lettering, one draw call, set up as every batch must be:
+ * - its glyphs move in the shader, so its bounds don't know where they are
+ *   and it is never culled;
+ * - its member index is floats from the start: troika keeps the type it
+ *   finds (it seeds a Uint16Array), and ANGLE on Direct3D recompiled the
+ *   text's vertex program at the first real draw to read 16-bit integers
+ *   into its float attribute, a 50 ms stall of every frame
+ *   (docs/research/perf-start-of-scroll.md).
+ */
+export function chartTextBatch(
+  name: string,
+  material: Material,
+  renderOrder: number,
+): BatchedText {
+  const batch = new BatchedText();
+  batch.name = name;
+  batch.material = material;
+  batch.frustumCulled = false;
+  batch.renderOrder = renderOrder;
+  batch.geometry.setAttribute(
+    "aTroikaTextBatchMemberIndex",
+    new InstancedBufferAttribute(new Float32Array(0), 1),
+  );
+  return batch;
+}
+
+/**
+ * A text for a batch of chart lettering: one em is `fontSize` units, on one
+ * line, its glyphs' distance fields at the chart's one size (one atlas for
+ * all its lettering) and drawn in troika's workers, not on a second WebGL
+ * canvas on the main thread while scene 1 plays.
+ */
+export function chartText(
+  content: string,
+  font: string,
+  fontSize: number,
+  sdfGlyphSize: number,
+): Text {
+  const text = new Text();
+  text.text = content;
+  text.font = font;
+  text.fontSize = fontSize;
+  text.whiteSpace = "nowrap";
+  text.sdfGlyphSize = sdfGlyphSize;
+  text.gpuAccelerateSDF = false;
+  return text;
 }
 
 /**

@@ -63,3 +63,4 @@ export {
   type TrackStyle,
   Tracks,
 } from "./lines/Track";
+export { type Camp, Camps } from "./marks/Camps";

@@ -3,6 +3,7 @@ import {
   buildDigitAtlas,
   buildGlyphAtlas,
   CameraRig,
+  Camps,
   Chart,
   type DigitAtlas,
   fontUrl,
@@ -30,8 +31,10 @@ import {
 import type { LabelState } from "@/components/chart/lettering/Lettering";
 import type { WaterLift } from "@/components/chart/terrain/liftProbe";
 import { CAPTIONS } from "./beats";
+import { CAMPS, FLOTILLA, FLOTILLA_TYPES } from "./boulogne";
 import { ROAD_FLIGHT } from "./camera";
 import {
+  FLOTILLA_GATE,
   fleetMarks,
   fleetNames,
   RoadDirector,
@@ -87,7 +90,8 @@ export interface RoadStage {
   /**
    * Development and tests: draws the scene at p and finds every glyph whose
    * ink touches land or another glyph's (Chart.probeClash): the fleets are
-   * layer 0, the squadrons layer 1. `ink`: the least drawn alpha counted.
+   * layer 0, the squadrons layer 1, Boulogne's flotilla layer 2. `ink`: the
+   * least drawn alpha counted.
    */
   clash(p: number, ink?: number): ClashResult;
   /** Development: each layer's glyphs by name, in mark order. */
@@ -171,7 +175,8 @@ export interface RoadStage {
   /**
    * Development and checks: the scene drawn at p, each fleet gate's
    * opening and how much its ships show (GlyphLayout.gateOpen, gateShown):
-   * [British open, combined open, British shown, combined shown].
+   * [British open, combined open, British shown, combined shown, the
+   * flotilla's open, the flotilla's shown].
    */
   gates(p: number): number[];
   /** Development: every change of a label's strength (RoadDirector.labelChanges). */
@@ -252,11 +257,18 @@ export async function createRoadStage(
     // The fleets' labels at their heads: commander and strength.
     const heads = new HeadLabels(chart.field, roadHeads());
     // One atlas for both layers, drawn level by level between frames.
-    atlas = await buildGlyphAtlas(GLYPH_TYPES, options.signal);
+    atlas = await buildGlyphAtlas(
+      [...GLYPH_TYPES, ...FLOTILLA_TYPES],
+      options.signal,
+    );
     options.signal.throwIfAborted();
     chart.addGpuBytes(atlas.gpuBytes);
     const fleets = new Glyphs(atlas, fleetMarks());
     const squadrons = new Glyphs(atlas, squadronMarks());
+    // Boulogne in beat 1: the invasion flotilla in the roads, the army's
+    // camps on the heights (boulogne.ts).
+    const flotilla = new Glyphs(atlas, [...FLOTILLA]);
+    const camps = new Camps(chart.field, CAMPS);
     const lettering = new Lettering(chart.field, GAZETTEER);
     // The caption's card, lower left: no name lies under its text while a
     // caption shows (Lettering.setKeepOut). Its box on the canvas, measured
@@ -327,6 +339,8 @@ export async function createRoadStage(
       rig,
       fleets,
       squadrons,
+      flotilla,
+      camps,
       tracks,
       heads,
       legs,
@@ -363,6 +377,8 @@ export async function createRoadStage(
     chart.add(tracks, ...tracks.objects);
     chart.add(fleets, fleets.wakes, fleets.ships);
     chart.add(squadrons, squadrons.wakes, squadrons.ships);
+    chart.add(flotilla, flotilla.wakes, flotilla.ships);
+    chart.add(camps, camps.mesh);
     // The glyph layout's tables, baked ahead over the scroll for the
     // viewport in idle slices of a few milliseconds; a new viewport bakes
     // anew, the layout deciding from each frame alone meanwhile.
@@ -464,7 +480,7 @@ export async function createRoadStage(
         director.apply(p);
         chart.frame(performance.now() / 1000);
         return chart.probeClash(
-          [{ glyphs: fleets }, { glyphs: squadrons }],
+          [{ glyphs: fleets }, { glyphs: squadrons }, { glyphs: flotilla }],
           ink,
         );
       },
@@ -483,6 +499,8 @@ export async function createRoadStage(
           layout.gateOpen(1),
           layout.gateShown(0),
           layout.gateShown(1),
+          layout.gateOpen(FLOTILLA_GATE),
+          layout.gateShown(FLOTILLA_GATE),
         ];
       },
       bakeTrace(k) {
@@ -513,7 +531,7 @@ export async function createRoadStage(
           v.set(x, y, 0).project(camera);
           return [(v.x * 0.5 + 0.5) * w, (v.y * 0.5 + 0.5) * h];
         };
-        return [fleets, squadrons].map((layer) => {
+        return [fleets, squadrons, flotilla].map((layer) => {
           const out: number[] = [];
           const d = layer.drawn;
           const it = layer.intent;
@@ -670,7 +688,11 @@ export async function createRoadStage(
         return { dawn: dawnSpreadShift(), anchorage: anchorageSpreadShift() };
       },
       glyphNames() {
-        return [fleetNames(), squadronNames()];
+        return [
+          fleetNames(),
+          squadronNames(),
+          FLOTILLA.map((m, i) => `flotilla ${i} ${m.type}`),
+        ];
       },
       resize(width, height) {
         chart.resize(width, height);

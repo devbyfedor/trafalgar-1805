@@ -20,10 +20,12 @@ import {
 } from "@/components/chart/lettering/HeadLabels";
 import type { LightId } from "@/components/chart/light/states";
 import type { Track, Tracks } from "@/components/chart/lines/Track";
+import type { Camps } from "@/components/chart/marks/Camps";
 import { monotoneCurve } from "@/lib/curve";
 import { METRE_VH, VICTORY_X } from "@/scenes/01-dawn/composition";
 import { VICTORY_BOX } from "@/scenes/01-dawn/layers/Victory";
 import { BEATS, type BeatId, dayAt } from "./beats";
+import { FLOTILLA } from "./boulogne";
 import { day } from "./dates";
 import {
   BRITISH,
@@ -843,6 +845,47 @@ function turnToward(from: number, to: number, t: number): number {
 }
 
 /** The scene's layers, as the scene builds them. */
+/**
+ * The flotilla's gate (FreeGroup.gate): 0 and 1 are the October fleets'.
+ * Its craft are no fleet with a label; they come in together only where
+ * every one reads one by one, and go together.
+ */
+export const FLOTILLA_GATE = 2;
+
+/**
+ * Where Boulogne's camps can show (p): in from the descent over France
+ * (still far: their rows run together there and don't show) and out as the
+ * camera climbs away to the Mediterranean, before it leaves the Channel.
+ */
+const CAMPS_WINDOW = [0.1, 0.12, 0.25, 0.262] as const;
+/**
+ * Where the flotilla can show (p): only while the camera looks down on the
+ * roads at least as steeply as a gate holds (the layout's GATE_TILT: the
+ * eye's height over its distance 0.25 or more), from p 0.195 coming down to
+ * 0.233 going up; and inside that, while its gate is shut, so it neither
+ * comes nor goes by this window. Seen lower, a gate stays open (no label
+ * can stand for the ships there), and the lead would have shown alone.
+ */
+const FLOTILLA_WINDOW = [0.195, 0.2, 0.226, 0.233] as const;
+
+/**
+ * The flotilla's group: its prames first (the largest), then the rest in
+ * their lines' order, so in a crowd the lesser craft yields; behind its
+ * own gate.
+ */
+function flotillaGroup(layer: Glyphs): FreeGroup {
+  const members = FLOTILLA.map((_, i) => i);
+  const prame = (i: number) => (FLOTILLA[i].type.includes("prame") ? 0 : 1);
+  members.sort((a, b) => prame(a) - prame(b) || a - b);
+  return {
+    kind: "free",
+    layer,
+    members,
+    shown: 0,
+    gate: FLOTILLA_GATE,
+  };
+}
+
 export interface RoadLayers {
   chart: Chart;
   rig: CameraRig;
@@ -850,6 +893,10 @@ export interface RoadLayers {
   fleets: Glyphs;
   /** The squadrons of beats 2 and 3, each a block of glyphs. */
   squadrons: Glyphs;
+  /** The invasion flotilla in the roads off Boulogne (beat 1; boulogne.ts). */
+  flotilla: Glyphs;
+  /** The army's camps along the coast by Boulogne (beat 1; boulogne.ts). */
+  camps: Camps;
   /** The legs' tracks, one per leg by its id. */
   tracks: Tracks;
   /** The labels at the fleets' heads (roadHeads). */
@@ -959,6 +1006,8 @@ export class RoadDirector {
   private readonly squadShownNow: Float64Array;
   /** Both fleets' groups, as the glyph layout lays them out. */
   private readonly frees: FreeGroup[];
+  /** The flotilla's craft, one group behind a gate of its own (FLOTILLA_GATE). */
+  private readonly flotilla: FreeGroup;
   /** The heads' labels (roadHeads), and each one's strengths' shares this frame. */
   private readonly headSpecs = roadHeads();
   private readonly headWeights: Float64Array[];
@@ -1067,6 +1116,7 @@ export class RoadDirector {
       });
     });
     this.frees = this.freeGroups();
+    this.flotilla = flotillaGroup(layers.flotilla);
     this.meetings = MEETINGS.flatMap((m) => {
       const a = this.squads.find((s) => s.spec.id === m.above);
       const b = this.squads.find((s) => s.spec.id === m.below);
@@ -1318,7 +1368,12 @@ export class RoadDirector {
    * yields; then the squadrons' symbols.
    */
   layoutGroups(): GlyphGroup[] {
-    return [...this.frees, ...this.squads.map((squad) => squad.formation)];
+    // The flotilla last: its layer the layout's third, after the squadrons'.
+    return [
+      ...this.frees,
+      ...this.squads.map((squad) => squad.formation),
+      this.flotilla,
+    ];
   }
 
   /** Both fleets' groups, ship by ship, each with its lead first (layoutGroups). */
@@ -1440,9 +1495,26 @@ export class RoadDirector {
     const d = dayAt(p);
     this.applyFleets(p, d);
     this.applySquadrons(p, d);
+    this.applyBoulogne(p);
     this.applyTracks(p, d);
     this.applyHeads(p);
     this.layout?.setProgress(p);
+  }
+
+  /**
+   * Boulogne's camps and flotilla, only in beat 1's window: what shows of
+   * them inside it is decided by the view (the camps' rows fade as they run
+   * together, Camps.ts; the craft come in together where every one reads
+   * one by one, behind the flotilla's gate), and outside it nothing of them
+   * is drawn or laid out.
+   */
+  private applyBoulogne(p: number): void {
+    const within = ([a, b, c, d]: readonly number[]) =>
+      smooth(a, b, p) * (1 - smooth(c, d, p));
+    this.flotilla.shown = within(FLOTILLA_WINDOW);
+    const camps = within(CAMPS_WINDOW);
+    this.layers.camps.opacity = camps;
+    this.layers.camps.mesh.visible = camps > 0;
   }
 
   /** The glyph layout that draws this scene's ships (it reads the scene's progress). */

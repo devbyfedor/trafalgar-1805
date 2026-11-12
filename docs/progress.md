@@ -2,6 +2,22 @@
 
 Live checklist. A later session picks up from here. The briefs are `docs/scene-01-brief.md` and `docs/scene-02-brief.md`; decisions and deviations are in `docs/decisions.md`.
 
+## Session 21 (12 November 2026): Finisterre, the strengths by date, the scrim, the full proof, the start-up dip
+
+**The owner's order** (complete this time; it ends "Конец сообщения"), only these steps, in order; branches 1–3, the signal relay, the stills, the history section and Stage B's final check are for the next session and are not to be started:
+0. Check that session 20 (which had no ban on `npm run screenshots`) did not change scene 1's approved frames; restore them from before that session if it did.
+1. Finisterre: fix Calder's ships' sizes at the hold's end, check, merge `s20-finisterre-wip` into main.
+2. The numbers in the heads' labels, his answers: ships of the line only; everywhere by date, one rule (the ships of the line actually sailing together at the track's head that day; stragglers added the day they caught up, leavers taken off the day they left); Villeneuve on the crossing 14 first, the rest added on the day they met; Nelson in October by date (29 on arrival, 23 by 5 October, then by date to 27 at the battle); the label's number and the ships that come in at the head as the camera nears always the same; the number changes smoothly, never flickering; where no exact date, the most probable, with sources, disagreements and doubts in `history-notes.md`.
+3. The end of last session's task 2: for the ships that show, every earlier rule holds (no land, no overlaps, no jerks), while they come in and go too.
+4. The chapter title's scrim a little wider and softer; contrast never under 4.5:1 anywhere, p 0.275 included (4.2 now).
+5. The full proof on a production build: `glyph-clash.mjs` and `glyph-motion.mjs` at the four sizes, step 0.0005; `contrast.mjs` whole; scene 1's regression and `look-diff.mjs` against reference frames; the frame-budget test that failed at 0.88; then the "after" frames at the before's points in `docs/screenshots/scene-02/far-views/after/`.
+6. Last: the frame dip in the first seconds after load (his `?debug` on the preview: a steady 60 through the scene, a dip only then). Find what loads, compiles or uploads to the GPU then and spread it so 60 holds from the first second; first visit with an empty cache and a repeat visit; `scripts/dev/perf/`, `docs/research/perf-start-of-scroll.md`; measurements before and after.
+7. The full `npm run check` at the end. Never run `npm run screenshots`.
+
+- **Start:** clean tree at `caa390a`. **Step 0: done, nothing to restore:** no commit of session 20 (`166e2f3..caa390a`, nor the branch) touches `docs/screenshots/scene-01/`; those frames last changed on 25 October (`f2c0725`).
+- **The look's reference frames** (before any change this session): 143 frames of a production build of `caa390a` (`REF=1 ALL=1 look-diff.mjs`) in `.claude/s21/look-ref/` (git-ignored, kept on disk; the commit in `look-ref.commit`).
+- **Helpers** (workflow `s21-helpers`, started about 16:20): the chapter scrim in a worktree of its own (dev server on 3101); the dated strengths, a research note into `docs/research/scene-02/session-21/strengths-by-date.md`; a load-time perf scout in a worktree of its own (preview on 4175), investigation and plan only (`docs/research/perf-load-s21.md` on its branch). The main tree: Finisterre first.
+
 ## Session 20 (12 November 2026, from 13:30): the routes and the ships on the far views
 
 **The owner's order** (it reached the session cut off mid-sentence in its task 2; tasks 3 and 4 never arrived, and the owner was asked to send them): only four tasks this session, in order; the rest of Stage B's plan (branches 1–3, the signal relay, the stills, the history section, the final check) is for the next session and is not to be started. First, check the last session's work: `npm run check`, its failures analysed, the unfinished finished or undone. Before the first change, screenshots of every beat with a far view (the Atlantic, Europe, the whole of Spain) at the laptop size, in `docs/screenshots/scene-02/far-views/before/`, for his comparison.

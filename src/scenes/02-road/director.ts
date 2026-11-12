@@ -862,9 +862,11 @@ const CAMPS_WINDOW = [0.1, 0.12, 0.25, 0.262] as const;
  * Where the flotilla can show (p): only while the camera looks down on the
  * roads at least as steeply as a gate holds (the layout's GATE_TILT: the
  * eye's height over its distance 0.25 or more), from p 0.195 coming down to
- * 0.233 going up; and inside that, while its gate is shut, so it neither
- * comes nor goes by this window. Seen lower, a gate stays open (no label
- * can stand for the ships there), and the lead would have shown alone.
+ * 0.233 going up. Seen lower, a gate stays open (no label can stand for
+ * ships there), and the lead could have shown alone. Coming down, the
+ * window opens while the gate is still shut and the craft come in by the
+ * gate; going up, the whole group fades with the window (the layout reads
+ * the gate where its craft are laid out, so it stays open to the end).
  */
 const FLOTILLA_WINDOW = [0.195, 0.2, 0.226, 0.233] as const;
 

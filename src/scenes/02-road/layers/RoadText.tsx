@@ -8,14 +8,22 @@ const CHAPTER_PEAK = 0.65;
  * The chapter marker's scrim hugs its line, in ems of the marker's type:
  * even over the line and PAD_X, PAD_Y beyond it (the glyphs' ascents and
  * descents stand a little outside a line box of leading 1), then falling
- * away over CHAPTER_FALLS (top, right, bottom, left). Toward the corner
- * the falls fit the marker's margins (4.6vh over it, 4.6vw before it: at
- * least 2.3 and 4.1 em at every size), so the scrim never reaches the
- * window's edges; toward the chart they are longer, so it fades out slowly.
+ * away over CHAPTER_FALLS (top, right, bottom, left). Toward the chart the
+ * falls are long (11 em after the line, 6 em below it), so it fades out
+ * slowly; toward the corner they are 3 em above and 5 em before it, or as
+ * much of the marker's margins as is left where those are shorter (4.6vh
+ * over it and 4.6vw before it, the wrapper's top and left: 2.05 and 3.69 em
+ * at 1280×720, 2.12 and 3.81 at 1920×1080), so the scrim never reaches past
+ * the window's edges and is nothing at them.
  */
 const CHAPTER_PAD_X = 0.4;
 const CHAPTER_PAD_Y = 0.25;
-const CHAPTER_FALLS: Falls = ["2em", "7em", "3.6em", "3.6em"];
+const CHAPTER_FALLS: Falls = [
+  `min(3em, 4.6vh - ${CHAPTER_PAD_Y}em)`,
+  "11em",
+  "6em",
+  `min(5em, 4.6vw - ${CHAPTER_PAD_X}em)`,
+];
 const CHAPTER_INSET = CHAPTER_FALLS.map(
   (fall, i) => `calc(-${i % 2 ? CHAPTER_PAD_X : CHAPTER_PAD_Y}em - ${fall})`,
 ).join(" ");

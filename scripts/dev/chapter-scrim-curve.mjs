@@ -11,11 +11,11 @@
 // grid offset by half a step, say): p is kept to 0.0001. Prints the keys
 // (p, opacity) the timeline joins with straight lines: from each key the
 // next is the farthest measured p whose line from it passes over every
-// measured p between at or above the curve and at most 0.01 above it, so
+// measured p between at or above the curve and at most ABOVE over it, so
 // the keys never give less than the curve anywhere measured. The scrim
 // comes in from nothing at p = 0, as the marker does: a first key [0, 0]
 // when the first measurement is later (before it the marker isn't shown).
-// Environment: REACH (0.02), SMOOTH (0.01), MARGIN (0.02).
+// Environment: REACH (0.02), SMOOTH (0.01), MARGIN (0.02), ABOVE (0.01).
 import { readFile } from "node:fs/promises";
 
 const files = process.argv.slice(2);
@@ -25,7 +25,7 @@ const MARGIN = Number(process.env.MARGIN ?? 0.02);
 /** p is keyed in units of 0.0001. */
 const UNIT = 1e4;
 /** How far above the curve a line between keys may pass. */
-const ABOVE = 0.01;
+const ABOVE = Number(process.env.ABOVE ?? 0.01);
 
 const need = new Map();
 for (const f of files) {

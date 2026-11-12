@@ -3,10 +3,14 @@
  * sea) and height (m), read back once after the tiles are decoded
  * (TerrainField.readBack) and layered exactly as GLSL_FIELD's layered()
  * reads them on the GPU: the coarse surround under everything (open sea
- * beyond it), the overview over it and the detail tiles over that, each
- * blended in across its edge band, a finer layer's distance handing over to
- * the coarser one's where it nears its cap. Reads are bilinear between
- * texel centres, as the GPU's base level.
+ * beyond it), the overview over it and the detail tile the GPU's one detail
+ * layer holds over that, at its weight (TerrainField.binding: the detail
+ * tiles share that layer, terrain/slot.ts), each blended in across its edge
+ * band, a finer layer's distance handing over to the coarser one's where it
+ * nears its cap. Reads are bilinear between texel centres, as the GPU's
+ * base level. Every detail tile is read back; one the layer doesn't hold
+ * counts for nothing, as on the GPU, so the coast the glyph layout keeps
+ * ships off is the coast the frame draws.
  *
  * Laying ship glyphs out on screen needs to know, for any point, how far it
  * lies from land (glyphs/layout.ts): the distance field is 1-Lipschitz, so
@@ -35,6 +39,16 @@ export interface CoastTile {
   bytes: Uint8Array;
 }
 
+/**
+ * Which detail tile the GPU's detail layer holds (an index into the detail
+ * tiles, in the order they were read back) and its weight, 0..1
+ * (TerrainField.binding, kept current by the field).
+ */
+export interface DetailBinding {
+  readonly index: number;
+  readonly weight: number;
+}
+
 /** The distance of the open sea beyond the surround (GLSL OPEN_SEA). */
 const OPEN_SEA_KM = 1e4;
 
@@ -48,7 +62,11 @@ export class CoastField {
   private readonly overview: CoastTile | null;
   private readonly details: CoastTile[];
 
-  constructor(tiles: readonly CoastTile[]) {
+  /** Without a binding, every detail tile counts in full. */
+  constructor(
+    tiles: readonly CoastTile[],
+    private readonly binding: DetailBinding | null = null,
+  ) {
     this.surround = tiles.find((t) => t.role === "surround") ?? null;
     this.overview = tiles.find((t) => t.role === "overview") ?? null;
     this.details = tiles.filter((t) => t.role === "detail");
@@ -64,8 +82,9 @@ export class CoastField {
       const k = cover(a, x, y);
       if (k > 0) d += (handOver(read(a, x, y, 0), d, a.sat) - d) * k;
     }
-    for (const b of this.details) {
-      const k = cover(b, x, y);
+    for (let i = 0; i < this.details.length; i++) {
+      const b = this.details[i];
+      const k = this.weight(i) * cover(b, x, y);
       if (k > 0) d += (handOver(read(b, x, y, 0), d, b.sat) - d) * k;
     }
     return d;
@@ -76,10 +95,15 @@ export class CoastField {
     let h = -4000;
     const c = this.surround;
     if (c && inside(c, x, y) > 0) h = read(c, x, y, 2);
-    for (const t of [this.overview, ...this.details]) {
-      if (!t) continue;
-      const k = cover(t, x, y);
-      if (k > 0) h += (read(t, x, y, 2) - h) * k;
+    const a = this.overview;
+    if (a) {
+      const k = cover(a, x, y);
+      if (k > 0) h += (read(a, x, y, 2) - h) * k;
+    }
+    for (let i = 0; i < this.details.length; i++) {
+      const b = this.details[i];
+      const k = this.weight(i) * cover(b, x, y);
+      if (k > 0) h += (read(b, x, y, 2) - h) * k;
     }
     return h;
   }
@@ -90,10 +114,20 @@ export class CoastField {
    * (as GLSL_SURFACE's finestTexelKm).
    */
   texelKm(x: number, y: number): number {
-    for (const b of this.details) if (cover(b, x, y) >= 1) return b.cellKm;
+    for (let i = 0; i < this.details.length; i++) {
+      const b = this.details[i];
+      if (this.weight(i) * cover(b, x, y) >= 1) return b.cellKm;
+    }
     const a = this.overview;
     if (a && cover(a, x, y) >= 1) return a.cellKm;
     return this.surround?.cellKm ?? a?.cellKm ?? 1;
+  }
+
+  /** How much detail tile i counts (GLSL uHasB for the tile layer B holds). */
+  private weight(i: number): number {
+    const b = this.binding;
+    if (!b) return 1;
+    return b.index === i ? b.weight : 0;
   }
 }
 

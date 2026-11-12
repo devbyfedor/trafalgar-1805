@@ -22,10 +22,11 @@ import {
 import { type LowresHeights, landIndex, loadLowres } from "../data/loaders";
 import { type ChartManifest, loadManifest } from "../data/manifest";
 import { type ClashLayer, type ClashResult, probeClash } from "../glyphs/clash";
-import { LightBlend, type LightId } from "../light/states";
+import { LIGHT_STATES, LightBlend, type LightId } from "../light/states";
 import { Sky } from "../sky/Sky";
 import { TerrainField } from "../terrain/field";
 import { probeWaterLift, type WaterLift } from "../terrain/liftProbe";
+import { SLOT_PLAN_VIEW, type SlotPlan, type SlotView } from "../terrain/slot";
 import { Terrain } from "../terrain/Terrain";
 import { QUALITY_LADDER, QualityLadder, type QualityLevel } from "./quality";
 import { SLICE_MS, Slicer } from "./slice";
@@ -90,6 +91,33 @@ export interface ChartStats {
 const SHADOW_FROM_KM = 20;
 const SHADOW_FULL_KM = 160;
 
+/**
+ * The thinnest haze any lighting state has (its density), so what the
+ * detail layer's rule counts as out of sight is so in any light.
+ */
+const THINNEST_HAZE = Math.min(
+  ...Object.values(LIGHT_STATES).map((s) => s.hazeDensity),
+);
+
+/**
+ * Points a camera (world km; `fov` vertical, degrees). Its near and far
+ * planes follow the altitude, so depth precision goes where the camera is.
+ */
+function placeCamera(
+  camera: PerspectiveCamera,
+  eye: Vector3,
+  target: Vector3,
+  fov: number,
+): void {
+  camera.position.copy(eye);
+  camera.lookAt(target);
+  camera.fov = fov;
+  camera.near = Math.min(200, Math.max(0.02, eye.z * 0.3));
+  camera.far = Math.max(45000, eye.z * 25);
+  camera.updateProjectionMatrix();
+  camera.updateMatrixWorld();
+}
+
 function smooth(e0: number, e1: number, x: number): number {
   const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
   return t * t * (3 - 2 * t);
@@ -147,6 +175,17 @@ export class Chart {
   private lossTimer = 0;
   private disposed = false;
   private extraGpuBytes = 0;
+  /** The flight the camera was last placed on (`fly`), and where; null after `setView`. */
+  private flight: CameraRig | null = null;
+  private flightP = 0;
+  /** Each flight's detail plan (terrain/slot.ts) while it is made, and once made. */
+  private readonly planning = new WeakMap<
+    CameraRig,
+    Promise<SlotPlan | null>
+  >();
+  private readonly plans = new WeakMap<CameraRig, SlotPlan | null>();
+  /** The view a free camera's frame gives the detail layer's rule. */
+  private readonly slotView: SlotView;
 
   static async create(options: ChartOptions): Promise<Chart> {
     const renderer = new WebGLRenderer({
@@ -204,6 +243,15 @@ export class Chart {
   ) {
     this.terrain = new Terrain(field);
     this.terrain.cdlod.hasLand = hasLand;
+    field.measureRelief(lowres);
+    this.slotView = {
+      camera: this.camera,
+      frustum: this.frustum,
+      pxPerRadian: 1,
+      hazeKm: 1,
+      clearHazeKm: 1,
+      exaggeration: 1,
+    };
     this.scene.add(this.terrain.mesh, this.sky.mesh);
     this.camera.up.set(0, 0, 1);
     // The canvas's own CSS size from the start, so a level forced now sizes
@@ -289,25 +337,63 @@ export class Chart {
     this.sky.applyLight(this.light);
   }
 
-  /** Points the camera (world km); `fov` is vertical, degrees. */
+  /**
+   * Points the camera (world km); `fov` is vertical, degrees. The field's
+   * detail layer then follows the view frame by frame (TerrainField.focus).
+   */
   setView(eye: Vector3, target: Vector3, fov: number): void {
     this.eye.copy(eye);
     this.target.copy(target);
-    const cam = this.camera;
-    cam.position.copy(eye);
-    cam.lookAt(target);
-    cam.fov = fov;
-    // Planes follow the altitude: depth precision goes where the camera is.
-    cam.near = Math.min(200, Math.max(0.02, eye.z * 0.3));
-    cam.far = Math.max(45000, eye.z * 25);
-    cam.updateProjectionMatrix();
-    cam.updateMatrixWorld();
+    placeCamera(this.camera, eye, target, fov);
+    this.flight = null;
   }
 
-  /** Points the camera where a rig puts it at progress p. */
+  /**
+   * Points the camera where a rig puts it at progress p, and gives the
+   * field's detail layer to the tile the flight's plan has there
+   * (`planDetail`), so whatever reads the field before the frame draws
+   * (the glyph layout, baking its tables ahead) reads it as drawn.
+   */
   fly(rig: CameraRig, p: number): void {
     const fov = rig.evaluate(p, this.eye, this.target);
     this.setView(this.eye, this.target, fov);
+    this.flight = rig;
+    this.flightP = p;
+    const plan = this.plans.get(rig);
+    if (plan) this.field.focusAlong(plan, p);
+  }
+
+  /**
+   * Makes the detail layer's plan along a flight (terrain/slot.ts): which
+   * detail tile it holds at each point of the flight, and at what weight.
+   * A scene makes it while it loads, a couple of thousand views judged in
+   * idle slices; once it is made, `fly` follows it (until then the layer
+   * follows each frame's view). Made once per flight and kept: it does not
+   * depend on the canvas (what is out of sight is judged for the widest
+   * screen, the claims at the owner's view), so a resize never remakes it.
+   * Null without detail tiles.
+   */
+  planDetail(rig: CameraRig, signal?: AbortSignal): Promise<SlotPlan | null> {
+    let planning = this.planning.get(rig);
+    if (!planning) {
+      planning = this.makePlan(rig, signal).then(
+        (plan) => {
+          this.plans.set(rig, plan);
+          return plan;
+        },
+        (error: unknown) => {
+          this.planning.delete(rig);
+          throw error;
+        },
+      );
+      this.planning.set(rig, planning);
+    }
+    return planning;
+  }
+
+  /** A flight's detail plan once made (`planDetail`), else null. */
+  detailPlan(rig: CameraRig): SlotPlan | null {
+    return this.plans.get(rig) ?? null;
   }
 
   /** CSS size of the canvas. */
@@ -365,6 +451,20 @@ export class Chart {
     );
     this.frustum.setFromProjectionMatrix(this.viewProj);
     const visibility = hazeVisibilityAt(this.eye.z) / this.light.hazeDensity;
+    // The field's detail layer holds the detail tile this view needs (by
+    // the flight's plan, as `fly` set it, again here for a hold; or frame
+    // by frame for a free camera or a flight not yet planned): everything
+    // drawn this frame reads it.
+    const plan = this.flight ? this.plans.get(this.flight) : undefined;
+    if (plan) this.field.focusAlong(plan, this.flightP);
+    else {
+      const view = this.slotView;
+      view.pxPerRadian = info.pxPerRadian / dpr;
+      view.hazeKm = visibility;
+      view.clearHazeKm = hazeVisibilityAt(this.eye.z) / THINNEST_HAZE;
+      view.exaggeration = exaggeration;
+      this.field.focus(view);
+    }
     const cdlod = this.terrain.cdlod;
     cdlod.setResolution(this.cssHeight * dpr, this.camera.fov, 7);
     cdlod.detailLimit = visibility * HAZE_OPAQUE;
@@ -467,7 +567,19 @@ export class Chart {
         await slicer.next();
         if (this.disposed || this.lost) return;
       }
+      // The terrain once more with each detail tile in the field's detail
+      // layer, so each tile's textures are first sampled here, while the
+      // chart is hidden, not by the frame that first binds the tile.
+      const details = this.field.detailIds.length;
+      for (let k = 0; k < details; k++) {
+        this.field.lend(k);
+        for (const o of objects) o.visible = o === this.terrain.mesh;
+        r.render(this.scene, this.camera);
+        await slicer.next();
+        if (this.disposed || this.lost) return;
+      }
     } finally {
+      this.field.lend(null);
       restore();
       r.setRenderTarget(null);
       target.dispose();
@@ -495,6 +607,42 @@ export class Chart {
     this.sky.dispose();
     this.field.dispose();
     this.renderer.dispose();
+  }
+
+  /** `planDetail`'s work: the flight's views, each placed for the plan's own view. */
+  private async makePlan(
+    rig: CameraRig,
+    signal?: AbortSignal,
+  ): Promise<SlotPlan | null> {
+    const { aspect, heightPx } = SLOT_PLAN_VIEW;
+    const camera = new PerspectiveCamera(40, aspect, 0.05, 60000);
+    camera.up.set(0, 0, 1);
+    const eye = new Vector3();
+    const target = new Vector3();
+    const viewProj = new Matrix4();
+    const view: SlotView = {
+      camera,
+      frustum: new Frustum(),
+      pxPerRadian: 1,
+      hazeKm: 1,
+      clearHazeKm: 1,
+      exaggeration: 1,
+    };
+    const planning = this.field.planAlong((p) => {
+      const fov = rig.evaluate(p, eye, target);
+      placeCamera(camera, eye, target, fov);
+      viewProj.multiplyMatrices(
+        camera.projectionMatrix,
+        camera.matrixWorldInverse,
+      );
+      view.frustum.setFromProjectionMatrix(viewProj);
+      view.pxPerRadian = heightPx / (2 * Math.tan((fov * Math.PI) / 360));
+      view.hazeKm = hazeVisibilityAt(eye.z);
+      view.clearHazeKm = view.hazeKm / THINNEST_HAZE;
+      view.exaggeration = exaggerationAt(Math.max(0.05, eye.z));
+      return view;
+    }, signal);
+    return planning ? await planning : null;
   }
 
   private applyQuality(level: QualityLevel) {

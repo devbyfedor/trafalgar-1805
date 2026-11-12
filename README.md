@@ -57,12 +57,12 @@ All scripts work in PowerShell. The test server binds to 127.0.0.1:4174, so a ru
 
 ### The chart's data
 
-`npm run data:build` regenerates everything in `public/chart/` (about 4.3 MB, committed) from public-domain sources:
+`npm run data:build` regenerates everything in `public/chart/` (about 4.8 MB, committed) from public-domain sources:
 
-- relief and depths from NOAA NCEI ETOPO 2022, fetched through NOAA's ERDDAP griddap subsetting for each tile's region only (never the global grid): an overview of the whole stage (3′), the Gulf of Cádiz (15″) and a coarse surround so no view meets the map's edge (12′);
+- relief and depths from NOAA NCEI ETOPO 2022, fetched through NOAA's ERDDAP griddap subsetting for each tile's region only (never the global grid): an overview of the whole stage (3′), two detail tiles at 15″ (the Gulf of Cádiz with the Strait of Gibraltar, and the Channel around Boulogne) and a coarse surround so no view meets the map's edge (12′);
 - land, minor islands and rivers from Natural Earth 5.1.2 (1:10 million).
 
-Each tile is a lossless WebP holding a 12-bit height and a 12-bit coast distance, decoded on the GPU. `node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/data/preview.ts <out-dir>` renders a CPU preview of the tiles. Everything is plain Node: no Python or GDAL.
+Each tile is a lossless WebP holding a 12-bit height and a 12-bit coast distance, decoded on the GPU. The soundings (depths in fathoms over each detail tile's shoal water) are read from the built tiles, last (`npm run data:soundings` alone). `node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/data/preview.ts <out-dir>` renders a CPU preview of the tiles. Everything is plain Node: no Python or GDAL.
 
 ### Development aids
 
@@ -71,6 +71,7 @@ Each tile is a lossless WebP holding a 12-bit height and a 12-bit coast distance
 - `node scripts/dev/shot.mjs <dir> "p=0.24" "eye=-6.6,36.3,30&look=-6.3,36.55"`: a screenshot of `/lab/chart/` per query; `LABELS=1` also prints every visible name's size on screen.
 - `node scripts/dev/sheet.mjs <out.png> <columns> <width> <images...>`: a contact sheet; `--crop` enlarges one region.
 - `node scripts/dev/bench.mjs [step] [frames]`: times the chart's frames along the flight on this machine's GPU (median, 95th percentile and worst per point).
+- `node scripts/dev/detail-swap.mjs [out-dir]`: proves the detail layer changes tile without its showing: checks its plan along scene 2's flight and the lab's, and compares the frames at every change of tile pixel for pixel (`/lab/chart/?demo=detail`).
 - `coast-room.mjs`, `coast-distance.mjs` and `route-coast.mjs` (no server; they read Natural Earth in `data/raw/`, from `npm run data:download`): the open water beyond ships along a fan of bearings (a glyph's `room`), points' distance from the coast, and how near a route's drawn curve comes to land.
 
 ## Tests

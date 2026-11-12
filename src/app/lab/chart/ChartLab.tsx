@@ -271,6 +271,7 @@ export function ChartLab() {
           );
           if (cancelled) return;
           const soundings = new engine.Soundings(
+            chart.field,
             soundingData.index,
             figures,
             digits,
@@ -285,6 +286,10 @@ export function ChartLab() {
           if (cancelled) return;
         }
         const rig = new engine.CameraRig(LAB_FLIGHT);
+        // Which detail tile the field's detail layer holds along the
+        // flight (terrain/slot.ts), made in idle slices before it flies.
+        await chart.planDetail(rig, controller.signal);
+        if (cancelled) return;
 
         const draw = (time: number) => {
           if (fixedEye && fixedLook) {

@@ -274,6 +274,7 @@ export function Scene02Road() {
                 return s.ashore(p);
               },
               spreadShift: () => s.spreadShift(),
+              detail: (p: number) => s.detailAt(p),
               dawnFleet: () => s.dawnFleet(),
               labels: (p: number) => {
                 drawn = -1;
@@ -410,6 +411,8 @@ declare global {
         dawn: { name: string; km: number }[];
         anchorage: { name: string; km: number }[];
       };
+      /** Development: the detail tile the chart holds at p, and its weight (RoadStage.detailAt). */
+      detail: (p: number) => { tile: string | null; weight: number };
       /** Development: every name's state at p (RoadStage.labels). */
       labels: (
         p: number,

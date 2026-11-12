@@ -25,4 +25,5 @@ export interface LabDemoModule {
 /** Each demo by name, one line each. */
 export const LAB_DEMOS: Record<string, () => Promise<LabDemoModule>> = {
   tracks: () => import("./tracks"),
+  detail: () => import("./detail"),
 };

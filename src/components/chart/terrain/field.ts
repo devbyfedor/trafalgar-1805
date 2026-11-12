@@ -21,7 +21,7 @@ import {
   type WebGLRenderer,
   WebGLRenderTarget,
 } from "three";
-import { loadBitmap } from "../data/loaders";
+import { highestLand, type LowresHeights, loadBitmap } from "../data/loaders";
 import {
   type ChartManifest,
   type TileInfo,
@@ -29,9 +29,18 @@ import {
   tileRect,
 } from "../data/manifest";
 import { SLICE_MS, Slicer } from "../engine/slice";
-import { mercatorY } from "../geo/mercator";
+import { mercatorScale, mercatorY } from "../geo/mercator";
 import { GLSL_FIELD, GLSL_GEO } from "../shaders/common";
 import { CoastField, type CoastTile } from "./coast";
+import {
+  planAlong,
+  type SlotChoice,
+  SlotFollower,
+  SlotJudge,
+  type SlotPlan,
+  type SlotTile,
+  type SlotView,
+} from "./slot";
 
 /**
  * The terrain field on the GPU. Each tile's WebP (height and coast distance
@@ -41,12 +50,34 @@ import { CoastField, type CoastTile } from "./coast";
  * heights and distances with one texture fetch per tile. Three layers: the
  * coarse surround, the overview (the stage) and a detail tile.
  *
- * The horizon maps of the overview and the detail tile are baked from the
+ * Detail tiles (the Gulf of Cádiz, the Channel) share the one detail layer,
+ * B in GLSL_FIELD, so the shaders cost the same however many there are.
+ * Every detail tile's field, land mask and horizon map is made at load and
+ * kept on the GPU; each frame the chart asks slot.ts which tile layer B
+ * holds and at what weight (`focusAlong` on a flight, from the flight's
+ * plan made at load; `focus` for a free camera), and this points layer B's
+ * samplers at that tile's textures and cell (uTexelKm's detail entry) and
+ * sets its weight, uHasB (0 the overview alone, 1 the tile in full). A
+ * change of tile only re-points uniforms: no pass runs and nothing is
+ * uploaded. The bound tile shows in full; the samplers move only while
+ * nothing of the tile they leave can reach the screen, or at a weight of
+ * nothing, so a change of tile never shows. The uniforms are shared by
+ * reference with every material that reads the field, so all of them read
+ * the same tile in a frame, and the CPU copy (`readBack`, terrain/coast.ts)
+ * reads the same binding.
+ *
+ * Until a frame binds what the view needs, layer B holds the first detail
+ * tile (the Gulf of Cádiz) in full.
+ *
+ * The horizon maps of the overview and the detail tiles are baked from the
  * decoded heights the same way: for each texel, the steepest rise of the
  * land toward each lighting state's sun azimuth, at true scale. Shadows
  * then follow any exaggeration and sun height without re-baking: a point
  * is in shadow when exaggeration × that tangent exceeds the tangent of the
- * sun's elevation. The surround, seen only from far off, casts none.
+ * sun's elevation. The surround, seen only from far off, casts none. Each
+ * detail tile is baked with itself in layer B; the overview with the first
+ * detail tile there, as it was before the tiles shared the layer (the far
+ * relief the owner approved), so no map depends on what a view has bound.
  *
  * Each tile also gets a land mask at half its resolution, mipmapped, so a
  * mip level is the share of land around a point at that scale (GLSL_FIELD's
@@ -269,6 +300,7 @@ export class TerrainField {
     uRectB: { value: new Vector4(0, 0, 1, 1) },
     uFadeB: { value: FADE_KM.detail },
     uSatB: { value: 1e4 },
+    /** Layer B's weight: 0 the overview alone, 1 the bound detail tile in full. */
     uHasB: { value: 0 },
     uHorizonA: { value: null as Texture | null },
     uHorizonB: { value: null as Texture | null },
@@ -276,10 +308,28 @@ export class TerrainField {
     uLandA: { value: null as Texture | null },
     uLandB: { value: null as Texture | null },
   };
-  /** Cell sizes of the overview, detail and surround tiles, km. */
+  /** Cell sizes of the overview, the bound detail tile and the surround, km. */
   readonly texelKm = new Vector3(1, 1, 1);
+  /**
+   * What layer B holds for drawing: a detail tile (an index into the detail
+   * tiles, in the manifest's order) and its weight (0 for none). The CPU
+   * copy of the field (terrain/coast.ts) reads it too, so the glyph layout
+   * keeps ships off the coast the frame draws.
+   */
+  readonly binding: SlotChoice = { index: -1, weight: 0 };
 
   private tiles: FieldTile[] = [];
+  /** The detail tiles, in the manifest's order. */
+  private details: FieldTile[] = [];
+  /** The detail tiles as the slot judges them; empty until `measureRelief`. */
+  private slotTiles: SlotTile[] = [];
+  /** The rule frame by frame, for a free camera; null until `measureRelief`. */
+  private follower: SlotFollower | null = null;
+  /** Development: layer B held on a tile (−1 empty) at a weight, whatever the view. */
+  private held: SlotChoice | null = null;
+  /** The detail tile layer B's samplers point at now (a bake or the warm-up may borrow them). */
+  private filled = -1;
+  private readonly choice: SlotChoice = { index: -1, weight: 0 };
   private azimuths: HorizonAzimuths = [0, 0];
   private readonly pass = new Mesh(fullscreenTriangle());
   private readonly passScene = new Scene();
@@ -366,7 +416,10 @@ export class TerrainField {
 
   /**
    * Fetches and decodes the tiles, the overview first, so it can show
-   * alone; then bakes the horizon maps, which read every layer.
+   * alone; then bakes the horizon maps, which read every layer. Every
+   * detail tile is made now, whichever a view will need: a change of tile
+   * later re-points uniforms only. Layer B holds the first detail tile in
+   * full until a frame says otherwise.
    */
   async load(azimuths: HorizonAzimuths, signal?: AbortSignal): Promise<void> {
     this.azimuths = azimuths;
@@ -393,9 +446,145 @@ export class TerrainField {
       const tile = this.createTile(info, bitmap);
       this.tiles.push(tile);
       await this.decode(tile, slicer);
-      this.bind(tile);
+      if (info.role === "detail") this.details.push(tile);
+      else this.bind(tile);
     }
-    for (const tile of this.tiles) await this.bake(tile, slicer);
+    if (this.details.length > 0) {
+      this.binding.index = 0;
+      this.binding.weight = 1;
+    }
+    await this.bakeAll(slicer);
+  }
+
+  /**
+   * Gives layer B's rule (slot.ts) the height of each detail tile's land,
+   * from the low-resolution grid of the highest land (which holds the
+   * overview's heights, so a fifth and 100 m are added for the detail's
+   * sharper peaks). The chart calls it once, after `load`.
+   */
+  measureRelief(low: LowresHeights): void {
+    this.slotTiles = this.details.map((t) => {
+      const r = t.rect;
+      const highest = highestLand(
+        low,
+        r.x + r.z / 2,
+        r.y - r.w / 2,
+        Math.max(r.z, r.w) / 2,
+      );
+      const reliefKm =
+        ((highest * 1.2 + 100) / 1000) * mercatorScale(t.info.north);
+      return { rect: r, cellKm: t.info.cellKm, reliefKm };
+    });
+    this.follower = new SlotFollower(
+      new SlotJudge(this.slotTiles, this.texelKm.x),
+    );
+  }
+
+  /**
+   * Gives layer B to the tile a free camera's view needs, by the rule run
+   * frame by frame (slot.ts, SlotFollower), from whatever is bound now. The
+   * chart calls it once a frame, after placing the camera and before its
+   * layers update, with CSS pixels per radian of view (so the choice never
+   * follows the quality ladder's resolution). Allocates nothing.
+   */
+  focus(view: SlotView): void {
+    const follower = this.follower;
+    if (!follower) return;
+    follower.state.index = this.binding.index;
+    follower.state.weight = this.binding.weight;
+    const choice = follower.follow(view);
+    this.apply(choice.index, choice.weight);
+  }
+
+  /**
+   * As `focus`, for a camera on a flight: the tile and weight the flight's
+   * plan (`planAlong`) gives at its progress p. Allocates nothing.
+   */
+  focusAlong(plan: SlotPlan, p: number): void {
+    if (this.details.length === 0) return;
+    plan.at(p, this.choice);
+    this.apply(this.choice.index, this.choice.weight);
+  }
+
+  /**
+   * Runs layer B's rule along a flight (slot.ts, planAlong) in idle slices:
+   * `view(p)` places a camera where the flight has it at p. Null without
+   * detail tiles (or before `measureRelief`). For `focusAlong`.
+   */
+  planAlong(
+    view: (p: number) => SlotView,
+    signal?: AbortSignal,
+  ): Promise<SlotPlan> | null {
+    if (this.slotTiles.length === 0) return null;
+    // A judge of its own, so a free camera's frames may judge meanwhile.
+    return planAlong(
+      new SlotJudge(this.slotTiles, this.texelKm.x),
+      view,
+      signal,
+    );
+  }
+
+  /** The detail tiles' ids, in the order the slot's indices count them. */
+  get detailIds(): string[] {
+    return this.details.map((t) => t.info.id);
+  }
+
+  /**
+   * The warm-up (Chart.warm): points layer B at detail tile k in full, so a
+   * draw samples its textures once while the chart is hidden, before any
+   * view needs them; null gives layer B back to the binding.
+   */
+  lend(k: number | null): void {
+    if (k === null) {
+      this.rebind();
+      return;
+    }
+    this.fillSlot(k);
+    this.uniforms.uHasB.value = 1;
+  }
+
+  /**
+   * Development (the lab's `detail` demo): holds layer B on a detail tile
+   * (by id) at a weight, or empty (null), whatever the view; `undefined`
+   * gives it back to the view. Applies from the next frame.
+   */
+  hold(id: string | null | undefined, weight = 1): void {
+    if (id === undefined) {
+      this.held = null;
+      return;
+    }
+    const index =
+      id === null ? -1 : this.details.findIndex((t) => t.info.id === id);
+    if (id !== null && index < 0) throw new Error(`no detail tile "${id}"`);
+    this.held = { index, weight: Math.min(1, Math.max(0, weight)) };
+  }
+
+  /**
+   * Development: layer B now; and, as the last free-camera frame (`focus`)
+   * judged them, each detail tile's claim and whether it was in sight.
+   */
+  get detail(): {
+    tile: string | null;
+    weight: number;
+    held: boolean;
+    claims: Record<string, number>;
+    seen: Record<string, boolean>;
+  } {
+    const claims: Record<string, number> = {};
+    const seen: Record<string, boolean> = {};
+    const judge = this.follower?.judge;
+    for (const [i, t] of this.details.entries()) {
+      claims[t.info.id] = judge?.claims[i] ?? 0;
+      seen[t.info.id] = judge?.seen[i] === 1;
+    }
+    const { index, weight } = this.binding;
+    return {
+      tile: index >= 0 ? this.details[index].info.id : null,
+      weight,
+      held: this.held !== null,
+      claims,
+      seen,
+    };
   }
 
   /**
@@ -403,7 +592,9 @@ export class TerrainField {
    * the GPU decoded them (terrain/coast.ts), without stalling: each tile is
    * encoded as bytes by a pass and read asynchronously, in bands of rows,
    * a band per idle slice (each whole tile's copy out of the GPU had held
-   * the main thread 13 to 14 ms).
+   * the main thread 13 to 14 ms). Every detail tile is read; the copy
+   * layers them by the field's `binding`, as layer B does, so it always
+   * holds the coast the frame draws.
    */
   async readBack(signal?: AbortSignal): Promise<CoastField> {
     const slicer = new Slicer(SLICE_MS, signal);
@@ -478,7 +669,9 @@ export class TerrainField {
       material.uniforms.uField.value = null;
       material.dispose();
     }
-    return new CoastField(tiles);
+    // The detail tiles come in `this.tiles` in the order of `details`, the
+    // order the binding's index counts.
+    return new CoastField(tiles, this.binding);
   }
 
   /** Rebakes the shadows for other sun azimuths (lighting states). */
@@ -486,13 +679,13 @@ export class TerrainField {
     if (azimuths[0] === this.azimuths[0] && azimuths[1] === this.azimuths[1])
       return;
     this.azimuths = azimuths;
-    for (const tile of this.tiles) void this.bake(tile, null);
+    void this.bakeAll(null);
   }
 
   /** After a lost context comes back: decode and bake everything again, at once. */
   restore(): void {
     for (const tile of this.tiles) void this.decode(tile, null);
-    for (const tile of this.tiles) void this.bake(tile, null);
+    void this.bakeAll(null);
   }
 
   /** GPU memory held by the field, bytes (for the debug readout). */
@@ -515,6 +708,12 @@ export class TerrainField {
       tile.bitmap.close();
     }
     this.tiles = [];
+    this.details = [];
+    this.slotTiles = [];
+    this.follower = null;
+    this.binding.index = -1;
+    this.binding.weight = 0;
+    this.filled = -1;
     this.blank.dispose();
     this.pass.geometry.dispose();
     this.decodeMaterial.dispose();
@@ -682,10 +881,30 @@ export class TerrainField {
     l.uField.value = null;
   }
 
+  /**
+   * Bakes every horizon map, then gives layer B back to the binding: the
+   * bakes borrow it. Nothing draws the chart meanwhile (at load the chart
+   * isn't made yet; without a slicer every pass runs before the next frame).
+   */
+  private async bakeAll(slicer: Slicer | null): Promise<void> {
+    try {
+      for (const tile of this.tiles) await this.bake(tile, slicer);
+    } finally {
+      this.rebind();
+    }
+  }
+
   private async bake(tile: FieldTile, slicer: Slicer | null) {
     if (!tile.horizon) return;
     const u = this.horizonMaterial.uniforms;
     const detail = tile.info.role === "detail";
+    // A detail tile's rays read its own heights, then the layers below past
+    // its edges; the overview's read it with the first detail tile in
+    // layer B, as before the tiles shared the layer.
+    if (this.details.length > 0) {
+      this.fillSlot(detail ? this.details.indexOf(tile) : 0);
+      this.uniforms.uHasB.value = 1;
+    } else this.uniforms.uHasB.value = 0;
     u.uTarget.value.copy(tile.rect);
     u.uSize.value = [tile.horizon.width, tile.horizon.height];
     u.uAzimuth.value = [this.azimuths[0], this.azimuths[1]];
@@ -702,6 +921,7 @@ export class TerrainField {
     );
   }
 
+  /** Binds the surround or the overview to its layer. */
   private bind(tile: FieldTile) {
     const u = this.uniforms;
     const texture = tile.field.texture;
@@ -718,14 +938,46 @@ export class TerrainField {
         if (tile.horizon) u.uHorizonA.value = tile.horizon.texture;
         u.uLandA.value = tile.land.texture;
         break;
-      case "detail":
-        u.uFieldB.value = texture;
-        u.uRectB.value.copy(tile.rect);
-        u.uSatB.value = saturation(tile.info);
-        if (tile.horizon) u.uHorizonB.value = tile.horizon.texture;
-        u.uLandB.value = tile.land.texture;
-        u.uHasB.value = 1;
-        break;
     }
+  }
+
+  /**
+   * Gives layer B to a detail tile (−1 for none) at a weight, unless it is
+   * held. The rule (slot.ts) moves the samplers only while the tile they
+   * leave is out of sight or at nothing; a hold moves them at once. Only
+   * uniforms change: no pass, no upload.
+   */
+  private apply(index: number, weight: number) {
+    const held = this.held;
+    const i = held ? held.index : index;
+    const b = this.binding;
+    b.weight = i < 0 ? 0 : held ? held.weight : weight;
+    if (i >= 0) b.index = i;
+    if (b.index >= 0 && b.index !== this.filled) this.fillSlot(b.index);
+    this.uniforms.uHasB.value = b.weight;
+  }
+
+  /** Points layer B at the binding's tile and weight again. */
+  private rebind() {
+    const { index, weight } = this.binding;
+    if (index >= 0) this.fillSlot(index);
+    this.uniforms.uHasB.value = index >= 0 ? weight : 0;
+  }
+
+  /**
+   * Points layer B at detail tile k: its field, horizon map and land mask,
+   * with its rectangle, distance cap and cell. Its weight, uHasB, is set
+   * apart; the uniforms' objects never change, only their values.
+   */
+  private fillSlot(k: number) {
+    const tile = this.details[k];
+    const u = this.uniforms;
+    u.uFieldB.value = tile.field.texture;
+    u.uRectB.value.copy(tile.rect);
+    u.uSatB.value = saturation(tile.info);
+    if (tile.horizon) u.uHorizonB.value = tile.horizon.texture;
+    u.uLandB.value = tile.land.texture;
+    this.texelKm.y = tile.info.cellKm;
+    this.filled = k;
   }
 }

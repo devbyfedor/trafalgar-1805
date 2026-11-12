@@ -61,6 +61,22 @@
       "south": 34.9,
       "north": 37.80215006406626,
       "sdfRange": 128
+    },
+    {
+      "id": "channel",
+      "role": "detail",
+      "file": "channel.webp",
+      "bytes": 361644,
+      "cols": 576,
+      "rows": 608,
+      "cellKm": 0.4638312116386398,
+      "x0": 690.1808429182961,
+      "yTop": 2427.66384564918,
+      "west": 0.2,
+      "east": 2.6,
+      "south": 50,
+      "north": 51.60091648113582,
+      "sdfRange": 128
     }
   ],
   "lowres": {

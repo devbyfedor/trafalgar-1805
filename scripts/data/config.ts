@@ -19,7 +19,9 @@ export interface TileConfig {
   id: string;
   /**
    * How the app layers the tile: the surround under everything, the
-   * overview (the stage) over it, a detail tile over the overview.
+   * overview (the stage) over it, a detail tile over the overview. Detail
+   * tiles share one layer, which the app hands to the tile the view needs
+   * where the change can't show (src/components/chart/terrain/slot.ts).
    */
   role: "surround" | "overview" | "detail";
   west: number;
@@ -73,6 +75,20 @@ export const TILES: readonly TileConfig[] = [
     east: -4.3,
     south: 34.9,
     north: 37.8,
+    cellArcSec: 15,
+    stride: 1,
+    sdfRange: 128,
+    rowsPerRequest: 360,
+  },
+  {
+    // Boulogne, its camps and the invasion flotilla, from the Somme to
+    // Dunkirk, with the coast of Kent across the Strait of Dover.
+    id: "channel",
+    role: "detail",
+    west: 0.2,
+    east: 2.6,
+    south: 50.0,
+    north: 51.6,
     cellArcSec: 15,
     stride: 1,
     sdfRange: 128,

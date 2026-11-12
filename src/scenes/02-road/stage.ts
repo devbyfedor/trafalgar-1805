@@ -148,6 +148,11 @@ export interface RoadStage {
   };
   /** Development: draws the scene at p and returns every name's state (Lettering.snapshot). */
   labels(p: number): LabelState[];
+  /**
+   * Development: the detail tile the field's detail layer holds at p and
+   * its weight, by the flight's plan made at load (terrain/slot.ts).
+   */
+  detailAt(p: number): { tile: string | null; weight: number };
   /** Development: draws the scene at p and returns each squadron's layout (GlyphLayout.debug). */
   layoutDebug(p: number): Record<string, unknown>[];
   /**
@@ -302,10 +307,21 @@ export async function createRoadStage(
         SOUNDING_ANGLES,
         options.signal,
       );
-      const soundings = new Soundings(soundingData.index, figures, digits);
+      const soundings = new Soundings(
+        chart.field,
+        soundingData.index,
+        figures,
+        digits,
+      );
       chart.add(soundings, soundings.mesh);
     }
     const rig = new CameraRig(ROAD_FLIGHT);
+    // Which detail tile the field's detail layer holds along the flight
+    // (terrain/slot.ts): the Gulf of Cádiz, the Channel for Boulogne. Made
+    // now, in idle slices, so the first frame and the glyph layout's baked
+    // tables both find it.
+    await chart.planDetail(rig, options.signal);
+    options.signal.throwIfAborted();
     const director = new RoadDirector({
       chart,
       rig,
@@ -607,6 +623,15 @@ export async function createRoadStage(
         keepCard(p);
         chart.frame(performance.now() / 1000);
         return lettering.snapshot();
+      },
+      detailAt(p) {
+        const plan = chart.detailPlan(rig);
+        if (!plan) return { tile: null, weight: 0 };
+        const { index, weight } = plan.at(p, { index: -1, weight: 0 });
+        return {
+          tile: index >= 0 ? chart.field.detailIds[index] : null,
+          weight: index >= 0 ? weight : 0,
+        };
       },
       fleetAt(p) {
         sampled = Number.NaN;

@@ -10,6 +10,8 @@ import {
 import type { SoundingSet, SoundingsIndex } from "../data/loaders";
 import type { ChartLayer, FrameInfo } from "../engine/Chart";
 import { SLICE_MS, Slicer } from "../engine/slice";
+import { GLSL_FIELD } from "../shaders/common";
+import type { TerrainField } from "../terrain/field";
 import { type DigitAtlas, SOUNDING_CHARS } from "./digits";
 
 /**
@@ -22,12 +24,15 @@ import { type DigitAtlas, SOUNDING_CHARS } from "./digits";
  * between the ones above it, by the octave, as the waterlines do. They give
  * way to the waterlining's band at the shore, fade as the chart is
  * foreshortened toward the horizon and with the haze, and take the pale
- * ink of the sea's lines. Every figure of every sounding is one instance
- * of one draw.
+ * ink of the sea's lines. They show only where the field's detail layer
+ * holds the tile they were sounded from (the detail tiles share that layer,
+ * terrain/slot.ts), so they always stand on their own isobaths. Every
+ * figure of every sounding is one instance of one draw.
  */
 
 const VERTEX = /* glsl */ `
 precision highp float;
+${GLSL_FIELD}
 in vec4 sounding;
 in vec4 glyph;
 uniform float uCssPerRad;
@@ -58,7 +63,11 @@ void main() {
   float haze = dist / uHazeVisibility;
   float clear = exp(-haze * haze);
   float tilt = smoothstep(0.1, 0.25, cameraPosition.z / dist);
-  float a = show * band * clear * tilt * uOpacity;
+  // Only where layer B holds the tile they came from, at its weight: every
+  // sounding lies 20 km inside its tile, past the layer's 18 km edge band,
+  // and the detail tiles don't overlap.
+  float held = uHasB * cover(sounding.xy, uRectB, uFadeB);
+  float a = show * band * clear * tilt * uOpacity * held;
   vAlpha = a;
   vUv = vec2(0.0);
   if (a < 0.004) {
@@ -203,6 +212,7 @@ export class Soundings implements ChartLayer {
   private readonly uniforms: Record<string, { value: unknown }>;
 
   constructor(
+    field: TerrainField,
     index: SoundingsIndex,
     { sounding, glyph, count: figures }: SoundingFigures,
     atlas: DigitAtlas,
@@ -224,6 +234,7 @@ export class Soundings implements ChartLayer {
     geometry.setAttribute("glyph", new InstancedBufferAttribute(glyph, 4));
     geometry.instanceCount = figures;
     this.uniforms = {
+      ...field.uniforms,
       uCssPerRad: { value: 1000 },
       uEmPx: { value: options.emPx ?? 14 },
       uShowPx: { value: [...(options.showPx ?? [55, 85])] },

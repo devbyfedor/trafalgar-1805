@@ -8,6 +8,12 @@
       "file": "soundings-cadiz.bin",
       "bytes": 94201,
       "count": 13117
+    },
+    {
+      "tile": "channel",
+      "file": "soundings-channel.bin",
+      "bytes": 43809,
+      "count": 6153
     }
   ]
 }

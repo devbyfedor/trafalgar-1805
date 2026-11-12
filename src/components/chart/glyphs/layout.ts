@@ -159,6 +159,8 @@ const SWEEP_MAX_PX = 60;
  * in a stretched corner of the projection, had cost 6 ms a frame.
  */
 const OFF_SCREEN_PX = 400;
+/** How far a meeting line's label anchors stand off its ships' box (lineAnchorOf), CSS px. */
+const LINE_LABEL_CLEAR_PX = 12;
 
 const smoothstep = (e0: number, e1: number, x: number) => {
   const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
@@ -381,6 +383,8 @@ export class GlyphLayout implements ChartLayer {
   private swY = 0;
   private swDX = 0;
   private swDY = 0;
+  /** Development: the obstacle that last limited obstacleFit (-1 for none). */
+  private hit = -1;
   /** The tables whose glyph sizes limit this frame's (none while baking). */
   private ratios: Bake | null = null;
   /** Each layer's index among the layers. */
@@ -552,8 +556,8 @@ export class GlyphLayout implements ChartLayer {
         continue;
       }
       f.fit[k] = plan.fit;
-      f.offX[k] = plan.ax - plan.headX;
-      f.offY[k] = plan.ay - plan.headY;
+      f.offX[k] = plan.ax - plan.refX;
+      f.offY[k] = plan.ay - plan.refY;
       f.side[k] = plan.side;
     }
     bake.shared[k] = this.sharedScale();
@@ -601,6 +605,53 @@ export class GlyphLayout implements ChartLayer {
         this.screenPrevY[li][i] = this.screenY[li][i];
       }
     }
+  }
+
+  /**
+   * Development: the sizes' pass of the last bake replayed at step k, from
+   * step k - 1 (so its sweeps are the bake's), the scene set at each step
+   * by `set`; returns each squadron's debug rows at step k (drawSquadron's
+   * `why`: each ship's limit, her scale after the glyphs before her and
+   * after land, her baked size, her sweeps, the obstacle that limited her
+   * and its sweep). The tables are not touched.
+   */
+  traceBakeStep(
+    k: number,
+    set: (p: number) => FrameInfo,
+  ): Record<string, unknown>[] {
+    const bake = this.baked;
+    if (!bake || k < 1 || k >= bake.steps) return [];
+    for (const ok of this.sweepOk) ok.fill(0);
+    let rows: Record<string, unknown>[] = [];
+    for (const j of [k - 1, k]) {
+      const frame = set(bake.from + j * bake.step);
+      this.begin(frame);
+      for (const l of this.layers) {
+        l.drawn.alpha.fill(0);
+        l.drawn.nominal.fill(0);
+      }
+      this.sweeping = true;
+      this.debug = j === k ? [] : null;
+      for (let i = 0; i < this.frees.length; i++) {
+        const g = this.frees[i];
+        if (shownOf(g) > SHOWN_MIN) this.layoutFree(g, bake.at(i, this.p));
+      }
+      this.layoutSquadrons(bake);
+      this.sweeping = false;
+      if (this.debug) rows = this.debug;
+      this.debug = null;
+      for (let li = 0; li < this.layers.length; li++) {
+        const d = this.layers[li].drawn;
+        for (let i = 0; i < this.layers[li].markCount; i++) {
+          this.sweepOk[li][i] = d.nominal[i] > 0 ? 1 : 0;
+          this.sweepX[li][i] = d.x[i];
+          this.sweepY[li][i] = d.y[i];
+          this.screenPrevX[li][i] = this.screenX[li][i];
+          this.screenPrevY[li][i] = this.screenY[li][i];
+        }
+      }
+    }
+    return rows;
   }
 
   /**
@@ -758,6 +809,7 @@ export class GlyphLayout implements ChartLayer {
   ): number {
     let best = limit;
     const g = this.glyphGap;
+    this.hit = -1;
     for (let k = 0; k < this.obstacles && best > 0; k++) {
       const gx = g + Math.abs(this.swDX - this.osx[k]);
       const gy = g + Math.abs(this.swDY - this.osy[k]);
@@ -773,7 +825,10 @@ export class GlyphLayout implements ChartLayer {
         this.ox1[k] + gx,
         this.oy1[k] + gy,
       );
-      if (s < best) best = s;
+      if (s < best) {
+        best = s;
+        this.hit = k;
+      }
     }
     return Math.max(0, best);
   }
@@ -1235,10 +1290,24 @@ export class GlyphLayout implements ChartLayer {
     const ocy = headY + plan.cy;
     if (ocx < -reach || ocx > v.w + reach || ocy < -reach || ocy > v.h + reach)
       return plan;
+    // The point its baked offset is taken from: its own head, or, meeting
+    // another squadron, the middle of the two heads as far into the meeting
+    // as it is, so both lines are set from one point and keep their lane
+    // however differently their heads move on screen. Each taken from its
+    // own head, the two lines' offsets, eased over the scroll, lagged their
+    // heads' motion by different amounts where the camera's pace changed
+    // (the hold over Finisterre ending): the lines closed on each other for
+    // a few steps, and Calder's ships were squeezed between them.
+    let refX = headX;
+    let refY = headY;
+    if (pair) {
+      refX += (pair.hx - headX) * e;
+      refY += (pair.hy - headY) * e;
+    }
     let cap = 1;
     if (baked) {
-      ax += baked.offX;
-      ay += baked.offY;
+      ax = refX + baked.offX;
+      ay = refY + baked.offY;
       if (pair) cap = 1 + (pair.cap - 1) * e;
     } else {
       // Off the coast, if the shape won't fit where its head is: each
@@ -1270,6 +1339,8 @@ export class GlyphLayout implements ChartLayer {
     plan.ok = true;
     plan.headX = headX;
     plan.headY = headY;
+    plan.refX = refX;
+    plan.refY = refY;
     plan.ax = ax;
     plan.ay = ay;
     plan.heading = heading;
@@ -1362,6 +1433,8 @@ export class GlyphLayout implements ChartLayer {
       pair = {
         frame: 0,
         ok: false,
+        hx: 0,
+        hy: 0,
         mx: 0,
         my: 0,
         step: 0,
@@ -1389,6 +1462,8 @@ export class GlyphLayout implements ChartLayer {
     if (!v.project(other.x, other.y, 0)) return null;
     const mx = (hx + v.px) / 2;
     const my = (hy + v.py) / 2;
+    pair.hx = mx;
+    pair.hy = my;
     const step = 2 * half + this.glyphGap + SLACK_PX;
     // Each line as long as its ships there.
     const countA = presentCount(g);
@@ -1684,7 +1759,20 @@ export class GlyphLayout implements ChartLayer {
         this.swX,
         this.swY,
       );
-      why?.push([k, limit, byObstacle, s, this.bakedRatio(layer, i)]);
+      why?.push([
+        k,
+        limit,
+        byObstacle,
+        s,
+        this.bakedRatio(layer, i),
+        this.swDX,
+        this.swDY,
+        this.swX,
+        this.swY,
+        this.hit,
+        this.hit >= 0 ? this.osx[this.hit] : 0,
+        this.hit >= 0 ? this.osy[this.hit] : 0,
+      ]);
       const hd = s * plan.h;
       const alpha = it.opacity[i] * this.shownAt(layer, i, hd) * plan.shown;
       this.draw(
@@ -1758,6 +1846,44 @@ export class GlyphLayout implements ChartLayer {
     out[6] = out[0];
     out[7] = out[5];
     return Math.max(a?.bAlpha ?? 0, b?.bAlpha ?? 0);
+  }
+
+  /**
+   * Where a squadron's own ships stand this frame while it meets another:
+   * the middles of their box's top, bottom, right and left edges on screen,
+   * each taken down to the chart (world km, x and y pairs into out[0..7]);
+   * returns how far it stands as a line of the meeting's plan and shows (its
+   * share of the meeting times how much of it is shown; 0 for none).
+   * For its label, which stands by its own line: the plan draws both lines
+   * between the two heads, so a label by its head can lie beyond the other
+   * line.
+   */
+  lineAnchorOf(g: Formation, out: Float64Array): number {
+    if (!g.meets || !(g.meeting > 0)) return 0;
+    const plan = this.drawnPlan(g);
+    if (!plan) return 0;
+    const v = this.view;
+    // Clear of the ships by the room the lettering keeps from what it gives
+    // way to (Lettering's YIELD_PX, 10 CSS px) and a little more, so the
+    // nearest place on each side has all the room it needs.
+    const m = LINE_LABEL_CLEAR_PX * this.dpr;
+    const mx = (plan.bx0 + plan.bx1) / 2;
+    const my = (plan.by0 + plan.by1) / 2;
+    if (!v.unproject(mx, plan.by1 + m)) return 0;
+    out[0] = v.qx;
+    out[1] = v.qy;
+    if (!v.unproject(mx, plan.by0 - m)) return 0;
+    out[2] = v.qx;
+    out[3] = v.qy;
+    if (!v.unproject(plan.bx1 + m, my)) return 0;
+    out[4] = v.qx;
+    out[5] = v.qy;
+    if (!v.unproject(plan.bx0 - m, my)) return 0;
+    out[6] = v.qx;
+    out[7] = v.qy;
+    // As far as it is a line of the plan and shown (not dimmed by the haze:
+    // the label has its own).
+    return Math.min(1, g.meeting) * Math.min(1, plan.shown);
   }
 
   /** A squadron's plan, if its ships were drawn this frame. */
@@ -1849,6 +1975,9 @@ interface SquadronPlan {
   /** Its head, and its lead's foot, device px. */
   headX: number;
   headY: number;
+  /** The point its baked offset is taken from (prepare), device px. */
+  refX: number;
+  refY: number;
   ax: number;
   ay: number;
   heading: number;
@@ -1896,6 +2025,8 @@ function newPlan(n: number): SquadronPlan {
     ok: false,
     headX: 0,
     headY: 0,
+    refX: 0,
+    refY: 0,
     ax: 0,
     ay: 0,
     heading: 0,
@@ -1932,6 +2063,9 @@ function newPlan(n: number): SquadronPlan {
 interface PairPlan {
   frame: number;
   ok: boolean;
+  /** The middle of the two heads, device px: the point both lines are set from (prepare). */
+  hx: number;
+  hy: number;
   /** Where the lane between the two lines runs, device px. */
   mx: number;
   my: number;

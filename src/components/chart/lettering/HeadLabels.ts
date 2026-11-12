@@ -111,6 +111,12 @@ const LIFT_PALE = 1.12;
 
 /** A place about a fleet: its side, how it lines up there, its gap. */
 interface Slot {
+  /**
+   * About the fleet's own ships rather than its head (Head.ax, ay): where
+   * the host draws them away from the head (a squadron's line in the plan
+   * of a meeting), as far as the host says (Head.aw).
+   */
+  own: boolean;
   side: HeadSlot;
   /** Above or below: centred on the fleet (0), reaching east of it (1) or west (-1). */
   reach: -1 | 0 | 1;
@@ -150,6 +156,14 @@ interface Head {
    */
   x: number;
   y: number;
+  /**
+   * This frame: where its own ships stand, the middles of their box's top,
+   * bottom, right and left edges on the chart (world km, x and y pairs),
+   * and how far the label stands by them instead of by its head (0..1;
+   * HeadLabels.setAnchors).
+   */
+  own: Float64Array;
+  aw: number;
   trail: Float64Array;
   trailCount: number;
   /** Its line on screen this frame, a quad a segment (lineQuads), and how many. */
@@ -186,6 +200,8 @@ export class HeadLabels implements ChartLayer {
   private keepClear: readonly ScreenText[] = [];
   private coast: CoastField | null = null;
   private blocks: ((id: string, out: Float64Array) => number) | null = null;
+  private anchors: ((id: string, out: Float64Array) => number) | null = null;
+  private readonly anchor = new Float64Array(8);
   private hidden = false;
   private sized = false;
   private readonly trailPx = new Float64Array(2 * TRAIL_POINTS);
@@ -221,27 +237,37 @@ export class HeadLabels implements ChartLayer {
       count: 0,
     });
     this.heads = specs.map((spec) => {
+      // The places about its own ships first (tried only while the host
+      // gives them), each side out to its farthest gap before the next, so
+      // a line's label keeps to its side of the line; then those about its
+      // head, nearest first.
       const slots: Slot[] = [];
+      const add = (own: boolean, side: HeadSlot, gap: number) => {
+        const reaches: readonly (-1 | 0 | 1)[] =
+          side === "above" || side === "below" ? [0, 1, -1] : [0];
+        for (const reach of reaches)
+          slots.push({
+            own,
+            side,
+            reach,
+            gap,
+            quad: new Float64Array(8).fill(Number.NaN),
+            weight: 0,
+            why: new Float64Array(7),
+          });
+      };
+      for (const side of spec.slots)
+        for (const gap of GAPS_EM) add(true, side, gap);
       for (const gap of GAPS_EM)
-        for (const side of spec.slots) {
-          const reaches: readonly (-1 | 0 | 1)[] =
-            side === "above" || side === "below" ? [0, 1, -1] : [0];
-          for (const reach of reaches)
-            slots.push({
-              side,
-              reach,
-              gap,
-              quad: new Float64Array(8).fill(Number.NaN),
-              weight: 0,
-              why: new Float64Array(7),
-            });
-        }
+        for (const side of spec.slots) add(false, side, gap);
       const head: Head = {
         spec,
         slots,
         copies: [copy(spec), copy(spec)],
         x: 0,
         y: 0,
+        own: new Float64Array(8),
+        aw: 0,
         trail: new Float64Array(2 * TRAIL_POINTS),
         trailCount: 0,
         lines: Array.from({ length: TRAIL_POINTS }, () => new Float64Array(8)),
@@ -293,6 +319,21 @@ export class HeadLabels implements ChartLayer {
    */
   setBlocks(blocks: ((id: string, out: Float64Array) => number) | null): void {
     this.blocks = blocks;
+  }
+
+  /**
+   * Where a head's own ships stand, read as it updates: for a head's id,
+   * the middles of their box's top, bottom, right and left edges on the
+   * chart (world km, x and y pairs into out[0..7]) and how far its label is
+   * to stand by them instead of by its head (0 for not at all): two squadrons meeting are drawn as a plan, their lines between
+   * the two heads, so each label stands by its own line, not by a head
+   * that may lie beyond the other line. The label crossfades from the one
+   * place to the other as the weight comes and goes.
+   */
+  setAnchors(
+    anchors: ((id: string, out: Float64Array) => number) | null,
+  ): void {
+    this.anchors = anchors;
   }
 
   /**
@@ -375,16 +416,39 @@ export class HeadLabels implements ChartLayer {
       const em = (emPx * dist) / cssPerRadian;
       const kmPx = dist / cssPerRadian;
       const blockWeight = this.blocks ? this.blocks(h.spec.id, this.block) : 0;
+      h.aw = this.anchors ? this.anchors(h.spec.id, this.anchor) : 0;
+      if (h.aw > 0.001) h.own.set(this.anchor);
       // A soft first-fit over its places in order: once one has the whole
-      // label, those after it are not tried.
+      // label, those after it are not tried. The places by its own ships
+      // have room only as far as the host gives them.
       let left = 1;
       let best = -1;
       let next = -1;
-      for (let i = 0; i < h.slots.length && left > 0.001; i++) {
+      // The places by its own ships come first and share the host's weight
+      // among them, first-fit; those by its head share what is left.
+      const aw = Math.min(1, h.aw);
+      let ownLeft = aw > 0.001 ? 1 : 0;
+      let headStarted = false;
+      for (let i = 0; i < h.slots.length; i++) {
         const s = h.slots[i];
-        const room = this.room(s, h, em, kmPx, frame, blockWeight);
-        s.weight = room * left;
-        left *= 1 - room;
+        if (s.own) {
+          if (ownLeft <= 0.001) {
+            s.quad[0] = Number.NaN;
+            continue;
+          }
+          const room = this.room(s, h, em, kmPx, frame, blockWeight);
+          s.weight = room * ownLeft * aw;
+          ownLeft *= 1 - room;
+        } else {
+          if (!headStarted) {
+            headStarted = true;
+            left = 1 - aw * (1 - ownLeft);
+          }
+          if (left <= 0.001) break;
+          const room = this.room(s, h, em, kmPx, frame, blockWeight);
+          s.weight = room * left;
+          left *= 1 - room;
+        }
         if (s.weight <= 0.001) continue;
         if (best < 0 || s.weight > h.slots[best].weight) {
           next = best;
@@ -414,6 +478,7 @@ export class HeadLabels implements ChartLayer {
   /** Development: each head's places tried this frame, their room and what made it (Slot.why). */
   explain(): {
     id: string;
+    own: boolean;
     side: string;
     reach: number;
     gap: number;
@@ -423,15 +488,18 @@ export class HeadLabels implements ChartLayer {
     const out: ReturnType<HeadLabels["explain"]> = [];
     for (const h of this.heads) {
       if (h.presence <= 0.001) continue;
-      for (const s of h.slots)
+      for (const s of h.slots) {
+        if (s.own && h.aw <= 0.001) continue;
         out.push({
           id: h.spec.id,
+          own: s.own,
           side: s.side,
           reach: s.reach,
           gap: s.gap,
           weight: Math.round(s.weight * 1000) / 1000,
           why: Array.from(s.why, (v) => Math.round(v * 1000) / 1000),
         });
+      }
     }
     return out;
   }
@@ -511,21 +579,33 @@ export class HeadLabels implements ChartLayer {
   private origin(s: Slot, h: Head, em: number): [number, number] {
     const w = this.width(h) * em;
     const gap = s.gap * em;
+    // About its own ships (the middle of their box's edge on its side), or
+    // its head.
+    const k =
+      s.side === "above"
+        ? 0
+        : s.side === "below"
+          ? 2
+          : s.side === "right"
+            ? 4
+            : 6;
+    const hx = s.own ? h.own[k] : h.x;
+    const hy = s.own ? h.own[k + 1] : h.y;
     switch (s.side) {
       case "right":
-        return [h.x + gap, h.y];
+        return [hx + gap, hy];
       case "left":
-        return [h.x - gap - w, h.y];
+        return [hx - gap - w, hy];
       default: {
         const x =
           s.reach === 0
-            ? h.x - 0.5 * w
+            ? hx - 0.5 * w
             : s.reach > 0
-              ? h.x - 0.6 * em
-              : h.x + 0.6 * em - w;
+              ? hx - 0.6 * em
+              : hx + 0.6 * em - w;
         return s.side === "above"
-          ? [x, h.y + gap - h.bottom * em]
-          : [x, h.y - gap - h.top * em];
+          ? [x, hy + gap - h.bottom * em]
+          : [x, hy - gap - h.top * em];
       }
     }
   }

@@ -363,6 +363,14 @@ const smooth = (e0: number, e1: number, x: number) => {
   return t * t * (3 - 2 * t);
 };
 
+/** How far into a meeting p is (0..1), from its p: forming from, formed, parting from, apart. */
+function meetingShare(
+  m: readonly [number, number, number, number],
+  p: number,
+): number {
+  return smooth(m[0], m[1], p) * (1 - smooth(m[2], m[3], p));
+}
+
 /** Fades a layer in and out over a range of p. */
 function fade(
   p: number,
@@ -852,7 +860,15 @@ export class RoadDirector {
     b: Squad;
     p: readonly [number, number, number, number];
     course: number;
+    /**
+     * The one keeping a station (no track), which comes to the other's
+     * head as they meet (squadronHead), and that other; null for none.
+     */
+    guest: Squad | null;
+    host: Squad | null;
   }[];
+  /** The meeting each guest squadron comes into (squadronHead). */
+  private readonly guestIn = new Map<Squad, (typeof this.meetings)[number]>();
   private readonly head = { x: 0, y: 0, heading: 0 };
   private readonly next = { x: 0, y: 0, heading: 0 };
   private readonly victory = new Vector3(
@@ -982,8 +998,16 @@ export class RoadDirector {
         at[2],
         Math.max(at[3], at[2] + MEETING_P),
       ];
-      return [{ a, b, p, course: (m.course * Math.PI) / 180 }];
+      const guest =
+        a.legs.length === 0 && b.legs.length > 0
+          ? a
+          : b.legs.length === 0 && a.legs.length > 0
+            ? b
+            : null;
+      const host = guest === a ? b : guest === b ? a : null;
+      return [{ a, b, p, course: (m.course * Math.PI) / 180, guest, host }];
     });
+    for (const m of this.meetings) if (m.guest) this.guestIn.set(m.guest, m);
     this.victoryIndex = this.ships.findIndex((s) => s.name === "Victory");
     this.squadShownNow = new Float64Array(this.squads.length);
     this.squadVisible = new Float64Array(this.squads.length);
@@ -1379,7 +1403,7 @@ export class RoadDirector {
     });
     // Squadrons meeting draw as two lines facing each other (layout.ts).
     for (const m of this.meetings) {
-      const w = smooth(m.p[0], m.p[1], p) * (1 - smooth(m.p[2], m.p[3], p));
+      const w = meetingShare(m.p, p);
       m.a.formation.meets = w > 0 ? m.b.formation : null;
       m.a.formation.meeting = w;
       m.a.formation.above = true;
@@ -1415,14 +1439,38 @@ export class RoadDirector {
   }
 
   /**
-   * Where a squadron's lead is at a day: the head of its route, or its
-   * station. In port the block stands in the roads off it, on its route
-   * (ROADS_KM out along the way in or out): a symbol drawn in the open
-   * water by the port, as the period's charts set a fleet, not on the town.
-   * Between two legs it slides from the roads off the one to the roads off
-   * the other just before the second begins, so it never jumps.
+   * Where a squadron's lead is at a day (ownHead); but a squadron keeping a
+   * station that meets one sailing a track comes to that one's head as
+   * they meet, and goes back to its station as they part: they fought
+   * within gunshot (off Finisterre on 22 July, Calder's station lies about
+   * 30 km north-north-east of the action, his noon position). So the plan
+   * of the meeting is drawn about the head of the track that leads into
+   * it, the track running into the lane between the two lines.
    */
   private squadronHead(squad: Squad, d: number, p: number) {
+    const m = this.guestIn.get(squad);
+    const w = m?.host ? meetingShare(m.p, p) : 0;
+    if (!m?.host || w <= 0) return this.ownHead(squad, d, p);
+    const host = this.ownHead(m.host, d, p);
+    if (!host) return this.ownHead(squad, d, p);
+    const hx = host.x;
+    const hy = host.y;
+    const own = this.ownHead(squad, d, p);
+    if (!own) return null;
+    own.x += (hx - own.x) * w;
+    own.y += (hy - own.y) * w;
+    return own;
+  }
+
+  /**
+   * Where a squadron's lead is at a day, of itself: the head of its route,
+   * or its station. In port the block stands in the roads off it, on its
+   * route (ROADS_KM out along the way in or out): a symbol drawn in the
+   * open water by the port, as the period's charts set a fleet, not on the
+   * town. Between two legs it slides from the roads off the one to the
+   * roads off the other just before the second begins, so it never jumps.
+   */
+  private ownHead(squad: Squad, d: number, p: number) {
     const { legs, legP } = squad;
     if (legs.length > 0) {
       // The leg in progress, or the last one begun (at anchor after it).
@@ -1522,9 +1570,11 @@ export class RoadDirector {
         }
       }
       // The label stands by the squadron: in port, in the roads off its
-      // line's head, out in the open water, not on the town and its name.
+      // line's head, out in the open water, not on the town and its name;
+      // one keeping a station, at its station or, meeting a squadron under
+      // way, where it comes to meet it (squadronHead).
       const at = squad.formation;
-      const by = squad.legs.length > 0 && presence > 0;
+      const by = presence > 0;
       heads.set(
         squad.spec.id,
         by ? at.x : x,

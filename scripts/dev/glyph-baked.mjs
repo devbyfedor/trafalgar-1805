@@ -1,10 +1,12 @@
 // A fleet ship's baked tables over a range of scene 2's p: the raw size
 // ratio the bake laid out at each step and the eased ratio the frames read
-// (window.__road.bakedSizes, layer 0). Development only.
+// (window.__road.bakedSizes). Development only.
 //   node scripts/dev/glyph-baked.mjs <ship,ship,...> [from] [to] [every]
 // p from 0.94 to 1 by default, every third step (0.001) printed.
 // Environment: BASE (default http://127.0.0.1:3000), W, H, S, EASE (a trial
-// table of the dawn fleets' shifts, as glyph-clash.mjs takes it).
+// table of the dawn fleets' shifts, as glyph-clash.mjs takes it), LAYER
+// (0, the fleets, by ship name; 1, the squadrons, by "squadron:place",
+// e.g. calder:0, or a squadron's name alone for all its places).
 import { readFileSync } from "node:fs";
 import { chromium } from "@playwright/test";
 
@@ -33,14 +35,22 @@ await page.waitForFunction(
   null,
   { timeout: 180_000 },
 );
-const names = (await page.evaluate(() => window.__road.glyphNames()))[0];
+const layer = Number(process.env.LAYER ?? 0);
+const names = (await page.evaluate(() => window.__road.glyphNames()))[layer];
 const k0 = Math.round(Number(from) * 1000);
 const k1 = Math.round(Number(to) * 1000);
-for (const name of list.split(",")) {
+const wanted = list
+  .split(",")
+  .flatMap((name) =>
+    layer === 1 && !name.includes(":")
+      ? names.filter((n) => n.startsWith(`${name}:`))
+      : [name],
+  );
+for (const name of wanted) {
   for (let i = names.indexOf(name); i >= 0; i = names.indexOf(name, i + 1)) {
     const rows = await page.evaluate(
-      ([i, k0, k1]) => window.__road.bakedSizes(0, i, k0, k1),
-      [i, k0, k1],
+      ([layer, i, k0, k1]) => window.__road.bakedSizes(layer, i, k0, k1),
+      [layer, i, k0, k1],
     );
     console.log(
       `${name} (${i}): ${rows

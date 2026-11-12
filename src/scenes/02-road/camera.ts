@@ -117,7 +117,17 @@ export const ROAD_FLIGHT: readonly CameraKey[] = [
   // Then up, south to Cádiz and the army's turn east.
   { p: 0.513, eye: [-13.4, 40.6, 560], target: [-11.5, 43.4, 0] },
   { p: 0.527, eye: FINISTERRE_EYE, target: FINISTERRE_TARGET },
-  { p: 0.548, eye: [-11.74, 42.69, 79], target: [-11.58, 43.68, 0] },
+  { p: 0.548, eye: [-11.34, 42.66, 79], target: [-11.18, 43.65, 0] },
+  // The rise: up first, then away south-west, its pace across the chart
+  // growing key by key (the rig's speed steps at a key by the square root
+  // of the ratio of the legs either side, here about 2 to 2.6 at each,
+  // where one leg from the hold to Spain had stepped it twelvefold): left
+  // at full speed straight off the hold, the eye ran a thousand kilometres
+  // south-west still low, and the action fell into the haze, labels and
+  // all, before the view opened. Each key a share of the way along the
+  // straight line from the hold's end to the next view.
+  { p: 0.555, eye: [-11.453, 42.477, 150], target: [-11.061, 43.57, 0] },
+  { p: 0.563, eye: [-12.189, 41.286, 500], target: [-10.384, 43.12, 0] },
   { p: 0.575, eye: [-17, 33.5, 1750], target: [-7.2, 41, 0] },
   // Villeneuve's turn south off Finisterre on the evening of 15 August
   // (the clock slows for it, beats.ts) and his run down the coast of

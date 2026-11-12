@@ -161,6 +161,8 @@ export interface RoadStage {
   hideRouteLabels(hidden: boolean): void;
   /** Development: a glyph's baked sizes by step (GlyphLayout.bakedSizes). */
   bakedSizes(layer: number, i: number, k0: number, k1: number): number[][];
+  /** Development: the bake's sizes pass replayed at step k (GlyphLayout.traceBakeStep). */
+  bakeTrace(k: number): Record<string, unknown>[];
   /**
    * Development: where a site on the sea level stands in the frame at p
    * (normalised device coordinates), how far from the eye (km), how steeply
@@ -320,6 +322,10 @@ export async function createRoadStage(
       const formation = director.formationOf(id);
       return formation ? layout.blockOf(formation, out) : 0;
     });
+    heads.setAnchors((id, out) => {
+      const formation = director.formationOf(id);
+      return formation ? layout.lineAnchorOf(formation, out) : 0;
+    });
     chart.add(heads, ...heads.objects);
     chart.add(tracks, ...tracks.objects);
     chart.add(fleets, fleets.wakes, fleets.ships);
@@ -431,6 +437,13 @@ export async function createRoadStage(
       },
       bakedSizes(layer, i, k0, k1) {
         return layout.bakedSizes(layer, i, k0, k1);
+      },
+      bakeTrace(k) {
+        sampled = Number.NaN;
+        return layout.traceBakeStep(k, (p) => {
+          director.applyState(p);
+          return chart.peekFrame();
+        });
       },
       layoutDebug(p) {
         sampled = Number.NaN;

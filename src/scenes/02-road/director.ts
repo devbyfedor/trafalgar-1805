@@ -1393,14 +1393,14 @@ export class RoadDirector {
       });
     FLEET_HEADS.forEach((fleet, f) => {
       const sched = this.fleetSchedules[f];
-      sched.days.forEach((d, e) =>
+      sched.days.forEach((d, e) => {
         out.push({
           id: fleet.id,
           p: sched.p[e],
           w: sched.w[e],
           text: `${lineStrength(fleet.side, d)} sail`,
-        }),
-      );
+        });
+      });
     });
     return out;
   }

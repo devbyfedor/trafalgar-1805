@@ -81,11 +81,72 @@ From that point the belfry bears 105° at 2.1 km and Mont Lambert's top 106° at
 
 ## 4. Coast geometry and heights
 
-(to be filled)
+**Which way the coast faces: confirmed** (computed from the positions; Medium, modern map).
+- The Tour d'Odre site to the Pointe de la Rochette runs 005°, so the north cliffs face about 275°.
+- The 1805 harbour mouth to Fort de l'Heurt runs about 225°, so that shore faces about 315° (the note: 220° and 310°).
+- Alprech to Équihen runs 163°, facing 253°.
+
+The angles the sun makes with these faces (0–27° off square on the north cliffs, 10–35° on the Outreau shore) follow. Confirmed.
+
+**Bearings from the note's sample viewpoint: confirmed.** Wimereux 040° at 6.2 km; Fort de la Crèche 053° at 4.0 km; the column's site 071° at 4.7 km; the Tour d'Odre 079° at 3.2 km; the belfry 093° at 4.1 km; Fort de l'Heurt 171° at 2.1 km. Two small points:
+- The note's position for Fort de la Crèche (50.7488 N 1.6009 E) is the later fort on the cliff (1879). The fort of 1803–05 stood on the rocks of the foreshore, about half a kilometre further west (`town-and-defences.md` estimates 50.749 N 1.593 E; Low). From the note's viewpoint it bears about 048°.
+- The 1805 harbour mouth (jetty heads at about 50.730 N 1.594 E) bears about 083° at 2.8 km from that viewpoint, not 087° at 2.5 km; the note used a modern point. This matters little.
+
+**From 700 m west of the jetty heads (50.730 N 1.584 E)** (computed; Medium):
+
+| Feature | Bearing | Distance |
+| --- | --- | --- |
+| Wooden fort (`town-and-defences.md`'s estimate, uncertain by 200–300 m) | north to north-east | 0.2–0.5 km |
+| Harbour mouth | 090° | 0.7 km |
+| Tour d'Odre cliff | 076° | 1.1 km |
+| Column's site | 063° | 2.7 km |
+| Belfry | 105° | 2.1 km |
+| Mont Lambert | 106° | 4.9 km |
+| Fort de la Crèche | 017–030° | 2.2–2.4 km |
+| Wimereux | 024° | 4.8 km |
+| Fort de l'Heurt | 215° | 3.0 km |
+| Alprech | 203° | 3.8 km |
+
+A frame of 60–70° centred on east runs from the column's site (063°) to the Liane valley and Outreau (120–125°). The Crèche and Fort de l'Heurt lie far outside it.
+
+**Heights: corrected.** The note gives 60–70 m for the plateau edge and "the cliff tops and camps". The IGN terrain model puts the cliff edge at the Tour d'Odre at 45–55 m, rising inland to 60–80 m. An officer of engineers of the time gave 55 m for that cliff (both in `town-and-defences.md`; the DEM figure and Nicolay 1907, p. 45). The Outreau shore rises from a cliff of about 33 m to about 60 m. The upper town at about 60 m is confirmed (52–59 m on the DEM). Medium.
+- **Angles from the note's viewpoint: confirmed.** This check's profiles give a skyline of 1.07–1.49° at azimuths 100–124°, against the note's 1–1.5°.
+- **From 700 m off the shore stands about twice as high.** The Tour d'Odre cliff edge is about 2.4–2.6° (some 50 m at 1.1 km), the skyline behind the town 1.8–2.1° and the belfry top 2.3°.
+- **The hidden huts.** The geometry is right, but with a 50 m edge the numbers grow. From 2.5–3 km a 3 m hut is hidden more than about 150–175 m behind the edge; from 700 m off the jetty heads (1.1 km from the Tour d'Odre cliff) it is hidden more than about 70 m behind it. `camps.md` treats what shows.
+- **"French Wikipedia ... cliff heights of 6–33 m from Wimereux to the Crèche": unsupported, and superseded.** The terrain model gives 45–69 m at the Pointe de la Crèche (`town-and-defences.md`).
 
 ## 5. Weather, wind, smoke and sea
 
-(to be filled)
+**Modern climatology**
+- **Le Cam and Baraer (2012), pp. 3–4: confirmed in substance.** South-west winds blow 26 % of the time in winter and 48 % in summer (June–August), all speeds together. North-east winds blow 14 % in autumn and 18 % in summer, often with anticyclones and for several days at a time. Coastal breezes set in from spring to early autumn. The strongest summer winds at the Boulogne station (1981–2010) come from 220°. The first two figures come from an offshore wind rose at 50.9 N 1.3 E, not from Boulogne. Medium.
+- **"In summer, south-west winds above force 5 make up 27 % of the observations": unsupported as worded.** The text says that summer is the season when south-west winds above force 5 are most frequent, at 27 % of the recorded values. It does not say whether that means all the records or only the south-west ones, and the second reading is the more likely.
+- **Météo-France sheet for Boulogne (station 62160001, 73 m, 50°43′57″ N 1°35′58″ E, on the Tour d'Odre plateau; 1991–2020): confirmed.** For August: mean maximum 20.7 °C, mean minimum 15.3 °C, 63.2 mm of rain on 8.7 days of 1 mm or more, mean wind 4.9 m/s, gusts of 16 m/s or more on 6.9 days. Modern.
+
+**Later scholarly and period statements**
+- **Desbrière III 141 on the winds: confirmed.** East and south-east winds are rare, rarer in summer. West and south-west winds blow two days in five and generally make the roads untenable. North and north-west winds, more violent, are about as frequent.
+- **James III 328: confirmed** as quoted: a breeze "in all likelihood, blows either up or down, and not across" the Channel. It comes from a rhetorical passage on how the flotilla's crossing would have gone, not from a weather record. Low as evidence of climate.
+- **Desbrière IV 398: confirmed.** The weather had improved in the last days of July and turned bad again by Napoleon's arrival on 3 August; there was not one craft in the roads, and this held until at least 6 August.
+- **Corr. XI No. 9097 (20 August, p. 104): confirmed.** The note's short quotation is exact and public domain.
+- **"No other remark on the weather" in his Boulogne letters: confirmed.** My own key-word search of Corr. XI for 3–20 August found only No. 9097.
+
+**The Royal Society journal for August 1805: confirmed, row by row, against the page images (pp. 16–17).** One detail: the rain is read at 7 a.m. and covers the previous 24 hours. So the 0.74 in read on the 19th fell on the 18th–19th (the 18th was cloudy at both readings), and the 0.11 in read on the 15th fell on the 14th–15th.
+- **On the owner's evenings London had no rain from the morning of 9 August to the morning of 14 August.** The barometer stood high, at 30.08–30.12 in on 10–11 August, then fell to 29.80 on the afternoon of the 12th. The air was light, north-east in the mornings of 11–13 August, and warm, 75 and 78 °F at 2 p.m. on the 11th and 12th.
+- That is settled anticyclonic weather, which in the Strait commonly brings haze. As a guide to Boulogne this is Medium, an inference from London 150 km away.
+
+**James's wind remarks of 1804–05: confirmed, with one wording corrected.**
+- III 227: on 19 July 1804 a strong north-north-east wind raised a sea in the roads.
+- III 229: on 25 August 1804 a north-easterly wind was blowing.
+- III 318–319: on 17 July 1805 a light north-east wind let the Batavian flotilla sail at 6 p.m. Contrary winds had kept Ver Huell in Dunkirk until mid-July. The "north-west gales" are those from which the smaller gun-vessels had retired into Dunkirk harbour; they are not what kept the Batavian craft there, as the note implies.
+- III 323: on 23 July 1805 there was foggy weather and a fine south-west wind at Fécamp.
+
+**The sea**
+- **Le Cam and Baraer: confirmed.** Rough seas (2.5–4 m) come less than 5 % of the year in the Pas-de-Calais, and the south-west swell in the Channel averages 1–1.5 m. Their Figure 12 maps mean wave heights for January and July: 1–1.2 m in July even at the western entrance of the Channel, less eastward. That supports the note's "well under 1.5 m". I did not find the sentence about streams against the wind in the text, but it is a commonplace. Medium.
+- **Desbrière III 141: confirmed.** The roads of Saint-Jean were 5–15 m deep, on marl and mud of good holding where anchors were often lost, wide open, and not sheltered by the Bassure de Baas. The flood set north-north-east toward England at up to "4 milles" (knots). The 4 knots is Desbrière's figure of about 1900 for the flood in the Strait, not a rate measured in the roads. Medium.
+- **Saint-Haouen's report of 3 August 1805 (Desbrière IV 398–399): confirmed.** It says the roads were beaten by every wind, that craft caught at anchor were in danger even in an ordinary gale from west round to north-east, that prames and canonnières went in the first line, and that the bottom rose gently and held well. The note does not say that Desbrière dismisses the report as full of contradictions and errors (IV 400). The passages it uses are not the disputed ones.
+- **Napoleon's note of 13 September 1805: confirmed directly in Corr. XI No. 9209, p. 193** (the date is the editors' presumed one). The flotilla could not get out on a single tide, nor ride out a gale in the roads of Boulogne. The note cites it "as summarised by Desbrière", but it stands in the Correspondance itself.
+- **The letter "J. X." of 31 July 1804 (NC XIV 481–482): confirmed.**
+
+**How the craft lie and where the smoke goes: consistent** (inference). The note's rule is right: a ship at anchor lies head to the stream. A flood setting north-north-east puts the bows to the right (south-south-west) for a viewer looking east, and the ebb puts them to the left. Which way the stream ran at low water off Boulogne was not checked here; see section 10. The smoke directions follow from the winds. Low for any given evening.
 
 ## 6. Tide
 
@@ -157,20 +218,90 @@ High for the 1768–1803 geometry, Medium for 1805. **The consequence for the vi
 
 ## 7. The Royal Navy's watch
 
-(to be filled)
+**Command**
+- **Naval Chronicle XIV 68: confirmed** (fleet list, page image). Rear-Admiral Billy Douglas is in the Leopard (50), Captain Richard Raggett, and the list says "Rear-Admiral Douglas is employed watching the Flotilla at Boulogne". Lord Keith and Vice-Admiral Holloway are stationed in the Downs. High for July 1805.
+- **Added (NC XIV 172, "Naval History of the Present Year, 1805"): the Leopard lay "at Dungeness, on the 29th of July"** 1805. An accident in her pump-well is told there, with Captain Raggett named. So the flagship of the Boulogne watch lay at times in Dungeness roads, on the English side, 45–48 km west-north-west of Boulogne and out of sight from the roads. In 1804 the letter "J. X." likewise speaks of British ships sailing across to dine off France and back to Dungeness for supper (NC XIV 482). So in August 1805 Douglas's 50-gun ship need not have been in sight at all; the inshore squadron was. Medium.
+- **Owen and the Immortalité: confirmed.** James III 320–323 has him leading the detached squadron in July 1805. Marshall prints Owen's report of the action of 18 July 1805, addressed "To Billy Douglas, Esq. Rear-Admiral of the White". High.
+- **Louis: confirmed.** James III 339 says Rear-Admiral Thomas Louis joined Nelson's fleet on 26 March 1805 in the frigate Ambuscade and shifted his flag to the Canopus when the fleet anchored in the gulf of Palma on the 27th. That gulf is Palmas, in southern Sardinia, not Majorca. So Louis was not off Boulogne in August 1805. High.
+- **Keith's order of 8 November 1803: confirmed.** Captains were not to be drawn under the enemy's coast batteries without a fair prospect of an advantage worth the risk (Keith Papers III, pp. 53–54, as transcribed).
+
+**How close they kept**
+- **August 1804 (James III 228–229): confirmed word for word.** Fifteen to twenty vessels under Louis in the Leopard; the main body at anchor in 15 fathoms about 10 miles north-west of the port; a flying division of five or six vessels under Owen that "generally cruised just out of shell-range", anchoring as the tide required; on 25 August 1804 the Immortalité lay-to about three miles off the port.
+- **The letter of 31 July 1804 (NC XIV 481): confirmed.** The squadron anchored about three miles from the French craft, which were moored "to the extent of four or five miles under their forts".
+- **April 1805 (Desbrière IV 407, after James): confirmed.** The frigate Leda, two sloops, a bomb and eight gun-brigs lay at anchor before Boulogne, two of the brigs under sail off Ambleteuse.
+- **17–18 July 1805: confirmed, one phrase corrected.** James III 320–321 has the British fighting "within half a mile north-west of Vimereux", that is, of Wimereux; the note's "half a mile north-west of the town" can be misread as Boulogne. They re-anchored "about five miles to the north-westward of Boulogne", with one or two gun-brigs sent to look out off Cap Gris-Nez. Lafond counted 2 frigates, 3 corvettes, 8 brigs and a cutter (Desbrière IV 397). The Immortalité lost 4 killed and 12 wounded (James III 323).
+- **Soult's report of a corvette with her foremast shot away, seen from the coast of Boulogne (Desbrière IV 407): confirmed.**
+- **Corr. XI No. 9073 (13 August, pp. 87–88): confirmed, with context added.** Napoleon tells Villeneuve that England has no more than four ships of the line in the Downs, "which we harass every day with our prames and flotillas". It is an exhortation to bring the fleet up the Channel, not a report of what happened. Low as evidence.
+- **The Naval Chronicle plate: confirmed.** The list of plates gives "Correct View of Boulogne, with the Encampments, on the Heights, of the French Army ...", engraved by Midland from Pocock's drawing after a sketch by an officer of the Euryalus. Its letter is dated 31 July 1804, so the view shows 1804, published in 1805.
+
+**Actions nearest to August 1805**
+- **4 August (Corr. XI No. 9042, p. 59): confirmed.** One detail is added in section 10.
+- **13 August: confirmed, with the citation narrowed.** No. 9069 (to Cambacérès, p. 79) says only that he had the English cruisers attacked and was very pleased with the flotilla. The chase "three and a half leagues out into the Channel, though there were ships of war" is in No. 9074 (to Prince Eugène, p. 88) alone.
+- **20 August (No. 9097): confirmed** (a topmast "coupé", as he was assured).
+- **"September 1805: becalmed off Boulogne under heated shot and shells": unsupported.** Marshall's entry on Owen does not mention it. The note already rates it Low.
+- **Nelson's attacks of 1801: confirmed** as dated (well established; not re-read here).
+
+**A British sail in the view**
+- **Bearings from the note's viewpoint: confirmed.** A ship 4 miles north-west of the harbour bears 332° at 6.2 km, one 5 miles off 328° at 8.0 km, and the 1804 main body 321° at 17.1 km.
+- **From 700 m off the jetty heads the British are entirely out of a frame looking east.** The same stations bear 317–319° at 7–18 km, behind the left shoulder. A ship standing in a mile off Wimereux or the Crèche bears 000–030°, 60–90° left of straight ahead. The note's "a British sail can enter the frame only at the far left" holds only for its own, more distant viewpoint and a wide frame.
+- **Types and sizes: confirmed as approximate.** A 45 m frigate at 6 km spans 0.43°, and her masthead, about 50 m up, 0.5°.
 
 ## 8. England from Boulogne
 
-(to be filled)
+**Recomputed: confirmed.** I used refraction k = 0.13, eye heights of 3 m, 6 m and 50–55 m, and modern positions; the target heights are uncertain.
+- **From the roads at 3 m** the horizon is 6.6 km off. Dover's cliffs, about 105 m high at 47 km, are hidden by the sea horizon (110–116 m of height hidden). At most the top 20–25 m of Dover Castle shows (0.03°) and some 50 m of the downs behind Folkestone (0.06°). From 700 m off the jetty heads the figures are the same.
+- **From the Tour d'Odre plateau (55 m)** the cliffs show 79–80 m (0.09–0.10°) and the Folkestone downs 0.16°. From the heights of Ambleteuse (50 m, 41.5 km from Dover) the cliffs show 0.13° and the downs 0.2°.
+- **Bearings from the plateau:** Dover 332–338°, Folkestone 323° and Dungeness 295°, behind the viewer's left shoulder.
+
+The note's table and conclusions stand. High for the geometry, Low–Medium for the target heights.
+
+**Napoleon's letter of 16 November 1803 (Corr. IX No. 7279, p. 92): confirmed.** From the heights of Ambleteuse he had seen the English coast as one sees the Calvaire from the Tuileries, and the houses and the movement could be made out. **The 1804 letter's 27 miles (NC XIV 482): confirmed.**
 
 ## 9. Other claims (time-keeping, calendar, side remarks)
 
-(to be filled)
+- **French clocks showed apparent time in 1805: confirmed in substance.** Bianchi's abstract gives Paris 1826, against the conventional 1816, for the adoption of mean time. The note says Bianchi argues 1826 "for public clocks", but in the abstract that phrase belongs to Geneva's entry for 1821. Either way, apparent time in 1805. High.
+- **British naval logs kept apparent time: confirmed in substance.** A caution for anyone who later reads the logs (ADM 51/52), not verified here: until late 1805 Royal Navy logs ran the nautical day from noon to noon, so an afternoon entry is dated a day ahead of the civil date.
+- **Republican dates and weekdays: confirmed.** 1 thermidor XIII = 20 July 1805, so 15 thermidor = 3 August (a Saturday), 27 thermidor = 15 August (a Thursday) and 10 fructidor = 28 August (a Wednesday). A check: 21 October 1805 comes out a Monday.
+- **LMT = UT + 6.4 min, and Norie's position for Boulogne, 50°43′30″ N 1°36′55″ E: confirmed** (Norie's table of latitudes and longitudes).
+- **The aside on "douze heures" (Corr. XI No. 9043, 4 August 1805, p. 59): confirmed** word for word; a short public-domain quotation. For the same list in the campaign notes: James III 327 quotes Napoleon's better-known "six heures", from a letter of 9 June 1805 to the minister of marine, citing the *Précis des événements* XI, 270. That source was not checked here.
+- **The colours of the light (note 1.4) and the sea-breeze behaviour: unsupported by a specific source, but plausible.** They are general atmospheric optics and meteorology, and the note labels them as such. Medium as inference.
+- **Doubt 6, James's "about eight leagues to the westward" (III 227): confirmed as printed.** The note is right to leave it aside.
 
 ## 10. Additional facts found
 
-(to be filled)
+1. **The camera and the low-water line.** In 1768–1803 the spring low-water line lay about 700–750 m beyond the jetty heads (Desbrière III 142, 148). The wooden fort stood on that line at the end of the dike, and Napoleon noted that it uncovered at low tide (`town-and-defences.md`). A boat 700 m west of the jetty heads is therefore at the water's edge at spring low water. For a chaloupe canonnière (draught about 2 m, Desbrière III 142) to float there, the bottom must lie about 2 m below the low-water level. With the beach sloping about 1:100–1:200 (Cadier's 3.40 m over 752 m; Owen's seven fathoms a mile out), that is roughly 0.9–1.2 km off the jetty heads. Medium.
+2. **The mouth at low water.** A sandbank, standing +5.5 m 150 m in front of the west pierhead, barred half the passage, and the channel hugged the east (Pidou) jetty (Desbrière III 143–144, 148). So at low water a dry bank lay across the west half of the mouth, and a narrow stream ran out along the east jetty. Medium.
+3. **The flood is quick.** On 11 August the water rose 0.5 m in the first half hour after sunset and 1.3 m in the first hour. At a slope of 1:100–1:200 the water's edge advanced roughly 50–100 m and 130–260 m. The wide strand of sunset was visibly narrower by the end of civil twilight. Medium (computed).
+4. **The Leopard at Dungeness on 29 July 1805** (NC XIV 172; section 7).
+5. **Napoleon, 4 August 1805 (Corr. XI No. 9042).** He also told the batteries to defend "les bâtiments qui sont mouillés là", the vessels anchored there. So some French craft lay at anchor under the batteries Sarrut, Augereau and Varé about 4 August, even if not a full line. This bears on the note's doubt 1, which is for the flotilla research. Low.
+6. **Napoleon's note of 13 September 1805 (Corr. XI No. 9209, p. 193)** plans to "rétablir la ligne d'embossage", to set up the moored line again. So by mid-September the line in the roads had been given up. This also bears on doubt 1. Medium for September, not proof for August.
+7. **Saint-Haouen's planned layout of 3 August 1805** (Desbrière IV 399–400; period; Desbrière thought the report unrealistic). Prames and canonnières were to form the first line, bateaux canonniers a third line, with péniches between. Two prames were to lie side by side at each end and the other prames twenty canonnières apart, with the anchors laid a cable further out than usual. This is for the flotilla research. Low as a picture of a real evening.
+8. **The moon's size and timing** (section 3) **and the tide of each evening** (section 6).
+9. **Not checked: which stream runs off Boulogne at low water.** Near low water the craft at anchor would lie to whichever stream was then running, bows into it. It should be read from a tidal-stream atlas before the craft are posed. Open.
 
 ## Sources used in this check
 
-(to be filled)
+Period:
+- J. W. Norie, *A New and Complete Epitome of Practical Navigation* (1805), Table XLI, p. 248 (page image), and the table of latitudes and longitudes. https://archive.org/details/norie-1805-a-new-and-complete-epitome-of-practical-navigation/page/n636/mode/1up
+- Royal Society, "Meteorological Journal" for August 1805, *Philosophical Transactions* 96 (1806), separately paginated pp. 16–17 (page images). https://archive.org/details/philtrans09860936/page/n15/mode/1up and https://archive.org/details/philtrans09860936/page/n16/mode/1up
+- Napoleon, *Correspondance*, vol. IX, No. 7279, p. 92 (https://archive.org/details/correspondancede09napouoft/page/n101/mode/1up), and vol. XI, Nos. 9042–9043 (p. 59), 9069 (p. 79), 9073 (pp. 87–88), 9074 (p. 88), 9097 (p. 104) and 9209 (pp. 192–193). https://archive.org/details/correspondancede11napouoft
+- *The Naval Chronicle*, vol. XIV (1805): p. 68 (fleet list; https://archive.org/details/navalchronicleco14londiala/page/n87/mode/1up), p. 172 (the Leopard at Dungeness; https://archive.org/details/navalchronicleco14londiala/page/n193/mode/1up), pp. 481–482 (the letter "J. X." and the plate; https://archive.org/details/navalchronicleco14londiala/page/n510/mode/1up), and the list of plates.
+- Owen to Keith, 7 October 1803, and Keith's order of 8 November 1803, in C. Lloyd (ed.), *The Keith Papers* III (Navy Records Society, 1955), pp. 41–42 and 53–54, as transcribed by J. Rickard. https://www.historyofwar.org/sources/napoleonic/nrs1955/1_1_034.html and https://www.historyofwar.org/sources/napoleonic/nrs1955/1_1_040.html
+- Saint-Haouen's report of 15 thermidor XIII and Lafond's and Soult's reports, as printed in Desbrière IV (below).
+
+Later scholarly:
+- E. Desbrière, *Projets et tentatives de débarquement aux îles Britanniques*, vol. III (1902), pp. 140–148, with the page image of the p. 142 footnote. https://archive.org/details/projetsettentat00histgoog/page/n158/mode/1up
+- E. Desbrière, vol. IV (1902), pp. 397–400 and 407. https://archive.org/details/projetsettentat02histgoog/page/n54/mode/1up
+- W. James, *The Naval History of Great Britain*, vol. III (1886 printing), pp. 227–229, 318–328 and 339. https://archive.org/details/navalhistoryofgr03jameuoft/page/n243/mode/1up
+- J. Marshall, *Royal Naval Biography*, entry on E. W. C. R. Owen (Wikisource). https://en.wikisource.org/wiki/Royal_Naval_Biography/Owen,_Edward_William_Campbell_Rich
+
+Modern data, services and works:
+- NASA/JPL Horizons (DE441), observer tables for the Sun and Moon, 1–31 August 1805, queried through the API on 13 November 2026. https://ssd.jpl.nasa.gov/horizons/
+- M. G. Hart-Davis, D. Dettmering and F. Seitz, *TICON-3: Tidal Constants based on GESLA-3 sea-level records*, PANGAEA (2022), CC BY 4.0. Boulogne gauge 50.727 N 1.578 E (1941–2020); also Dieppe, Calais, Dover and Brest. https://doi.org/10.1594/PANGAEA.951610
+- SHOM tide predictions for Boulogne-sur-Mer, 13–19 November 2026, as published by maree.info (used only to test the predictor). https://maree.info/7
+- P. Schureman, *Manual of Harmonic Analysis and Prediction of Tides* (US Coast and Geodetic Survey, Special Publication 98, 1958), for the nodal factors and equilibrium arguments; J. Meeus, *Astronomical Algorithms* (2nd ed., 1998), ch. 47, for the mean elements.
+- IGN, Géoplateforme altimetry service, RGE ALTI terrain model (point profiles). https://data.geopf.fr/altimetrie/1.0/calcul/alti/rest/elevation.json
+- H. Le Cam and F. Baraer, "Climatologie marine", in *Manche – Mer du Nord* (AAMP/Ifremer, 2012), pp. 3–9. https://sextant.ifremer.fr/documentation/dcsmm/documents/Evaluation_initiale/MMN/EE/MMN_EE_01_Climatologie_marine.pdf
+- Météo-France, *Fiche climatologique*, Boulogne (62160001), 1991–2020. https://donneespubliques.meteofrance.fr/FichesClim/FICHECLIM_62160001.pdf
+- S. Bianchi, "Where was Mean Solar Time first adopted?", *Journal of Astronomical History and Heritage* 24 (2021), pp. 337–344 (abstract). https://arxiv.org/abs/2103.07694
+- The sibling notes `town-and-defences.md` (jetty heads, wooden fort, terrain heights) and `camps.md` (what shows of the camps), used for positions and heights only.

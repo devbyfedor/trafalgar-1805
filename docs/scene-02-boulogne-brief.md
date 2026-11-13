@@ -26,6 +26,7 @@ Log:
 - 2026-11-13 — session 24 stopped by the owner mid stage A (the prototype half built: the scroll and the chart's dive and rise work, the painting's first passes in; checks, screenshots and the report's stage-A proof not done); see `docs/progress.md`, session 24.
 - 2026-11-13 — the owner reviewed the first painting on the dev server; his review, answers and order of work recorded below as "Owner review, 13 November"; session 25 continues stage A to all its done criteria.
 - 2026-11-13 — session 25 stopped by the owner mid stage A: the painting rebuilt on plates painted ahead (colour and engraving), the engraved transition and the eye's move done; the area painters and the history checks stopped before finishing; checks, screenshots and the report's stage-A proof not done; see `docs/progress.md`, session 25.
+- 2026-11-13 — the owner's second look (the engraving stage, the huts' horizon, how the painters work) recorded as "Second look, 13 November" under "Owner review, 13 November"; session 26 continues stage A.
 
 ## Owner review, 13 November
 
@@ -76,6 +77,41 @@ It works now but is raw. The owner's plan: the chart does not simply dissolve in
 9. The stage's screenshots in `docs/screenshots/scene-02/boulogne-sea/`, the status "Stage A — complete, awaiting owner review", the report by this brief's rules, the stop.
 
 Stage A will likely take two sessions: work in this order of priority. If a session ends early, stop at a safe point: `progress.md` current, everything committed. Nothing goes into `main`. The deferred plan's branches stay untouched. Never run `npm run screenshots`.
+
+### Second look, 13 November
+
+The owner looked at this branch again after session 25. His screenshots: `docs/owner-feedback/boulogne-sea-02.png` (the colour painting at the hold) and `docs/owner-feedback/boulogne-sea-03.png` (the engraving stage on the dive); local and git-ignored, saved as `boulogne-sea-02.png.jpg` and `boulogne-sea-03.png.jpg`. Copies (the browser's frame cropped off) stand beside the after frames in `docs/screenshots/scene-02/boulogne-sea/`.
+
+**His answer on the evening.** The evening with the full moon matters more. Low water is painted as a recorded liberty, as decided. Finish the tide computation only to record that liberty exactly in `decisions.md` and `history-notes.md`. Spend no more time choosing the evening.
+
+**New remarks (fix all):**
+
+9. **The engraving stage looks like a loading bug.** He took it for one himself, so it is badly made. Keep the transition through the engraving, but:
+   - the wholly colourless frame holds only briefly; colour starts coming in while the camera is still coming down; the stages overlap;
+   - now the whole picture (sky, sea and land) is covered with the same horizontal ruling, like a page of an exercise book. The engraving must be an engraving: the stroke follows the form; in the sky it is sparser and lighter; on the water it follows the waves; on the cliffs and the hulls it becomes hatching for the shadows;
+   - a broken horizontal line runs across the middle of the frame and leaves it on the right. It is an artefact: remove it;
+   - the engraving is no worse in quality than the colour painting. Now it is a diagram of outlines.
+10. **The horizon at the huts is still broken**, as last time (bug 4). The left camp is painted as a flat slab that hangs over the cliffs with hard edges. On the right a strip of huts of the same kind hangs over the hills. The huts lie on the slopes of the heights and follow the relief: no slabs, no hanging strips, no hard edges, in colour and in the engraving.
+
+**The proof for both:** after the fix, frames at the same stages as his screenshots (the engraving on the dive, the colour painting at the hold), saved beside his in `docs/screenshots/scene-02/boulogne-sea/`.
+
+**How the painters work** (the previous session spent its limit on eight painters and critics who read and stopped before writing anything):
+- At most three or four painters at once.
+- Each painter commits a draft of its area to its own branch as early as possible, and only then improves it. Every noticeable improvement is a new commit.
+- Critics come only once the drafts are in the branches, in one pass, not alongside the painters from the start.
+- Painters get compressed material: this brief, this review section and the historians' findings they need, not the whole history.
+
+**Order of work for the rest of stage A:**
+1. Restart the painters by these rules. The remarks above are part of their tasks.
+2. In parallel, history: finish the checks on `s24-boulogne-history`, the note on the evening and the section in `history-notes.md`, then merge the branch.
+3. Merge the painters' branches and bring the painting together: the smoke from the camps, the moon's place, the colour, the dark sky under the chapter title. The caption's and the title's contrast at least 4.5:1.
+4. Fix the engraving stage as above.
+5. Go through this whole "Owner review" section: the eight bugs of the first list and the new remarks. Each is closed, with frames before and after. The near vessel beside scene 1's "Victory" at the same scale also goes into `docs/screenshots/scene-02/boulogne-sea/`.
+6. The tools and tests onto the new scroll, by the plan in `progress.md`.
+7. Checks on the production build at the laptop size: the frame budget on the dive, the hold and the rise; scene 1's regression; every other beat frame for frame against the reference; the contrast.
+8. The stage's screenshots, the status "Stage A — complete, awaiting owner review", the report by this brief's rules, the stop.
+
+If the session ends earlier, stop at a safe point: `progress.md` current, everything committed. Nothing goes into `main`. The deferred plan's branches stay untouched. Never run `npm run screenshots`.
 
 ## <context>
 

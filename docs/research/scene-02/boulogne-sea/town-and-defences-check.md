@@ -404,7 +404,28 @@ The only near-quotation that misleads is the "reverberating lamp" for "four à r
 
 ## Additional facts found
 
-(in progress)
+Facts the note does not have, useful to the painters. Each gives its source.
+
+1. **The belfry had four corner turrets** on its square stage: Bertrand 1828, p. 97, says the 1544 picture shows them "as one sees them today". The town leaflet mentions a big corner turret and the bell chamber with two openings on each face. Medium.
+2. **A spire on the octagon "until 1805"**: town leaflet *Focus: le beffroi et l'hôtel de ville* (2016), p. 3. The octagon "culminates at 35 m" and dates from 1734 (same). Low for the spire's state in August 1805.
+3. **The harbour at low water.**
+   - The foot of the west pierhead stood at +6 m above chart datum (Desbrière III, p. 143). A sand bank still stood at +5.5 m 150 m in front of the west pierhead (p. 148). Ships had to hug the east jetty (p. 144).
+   - The Liane at low water was under 40 m wide, often under 20 m (p. 147). Three-fifths of the port lay above +4 m (p. 147). Grounding was "almost permanent" for the flotilla (p. 148).
+   - The basin was a drying basin, *bassin d'échouage*, from the first plan (p. 149). High.
+4. **Foreshore widths**: 700–800 m at the head of the bay, 450 m at la Crèche (Desbrière III, p. 141, from Desbrière's own hydrography of about 1900). Medium for 1805.
+5. **The 1801 timber trestle** from the east jetty's head to the packet-boat quay: 221 m long, 5.80 m wide at the base, 7.29 m high above the tide-scale zero, 67 frames, with a towing walkway (Bertrand 1828, p. 292). High.
+6. **A dam and a fascine causeway existed in August 1805.** The tide of 26 August 1805 breached "the fascine jetty that leads to Capécure" and cut a new channel "beyond the dam" (Sganzin, in Desbrière IV, p. 381). High.
+7. **Night barriers**: a heavy chain across the harbour entrance at night (Constant, quoted by Nicolay, p. 82). Gun-boats used as powder hulks, with a chain across the Liane (Bertrand 1828, legend no. 5). Medium.
+8. **Ammunition dumps**: "an enormous quantity of bombs and shot" piled at the foot of the Châtillon hill, and the château crammed with powder (Bertrand 1828, p. 337). Medium.
+9. **The forts' ramps**: plank ramps on piers from the forts to the shore at both forts, damaged by the sea in August 1804 (Desbrière IV, pp. 383–384). Medium.
+10. **Fort de l'Heurt's building pace**: 10 feet on 19 October 1803, 15½ feet on 1 November 1803, before the gale of 10 November (III, p. 161). The complete armament of the two forts was to be 22 36-pounders (IV, p. 384). High.
+11. **The Tour d'Odre's low battery** received two 12-inch Gomer mortars in May–June 1804 and lost its four 6-inch howitzers. Le Portel's battery was rebuilt for four 36-pounders (III, p. 435). High.
+12. **The redoubts round Boulogne** were first called for on 29 August 1805 (Corr. XI, No. 9159, pp. 159–160). The same letter orders all powder magazines moved into the upper town. That is after the scene's dates. High.
+13. **The British frigate fired on by la Crèche on 15 July 1804** came in with two brigs (IV, p. 382). High.
+14. **Decrès's hut** looked from afar "like an enormous extinguisher" (Nicolay, p. 22): a tall conical thatch. Medium.
+15. **The barracks** held 1,500–1,800 men and had cellars 770 feet long (Bertrand 1829, p. 140). High.
+16. **Saint-Nicolas's portal and nave** were by Giraud-Sannier (his biography, Bertrand 1829). Medium.
+17. **On 25 August 1804** James counts 146 gun-vessels moored in line in the roads, 62 of them brigs and the rest mostly luggers (III, p. 229). That is for the flotilla note. High as James's count.
 
 ## Sources opened for this check
 

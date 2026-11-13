@@ -171,6 +171,13 @@ export function Scene02Road() {
               refreshPriority: -1,
               markers: isDebug(),
               onUpdate: (self) => reportProgress("road", self.progress),
+              // A refresh renders the driver at its end and back with its
+              // callbacks muted, so the story's timeline, which follows the
+              // driver's onUpdate, would stay at its end: scene 1's layers,
+              // which it fades for the handoff, stayed hidden from the top
+              // of the page until the reader came into scene 2 (scene 1's
+              // regression, session 26). Follow the driver again after it.
+              onRefresh: () => follow(),
             },
           });
           driver.fromTo(

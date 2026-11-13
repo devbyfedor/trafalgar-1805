@@ -150,4 +150,34 @@ High for the geometry on the modern ground. Medium for 1805: the cliff edge has 
 
 ## Sources opened for this check
 
-(in progress)
+Page links use the archive.org leaf index (`page/nNNN`), which matches the scans' own order. For Bertrand vol. I the printed page is one less than archive.org's page label.
+
+Period documents, memoirs and images:
+- Napoleon, *Correspondance*, vol. IX: Nos. 7609, 7614, 7869, 7964 (pp. 281–285, 430). https://archive.org/details/correspondancede09napouoft
+- Napoleon, *Correspondance*, vol. XI: Nos. 9056, 9058, 9068, 9135, 9137 (pp. 70–71, 78, 140–144). https://archive.org/details/correspondancede11napouoft
+- É. Desbrière, *Projets et tentatives*, vol. III: pp. 190–194, 206–207, 428–436, 537–539. https://archive.org/details/projetsettentat00histgoog
+- É. Desbrière, *Projets et tentatives*, vol. IV: pp. 402–405, 409, 428–433, 451. https://archive.org/details/projetsettentat02histgoog
+- Constant, *Mémoires*, vol. I (1830), pp. 243–253. https://archive.org/details/mmoiresdeconst01wairuoft
+- Méneval, *Mémoires*, vol. I (1894), pp. 345–348. https://archive.org/details/mmoirespourser01mnuoft
+- Coignet, *Cahiers* (1909), pp. 113–115. https://archive.org/details/lescahiersducapi00coig
+- G. Sand, *Histoire de ma vie*, Project Gutenberg No. 39101: Maurice Dupin's letters from Ostrohove. https://www.gutenberg.org/ebooks/39101
+- E. D. Lewis, "A S. E. View of the Town and Harbour of Boulogne…", NMM PAI6989. I read the RMG record and examined the full 3,800 × 3,286 px TIFF on Commons in crops. https://www.rmg.co.uk/collections/objects/rmgc-object-157586 ; https://commons.wikimedia.org/wiki/File:Plan_and_key._The_Attack_on_Boulogne_Oct_1804_RMG_PZ6989.tiff
+- J.-F. Hue, *Napoléon visitant le camp de Boulogne en juillet 1804* (Commons, 1,945 px). https://commons.wikimedia.org/wiki/File:Napol%C3%A9on_visitant_le_camp_de_Boulogne_en_juillet_1804.jpg
+- P.-A. Hennequin, *Napoléon … distribue les croix …* (Commons, 1,885 px). https://commons.wikimedia.org/wiki/File:Hennequin_-_Napol%C3%A9on_Ier_distribue_les_croix_de_la_l%C3%A9gion_d%27honneur_au_camp_de_Boulogne_le_16_ao%C3%BBt_1804_(grand).jpg
+- *Plan du port et de la ville de Boulogne en l'an XII (1804)*, BnF GE D-6281, through Gallica's IIIF service at full resolution. https://gallica.bnf.fr/ark:/12148/btv1b8445205g
+- Soult's telegram of 12 June 1804, Archives nationales AE II 2302 (Commons description only). https://commons.wikimedia.org/wiki/File:T%C3%A9l%C3%A9gramme_du_G%C3%A9n%C3%A9ral_Soult_%C3%A0_l%E2%80%99Empereur_Napol%C3%A9on_Bonaparte_l%E2%80%99informant_que_l%E2%80%99escadre_anglaise_est_toujours_devant_Boulogne._1_-_Archives_Nationales_-_AE_II_2302.jpg
+
+Later works:
+- Bertrand, *Précis*, vol. I (1828): the plan legend; pp. 332–346, 383–392, 405–409, 424–428, 437–438. https://archive.org/details/prcisdelhistoir01bertgoog
+- Bertrand, *Précis*, vol. II (1829): pp. 51–54, 173–177. https://archive.org/details/bub_gb_MLwWAAAAQAAJ
+- Nicolaÿ, *Napoleon at the Boulogne Camp* (1907): pp. 15–34, 42–50, 59–61, 185–188, 237–245, 298–313. https://archive.org/details/napoleonatboulog00nicouoft
+- A*** P***, *Colonne de la grande armée à Boulogne-sur-Mer* (1841), Wikisource. https://fr.wikisource.org/wiki/Colonne_de_la_grande_arm%C3%A9e_%C3%A0_Boulogne-sur-Mer
+
+Modern:
+- S. Palaude and F. Lemaire, *Bulletin de l'AFAV* 2016, pp. 108–111 (PDF). https://afaverre.fr/Afaverre/wp-content/uploads/2025/01/2016-19-palaude-etaples.pdf
+- A. Salavert, G. Hello and F. Lemaire, *Antiquity* 90 (2016): the abstract on cambridge.org only. The HAL record refused access (bot protection). https://www.cambridge.org/core/journals/antiquity/article/firewood-of-the-napoleonic-wars-the-first-application-of-archaeological-charcoal-analysis-to-a-military-camp-in-the-north-of-france-18031805/647D032216BD70892C35B9E88C34874B
+- Inrap press release No. 89 (2005) on the Étaples dig: refused (HTTP 403). https://www.inrap.fr/sites/inrap.fr/files/atoms/files/communique_89.pdf
+- Fondation Napoléon, Newsletter No. 345 at `newsletters/410.html`. https://www.napoleon.org/wp-content/archives/newsletters/410.html
+- F. Cabane, "L'inventeur des sémaphores côtiers : Charles Depillon" (Ifremer slides, 2008). https://archimer.ifremer.fr/doc/00000/3419/2970.pdf
+- IGN RGE ALTI via the Géoplateforme altimetry service (my 25 m grid, 13 November 2026), and EU-DEM 25 m via OpenTopoData for a cross-check. https://data.geopf.fr/altimetrie/1.0/calcul/alti/rest/elevation.json ; https://api.opentopodata.org/v1/eudem25m
+- Wikipedia: coordinates from the French Wikipedia API (Tour d'Ordre, Colonne de la Grande Armée, Wimille, Le Portel, Outreau, Mont Lambert, Mémorial de la Légion d'honneur); English "Column of the Grande Armée". https://en.wikipedia.org/wiki/Column_of_the_Grande_Arm%C3%A9e

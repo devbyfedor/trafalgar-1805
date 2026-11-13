@@ -25,6 +25,7 @@ Log:
 - 2026-11-13 — session 24: brief committed as the first commit on `s24-boulogne-sea` (from `main` at `d7ed575`); stage A in progress.
 - 2026-11-13 — session 24 stopped by the owner mid stage A (the prototype half built: the scroll and the chart's dive and rise work, the painting's first passes in; checks, screenshots and the report's stage-A proof not done); see `docs/progress.md`, session 24.
 - 2026-11-13 — the owner reviewed the first painting on the dev server; his review, answers and order of work recorded below as "Owner review, 13 November"; session 25 continues stage A to all its done criteria.
+- 2026-11-13 — session 25 stopped by the owner mid stage A: the painting rebuilt on plates painted ahead (colour and engraving), the engraved transition and the eye's move done; the area painters and the history checks stopped before finishing; checks, screenshots and the report's stage-A proof not done; see `docs/progress.md`, session 25.
 
 ## Owner review, 13 November
 

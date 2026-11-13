@@ -66,7 +66,27 @@ An independent, adversarial check of `camps.md` (same folder), claim by claim. I
 
 ## Recomputations
 
-(in progress)
+**Method (mine, independent of the note's).** The terrain is the IGN RGE ALTI bare-earth model, fetched from the Géoplateforme altimetry service on 13 November 2026. It is the same model the note used, but on my own 25 m grid: 356 × 339 points over 50.695–50.775 N and 1.545–1.665 E, which takes in Mont Lambert. Between grid points I interpolate bilinearly. For each target I march along the ray from the camera in 8–10 m steps, with the camera's eye 3 m above the model's sea level. Earth curvature is included with refraction k = 0.13 (a drop of d²(1 − k)/2R). A point is in view if its sightline is steeper than every point in between. Where it is not, I record how far its ground lies below the grazing sightline. I sort the ground into three classes: in view; hidden by up to 3 m, so that only a hut's roof would show; and hidden. The sea horizon dips 0.052° at a 3 m eye. As a cross-check on the heights I used a second model, EU-DEM 25 m (via OpenTopoData). It gives 93.0 m at the column (IGN 91.6 m) and 38.1 m at the Tour d'Ordre point (IGN 46.7 m; the coarser model smooths the cliff edge). Cameras: the note's viewpoint N (50.7330 N 1.5480 E) and the town note's cameras A (50.7300 N 1.5650 E, about 2 km off the harbour mouth) and B (50.7300 N 1.5780 E, about 1.1 km off). Scripts and outputs are kept outside the repository (`.claude/s26/history/dem/`).
+
+**Angles above the sea horizon, distance and bearing (true).**
+- Tour d'Ordre point (47 m; the cliff top just inland 57–61 m): N 0.76° at 3.47 km, 92°; A 1.14° at 2.28 km, 85°; B 1.88° at 1.37 km, 82°.
+- Column site (91.6 m): N 1.04° at 5.04 km, 80°, ground hidden by 2.1 m; A 1.32° at 3.96 km, 72°, hidden by 5.8 m; B 1.68° at 3.10 km, 67°, hidden by 22 m. So from the cameras near the harbour mouth a stump of a few metres at the column would not show at all.
+- Outreau brow point (50.7178 N 1.5849 E, 50.5 m): N 0.92° at 3.10 km, 123°; A 1.44° at 1.95 km, 134°; B 1.93° at 1.44 km, 160°.
+- Belfry's foot (52 m): N 0.64° at 4.68 km, 101°; A 0.86° at 3.44 km, 99°; B 1.16° at 2.54 km, 103°. The foot is at the edge of view from all three, so the town on its spur is seen against the hills behind it.
+- Mont Lambert (186 m): N 1.42° at 7.49 km; A 1.71° at 6.24 km; B 1.99° at 5.35 km.
+- Legion of Honour memorial (50.7429 N 1.5992 E, 37 m): N 0.55°, A 0.73°, B 0.98°. Its ground is hidden by only 0.3–0.6 m, so the mouth of the hollow, which opens to the sea, is just in sight. The 1804 eyewitness who saw "the entrance to the harbour, and part of the roadstead" from the throne (*Journal des Débats*, Nicolaÿ p. 299, [n318](https://archive.org/details/napoleonatboulog00nicouoft/page/n318/mode/1up)) agrees.
+
+**The skyline.** From N it runs at 0.6–1.2° above the sea horizon between bearings 45° and 165°, rising to 1.41° at Mont Lambert (105°). From A it runs at 0.9–1.7°, and from B at 1.0–2.6°. From B the right camp's own plateau edge forms the skyline at bearings 60–90°, up to 2.6° at 1.6 km.
+
+**The right camp's band.** Along the line from the Tour d'Ordre to the column, ground or roofs stay in view for 1.75 km from N. From A only the first 0.25 km is in full view, and roofs only after that to 1.45 km. From B nothing shows beyond 0.25 km. Seen from A, everything from the cliff top (1.1°) to the crest of the slope (1.35–1.48°) fits in **about 0.3–0.4° of height**. From N the band runs from 0.76° to about 1.0–1.1°. Rows of huts 50–100 m apart up that slope would stack 0.01–0.03° apart: closer than a hut's own height of about 0.04–0.06°. So from the roads the rows overlap into a dense, striped texture above the cliff rather than separate lines.
+
+**The left camp.** In north–south sections across the plateau, cameras A and B see only 0.3–0.6 km of the brow at 1.580–1.585 E, and nothing at 1.590–1.605 E. From N the section at 1.585 E is in view, or shows roofs, for about 2 km south of the brow, and the one at 1.590 E from 1.3 to 2.5 km south. The plateau's surface slopes gently down to the west, so it faces a camera out to the west and turns its back on one off the harbour mouth. That is why the camera matters.
+
+**The pavilion's angular size.** At 32.5 × 7.3 m with a 9.7 m rotunda, and a height of about 4 m (my assumption), it is 0.82° long side-on, 0.24° end-on and 0.10° tall from A. From B the same figures are 1.36°, 0.41° and 0.17°. From N they are 0.54°, 0.16° and 0.07°.
+
+**Lewis's vertical scale.** On the 3,800 × 3,286 px TIFF the land occupies about 800 px of height across about 3,700 px of width. The angles above give the true height of the land as 1–2.5° over a coast of 70–90°. That makes Lewis's vertical exaggeration roughly ten times.
+
+High for the geometry on the modern ground. Medium for 1805: the cliff edge has retreated, the shore and harbour have been rebuilt, and the hut lines are not known.
 
 ## Additional facts found
 

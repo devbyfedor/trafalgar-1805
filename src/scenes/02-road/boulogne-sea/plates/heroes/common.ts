@@ -1,7 +1,4 @@
-import {
-  buildCraftArt,
-  type CraftArt,
-} from "@/components/ship/craft/geometry/index";
+import type { CraftArt } from "@/components/ship/craft/geometry/index";
 import {
   type CraftPalette,
   mix as linMix,
@@ -9,7 +6,12 @@ import {
 } from "@/components/ship/craft/light";
 import type { CraftSpec } from "@/components/ship/craft/types";
 import type { PlateCanvas } from "../../paint/plate";
-import { clothShape, type FlagSite, type FlagSpec } from "./flags";
+import {
+  clothBounds,
+  type FlagSite,
+  type FlagSpec,
+  flagAnchors,
+} from "./flags";
 
 /**
  * What the craft's painters share (plates/heroes/): where a craft stands
@@ -92,68 +94,87 @@ export function siteOf(pl: CraftPlace, art: CraftArt): FlagSite {
   };
 }
 
-/** The craft's flags: the tricolour at the stern, the pennant at the masthead. */
+/** The craft's flags: the tricolour at the stern, the pennant at the masthead (flags.ts, from the spec's numbers). */
 export function flagsOf(art: CraftArt, seed: number): FlagSpec[] {
-  return art.flags.map((f, i) => ({
-    kind: f.kind,
-    anchor: [f.anchor[0], f.anchor[1]] as const,
-    fly: f.fly,
-    hoist: f.hoist,
-    seed: seed * 7 + i * 131,
-  }));
+  return flagAnchors(art.spec, seed);
 }
 
-const NUM = /-?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?/gi;
-
 const SPANS = new Map<string, { minX: number; maxX: number; top: number }>();
+const rad = (d: number) => (d * Math.PI) / 180;
+
 /**
- * The craft's own span in metres without its flags (the module's box
- * holds them streaming aft; here they hang, and are measured as cloth).
+ * The craft's span in metres from its spec's numbers alone (no paths
+ * built, so a plate's box costs nothing to know): from the farthest reach
+ * aft (the boat astern, the boom, a bumkin) to the farthest forward (the
+ * jib-boom, the cable going down into the water), and its top; generous by
+ * a margin. Its flags are measured as cloth (flags.ts).
  */
-function spanOf(art: CraftArt) {
-  const key = art.spec.id;
-  let s = SPANS.get(key);
+export function specSpan(spec: CraftSpec): {
+  minX: number;
+  maxX: number;
+  top: number;
+} {
+  let s = SPANS.get(spec.id);
   if (s) return s;
-  const { hull, rig, rigging, fittings } = art;
-  const parts = [
-    hull.outline,
-    hull.rudder,
-    hull.tiller,
-    rig.masts,
-    rig.heads,
-    rig.yards,
-    rig.spars,
-    rig.darkSpars,
-    rig.canvas,
-    rig.lugCanvas,
-    rigging.heavy,
-    rigging.light,
-    rigging.shrouds,
-    rigging.running,
-    rigging.anchor,
-    fittings.guns,
-    fittings.oars,
-    fittings.chimney,
-    fittings.boat?.hull ?? "",
-    fittings.boat?.painter ?? "",
-  ];
-  let minX = Number.POSITIVE_INFINITY;
-  let maxX = Number.NEGATIVE_INFINITY;
-  let minY = Number.POSITIVE_INFINITY;
-  for (const d of parts) {
-    const v = d.match(NUM) ?? [];
-    for (let i = 0; i + 1 < v.length; i += 2) {
-      const x = Number(v[i]);
-      const y = Number(v[i + 1]);
-      if (x < minX) minX = x;
-      if (x > maxX) maxX = x;
-      if (y < minY) minY = y;
+  const h = spec.hull;
+  let minX = -h.sternRake;
+  let maxX = h.length + h.stemRake;
+  let top = Math.max(...h.rail) + (h.stemHead ?? 0);
+  const mastX = (id: string, y: number) => {
+    const m = spec.masts.find((q) => q.id === id);
+    return m ? m.x - (y - m.deck) * Math.tan(rad(m.rake)) : 0;
+  };
+  for (const m of spec.masts) {
+    top = Math.max(top, m.truck);
+    for (const y of m.yards ?? []) {
+      const cx = mastX(m.id, y.y);
+      minX = Math.min(minX, cx - y.length * 0.32 - 0.2);
+      maxX = Math.max(maxX, cx + y.length * 0.32 + 0.2);
     }
   }
-  minX = Math.min(minX, rigging.cableEntry[0]);
-  maxX = Math.max(maxX, rigging.cableEntry[0] + 0.3);
-  s = { minX: minX - 0.4, maxX: maxX + 0.4, top: -minY + 0.4 };
-  SPANS.set(key, s);
+  if (spec.bowsprit) {
+    const b = spec.bowsprit;
+    const reach = b.length - b.jibBoom.overlap + b.jibBoom.length;
+    maxX = Math.max(maxX, b.heel[0] + Math.cos(rad(b.angle)) * reach + 0.3);
+    top = Math.max(top, b.heel[1] + Math.sin(rad(b.angle)) * reach + 0.4);
+  }
+  if (spec.runningBowsprit)
+    maxX = Math.max(maxX, spec.runningBowsprit.to[0] + 0.2);
+  if (spec.bumkin) minX = Math.min(minX, spec.bumkin.to[0] - 0.2);
+  if (spec.gaff) {
+    const g = spec.gaff;
+    const ease = Math.cos(rad(g.ease));
+    minX = Math.min(
+      minX,
+      mastX(g.mast, g.boom.at) - g.boom.length * ease - 0.4,
+      mastX(g.mast, g.throat) - Math.cos(rad(g.angle)) * g.length * ease - 0.3,
+    );
+    top = Math.max(top, g.throat + Math.sin(rad(g.angle)) * g.length + 0.3);
+  }
+  if (spec.boat)
+    minX = Math.min(
+      minX,
+      -h.sternRake - spec.boat.gap - spec.boat.length - 0.4,
+    );
+  const st = spec.ensign.staff;
+  if (st) {
+    top = Math.max(top, st.foot[1] + st.height);
+    minX = Math.min(minX, st.foot[0] - Math.sin(rad(st.rake)) * st.height);
+  }
+  const a = spec.anchor;
+  const run = a.hawse[1] / Math.tan(rad(a.angle));
+  maxX = Math.max(maxX, a.hawse[0] + run * 1.7 + 0.3);
+  for (const lg of spec.lugs ?? []) {
+    minX = Math.min(minX, lg.aftX - 0.3);
+    maxX = Math.max(maxX, lg.aftX + lg.length + 0.3);
+  }
+  for (const g of spec.guns) {
+    const e = g.x + g.dir * g.length;
+    minX = Math.min(minX, e - 0.3);
+    maxX = Math.max(maxX, e + 0.3);
+  }
+  s = { minX: minX - 0.6, maxX: maxX + 0.6, top: top + 0.8 };
+  SPANS.set(spec.id, s);
   return s;
 }
 
@@ -163,19 +184,25 @@ export function craftExtent(
   pl: CraftPlace,
   seed = 0,
 ): { x0: number; x1: number; top: number; bottom: number } {
-  const art = buildCraftArt(spec);
-  const span = spanOf(art);
+  const span = specSpan(spec);
+  const midX = spec.hull.length / 2;
   const sx = pl.bowLeft ? -1 : 1;
-  const a = pl.x + pl.s * (span.minX - art.midX) * sx;
-  const b = pl.x + pl.s * (span.maxX - art.midX) * sx;
+  const a = pl.x + pl.s * (span.minX - midX) * sx;
+  const b = pl.x + pl.s * (span.maxX - midX) * sx;
   let x0 = Math.min(a, b);
   let x1 = Math.max(a, b);
   let top = pl.y + pl.s * span.top;
-  for (const f of flagsOf(art, seed)) {
-    const bx = clothShape(siteOf(pl, art), f).bounds;
-    x0 = Math.min(x0, bx.x0 - 1);
-    x1 = Math.max(x1, bx.x1 + 1);
-    top = Math.max(top, bx.y1 + 1);
+  const site: FlagSite = {
+    ahead: pl.ahead,
+    right: (pl.x * pl.ahead) / 1000,
+    midX,
+    bowLeft: pl.bowLeft,
+  };
+  for (const f of flagAnchors(spec, seed)) {
+    const bx = clothBounds(site, f);
+    x0 = Math.min(x0, bx.x0);
+    x1 = Math.max(x1, bx.x1);
+    top = Math.max(top, bx.y1);
   }
   return { x0, x1, top, bottom: pl.y - pl.s * FOOT };
 }

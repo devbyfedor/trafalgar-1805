@@ -1,4 +1,5 @@
 import { mix as linMix, lit } from "@/components/ship/craft/light";
+import type { CraftSpec } from "@/components/ship/craft/types";
 import { SEA_EYE } from "../../../interludes";
 import { createRng } from "../../paint/kit";
 import { INK, PAPER, type PlateCanvas } from "../../paint/plate";
@@ -154,6 +155,94 @@ function clothPoints(site: FlagSite, f: FlagSpec, nu: number, nv: number) {
     pts.push(col);
   }
   return pts;
+}
+
+const rad = (d: number) => (d * Math.PI) / 180;
+
+/**
+ * The craft's flags from its spec's numbers (rig.ts's layout, copied, so
+ * a plate can be measured without building the craft): the tricolour's
+ * hoist at the ensign staff's head, the gaff's peak or a masthead; the
+ * pennant's at the masthead's truck.
+ */
+export function flagAnchors(spec: CraftSpec, seed: number): FlagSpec[] {
+  const out: FlagSpec[] = [];
+  const mastAt = (id: string | undefined, y: number, pole: boolean) => {
+    const m =
+      spec.masts.find((q) => q.id === id) ?? spec.masts[spec.masts.length - 1];
+    const lean = Math.tan(rad(m.rake));
+    const x = m.x - (y - m.deck) * lean;
+    if (!pole || m.head === undefined || m.top === undefined) return [x, y];
+    const [dL, dT, dG] = m.d;
+    const topOffset = (dL * 0.8 + dT) / 2 + 0.04;
+    return [x + topOffset + (dT * 0.8 + dG) / 2 + 0.03, y];
+  };
+  const e = spec.ensign;
+  let anchor: number[];
+  if (e.at === "staff" && e.staff) {
+    const st = e.staff;
+    anchor = [
+      st.foot[0] - Math.sin(rad(st.rake)) * st.height,
+      st.foot[1] + Math.cos(rad(st.rake)) * st.height - 0.08,
+    ];
+  } else if (e.at === "peak" && spec.gaff) {
+    const g = spec.gaff;
+    const [tx, ty] = mastAt(g.mast, g.throat, false);
+    anchor = [
+      tx - Math.cos(rad(g.angle)) * g.length * Math.cos(rad(g.ease)) - 0.05,
+      ty + Math.sin(rad(g.angle)) * g.length - 0.12,
+    ];
+  } else {
+    const m =
+      spec.masts.find((q) => q.id === e.mast) ??
+      spec.masts[spec.masts.length - 1];
+    anchor = mastAt(m.id, m.truck - 0.12, true);
+  }
+  out.push({
+    kind: "ensign",
+    anchor: [anchor[0], anchor[1]],
+    fly: e.fly,
+    hoist: e.hoist,
+    seed: seed * 7,
+  });
+  const p = spec.pennant;
+  if (p) {
+    const m = spec.masts.find((q) => q.id === p.mast);
+    if (m) {
+      const at = mastAt(m.id, m.truck - 0.1, true);
+      out.push({
+        kind: "pennant",
+        anchor: [at[0], at[1]],
+        fly: p.length,
+        hoist: p.hoist,
+        seed: seed * 7 + 131,
+      });
+    }
+  }
+  return out;
+}
+
+/** A flag's box in layer units from a coarse cloth (generous), for measuring a plate. */
+export function clothBounds(
+  site: FlagSite,
+  f: FlagSpec,
+): { x0: number; x1: number; y0: number; y1: number } {
+  const P = clothPoints(site, f, 8, 2);
+  let x0 = Number.POSITIVE_INFINITY;
+  let x1 = Number.NEGATIVE_INFINITY;
+  let y0 = Number.POSITIVE_INFINITY;
+  let y1 = Number.NEGATIVE_INFINITY;
+  for (const col of P)
+    for (const p of col) {
+      const x = (1000 * p[1]) / p[0];
+      const y = (1000 * (p[2] - EYE_H)) / p[0];
+      if (x < x0) x0 = x;
+      if (x > x1) x1 = x;
+      if (y < y0) y0 = y;
+      if (y > y1) y1 = y;
+    }
+  const m = (1000 / site.ahead) * f.fly * 0.12 + 2;
+  return { x0: x0 - m, x1: x1 + m, y0: y0 - m, y1: y1 + m };
 }
 
 const SHAPES = new Map<string, ClothShape>();

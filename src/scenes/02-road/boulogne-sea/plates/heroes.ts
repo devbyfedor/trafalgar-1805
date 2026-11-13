@@ -5,6 +5,7 @@ import {
   type CraftPlace,
   craftExtent,
   craftJob,
+  prepJobs,
   reflectionJobs,
   reflectionReach,
 } from "./heroes/craft-paint";
@@ -78,7 +79,10 @@ export function heroPlates(): Plate[] {
       depth: h.ahead,
       box: [ext.x0 - pad - 4, ext.x1 + pad + 4, reach - pad, pl.y + pad],
       group: "craft",
-      jobs: () => reflectionJobs(h.spec, pl, h.seed, reach),
+      jobs: () => [
+        ...prepJobs(h.spec),
+        ...reflectionJobs(h.spec, pl, h.seed, reach),
+      ],
       // The reflection rolls the other way but rises and falls with the
       // water at the hull, as the craft does: a negative roll rather than
       // `mirror`, which turns the heave over too and opens a gap at the
@@ -96,7 +100,7 @@ export function heroPlates(): Plate[] {
       depth: h.ahead,
       box: [ext.x0 - pad, ext.x1 + pad, ext.bottom - pad, ext.top + pad],
       group: "craft",
-      jobs: () => [craftJob(h.spec, pl, "hero", h.seed)],
+      jobs: () => [...prepJobs(h.spec), craftJob(h.spec, pl, "hero", h.seed)],
       rock: {
         pivot: [pl.x, pl.y],
         roll: h.roll,

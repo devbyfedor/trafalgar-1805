@@ -7,6 +7,7 @@ import {
   type CraftPlace,
   craftExtent,
   craftJob,
+  prepJobs,
   reflectionJobs,
   reflectionReach,
 } from "./heroes/craft-paint";
@@ -81,9 +82,14 @@ function placeAt(e: number, n: number): CraftPlace | null {
   };
 }
 
-/** Whether a craft at this place can show at the hold or through the drift. */
-function inView(pl: CraftPlace): boolean {
-  return pl.x > -980 && pl.x < 960 + 14000 / pl.ahead;
+/**
+ * Whether a craft can show at the hold or through the drift: its box
+ * reaches into the widest frame (±890 units) before the camera's 14 m
+ * drift to the right has moved it left by 14000 / ahead.
+ */
+function inView(spec: CraftSpec, pl: CraftPlace, seed: number): boolean {
+  const ext = craftExtent(spec, pl, seed);
+  return ext.x1 > -890 && ext.x0 < 890 + 14000 / pl.ahead;
 }
 
 const ROWS = [
@@ -101,8 +107,9 @@ function buildLine(): { row: string; craft: Moored[] }[] {
       const kind = rng();
       const seed = Math.floor(rng() * 1e6);
       const pl = placeAt(e + across, n + slip);
-      if (!pl || !inView(pl)) continue;
-      craft.push({ spec: kind < 0.5 ? SEA_CHALOUPE : SEA_BATEAU, pl, seed });
+      const spec = kind < 0.5 ? SEA_CHALOUPE : SEA_BATEAU;
+      if (!pl || !inView(spec, pl, seed)) continue;
+      craft.push({ spec, pl, seed });
     }
     return { row: r.id, craft };
   });
@@ -121,7 +128,8 @@ function buildLine(): { row: string; craft: Moored[] }[] {
     const skip = rng() < 0.45;
     const seed = Math.floor(rng() * 1e6);
     const pl = placeAt(e, n);
-    if (!pl || !inView(pl) || Math.abs(pl.x) < 480 || skip) continue;
+    if (!pl || !inView(SEA_PENICHE, pl, seed) || Math.abs(pl.x) < 480 || skip)
+      continue;
     peniches.push({ spec: SEA_PENICHE, pl, seed });
   }
   return [{ row: "peniches", craft: peniches }, ...rows];
@@ -158,11 +166,13 @@ export function fleetPlates(): Plate[] {
         depth: Math.round(depth),
         box: [x0 - 6, x1 + 6, y0 - 3, y1 + 3],
         group: "craft",
-        jobs: (): PlateJob[] =>
-          far.flatMap((m) => [
+        jobs: (): PlateJob[] => [
+          ...[...new Set(far.map((m) => m.spec))].flatMap(prepJobs),
+          ...far.flatMap((m) => [
             ...reflectionJobs(m.spec, m.pl, m.seed),
             craftJob(m.spec, m.pl, "mid", m.seed),
           ]),
+        ],
       });
     };
     for (const m of sorted) {

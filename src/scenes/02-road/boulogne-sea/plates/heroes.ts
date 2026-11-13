@@ -1,66 +1,109 @@
-import { buildFleet, type MooredCraft, placeCraft } from "../fleet";
+import type { CraftSpec } from "@/components/ship/craft/types";
 import type { Plate } from "../paint/plate";
-import { PALETTE } from "../scene";
-import { drawCraft } from "./fleet";
+import { EYE_H } from "../scene";
+import {
+  type CraftPlace,
+  craftExtent,
+  craftJob,
+  reflectionJobs,
+} from "./heroes/craft-paint";
+import { SEA_BATEAU, SEA_CHALOUPE } from "./heroes/specs";
 
 /**
- * The nearest craft, large in the foreground, rocking at anchor (legacy
- * port: the chart's silhouettes, large; the hero art replaces them).
+ * The nearest craft, large in the foreground, at anchor around the eye's
+ * own boat in the roads: a chaloupe canonnière (a gun-brig) about 80 m off
+ * on the right and a bateau canonnier (a lugger) about 135 m off on the
+ * left, both bows to the left like the whole line (to the stream), at
+ * their true size. Each is two plates rocking at anchor: the craft, and
+ * its reflection, which rolls the other way.
  */
-const HEROES = [
-  {
-    id: "hero-prame",
-    kind: "prame" as const,
-    ahead: 150,
-    right: -36,
-    roll: 0.55,
-    heave: 0.18,
-    period: 7.9,
-    phase: 1.3,
-  },
+
+interface Hero {
+  id: string;
+  spec: CraftSpec;
+  /** Metres ahead of the eye and to the right of the view's axis. */
+  ahead: number;
+  right: number;
+  roll: number;
+  heave: number;
+  period: number;
+  phase: number;
+  seed: number;
+}
+
+const HEROES: readonly Hero[] = [
   {
     id: "hero-chaloupe",
-    kind: "chaloupe" as const,
-    ahead: 76,
-    right: 26,
-    roll: 0.8,
-    heave: 0.22,
-    period: 6.3,
+    spec: SEA_CHALOUPE,
+    ahead: 80,
+    right: 27,
+    roll: 0.75,
+    heave: 0.2,
+    period: 6.6,
     phase: 0,
+    seed: 501,
+  },
+  {
+    id: "hero-bateau",
+    spec: SEA_BATEAU,
+    ahead: 135,
+    right: -44,
+    roll: 0.6,
+    heave: 0.16,
+    period: 7.8,
+    phase: 2.3,
+    seed: 502,
   },
 ];
 
+/** The frame's lowest reach at the hold, layer units (with a margin). */
+const FRAME_BOTTOM = -292;
+
 export function heroPlates(): Plate[] {
-  const art = Object.fromEntries(
-    buildFleet()
-      .flatMap((l) => l.craft)
-      .map((c) => [c.kind, c.art]),
-  ) as Record<MooredCraft["kind"], MooredCraft["art"]>;
-  return HEROES.map((h): Plate => {
-    const m: MooredCraft = {
-      kind: h.kind,
-      art: art[h.kind],
+  const out: Plate[] = [];
+  for (const h of HEROES) {
+    const pl: CraftPlace = {
+      x: (1000 * h.right) / h.ahead,
+      y: (-1000 * EYE_H) / h.ahead,
+      s: 1000 / h.ahead,
+      bowLeft: true,
       ahead: h.ahead,
-      right: h.right,
-      bowRight: true,
-      hull: PALETTE.craft.hullNear,
-      spar: PALETTE.craft.sparNear,
     };
-    const { x, y, scale } = placeCraft(m);
-    const half = 30 * scale;
-    return {
+    const ext = craftExtent(h.spec, pl);
+    const pad = 3;
+    const reach = Math.max(FRAME_BOTTOM, pl.y - (ext.top - pl.y) * 1.02);
+    out.push({
+      id: `${h.id}-reflection`,
+      depth: h.ahead,
+      box: [ext.x0 - pad - 4, ext.x1 + pad + 4, reach - pad, pl.y + pad],
+      group: "craft",
+      jobs: () => reflectionJobs(h.spec, pl, h.seed, reach),
+      // The reflection rolls the other way but rises and falls with the
+      // water at the hull, as the craft does: a negative roll rather than
+      // `mirror`, which turns the heave over too and opens a gap at the
+      // waterline.
+      rock: {
+        pivot: [pl.x, pl.y],
+        roll: -h.roll,
+        heave: h.heave,
+        period: h.period,
+        phase: h.phase,
+      },
+    });
+    out.push({
       id: h.id,
       depth: h.ahead,
-      box: [x - half, x + half, y - 4 * scale, y + 34 * scale],
+      box: [ext.x0 - pad, ext.x1 + pad, ext.bottom - pad, ext.top + pad],
       group: "craft",
-      jobs: () => [(c) => drawCraft(c, m, true)],
+      jobs: () => [craftJob(h.spec, pl, "hero", h.seed)],
       rock: {
-        pivot: [x, y],
+        pivot: [pl.x, pl.y],
         roll: h.roll,
         heave: h.heave,
         period: h.period,
         phase: h.phase,
       },
-    };
-  });
+    });
+  }
+  return out;
 }

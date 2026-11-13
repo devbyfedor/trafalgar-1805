@@ -67,31 +67,116 @@ Status: in progress.
 
 ### 1.1 Setting, heights and the sample cameras
 
-(in progress)
+I queried the same IGN service at my own points and wrote my own geometry (see Recomputations).
+
+- **Upper town heights.** Confirmed: belfry foot 52.3 m, by the basilica 58.7 m, the château 58.1 m.
+- **Lower town.** Confirmed: Saint-Nicolas 13.1 m.
+- **North cliffs.** Confirmed in range: 46.7 m at the Tour d'Odre site, 68.6 m at the 1879 Crèche battery on the cliff top. Henry's 55 m: Nicolay, p. 45, confirmed. Nicolay calls him an "adjutant of engineers".
+- **South side.** Not re-measured point by point. Accepted as DEM, medium.
+- **Mont Lambert.** Corrected slightly. 188–190 m at 50.7174 N 1.6501 E. It is 2.8 km from the belfry and about 4.2 km from the 1805 harbour mouth, not 3.5 km.
+- **Column site.** Corrected. 91.6 m, confirmed. But it lies about 1.8 km north-north-east of the belfry (bearing about 11°), not "about 2.5 km north-east of the upper town".
+- **Positions.** Confirmed: the Wikipedia geodata I fetched give the same coordinates for the belfry, the château, the basilica, Saint-Nicolas and Fort de l'Heurt. The harbour mouth, wooden fort and Crèche fort are the note's inference. Low, as it says.
+- **Distances and bearings.** Confirmed: all of them within 0.1 km and 1°. Mont Lambert from camera B comes out at 5.3 km, not 5.4 km, because my summit lies 90 m further west.
+- **Angular heights.** The belfry (1.4° and 1.9°) and Mont Lambert (1.7° and 2.0°): confirmed within 0.1°. The Tour d'Odre cliff: corrected to about 1.1° and 1.8°.
+- **"From anywhere in the roads the belfry is seen against the hillside": refuted** for its top 4–8 m from cameras up to 2–2.5 km off (painter's item 1). The note compared the belfry with Mont Lambert's summit, which lies on another bearing. The ground directly behind the belfry is lower.
+- **Curvature.** Confirmed: 2.8 m at 6 km, about 2.4 m with normal refraction, 0.02–0.03°.
 
 ### 1.2 The upper town
 
-(in progress)
+- **Walls 1227–1231 for Philippe Hurepel.** Confirmed: French Wikipedia (*Ville fortifiée*), citing the tourist office. The Mérimée record IA00059456, which I read through the POP platform, has 1231 and "following almost the Roman enclosure". The inscription over the château gate with MCCXXXI: Bertrand 1829, p. 97, confirmed.
+- **Size, height, half-moons, trees.** Confirmed, pp. 95–96. The trees for 1805: not documented (painter's item 4).
+- **Gates.** Confirmed, pp. 101–102. Bertrand names the Porte Neuve also "Flamengue". The Porte des Degrés was blocked in the League's siege by the duc d'Aumale and "has not been opened since".
+- **Orientation.** Confirmed with a wording fix: Bertrand's names are an eighth of a turn out, not a quarter. My fit to the OpenStreetMap walls gives corners near north, east, south and west. The long faces (about 430 m) run south-west to north-east. The Porte des Dunes is on the north-west face, the Porte Neuve on the north-east face, the Porte Gayole on the south-east face and the Porte des Degrés on the south-west face.
+- **Corner towers razed in 1687.** Confirmed, p. 96. The Mérimée record has Louis XIV's demolition of an outer line "from 1689", a different work.
+- **The château.**
+  - Octagonal, built 1231, ditch: confirmed, pp. 96–97.
+  - "Six of eight towers still showed": the sentence can also be read as six standing, of which two are hidden in newer walls. Low either way. It does not matter from the sea.
+  - Powder magazine: Bertrand 1829, p. 99, says "in 1803 and 1804". Bertrand 1828, p. 337, says the château was "crammed with powder" during the camp. Confirmed.
+  - "Arsenal" is the 1828 use (an artillery store, armoury and barracks, p. 98), not specifically 1803–05.
+  - **Its place in the view: refuted** (painter's item 4). From the roads it lies left of the belfry, behind the north-west face.
+- **Luffman's plan.** It shows "The Castle" at the bottom right of a square drawn square to the map, so south-east on the plan. His upper town is schematic. Confirmed as a source for "a corner castle", not for orientation.
+- **Napoleon did nothing for the town walls.** Confirmed, p. 11: "on ne mit seulement pas un canon de plus sur ses remparts", the works being carried a quarter of a league out.
 
 ### 1.3 The belfry and its telegraph
 
-(in progress)
+- **Form and Wikipedia's account.** Confirmed as a report of what French Wikipedia says (octagon "early 18th century", Martinet, slate spire burned in 1712, 37 m).
+- **The town's leaflet disagrees.** It has the octagon in 1734, 35 m, and a spire on it "until 1805". I read it. The regional inventory (via a search summary) has the fire on 15 August 1712 and Martinet's octagon finished in 1734.
+- **Bertrand.** Confirmed: the octagon "existed before the siege of 1544" (p. 103), the "clocher" of former days, the small turret of his own day, the watchman and the great bell (pp. 103–104).
+- **Corner turrets.** Bertrand 1828, p. 97, describing a picture of the 1544 siege, says the belfry showed "its four turrets as one sees them today". So in 1805 the square stage carried four small corner turrets. The note does not mention them.
+- **Confidence for the form: corrected from High to Medium** for the square base, corner turrets and octagon, and Low for what crowned it in August 1805 (painter's item 1).
+- **Telegraph.**
+  - The order of 28 August 1803 and the branch working through the Empire: confirmed on the Chappe history page.
+  - Nicolay's engraving and its labels: confirmed, p. 33, from the page image. The belfry is drawn as a tall, slender tower whose top tapers to a point under the telegraph mast.
+  - Lightning, the move to the south-west angle of the rampart, then to Calais: Bertrand 1829, p. 104, confirmed.
+  - One informal web page claims that "Mr Chappe" put a telegraph on the belfry "in 1805" and that lightning destroyed the roof timbers in 1807. It cites nothing. If it reflects a local tradition, the 1805 work may be a rebuilding of the top, which would fit the leaflet's "until 1805". Not usable as evidence.
+  - Medium for "still there in August 1805": confirmed.
+- **The Chappe machine.** A mast with a regulator and two indicators, worked from below: confirmed as general knowledge. I took no dimensions either.
 
 ### 1.4 Churches
 
-(in progress)
+- **The old cathedral.**
+  - 47 toises 3 feet long, 7 toises 3 feet to the entablature: Haigneré, p. 261, note 1, quoting the sale. Confirmed. The sale also gives a "reduced width" of about 12 toises 3 feet (24 m; the first digit is unclear in the scan), which the note leaves out.
+  - The sale on 3 thermidor VI (21 July 1798), 510,500 francs, six outsiders: confirmed.
+  - The demolition scene: confirmed, but the child witness is Hédouin, quoted by Haigneré (pp. 261–262).
+  - The sixteenth-century tower and two big turrets: Bertrand 1828, p. 97, confirmed.
+  - The site in 1820 and 1828: confirmed (Haigneré ch. XXVIII; Bertrand 1829, p. 16).
+  - The Mérimée date of 10 July 1798: seen only as a search summary, as the note says.
+- **"August 1805: not documented."** Confirmed. I found nothing either.
+- **Saint-Nicolas.** Confirmed, pp. 138–139 (leaf 149), with one fix. Bertrand says it had been a chapel that Philippe Hurepel had *enlarged* in 1231, not "rebuilt and enlarged". The tall tower was pulled down in 1688 and replaced by "the present steeple". The ruined nave was rebuilt in 1775, to Giraud-Sannier's design (his biography, Bertrand 1829). It served as a barracks and a store in the Terror.
+- **The Annonciades.** Confirmed: its first stone was laid on 27 July 1772 (Bertrand 1829, p. 105). The parish of the upper town after the Concordat: Haigneré, p. 262.
+- **The Capuchins' church almost whole in 1828.** Confirmed, Bertrand 1829, p. 16.
+- **Two small spires in the lower town in the 1804 views.** Confirmed in both the Pocock and the Lewis crops.
 
 ### 1.5 The lower town and the harbour
 
-(in progress)
+- **Houses and colour.** Confirmed with the *étages* correction (painter's item 5). The quotation is exact (p. 113).
+- **La Beurrière and the second amphitheatre.** Confirmed, Bertrand 1829, p. 54. Bertrand describes the view from the Outreau slope. In it the belfry "dominates" the upper town.
+- **Roofs.** Low, as the note says. In Hue's painting I see red-brown roofs on the houses below the slope in the foreground. Bertrand's bricks and tiles (p. 62) are made at Samer, 15 km up the valley.
+- **Barracks.** Confirmed (painter's item 6). Bertrand adds cellars 770 feet long and room for 1,500–1,800 men.
+- **Quays.** Confirmed, Desbrière III, pp. 149–151. The figures are Bertrand's (1828, p. 292), quoted in Desbrière's footnote. Bertrand gives the trestle of May 1801 as 221 m long, 5.80 m wide at the base and 7.29 m high above the tide-scale zero, on 67 frames.
+- **The basin.** Confirmed. It was a *bassin d'échouage* (a drying basin) from the first: Desbrière III, p. 149. The note leaves this out. The Brebiettes: Bertrand 1829, p. 13. The new town of Capécure is "not yet twenty years old" in 1829 (p. 13), so after about 1809.
+- **The service bridge, the dam and the sluice.**
+  - The service bridge was finished by July 1803 (III, p. 151).
+  - The dam was "barely begun" when work stopped in late 1804 (IV, p. 373).
+  - The 22 frimaire XIII letter: the timber frame of the sluice finished. Desbrière misprints 1805; it is December 1804 (IV, p. 374). Confirmed, a good catch by the note.
+  - Add: Sganzin's report on the extraordinary tide of 8 fructidor XIII (26 August 1805) speaks of a breach in "the fascine jetty that leads to Capécure" and of "the new channel the sea has made beyond the dam" (IV, p. 381). So a dam and a fascine causeway existed in August 1805.
+  - The powder magazines beyond the service bridge: Nicolay, p. 82, confirmed. Bertrand's legend no. 5 adds gun-boats used as powder hulks, with a chain across the Liane.
+- **Jetties and beach.** Confirmed (painter's item 7), except that the dike is not dated. Luffman's plan of 1801 shows two jetties with round heads, the west one the longer, and the harbour marked "Dry at Low Water". I looked at the scan.
+- **Tides.** Confirmed (painter's item 7).
+- **Pierhead and light.** Confirmed.
+  - Article 1 of the order razes "the lantern and the *four à réverbère*" at the jetty's end. *Four à réverbère* is literally a reverberatory furnace. It may have been a shot-heating furnace rather than a reflector lamp. Low either way.
+  - Lewis's "Light House": in his drawing it is a tall, white, pointed structure beside the pier-head guns.
 
 ### 1.6 What did not stand in August 1805
 
-(in progress)
+- **Basilica and dome.** Confirmed for 1805. I did not re-open the leaflets on the dome's date.
+- **The column.**
+  - All dates and figures confirmed (painter's item 2).
+  - "Work was brisk at first": Bertrand 1828, p. 391. "Slowed when the army left in 1805": unsupported in the pages I read.
+  - In Soult's order the site is "between the Tour d'Odre headquarters and the camp of the first division" (Nicolay p. 309). Bertrand puts it "200 m from the Calais road, on the line from Mont Lambert to the Fort de la Crèche" (1828, p. 383). The terrain model gives 92 m there. Low for anything visible in August 1805, as the note says.
+- **The Tour d'Odre.** Confirmed.
+  - Its fall: Nicolay, p. 47. Henry and the debris: p. 45.
+  - The pavilion inside "the old fortifications the English built in 1544 around Caligula's pharos": Bertrand 1828, p. 344. In "one of the old bastions": legend no. 34.
+  - Luffman's polygonal "Fort d'Ordre": I saw it on the plan.
+  - The red-brick stumps: not checked.
+- **Lighthouses.** Confirmed by the order of 3 July 1803. Medium.
+- **The modern harbour, the casino and the baths.** Confirmed, with one fix. Legend no. 37 (Bertrand 1828) names the sea-bathing establishment but gives no year. "From 1824" is unsupported in the cited place.
+- **The ring of forts.** Confirmed and sharpened by Corr. XI, No. 9159 (29 August 1805). See painter's item 2.
+  - Bertrand 1828, legend nos. 2–4, describes the Mont-de-Coupe, Petit-Moulin and Renard forts "with revetment and ditches". Nos. 9–12 and 21–33 are parts of the entrenched camp "built in 1805".
+  - The caution about the "fort du Mont-de-Couple" in November 1803 (Bertrand 1828, p. 346): confirmed.
+- **The 1879 forts.** Not re-checked.
 
 ### 1.7 Materials and colours
 
-(in progress)
+- **Stone.**
+  - Bertrand 1829, p. 99: the château's undercrofts are "of grey stones of the coast" and the vault of its chapel "of white stones of the Haut-Boulonnais".
+  - Bertrand 1828, p. 391: the column was built of two Marquise marbles, a brown one for the pedestal and an ash-grey one for the shaft.
+  - Bertrand 1829, p. 188, describes the quarry faces in grey, brown, yellow and reddish bands.
+  - These support "grey and brown local stone". Medium.
+- **Whitewash.** Corrected in emphasis (painter's item 5).
+- **Roofs.** Low, confirmed.
+- **Timber.** "Black or grey with tar and weather" is inference. I would give it Low, not Medium. The "fort Rouge" name hints at red paint on at least one work (2.4).
+- **Evening light.** Confirmed as inference. In mid-August the sun sets at about 295° true. A camera looking east-south-east (about 100°) has it within about 15° of straight behind. The town, ramparts and cliffs are lit nearly full on.
 
 ### 2.1 The scheme of defence
 

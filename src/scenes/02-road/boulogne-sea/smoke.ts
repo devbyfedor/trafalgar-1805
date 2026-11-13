@@ -1,4 +1,5 @@
 import { createRng } from "@/lib/random";
+import { BUILD, project, viewOf } from "./scene";
 
 /**
  * Smoke from the camps' cooking fires, drifting with the evening breeze:
@@ -129,7 +130,45 @@ export class SmokeRenderer {
   }
 }
 
-/** The camps' fires as the scene has them (stage A: a few at the right camp, one at the left). */
+/** A fire on the land: metres east and north of the jetty heads, `up` metres above the sea as drawn (scene.ts VEX). */
+export interface SmokeSource {
+  east: number;
+  north: number;
+  up: number;
+}
+
+/**
+ * Plumes for fires on the land (the camps' kitchens at the back of each
+ * camp, a few chimneys of the lower town), placed through the painting's
+ * own projection so they rise where the plates put their camps and roofs.
+ * A plume rises `metres` (drawn BUILD times, as the huts are) before it has
+ * thinned away, leaning `lean` units sideways per unit risen: on the
+ * evening's south-west breeze the smoke streams away from the eye and to
+ * the left, along the heights (history notes). The farther, the fainter.
+ */
+export function plumesOf(
+  sources: readonly SmokeSource[],
+  o: { metres: number; lean: number; strength: number; seed: number },
+): Plume[] {
+  const rng = createRng(o.seed);
+  return sources.map((s, i) => {
+    const [ahead] = viewOf(s.east, s.north);
+    const [x, y] = project(s.east, s.north, s.up);
+    const unit = 1000 / Math.max(1, ahead);
+    const rise = o.metres * BUILD * unit * (0.8 + rng() * 0.4);
+    return {
+      x,
+      y,
+      rise,
+      lean: o.lean * (0.85 + rng() * 0.3),
+      spread: rise * (0.22 + rng() * 0.08),
+      strength: o.strength * (0.75 + rng() * 0.25) * Math.min(1, 2200 / ahead),
+      seed: o.seed * 100 + i,
+    };
+  });
+}
+
+/** The camps' fires as session 24's painting had them (stage A: a few at the right camp, one at the left), until the plates export their own. */
 export function campPlumes(): Plume[] {
   return [
     {

@@ -154,15 +154,22 @@ export function flightU(phase: InterludePhase, t: number): number {
  * Opacity only. The text steps aside while the ground under it is in
  * flux (paper is bright where the chart and the painting are dark) and
  * comes back over the painting.
+ *
+ * The stages overlap (the owner's second look: a wholly colourless frame
+ * read as a loading bug): the sky's colour starts while the engraving is
+ * still coming in over the chart, each group a little after the one
+ * before, all while the camera is still coming down; only while the
+ * engraving rises through the chart is the frame without colour. All of
+ * it is done by u 0.87, the last 13 % of the descent in full colour.
  */
 export const TRANSITION = {
   /** The engraving over the chart: from nothing to whole. */
-  engraving: [0.64, 0.71] as const,
+  engraving: [0.64, 0.7] as const,
   /** Colour by group, each from nothing to whole over the engraving. */
-  sky: [0.72, 0.8] as const,
-  land: [0.74, 0.85] as const,
-  water: [0.78, 0.89] as const,
-  craft: [0.82, 0.93] as const,
+  sky: [0.665, 0.78] as const,
+  land: [0.68, 0.82] as const,
+  water: [0.695, 0.845] as const,
+  craft: [0.71, 0.87] as const,
   /** The captions, the date line and the chapter marker: out, then back in. */
   textOut: [0.585, 0.635] as const,
   textIn: [0.95, 0.995] as const,

@@ -153,3 +153,26 @@ Ready to copy. The numbers are for 10 August 1805 and the painting's eye.
 - **(e) The water's edge.** `geo.ts` draws SHORE_LOW about 750 m off the jetty heads, about 380 m ahead of the eye on the axis. That is the line of the lowest tides of the year, +0.3 m (Desbrière III 142 and 148). On 10 August low water stood 1.1 m higher and the edge lay about 250 m further in: about 500 m off the jetty heads, about 636 m ahead (y −9.4 instead of −15.8). Either move the edge in, or record "the strand of the lowest spring tides of the year". Medium-Low (Cadier's slope of 1768).
 - **(f) The moon's light.** At sunset, 2° up, through summer haze, the real moon was dim, warm and hardly brighter than the sky around it; haze can hide it. A clearly readable disc is a liberty. Keep it warm (apricot to pink), soft at the lower edge and only a little brighter than the sky.
 - **Not a new liberty:** with the land drawn 2.5 times its height (the far hills 1.6 times), the moon set at its true angular gap above the painted skyline stands higher in the frame than the real one (y about 35). That follows from the licence on heights already recorded.
+
+## 7. For the painter
+
+Layer units as in `scene.ts`: x = 1000 · tan(azimuth − 98°); y = 1000 · tan(angle above the eye's horizontal) / cos(azimuth − 98°), so that it matches `project()`. True geometry unless marked "painted".
+
+**The moon at the chosen moment** (10 August 1805, sunset, 19:26 LAT):
+- **Azimuth 111.95°: x = 248.**
+- **True altitude 1.96°** (apparent, with refraction): y = 35.
+- **The true skyline there stands 1.68°** (y = 30). It is the southern shoulder of Mont Lambert, ground 154 m at 5.10 km (50.713 N 1.645 E). In front of it, 2.0–2.4 km off, lies the southern part of the lower town, between Saint-Nicolas (x 210) and the Liane; the upper town's south corner is at x 151.
+- **Its centre stands 0.28° above the true skyline**, so the lower limb just touches the hill (0.03° above it). Set the lower limb on the painted skyline at x = 248, and the centre one drawn radius above it: 0.25° (4.4 units) for the true disc, 0.5° (8.7 units) for a disc drawn twice its size.
+- **The painted skyline at x = 248** is the plates' own; measure it there. For reference: the terrain model drawn 2.5 times its height would put it at 4.27° (y 77), and at the far hills' licence of 1.6 at 2.70° (y 49). `land.ts` (hills) draws about y 42 there.
+- **The belfry: azimuth 102.63°, x = 81.** Its top (about 89 m) stands 1.92° (y 34), just above the true skyline behind it (1.77°). The moon is 9.3° (167 units) to its right.
+- **Mont Lambert's summit: azimuth 105.04°, x = 124**, 1.94° (y 34). Note that `land.ts` centres its Mont Lambert swell at x ≈ −20, 8° left of the true summit. In true geometry the moon rises on the hill's southern shoulder, 6.9° right of its top.
+- **The moon's path afterwards** (for the dusk of stage B), every 10 minutes from the chosen moment: x 248, 284, 320, 358, 397 and y 35, 60, 86, 113, 140 (19:26 to 20:06). Its centre then stands 0.28°, 1.73°, 3.15°, 4.55° and 5.94° above the true skyline. It climbs to the right at about 36° to the horizon.
+
+**The sun:**
+- **At the painting's light** (18:33 LAT): azimuth 286.2°, **7.0° up**, **8.2° left of straight behind** (188.2° from the view's axis, turning left).
+- **At sunset, the moon's moment** (19:26): azimuth 296.2°, on the horizon, 18.2° left of straight behind.
+- **The anti-solar point** (the centre of the shadows' direction and of the Belt of Venus): at 18:33 azimuth 106.2° (x 144), 6.9° below the horizon; at sunset azimuth 116.2° (x 331), 0.8° above it.
+
+**The water's edge on the axis** (section 4.2): about 636 m ahead at 18:33 (y −9.4) and about 790 m ahead at sunset (y −7.6). The high-water shore is 1,350 m ahead (y −4.4). `geo.ts`'s SHORE_LOW, 380 m ahead (y −15.8), is the line of the lowest tides of the year (liberty (e)).
+
+**If the owner prefers 11 August** (the moon by the belfry; section 3.4): at 19:44 LAT the moon stands at azimuth 104.01° (x = 105), 2.22° up (y 39), over the top of Mont Lambert (skyline 1.93°), its centre 0.29° above it; 1.4° right of the belfry, straight above the west corner of the walls. The sun is then 3.0° below the horizon at azimuth 299.6°, 21.6° left of straight behind.

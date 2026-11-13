@@ -95,9 +95,9 @@ function hutsOn(t: Tier, seed: number, box: Plate["box"]): Hut[] {
   const kind = t.row;
   const length = t.run[t.run.length - 1];
   const huts = rowHuts(rng, length, (s) => along(t, s), kind, {
-    gap: kind === 2 ? 16 : kind === 1 ? 12 : 4,
-    street: kind === 0 ? 24 : 30,
-    block: kind === 0 ? 9 : 5,
+    gap: kind === 2 ? 18 : kind === 1 ? 14 : 8,
+    street: kind === 0 ? 30 : 34,
+    block: kind === 0 ? 8 : 5,
     keep: (s) => {
       const [e, n] = along(t, s);
       return t.camp(e, n);
@@ -131,24 +131,25 @@ export interface CampPlateOptions {
 }
 
 export function campPlate(o: CampPlateOptions): Plate {
-  let geo: { tiers: Tier[]; huts: Hut[][] } | undefined;
-  const get = () => {
-    if (!geo) {
-      const tiers = o.contours().map(prepare);
-      geo = {
-        tiers,
-        huts: tiers.map((t, i) => hutsOn(t, o.seed + i * 17, o.box)),
-      };
-    }
-    return geo;
+  let lines: Contour[] | undefined;
+  const tiers: (Tier | undefined)[] = [];
+  const rows: (Hut[] | undefined)[] = [];
+  const tierAt = (i: number): Tier => {
+    lines ??= o.contours();
+    tiers[i] ??= prepare(lines[i]);
+    return tiers[i];
+  };
+  const hutsAt = (i: number): Hut[] => {
+    rows[i] ??= hutsOn(tierAt(i), o.seed + i * 17, o.box);
+    return rows[i];
   };
   const bottom = o.box[2];
 
   function tierJob(i: number, mode: PlateMode): PlateJob {
     return (c: PlateCanvas) => {
-      const { tiers, huts } = get();
-      const k = tiers[i];
-      const nearer = tiers[i + 1];
+      const k = tierAt(i);
+      const nearer = i + 1 < o.count ? tierAt(i + 1) : undefined;
+      const huts = hutsAt(i);
       const d = k.ahead;
       const rng = createRng(o.seed * 31 + i);
       const region = under(k.pts, bottom);
@@ -238,7 +239,7 @@ export function campPlate(o: CampPlateOptions): Plate {
         const lip = new Path2D();
         addBroken(lip, k.pts, 6, 2, rng);
         stroke(c, lip, 0.6, air(mix(SHORE.turfLit, "#fff0c8", 0.3), d), 0.35);
-        paintHuts(c, huts[i]);
+        paintHuts(c, huts);
         return;
       }
       fill(c, region, PAPER.low);
@@ -285,7 +286,7 @@ export function campPlate(o: CampPlateOptions): Plate {
         addBroken(line, k.pts, 7, 3, rng, () => 0.7);
         stroke(c, line, px * 0.6, INK.hatch, 0.6);
       }
-      engraveHuts(c, huts[i]);
+      engraveHuts(c, huts);
     };
   }
 

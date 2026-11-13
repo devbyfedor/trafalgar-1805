@@ -42,41 +42,44 @@ function northContours(tiers: readonly TierSpec[]): () => Contour[] {
     });
 }
 
-/** The near tiers, far to near: three rows of men's huts, then the officers', twice. */
+/**
+ * The near tiers, far to near: each row of huts its own tier along the
+ * contour, the officers' row behind each three of the men's, the ground
+ * between them showing (the camp seen from the roads as dotted lines
+ * along the contours).
+ */
 const NEAR: readonly TierSpec[] = [
   { d: 640 },
-  { d: 575, row: 1 },
-  { d: 515, row: 0 },
-  { d: 455, row: 0 },
-  { d: 395, row: 0 },
-  { d: 330 },
-  { d: 265, row: 1 },
-  { d: 205, row: 0 },
+  { d: 590, row: 0 },
+  { d: 480 },
+  { d: 380, row: 1 },
+  { d: 300 },
+  { d: 245, row: 0 },
+  { d: 195 },
   { d: 150, row: 0 },
-  { d: 95, row: 0 },
+  { d: 115 },
+  { d: 80, row: 0 },
   { d: 40 },
   { d: 0 },
 ];
 
-/** The far tiers up to the crest, the kitchens at the camp's back edge. */
+/** The far tiers up to the crest, the kitchens at the camp's back, landward edge. */
 const FAR: readonly TierSpec[] = [
   { d: 2000 },
   { d: 1820 },
   { d: 1680 },
-  { d: 1590, row: 2 },
-  { d: 1500, row: 0 },
-  { d: 1440, row: 0 },
-  { d: 1380 },
-  { d: 1305, row: 1 },
-  { d: 1240, row: 0 },
-  { d: 1175, row: 0 },
-  { d: 1110, row: 0 },
-  { d: 1040 },
-  { d: 965, row: 1 },
+  { d: 1575, row: 2 },
+  { d: 1480 },
+  { d: 1380, row: 0 },
+  { d: 1270 },
+  { d: 1170, row: 0 },
+  { d: 1100 },
+  { d: 1030, row: 1 },
+  { d: 965 },
   { d: 900, row: 0 },
-  { d: 835, row: 0 },
-  { d: 770, row: 0 },
-  { d: 700 },
+  { d: 810 },
+  { d: 730, row: 0 },
+  { d: 660 },
   { d: 600 },
 ];
 

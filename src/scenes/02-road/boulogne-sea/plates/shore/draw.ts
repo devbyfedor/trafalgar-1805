@@ -44,7 +44,7 @@ export const SHORE = {
   woodLit: "#8f7558",
   thatchNew: "#e8c47e",
   thatchOld: "#a99272",
-  wallLit: "#d9bd8e",
+  wallLit: "#c4a57a",
   wallWhite: "#ede3cf",
   wallShade: "#8e8590",
   marram: "#9da36d",
@@ -399,7 +399,8 @@ export function engraveHuts(c: PlateCanvas, huts: readonly Hut[]): void {
     stroke(c, line, px * 0.8, INK.line, 0.9);
     const e = s.end;
     const hatchP = new Path2D();
-    const strokes = s.endLit ? 1 : 3;
+    // A cone's end is a triangle: no end wall to hatch.
+    const strokes = e.length < 5 ? 0 : s.endLit ? 1 : 3;
     for (let i = 1; i <= strokes; i++) {
       const t = i / (strokes + 1);
       const x = e[0][0] + (e[1][0] - e[0][0]) * t;
@@ -465,10 +466,10 @@ export function rowHuts(
         g: g - 0.5 * BUILD,
         l,
         w: (1.8 + rng() * 0.4) * BUILD * big,
-        wall: (kind === 1 ? 1.9 : 1.1 + rng() * 0.3) * BUILD,
-        ridge: (kind === 1 ? 4 : 3.1 + rng() * 0.6) * BUILD,
+        wall: (kind === 1 ? 1.6 : 0.6 + rng() * 0.25) * BUILD,
+        ridge: (kind === 1 ? 3.6 : 2.6 + rng() * 0.5) * BUILD,
         kind,
-        age: Math.min(1, Math.max(0, 0.55 + (rng() - 0.5) * 0.9)),
+        age: Math.min(1, Math.max(0, 0.72 + (rng() - 0.5) * 0.6)),
         white: kind === 1 || rng() < 0.12,
         axis: [(e1 - e0) / al, (n1 - n0) / al],
       });

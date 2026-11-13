@@ -16,7 +16,7 @@ import { project, VEX, viewOf } from "../../scene";
  * rise above its cliff edge is drawn RISE times on top of VEX, so the
  * tiers stand one above the other as those views draw them.
  */
-export const RISE = 3.5;
+export const RISE = 4;
 
 export function smoothstep(a: number, b: number, x: number): number {
   const t = Math.min(1, Math.max(0, (x - a) / (b - a)));

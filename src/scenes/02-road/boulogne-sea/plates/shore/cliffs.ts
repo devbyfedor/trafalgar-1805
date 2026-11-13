@@ -1,4 +1,4 @@
-import { createRng, mix, type Pt, vRamp } from "../../paint/kit";
+import { createRng, mix, type Pt, rgba, vRamp } from "../../paint/kit";
 import {
   INK,
   PAPER,
@@ -23,7 +23,7 @@ import {
   SHORE,
   stroke,
 } from "./draw";
-import { edgeAt, shoreAt } from "./terrain";
+import { edgeAt, northUp, shoreAt } from "./terrain";
 
 /**
  * The cliffs north of the harbour, from the high-water line to their
@@ -45,6 +45,8 @@ interface Gully {
   n: number;
   w: number;
   s: number;
+  /** The share of the face (from the brow down) the gully runs. */
+  reach: number;
 }
 
 interface CliffGeo {
@@ -62,7 +64,12 @@ function buildGeo(): CliffGeo {
   const rng = createRng(301);
   const gullies: Gully[] = [];
   for (let n = N_MAX; n > 140; n -= 55 + rng() * 95)
-    gullies.push({ n, w: 9 + rng() * 20, s: 0.35 + rng() * 0.65 });
+    gullies.push({
+      n,
+      w: 9 + rng() * 20,
+      s: 0.35 + rng() * 0.65,
+      reach: 0.25 + rng() * 0.5,
+    });
   const notch = (n: number) => {
     let g = 0;
     for (const q of gullies) {
@@ -102,6 +109,16 @@ function faceAt(g: CliffGeo, i: number, f: number): Pt {
 function faceAtH(g: CliffGeo, i: number, h: number): Pt {
   const f = Math.min(1, Math.max(0, (h - FOOT) / (g.top[i] - FOOT)));
   return faceAt(g, i, f);
+}
+
+/** A point of the face at `n` metres north (between samples), `f` of the way up. */
+function faceAtN(g: CliffGeo, n: number, f: number): Pt {
+  const u = Math.max(0, Math.min(g.ns.length - 1.001, (N_MAX - n) / STEP));
+  const i = Math.floor(u);
+  const t = u - i;
+  const a = faceAt(g, i, f);
+  const b = faceAt(g, i + 1, f);
+  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
 }
 
 /** Sample index nearest to `n`. */
@@ -238,39 +255,48 @@ export function cliffsPlate(o: {
       stroke(c, runnels, 0.5, air(SHORE.seam, AHEAD), 0.3);
       c.ctx.restore();
     },
-    // Gullies: their north walls, turned south, in the sky's cool shade.
+    // Gullies: their north walls, turned south, in the sky's cool shade,
+    // from the notch in the brow down the fall line, tapering and fading.
     (c) => {
       const g = get();
+      const rng = createRng(305);
       c.ctx.save();
       c.ctx.clip(facePath(g));
-      const shade = new Path2D();
-      const core = new Path2D();
-      const lit = new Path2D();
+      const shade = air(SHORE.shade, AHEAD);
+      const deep = air(SHORE.shadeDeep, AHEAD);
       for (const q of g.gullies) {
-        const iL = indexOf(g, q.n + q.w * 0.55);
-        const iR = indexOf(g, q.n + q.w * 0.02);
-        const iC = indexOf(g, q.n + q.w * 0.42);
-        const iF = indexOf(g, q.n - q.w * 0.6);
+        const K = 14;
         const left: Pt[] = [];
         const right: Pt[] = [];
-        const mid: Pt[] = [];
-        const front: Pt[] = [];
-        const reach = 0.08 + (1 - q.s) * 0.3;
-        for (let k = 0; k <= 10; k++) {
-          const f = 1 - ((1 - reach) * k) / 10;
-          left.push(faceAt(g, iL, f));
-          right.push(faceAt(g, iR, Math.min(1, f + 0.02)));
-          mid.push(faceAt(g, iC, f));
-          front.push(faceAt(g, iF, f));
+        const core: Pt[] = [];
+        for (let k = 0; k <= K; k++) {
+          const t = k / K;
+          const f = 1 - q.reach * t;
+          const taper = 1 - t * 0.85;
+          const jit = (rng() - 0.5) * 0.18 * q.w;
+          left.push(faceAtN(g, q.n + q.w * 0.5 * taper + jit, f));
+          right.push(
+            faceAtN(g, q.n + q.w * (0.5 - 0.6 * taper) + jit * 0.5, f),
+          );
+          core.push(faceAtN(g, q.n + q.w * (0.5 - 0.22 * taper) + jit, f));
         }
-        addLine(shade, [...left, ...right.slice().reverse()], true);
-        addLine(core, [...left, ...mid.slice().reverse()], true);
-        // The buttress beyond, its front square to the sun: a touch brighter.
-        addLine(lit, [...right, ...front.slice().reverse()], true);
+        const top = left[0][1];
+        const bottom = left[K][1];
+        const gr = c.ctx.createLinearGradient(0, top, 0, bottom);
+        gr.addColorStop(0, rgba(shade, 0.25 + 0.4 * q.s));
+        gr.addColorStop(0.6, rgba(shade, 0.18 * q.s + 0.05));
+        gr.addColorStop(1, rgba(shade, 0));
+        fill(c, poly([...left, ...right.slice().reverse()]), gr);
+        const gc = c.ctx.createLinearGradient(
+          0,
+          top,
+          0,
+          top + (bottom - top) * 0.6,
+        );
+        gc.addColorStop(0, rgba(deep, 0.35 * q.s));
+        gc.addColorStop(1, rgba(deep, 0));
+        fill(c, poly([...left, ...core.slice().reverse()]), gc);
       }
-      fill(c, lit, air("#f6dca6", AHEAD), 0.18);
-      fill(c, shade, air(SHORE.shade, AHEAD), 0.42);
-      fill(c, core, air(SHORE.shadeDeep, AHEAD), 0.32);
       c.ctx.restore();
     },
     // The flank toward the harbour, turned south: in shade.
@@ -384,11 +410,10 @@ export function cliffsPlate(o: {
       for (const q of g.gullies) {
         const iL = indexOf(g, q.n + q.w * 0.55);
         const iR = indexOf(g, q.n + q.w * 0.02);
-        const reach = 0.08 + (1 - q.s) * 0.3;
         for (let i = iL; i <= iR; i += 1) {
           const t = (i - iL) / Math.max(1, iR - iL);
           const f0 = 1;
-          const f1 = reach + t * 0.25 + rng() * 0.1;
+          const f1 = 1 - q.reach * (1 - t * 0.7) + rng() * 0.08;
           const pts: Pt[] = [];
           for (let k = 0; k <= 5; k++)
             pts.push(faceAt(g, i, f0 + ((f1 - f0) * k) / 5));
@@ -613,6 +638,7 @@ function paintEdgeWorks(c: PlateCanvas, g: CliffGeo, mode: PlateMode): void {
       for (let k = 0; k < b.mortars; k++) {
         const n = b.n1 - ((k + 0.5) * (b.n1 - b.n0)) / b.mortars;
         const p = onEdge(g, n, 26, 2.2 * BUILD);
+        m.moveTo(p[0] + 0.9, p[1] + 0.4);
         m.ellipse(p[0], p[1] + 0.4, 0.9, 0.7, 0, 0, Math.PI * 2);
       }
       fill(c, m, colourMode ? SHORE.muzzle : INK.line, 0.85);
@@ -635,7 +661,7 @@ function paintEdgeWorks(c: PlateCanvas, g: CliffGeo, mode: PlateMode): void {
     huts.push({
       e: g.east[i] + back,
       n,
-      g: g.top[i] * VEX + 0.5,
+      g: Math.max(g.top[i] * VEX, northUp(n, back)) + 0.5,
       l,
       w,
       wall: 0,

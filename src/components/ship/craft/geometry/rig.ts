@@ -319,7 +319,8 @@ export function buildRigArt(spec: CraftSpec): RigArt {
       // The slings' cleats and the yardarm's ends.
       if (!y.furled) continue;
       const lengthM = (y.half * 2) / BRACE;
-      const t = y.level === 2 ? 0.032 : 0.04;
+      // A harbour furl: the canvas rolled tight on top of the yard.
+      const t = y.level === 2 ? 0.024 : y.level === 1 ? 0.028 : 0.031;
       const thickness = lengthM * t;
       const reach = 0.9;
       const a: Vec = [cx - y.half * reach, cy];
@@ -349,13 +350,13 @@ export function buildRigArt(spec: CraftSpec): RigArt {
           const yardTop = yardDiameter(y.d, u) / 2;
           // Thick in the middle, gathered higher at the bunt, thin at the arms;
           // rounding off at both ends.
-          const body = thickness * (0.42 + 0.58 * (1 - e ** 1.7));
-          const bunt = thickness * 0.42 * Math.exp(-((u / reach / 0.13) ** 2));
-          const end = Math.min(1, (1 - e) / 0.06) ** 0.5;
+          const body = thickness * (0.38 + 0.62 * (1 - e ** 1.9));
+          const bunt = thickness * 0.5 * Math.exp(-((u / reach / 0.15) ** 2));
+          const end = Math.min(1, (1 - e) / 0.05) ** 0.5;
           return yardDiameter(y.d, u) * 0.12 + (yardTop + body + bunt) * end;
         },
         gaskets,
-        bulge: 0.2,
+        bulge: 0.07,
         rng: r,
       });
       drawRoll(parts, canvas);
@@ -421,7 +422,7 @@ export function buildRigArt(spec: CraftSpec): RigArt {
               (0.55 + 0.45 * Math.sin(Math.PI * s) ** 0.6) *
               Math.min(1, s / 0.08, (1 - s) / 0.08) ** 0.5,
           gaskets: [0.2, 0.4, 0.6, 0.8].map((g) => g + (sr() - 0.5) * 0.04),
-          bulge: 0.25,
+          bulge: 0.09,
           rng: sr,
         });
         drawRoll(parts, canvas);
@@ -504,7 +505,7 @@ export function buildRigArt(spec: CraftSpec): RigArt {
           g.d[0] * 0.3 +
           bulk * (1 - 0.62 * s) * Math.min(1, (1 - s) / 0.1) ** 0.6,
         gaskets: [0.3, 0.56, 0.8],
-        bulge: 0.42,
+        bulge: 0.26,
         rng: br,
       }),
       canvas,
@@ -520,7 +521,7 @@ export function buildRigArt(spec: CraftSpec): RigArt {
         outer: (s) =>
           bulk * 0.75 * (1 - 0.55 * s) * Math.min(1, (1 - s) / 0.12) ** 0.5,
         gaskets: [0.33, 0.66],
-        bulge: 0.3,
+        bulge: 0.18,
         rng: br,
       }),
       canvas,
@@ -553,7 +554,7 @@ export function buildRigArt(spec: CraftSpec): RigArt {
             (0.6 + 0.4 * Math.sin(Math.PI * Math.min(1, s * 1.25)) ** 0.8) *
             Math.min(1, s / 0.05, (1 - s) / 0.06) ** 0.5,
         gaskets,
-        bulge: 0.24,
+        bulge: 0.08,
         rng: lr,
       });
       drawRoll(parts, lugCanvas);

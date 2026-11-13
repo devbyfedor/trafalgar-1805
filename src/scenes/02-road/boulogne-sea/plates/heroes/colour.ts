@@ -1,18 +1,8 @@
 import type { CraftArt } from "@/components/ship/craft/geometry/index";
-import {
-  type CraftPalette,
-  mix as linMix,
-} from "@/components/ship/craft/light";
-import { createRng, rgba } from "../../paint/kit";
+import type { CraftPalette } from "@/components/ship/craft/light";
 import type { PlateCanvas } from "../../paint/plate";
-import {
-  type CraftPlace,
-  type Detail,
-  FOOT,
-  P,
-  WATER,
-  WATER_LIGHT,
-} from "./common";
+import { type CraftPlace, type Detail, P } from "./common";
+import { paintHullSide, paintWaterline } from "./hull-colour";
 
 /**
  * A craft in colour (paint/plate.ts, the "colour" raster): the craft
@@ -79,9 +69,6 @@ export function colourArt(
     ctx.lineJoin = "round";
     ctx.stroke(P(d));
   };
-  const xs = -hs.sternRake;
-  const xe = hs.length + hs.stemRake;
-
   // An open boat's far side, seen over the near gunwale.
   F(h.farInside, p.inside.side);
   F(h.farGunwale, p.rail.top);
@@ -146,52 +133,8 @@ export function colourArt(
   F(f.oars, p.rail.side);
   F(f.oarShade, p.rail.under);
 
-  // The hull.
-  F(h.outline, p.hull.side);
-  ctx.save();
-  ctx.clip(P(h.outline));
-  F(h.bottom, p.bottom.low);
-  F(h.strakesLight, p.hull.top, 0.1);
-  F(h.strakesDark, p.hull.shadow, 0.14);
-  F(h.faded, p.hull.top, 0.09);
-  if (hero) {
-    L(h.seams, p.hull.shadow, W.seams, 0.5);
-    L(h.butts, p.hull.shadow, W.butts, 0.32, "butt");
-  } else {
-    L(h.seams, p.hull.shadow, W.seams, 0.25);
-  }
-  F(h.wales, p.wale.side);
-  F(h.waleTops, p.wale.top);
-  F(h.waleUnders, p.wale.under, 0.85);
-  F(h.streaks, p.cast, 0.16);
-  // The side darkens toward the water, where it curves in and sees the sea.
-  const low = ctx.createLinearGradient(0, -(hs.deck + 0.2), 0, 0.1);
-  low.addColorStop(0, rgba(p.hull.low, 0));
-  low.addColorStop(0.55, rgba(p.hull.low, 0.32));
-  low.addColorStop(1, rgba(p.hull.under, 0.8));
-  ctx.globalAlpha = 1;
-  ctx.fillStyle = low;
-  ctx.fill(P(h.outline));
-  // The bow turns away from the sun; the stern's quarter less so.
-  const ends = ctx.createLinearGradient(xs, 0, xe, 0);
-  ends.addColorStop(0, rgba(p.hull.turned, hs.pointed ? 0.5 : 0.22));
-  ends.addColorStop(0.1, rgba(p.hull.turned, 0));
-  ends.addColorStop(0.78, rgba(p.hull.turned, 0));
-  ends.addColorStop(1, rgba(p.hull.turned, 0.62));
-  ctx.fillStyle = ends;
-  ctx.fill(P(h.outline));
-  F(h.waterStain, "#283328", 0.42);
-  F(h.railUnder, p.cast, 0.32);
-  F(h.railCap, p.rail.side);
-  F(h.railTop, p.rail.top);
-  // Below the waterline the sea covers the foot: the reflection's dark.
-  if (!mirror) {
-    ctx.globalAlpha = 0.92;
-    ctx.fillStyle = linMix(p.hull.under, WATER, 0.45);
-    ctx.fillRect(xs - 1, 0, xe - xs + 2, FOOT + 0.1);
-  }
-  ctx.restore();
-  F(h.stem, p.hull.turned, 0.85);
+  // The hull's side, plank by plank, in the evening sun.
+  paintHullSide(ctx, art, p, hero, dev, mirror);
 
   // Ports and the guns run out through them.
   F(h.ports, p.inside.shadow);
@@ -249,28 +192,6 @@ export function colourArt(
     ctx.globalAlpha = 1;
     return;
   }
-  // The waterline: the dark line where the hull meets the water, and the
-  // water's lighter line against it, broken by the ripples.
-  ctx.globalAlpha = 0.7;
-  ctx.strokeStyle = "#0f1418";
-  ctx.lineWidth = dev(1.5);
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  ctx.moveTo(xs + 0.15, 0.01);
-  ctx.lineTo(hs.length + 0.05, 0.01);
-  ctx.stroke();
-  const rng = createRng(seed);
-  ctx.globalAlpha = 0.5;
-  ctx.strokeStyle = WATER_LIGHT;
-  ctx.lineWidth = dev(1);
-  ctx.beginPath();
-  for (let x = xs - 0.6; x < hs.length + 0.8; ) {
-    const len = 0.4 + rng() * 1.6;
-    const y = dev(1.4) + rng() * dev(1.2);
-    ctx.moveTo(x, y);
-    ctx.lineTo(Math.min(hs.length + 0.8, x + len), y);
-    x += len + 0.15 + rng() * 0.8;
-  }
-  ctx.stroke();
+  paintWaterline(ctx, art, dev, hero, seed);
   ctx.globalAlpha = 1;
 }

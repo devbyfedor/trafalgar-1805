@@ -92,7 +92,7 @@ export function roll(r: RollInput): RollParts {
       const t = i / n;
       const o0 = r.inner(t);
       const th = thick[i];
-      const wob = 1 + 0.25 * Math.sin(t * 23 + r.side);
+      const wob = 1 + 0.12 * Math.sin(t * 17 + r.side);
       const s = share * wob;
       if (fromOuter) {
         edge.push(outer[i]);
@@ -123,7 +123,7 @@ export function roll(r: RollInput): RollParts {
   for (let k = 0; k + 1 < stops.length; k++) {
     const t0 = stops[k];
     const t1 = stops[k + 1];
-    const count = t1 - t0 > 0.09 ? 2 : 1;
+    const count = t1 - t0 > 0.16 ? 2 : 1;
     for (let c = 0; c < count; c++) {
       const tm = t0 + (t1 - t0) * between(r.rng, 0.25, 0.75);
       const i = Math.round(tm * n);

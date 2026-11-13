@@ -15,7 +15,7 @@ Conventions:
 
 ## 1. The evening and its times
 
-10 August 1805 was a Saturday (23 thermidor an XIII). The full moon fell at 11:57 UT that day. All times computed from Horizons for this eye. High.
+10 August 1805 was a Saturday (22 thermidor an XIII; 1 thermidor = 20 July). The full moon fell at 11:57 UT that day. All times computed from Horizons for this eye. High.
 
 - **Sunset** (upper limb on the horizon, 34′ of refraction): **19:26 LAT** (19:24 UT), at azimuth **296.2°**, 18° left of straight behind. From an eye 6 m above the water the sun touches the sea horizon about half a minute later.
 - **The golden light window** (sun 12° to 5° up): **18:01–18:47 LAT**, 85 to 39 minutes before sunset.
@@ -25,3 +25,23 @@ Conventions:
 - **The moon's upper limb shows over the hills** at 19:22 LAT, and **its disc is clear at 19:26 LAT**, the minute of sunset, over the southern shoulder of Mont Lambert, above the southern part of the lower town (section 3).
 - **Civil dusk** ends at **20:03 LAT** (38 minutes after sunset); **nautical dusk** at 20:52 (86 minutes).
 - **The tide** turns at 18:18 and rises 0.7 m by sunset; the flood reaches the jetty heads at about 20:20 (section 4).
+
+## 2. The sun, every 15 minutes
+
+10 August 1805, from the eye. Altitudes are apparent (with refraction) while the sun is up, and true (airless) once it is down. "Left of behind" is how far the sun stands to the left of straight behind the viewer (278°). High.
+
+| Minutes from sunset | LAT | Azimuth | Altitude | Left of behind |
+| --- | --- | --- | --- | --- |
+| −90 | 17:56 | 279.2° | 12.8° | 1.2° |
+| −75 | 18:11 | 282.0° | 10.5° | 4.0° |
+| −60 | 18:26 | 284.8° | 8.2° | 6.8° |
+| −52 (the painting's light) | 18:33 | 286.2° | 7.0° | 8.2° |
+| −45 | 18:41 | 287.6° | 5.9° | 9.6° |
+| −30 | 18:56 | 290.5° | 3.7° | 12.5° |
+| −15 | 19:11 | 293.3° | 1.7° | 15.3° |
+| 0 (sunset) | 19:26 | 296.2° | upper limb on the horizon (centre −0.8° true) | 18.2° |
+| +15 | 19:41 | 299.2° | −2.9° (true) | 21.2° |
+| +30 | 19:56 | 302.1° | −5.0° (true) | 24.1° |
+
+- In the last half hour the sun sinks about 0.14° a minute and moves 0.19° a minute to the right as seen from the shore (to the north-west).
+- The anti-solar point, where the shadows point and the Belt of Venus is centred, lies at 106.2° at 18:33 and 116.2° at sunset: 8° and 18° right of the axis.

@@ -6,6 +6,7 @@ import {
   craftExtent,
   craftJob,
   reflectionJobs,
+  reflectionReach,
 } from "./heroes/craft-paint";
 import { SEA_BATEAU, SEA_CHALOUPE } from "./heroes/specs";
 
@@ -69,9 +70,9 @@ export function heroPlates(): Plate[] {
       bowLeft: true,
       ahead: h.ahead,
     };
-    const ext = craftExtent(h.spec, pl);
+    const ext = craftExtent(h.spec, pl, h.seed);
     const pad = 3;
-    const reach = Math.max(FRAME_BOTTOM, pl.y - (ext.top - pl.y) * 1.02);
+    const reach = Math.max(FRAME_BOTTOM, reflectionReach(h.spec, pl, h.seed));
     out.push({
       id: `${h.id}-reflection`,
       depth: h.ahead,

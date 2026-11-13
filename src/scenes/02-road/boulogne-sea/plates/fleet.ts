@@ -8,6 +8,7 @@ import {
   craftExtent,
   craftJob,
   reflectionJobs,
+  reflectionReach,
 } from "./heroes/craft-paint";
 import {
   SEA_BATEAU,
@@ -144,11 +145,11 @@ export function fleetPlates(): Plate[] {
       let y1 = Number.NEGATIVE_INFINITY;
       let depth = 0;
       for (const m of g) {
-        const ext = craftExtent(m.spec, m.pl);
+        const ext = craftExtent(m.spec, m.pl, m.seed);
         x0 = Math.min(x0, ext.x0);
         x1 = Math.max(x1, ext.x1);
         y1 = Math.max(y1, ext.top);
-        y0 = Math.min(y0, m.pl.y - (ext.top - m.pl.y) * 1.02);
+        y0 = Math.min(y0, reflectionReach(m.spec, m.pl, m.seed));
         depth += m.pl.ahead / g.length;
       }
       const far = [...g].sort((a, b) => b.pl.ahead - a.pl.ahead);

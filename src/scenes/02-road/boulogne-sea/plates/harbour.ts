@@ -11,6 +11,7 @@ import { aerial, BUILD, viewOf } from "../scene";
 import {
   type Box,
   brokenLine,
+  fadeEdges,
   MAT,
   penAt,
   RIVER,
@@ -236,14 +237,17 @@ function basinFloor(c: PlateCanvas): void {
     ctx.fillStyle = PAPER.low;
     ctx.fill(p);
     const lines: Pt[][] = [];
-    for (let k = 1; k < 10; k++) {
+    // Wet mud by short strokes along it, sparse, closer toward the quays.
+    for (let k = 1; k < 7; k++) {
       const l: Pt[] = [];
       for (let x = BASIN_BOX[0]; x <= BASIN_BOX[1]; x += 6)
-        l.push([x, top(x) - k * k * 0.26]);
-      lines.push(...brokenLine(l, 5 + k, 3 + k * 0.6, 120 + k));
+        l.push([x, top(x) - k * k * 0.42]);
+      lines.push(...brokenLine(l, 3 + k * 0.6, 7 + k * 2, 120 + k));
     }
-    strokeLines(c, lines, 0.6, INK.hatch, 0.55);
+    strokeLines(c, lines, 0.55, INK.hatch, 0.45);
   }
+  // No cut edges when the camera rises: fade the floor's sides and foot.
+  fadeEdges(c, BASIN_BOX, 60, 12);
 }
 
 /** The east quays' stone wall behind the craft, its foot dark and wet. */
@@ -274,7 +278,13 @@ function basinQuay(c: PlateCanvas): void {
   } else {
     ctx.fillStyle = PAPER.low;
     ctx.fill(p);
-    strokeLines(c, [top], penAt(BASIN_DEPTH), INK.line, 0.9);
+    strokeLines(
+      c,
+      brokenLine(top, 14, 3, 61),
+      penAt(BASIN_DEPTH) * 0.8,
+      INK.line,
+      0.75,
+    );
   }
 }
 
@@ -332,16 +342,18 @@ function basinCraft(c: PlateCanvas, from: number, to: number): void {
       ]);
       const h = m.y1 - m.y0;
       if (m.square) {
-        for (const [f, w] of [
-          [0.5, 0.5],
-          [0.74, 0.38],
-          [0.9, 0.24],
-        ] as const) {
-          const half = h * w * 0.5 * cr.across;
+        // The lower and topsail yards; a topgallant on some; each a
+        // little out of square, as the crews left them.
+        const set: (readonly [number, number])[] = [[0.5, 0.5]];
+        if (rng() < 0.8) set.push([0.74, 0.38]);
+        if (rng() < 0.3) set.push([0.9, 0.24]);
+        for (const [f, w] of set) {
+          const half = h * w * 0.5 * cr.across * (0.85 + rng() * 0.3);
           const y = m.y0 + h * f;
+          const tilt = (rng() - 0.5) * half * 0.12;
           yards.push([
-            [m.x - half, y],
-            [m.x + half, y],
+            [m.x - half, y - tilt],
+            [m.x + half, y + tilt],
           ]);
           rolls.push([
             [m.x - half * 0.85, y + 0.25],
@@ -350,8 +362,8 @@ function basinCraft(c: PlateCanvas, from: number, to: number): void {
         }
       } else {
         // A lug yard slung slanting, its sail furled along it.
-        const half = h * 0.32 * cr.across;
-        const y = m.y0 + h * 0.72;
+        const half = h * (0.24 + rng() * 0.14) * cr.across;
+        const y = m.y0 + h * (0.62 + rng() * 0.16);
         yards.push([
           [m.x - half, y - half * 0.35],
           [m.x + half * 0.6, y + half * 0.2],

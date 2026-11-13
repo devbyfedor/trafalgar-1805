@@ -417,7 +417,7 @@ function nearModel(c: PlateCanvas): void {
   ctx.save();
   ctx.clip(p);
   if (c.mode === "colour") {
-    for (let x = -900; x < 900; x += 20) {
+    for (let x = -900; x < 900; x += 28) {
       const s = h.slope(x);
       if (s < -0.04)
         softBlob(
@@ -479,8 +479,8 @@ function nearModel(c: PlateCanvas): void {
 function nearPlate(): Plate {
   const jobs = (): PlateJob[] => {
     const out: PlateJob[] = [() => void nearHills(), (c) => nearWash(c)];
-    for (let i = 0; i < 2000; i += 90)
-      out.push((c) => nearFields(c, i, i + 90));
+    for (let i = 0; i < 2000; i += 45)
+      out.push((c) => nearFields(c, i, i + 45));
     out.push((c) => nearModel(c));
     out.push((c) => nearHedges(c));
     out.push((c) => nearCopses(c));

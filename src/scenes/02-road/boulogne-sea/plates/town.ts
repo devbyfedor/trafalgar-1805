@@ -14,6 +14,7 @@ import {
   brokenLine,
   distToPoly,
   engraveHouses,
+  fadeEdges,
   groundSkyline,
   type House,
   inside,
@@ -76,20 +77,39 @@ const SPLIT = 1960;
 
 let lowerCache: { near: House[]; far: House[] } | undefined;
 
+/** The plots' layout in progress: a few columns of the grid per job. */
+let lowerGen:
+  | {
+      rng: () => number;
+      shade: (x: number, y: number) => number;
+      all: House[];
+      e: number;
+    }
+  | undefined;
+
+const PLOT = 24;
+const PLOT_E1 = 1500;
+
 /**
- * The lower town's houses, far to near: a jittered grid of plots on the
- * town's bank from the quays up the slopes (la Beurrière under the north
- * cliff, the streets up to the Porte des Dunes, Saint-Nicolas' quarter),
- * the quay fronts set closer; and the flotilla's store, a long block at
- * the harbour's head.
+ * Lays out the next `columns` columns of the lower town's plots: a
+ * jittered grid on the town's bank from the quays up the slopes (la
+ * Beurrière under the north cliff, the streets up to the Porte des
+ * Dunes, Saint-Nicolas' quarter), the quay fronts taller, gardens
+ * between, none in the ditch and on the glacis round the walls.
  */
-function lowerHouses(): { near: House[]; far: House[] } {
-  if (lowerCache) return lowerCache;
-  const rng = createRng(4127);
-  const shade = field(77, 260, 2);
-  const all: House[] = [];
-  const step = 24;
-  for (let e = 230; e <= 1500; e += step) {
+function lowerColumns(columns: number): void {
+  if (lowerCache) return;
+  lowerGen ??= {
+    rng: createRng(4127),
+    shade: field(77, 260, 2),
+    all: [],
+    e: 230,
+  };
+  const gen = lowerGen;
+  const { rng, shade, all } = gen;
+  const step = PLOT;
+  for (let k = 0; k < columns && gen.e <= PLOT_E1; k++, gen.e += step) {
+    const e = gen.e;
     for (let n = -1150; n <= 430; n += step) {
       const pe = e + (rng() - 0.5) * step * 0.8;
       const pn = n + (rng() - 0.5) * step * 0.8;
@@ -119,6 +139,13 @@ function lowerHouses(): { near: House[]; far: House[] } {
       );
     }
   }
+}
+
+/** The lower town's houses, far to near, with Saint-Nicolas and the flotilla's store at the harbour's head. */
+function lowerHouses(): { near: House[]; far: House[] } {
+  if (lowerCache) return lowerCache;
+  while (!lowerGen || lowerGen.e <= PLOT_E1) lowerColumns(60);
+  const { rng, all } = lowerGen;
   // Saint-Nicolas: a long nave, its west front lit (no tall tower).
   const [se, sn] = PLACES.saintNicolas;
   const church = makeHouse(
@@ -143,13 +170,14 @@ function lowerHouses(): { near: House[]; far: House[] } {
     655,
     -330,
     townGround(655, -330) * VEX,
-    { w: 42, d: 13, h: 12 },
+    { w: 36, d: 12, h: 11 },
     "plaster",
-    "slate",
+    "tile",
     0.05,
     BUILD,
   );
   store.gable = false;
+  store.r = store.h * 0.34;
   store.storeys = 3;
   store.bays = 14;
   store.chimneys = [0.2, 0.5, 0.8];
@@ -259,11 +287,14 @@ function lowerPlate(id: string, which: "near" | "far"): Plate {
   const far = which === "near" ? SPLIT : 2450;
   const depth = which === "near" ? 1760 : 2180;
   const jobs = (mode: PlateMode): PlateJob[] => {
-    const out: PlateJob[] = [() => void lowerHouses()];
+    const out: PlateJob[] = [];
+    for (let k = 0; k < 9; k++) out.push(() => lowerColumns(6));
+    out.push(() => void lowerHouses());
     out.push((c) => {
       const line = lowerGround(near, far);
       if (mode === "colour") paintGround(c, line, LOWER_BOX[2], depth, 31);
       else engraveGround(c, line, LOWER_BOX[2], depth, 31);
+      fadeEdges(c, LOWER_BOX, 0, 28);
     });
     const per = 50;
     const count = () => lowerHouses()[which].length;
@@ -335,12 +366,12 @@ function upper(): Upper {
       const [e, n] = lerpEN(a, b, t);
       const u = unitsPerM(e, n);
       const [x, y0] = proj(e, n, FOOT - 2);
-      const [, y1] = proj(e, n, TOP + 2.5 * BUILD);
+      const [, y1] = proj(e, n, TOP + 1.2 * BUILD);
       towers.push({ x, y0, y1, r: radius * BUILD * u });
     }
   };
-  along(N, W, [0, 0.2, 0.42, 0.62, 1], 5.5);
-  along(W, S, [0.45, 1], 5.5);
+  along(N, W, [0, 0.2, 0.42, 0.62, 1], 6.5);
+  along(W, S, [0.45, 1], 6.5);
   // The Porte des Dunes, toward the lower town and the harbour.
   const [ge, gn] = lerpEN(N, W, 0.8);
   const gu = unitsPerM(ge, gn);
@@ -479,7 +510,7 @@ function paintUpperGround(c: PlateCanvas): void {
     ctx.save();
     ctx.clip(p);
     const rng = createRng(53);
-    for (let i = 0; i < 40; i++)
+    for (let i = 0; i < 24; i++)
       softBlob(
         c,
         -60 + rng() * 240,
@@ -511,11 +542,11 @@ function paintUpperGround(c: PlateCanvas): void {
   }
 }
 
-function paintInterior(c: PlateCanvas): void {
-  const u = upper();
-  // Clip to above the walls' line so the fronts never show through.
-  if (c.mode === "colour") paintHouses(c, u.houses);
-  else engraveHouses(c, u.houses);
+function paintInterior(c: PlateCanvas, from: number, to: number): void {
+  // Only their roofs show: the walls and the trees, painted after, hide the fronts.
+  const list = upper().houses.slice(from, to);
+  if (c.mode === "colour") paintHouses(c, list);
+  else engraveHouses(c, list);
 }
 
 function paintChateau(c: PlateCanvas): void {
@@ -771,7 +802,7 @@ function paintWalls(c: PlateCanvas): void {
       );
     }
     ctx.stroke();
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 18; i++) {
       const q = u.nw.foot[Math.floor(rng() * u.nw.foot.length)];
       softBlob(
         c,
@@ -927,9 +958,10 @@ function upperPlate(): Plate {
       () => void upper(),
       (c) => paintUpperGround(c),
       (c) => paintChateau(c),
-      (c) => paintInterior(c),
-      (c) => paintBelfry(c),
     ];
+    for (let i = 0; i < 400; i += 45)
+      out.push((c) => paintInterior(c, i, i + 45));
+    out.push((c) => paintBelfry(c));
     for (let i = 0; i < 240; i += 40) out.push((c) => paintTrees(c, i, i + 40));
     out.push((c) => paintWalls(c));
     return out;

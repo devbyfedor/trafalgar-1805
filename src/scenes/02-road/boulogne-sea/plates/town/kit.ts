@@ -395,7 +395,7 @@ export function paintHouses(c: PlateCanvas, houses: readonly House[]): void {
           if (rng() < 0.12) continue;
           const wx = l + bw * (j + 0.5) - ww / 2;
           const wy = y + sh * (i + 0.38);
-          const glint = rng() < 0.07;
+          const glint = rng() < 0.035;
           ctx.fillStyle = glint
             ? MAT.glint
             : mix(MAT.window, o.wall.shade, 0.35);
@@ -505,6 +505,44 @@ export function engraveHouses(c: PlateCanvas, houses: readonly House[]): void {
         }
     }
   }
+}
+
+// ------------------------------------------------------------- edges
+
+/**
+ * Fades what a plate's jobs have drawn so far toward the box's sides
+ * (`side` units) and its foot (`foot` units), so the overscan below a
+ * plate's ground, which nearer plates hide at the hold, never shows a cut
+ * edge when the camera rises in the dive. Opacity only: no blur.
+ */
+export function fadeEdges(
+  c: PlateCanvas,
+  box: Box,
+  side: number,
+  foot: number,
+): void {
+  const { ctx } = c;
+  const [x0, x1, y0, y1] = box;
+  ctx.save();
+  ctx.globalCompositeOperation = "destination-in";
+  if (side > 0) {
+    const g = ctx.createLinearGradient(x0, 0, x1, 0);
+    const f = Math.min(0.45, side / (x1 - x0));
+    g.addColorStop(0, "rgba(0,0,0,0)");
+    g.addColorStop(f, "rgba(0,0,0,1)");
+    g.addColorStop(1 - f, "rgba(0,0,0,1)");
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+  }
+  if (foot > 0) {
+    const g = ctx.createLinearGradient(0, y0, 0, y0 + foot);
+    g.addColorStop(0, "rgba(0,0,0,0)");
+    g.addColorStop(1, "rgba(0,0,0,1)");
+    ctx.fillStyle = g;
+    ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+  }
+  ctx.restore();
 }
 
 // ------------------------------------------------------------- strokes

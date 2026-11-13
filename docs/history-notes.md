@@ -238,6 +238,52 @@ The scene 2 history draft (`docs/research/scene-02/session-17/history-scene-02-w
 - **In use that week.** It stood from November 1803, and Napoleon dated a letter "La Tour d'Ordre" on 12 August 1805 (Corr. XI No. 9068). High. It still stood in 1808, in part in 1810, and was gone by September 1811.
 - **Its neighbours.** The admiral's hut was a smaller copy of the Emperor's; Bruix had died on 18 March 1805, and Lacrosse commanded the flotilla. The signal mast stood beside it: a tall flagstaff with yards for flag hoists, for France's coastal semaphores with jointed arms came only in 1806. High for a signal mast; Low for arms. Its flag, with a gun, recalled the péniches, boats and fishing boats out for exercise, not the whole flotilla (Bruix's order, Desbrière III 539). Soult's and Decrès's huts were thatched to the ground and glazed at the top, their rooms half underground and the main room round; from afar Decrès's looked like an enormous candle snuffer. They stood inland of the only road, which ran between them and the Emperor's hut, with the great Tour d'Ordre battery a little further on. High for the thatch to the ground; Medium for the cone and the layout (Constant I 248–249; Nicolaÿ 21–22; `camps-check.md`, item 5). Flagstaffs on the Fort de la Crèche and on Mont du Couple repeated the admiral's signals (the order of the day of 17 April 1804). Medium.
 
+### The Royal Navy's watch
+
+- **Who watched.** In the summer of 1805 Rear-Admiral Billy Douglas, his flag in the 50-gun Leopard, was "employed watching the Flotilla at Boulogne" (Naval Chronicle XIV 68, July 1805). Captain Edward Owen in the frigate Immortalité (36) led the inshore squadron: one or two frigates, sloops, gun-brigs and a cutter. High (James III 320–323; Owen's report in Marshall). The Leopard lay at Dungeness on 29 July 1805 (Naval Chronicle XIV 172), so the flagship was at times across the Channel and out of sight; the inshore squadron was what Boulogne saw. Medium.
+- **How close they kept.** In August 1804 the main body anchored about 10 miles north-west of the port, and Owen's flying division cruised just out of shell range, about 3 miles off (James III 228–229; a British letter of 31 July 1804). In April 1805 a frigate, two sloops, a bomb and eight gun-brigs lay at anchor before Boulogne. On 17–18 July 1805 they fought within half a mile north-west of Wimereux and anchored again about 5 miles north-west of Boulogne. On 12 August 1805 the French sortie found a ship of the line, two frigates and some thirty corvettes and brigs, and by evening more than sixty British warships were in sight (Dumas XII 76–77, a French account). High for 1804 and July 1805; Medium for their presence in August 1805; Low for any position on a given evening.
+- **Out of the frame.** From near the jetty heads the British stations, 3–10 miles off, bear about 317–332°, behind the viewer's left shoulder. A ship standing in off Wimereux or La Crèche bears 000–030°, 60–90° left of the view's axis. So no British sail belongs in a frame looking east from the eye. Medium (`light-and-watch-check.md`, item 7 and section 7).
+
+### What must not be painted
+
+- **No tents** in the hut lines (above). High.
+- **No column.** The first stone of the Colonne de la Grande Armée was laid on 9 November 1804, and nothing gives its height in August 1805; it was only 19–20 m high when the work stopped (1811–1814). Its site, 1.8 km north-north-east of the belfry at 92 m, lies 6–22 m below the sightline from the roads near the eye, so foundations, sheds and low scaffolding would not show. High (`camps-check.md`, (e); `town-and-defences-check.md`, 1.6).
+- **No earth forts on the hills.** Napoleon first asked for the plan of the redoubts round Boulogne on 29 August 1805 (Corr. XI No. 9159). The entrenched camp's sixteen earthworks and the second line of six forts (Mont de Couple, Petit-Moulin, Ferme du Renard, Mont Lambert and others) were built after the army left; the Fort du Moulin-à-l'Huile is of 1806. High.
+- **No Legion of Honour markers** (from 1809) and no statue on the pavilion's site (1856). The ground of the ceremony of 16 August 1804, a hollow near Terlincthun, is at the edge of sight from the roads and no landmark. Medium.
+- **No later town.** No tower at the Tour d'Ordre (the Roman lighthouse fell in 1644); no stone lighthouse at the harbour, no long breakwaters, no casino or baths; no town on the west bank (Capécure dates from after about 1809); no basilica or dome (begun in 1827); none of the forts of 1879; no tall church ruin beside the belfry. High; Medium for the ruin.
+- **No mortars on the two stone forts** (none in the state of March 1805), no arm semaphore on the signal mast (1806), and no "Batterie de l'Impératrice" (no source names it). Medium.
+- **No British ship in the frame and no English coast** on the horizon (above). Medium and High.
+- **In the roads:** no barges, rafts, Batavian schuyts or transports, and no riding lights (none recorded). Medium-High; Low for the lights.
+- **On the huts:** no chimneys (no source mentions any). Low.
+
+### Open doubts
+
+- What crowned the belfry in August 1805: a slender spire or a blunt octagon with a small turret, the telegraph on it either way. Low.
+- Whether a moored line lay in the roads on 9–11 August 1805, and where: none is documented; the line of 10–21 July is the model; in 1801 a division lay 0.9–1 km off the entrance, and in 1805 further out, by no stated distance. Low.
+- Which way the stream ran round low water, and so which way the craft lay. Low.
+- Boulogne's own weather on 10 August; the British logs off Boulogne (ADM 51/52) were not read.
+- The huts' colour (mid-grey to near-white), size (a ridge of 2.5–3.5 m) and chimneys; where the four divisions were hutted in the summer of 1805. Low.
+- The 1805 jetty heads' position (±200–300 m) and the strand's slope (one plan of 1768), so the water's edge of a given hour. Medium-Low.
+- How much of the old cathedral stood in August 1805. Low.
+- The flotilla check's verdicts on colours, flags, spacing, sizes, motion and images (its sections 2.6–2.13) were not finished; those facts stand at the note's own confidence.
+
+### Sources for this section
+
+Every page, quotation and link is in the research notes and their checks. The main ones:
+- É. Desbrière, *Projets et tentatives de débarquement aux îles Britanniques*, vol. III (1902) and vol. IV (1902): https://archive.org/details/projetsettentat00histgoog ; https://archive.org/details/projetsettentat02histgoog
+- *Correspondance de Napoléon Ier*, vols IX (1862) and XI (1863): https://archive.org/details/correspondancede09napouoft ; https://archive.org/details/correspondancede11napouoft
+- P.-J.-B. Bertrand, *Précis de l'histoire physique, civile et politique de la ville de Boulogne-sur-Mer*, vols I (1828) and II (1829): https://archive.org/details/prcisdelhistoir01bertgoog ; https://archive.org/details/bub_gb_MLwWAAAAQAAJ
+- F. Nicolaÿ, *Napoleon at the Boulogne Camp* (1907): https://archive.org/details/napoleonatboulog00nicouoft
+- L. Constant Wairy, *Mémoires de Constant*, vol. I (1830): https://archive.org/details/mmoiresdeconst01wairuoft
+- M. Dumas, *Précis des événemens militaires*, vols XI and XII (1822): https://archive.org/details/prcisdesvnement07dumagoog ; https://archive.org/details/prcisdesvnement10dumagoog
+- *The Naval Chronicle*, vol. XIV (1805): https://archive.org/details/navalchronicleco14londiala
+- W. James, *The Naval History of Great Britain*, vol. III (1886 printing): https://archive.org/details/navalhistoryofgr03jameuoft
+- E. D. Lewis, HMS *Tartarus*, "A S. E. View of the Town and Harbour of Boulogne with the Encampments on the Heights" (1804), National Maritime Museum: https://www.rmg.co.uk/collections/objects/rmgc-object-157586 ; J.-F. Hue, *Napoléon visitant le camp de Boulogne en juillet 1804* (Salon of 1806): https://commons.wikimedia.org/wiki/File:Napol%C3%A9on_visitant_le_camp_de_Boulogne_en_juillet_1804.jpg
+- *Plan du port et de la ville de Boulogne en l'an XII (1804)*, BnF GE D-6281: https://gallica.bnf.fr/ark:/12148/btv1b8445205g
+- S. Palaude and F. Lemaire, "Le mobilier en verre d'un camp de l'armée d'invasion de Napoléon Ier", *Bulletin de l'AFAV* 2016, pp. 108–111 (the Étaples camp): https://afaverre.fr/Afaverre/wp-content/uploads/2025/01/2016-19-palaude-etaples.pdf
+- Royal Society, "Meteorological Journal" for August 1805, *Philosophical Transactions* 96 (1806): https://archive.org/details/philtrans09860936
+- NASA/JPL Horizons (DE441): https://ssd.jpl.nasa.gov/horizons/ ; TICON-3 tidal constants (Hart-Davis, Dettmering and Seitz, PANGAEA 2022): https://doi.org/10.1594/PANGAEA.951610 ; IGN RGE ALTI terrain model: https://data.geopf.fr/altimetrie/1.0/calcul/alti/rest/elevation.json
+
 ## Key sources
 
 Full lists with every URL are at the end of each file in `docs/research/`.

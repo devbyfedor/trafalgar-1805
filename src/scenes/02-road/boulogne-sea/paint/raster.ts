@@ -82,6 +82,19 @@ export async function paintPlates(
 ): Promise<boolean> {
   const k = plateScale(height, dpr);
   let slicer = new Slicer(budget?.() ?? 4, signal);
+  // An accelerated canvas records its drawing and the GPU rasterises it
+  // only when the canvas is next flushed: at the latest when it is first
+  // shown, which would put the whole painting's raster into one frame at
+  // the dive. A snapshot at the end of each slice flushes that slice's
+  // drawing, so the GPU's work is spread over the slices as the main
+  // thread's is.
+  const flush = (canvas: HTMLCanvasElement) => {
+    if (typeof createImageBitmap !== "function") return;
+    createImageBitmap(canvas).then(
+      (b) => b.close(),
+      () => {},
+    );
+  };
   try {
     for (const t of targets) {
       for (const mode of ["colour", "ink"] as const) {
@@ -95,11 +108,13 @@ export async function paintPlates(
           job(c);
           c.ctx.restore();
           if (slicer.due()) {
+            flush(canvas);
             await slicer.next();
             const b = budget?.();
             if (b !== undefined) slicer = new Slicer(b, signal);
           }
         }
+        flush(canvas);
         await slicer.check();
       }
     }

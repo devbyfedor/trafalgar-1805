@@ -14,7 +14,7 @@ Status: in progress.
 
 1. **The skyline has one tower.** Corrected, in two places.
    - Square base, octagonal upper stage, watchman, telegraph on top in 1803–04: confirmed. Bertrand 1829, pp. 102–104, I read them (archive.org leaves 113–115). The engraving of an XII is in Nicolay, p. 33; I looked at the page image.
-   - **The top of the tower in August 1805 is open.** The town's own leaflet (*Focus: le beffroi et l'hôtel de ville*, Ville d'art et d'histoire, 2016, p. 3) says the octagonal stage was built in 1734, culminates at 35 m, and that "until 1805" a spire crowned it. The regional inventory, as summarised by a web search, has the fire of 15 August 1712 and the architect Étienne Martinet finishing the octagon in 1734. Two period pictures agree with a pointed top. The engraving of an XII draws a tall, tapering top with the telegraph mast on it. Lewis (October 1804) draws "The Telegraph" as a slender spire with a crossbar and arms on its point. Bertrand's "small turret" is his own day, 1828–29: "Autrefois surmonté d'un clocher, il est aujourd'hui terminé par une petite tourelle". So the spire may still have stood in August 1805, or may have been taken down that year. No source gives the month. Low. The note's "no spire in 1805, High" is not supported.
+   - **The top of the tower in August 1805 is open.** The town's own leaflet (*Focus: le beffroi et l'hôtel de ville*, Ville d'art et d'histoire, 2016, p. 3) says the octagonal stage was built in 1734, culminates at 35 m, and that "until 1805" a spire crowned it. The regional inventory, as summarised by a web search, has the fire of 15 August 1712 and the architect Étienne Martinet finishing the octagon in 1734. Two of the three period pictures show a pointed top. The engraving of an XII draws a tall, tapering top with the telegraph mast on it. Lewis (October 1804) draws "The Telegraph" as a slender spire with a crossbar and arms on its point. Pocock's view (sketched in July 1804) shows a stout, blunt-topped tower with the crossed arms on top and no spire. Bertrand's "small turret" is his own day, 1828–29: "Autrefois surmonté d'un clocher, il est aujourd'hui terminé par une petite tourelle". So the spire may still have stood in August 1805, or may have been taken down that year. No source gives the month. Low. The note's "no spire in 1805, High" is not supported.
    - **Height.** 37 m is the French Wikipedia infobox. The town leaflet gives 35 m for the top of the octagon. Both are the present tower, without a spire. Medium for 35–37 m without a spire.
    - **Against the hill, not the sky: refuted for the top.** I traced the line of sight past the belfry over the IGN terrain model (see Recomputations). The ground behind the belfry along its bearing is not Mont Lambert's summit but its north-west shoulder, 140–166 m high, 5.3–5.7 km from the camera. From a boat 0.7–2 km off the harbour mouth, the top 4–8 m of a 37 m tower stand above that skyline. The telegraph on top would show against the sky. From about 3 km off, the top just touches the skyline. The body of the tower below about 20–25 m stands against the hill. Mont Lambert's summit lies 2–6° to the right of the belfry. Medium (bare-earth terrain model; trees or hedges on the crest, not in the model, could raise that skyline by a few tenths of a degree).
    - "Mont Lambert (187 m, about 3 km behind)": confirmed. The terrain model gives 188–190 m at the summit, 2.8 km east-south-east of the belfry.
@@ -297,7 +297,31 @@ I queried the same IGN service at my own points and wrote my own geometry (see R
 
 ### 3. Period views
 
-(in progress)
+I looked at the scans the note's author saved (full images and crops) and at the page images in Nicolay. I judged each description against what I could see.
+
+- **Pocock, "Correct View of Boulogne".** Corrected for the date.
+  - Signed "N. Pocock 1805" in the lower right: confirmed on the scan. The plate list of *Naval Chronicle* XIV credits Medland's engraving after Pocock, "copied from a Sketch taken by an Officer on board the Euryalus Frigate", at p. 481: confirmed.
+  - **The covering letter is dated "Of Boulogne, 31st July, 1804"** in the archive.org text of p. 481. The scan is clear there. So the view shows the state of July 1804, not October 1804.
+  - The letter's content: confirmed, pp. 481–482. Over a thousand vessels said to be in the harbour; heavy gun-brigs and luggers moored a little apart for four or five miles under numerous forts; the British squadron about three miles off; 40–50 thousand troops on the heights.
+  - The description: confirmed in every point I could check. The cutter and the boat; the pale town; the hill with a windmill on its summit; the long white battery with flags at the harbour mouth in front of the masts; brown cliffs both sides; a pale battery with tricolours on the northern cliff top; white hut rows on the skylines; the small round fort on a rock at far left; two slender spires on the right; windmills on the slopes.
+  - Add: the belfry is a stout tower with crossed arms on a blunt top and no spire. That matters for 1.3.
+  - "The best single period view from the sea": agreed.
+- **Lewis, "A S. E. View".** Confirmed.
+  - The key, items 27–39: I read them on the crop and they match the note's reading. "Bomb Point" is legible. Item 38 reads "A Battery carrying the line of Guns on the Pier Head" or close to it.
+  - The descriptions of the pile battery, the earth batteries, the white pier-head work with a tall white pointed light, the slender spire with the telegraph, and the distant mast on "Telegraph Hill": confirmed in the crops.
+  - "Naive but keyed; low for proportions": agreed.
+- **Lewis colour version, NMM A929.** Not checked.
+- **Hue, "Napoléon visitant le camp de Boulogne en juillet 1804".** Confirmed as a description.
+  - The scene is set in July 1804, so the painting shows the harbour as Hue saw or reconstructed it then. It shows the open timber trestles on piles, the basin full of masts, the dunes, sheds and hut rows on the far bank, the long low work at the seaward end with a flag, craft in the roads, and stake nets on the beach.
+  - Size, Salon number and inventory: not re-checked.
+  - The direction: the viewpoint is on a slope above the north side of the harbour, looking across it with the sea on the right, so roughly south-west. Agreed.
+- **The engraving of an XII (Nicolay, p. 33).** Confirmed from the page image, labels and all. Add: it draws the belfry very tall and slender, tapering at the top under the telegraph. Period at second hand. Medium.
+- **The "monsters" etching (Nicolay, p. 80).** Confirmed: "from an Etching, 1804".
+- **"The Terrible 'Wooden Fort'" (Nicolay, p. 81).** Confirmed. No source is given. See 2.4: it shows a house on piles, no guns.
+- **Hennequin; the BnF drawing.** Not checked. Context only.
+- **Luffman, 1801.** Confirmed on the scan: "Fort d'Ordre" on the cliff, two jetties with round heads (the west one longer), "Dry at Low Water", "Capelure" as a hamlet, "The Castle" at a corner of the upper town. The plan is schematic and draws the upper town square to the map. Before the works of 1803–05. Agreed.
+- **Desbrière's maps; Bertrand's map; Ozanne; Tassin and Zeiller; the d'Anville detail; the leads not followed.** Not checked by me. Nothing in them is used as a fact in the note.
+- **One caution for the painters.** All the views date from 1803–04: the engraving of an XII, Pocock's sketch of July 1804, Hue's scene of July 1804, Lewis in October 1804. None shows August 1805. Between them the wooden fort, the pierhead battery and the stone forts were finished (August–September 1804).
 
 ### Sections 4 and 5: doubts, sources and quotations
 

@@ -137,7 +137,8 @@ export function colourArt(
   paintHullSide(ctx, art, p, hero, dev, mirror);
 
   // Ports and the guns run out through them.
-  F(h.ports, p.inside.shadow);
+  // Through the port, the far bulwark lit by the sun that comes in by it.
+  F(h.ports, p.inside.low);
   F(h.portLintels, p.cast, 0.55);
   F(h.portSills, p.rail.top);
   F(h.muzzleShadows, p.cast, 0.5);

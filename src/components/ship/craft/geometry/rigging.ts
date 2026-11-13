@@ -3,7 +3,15 @@ import { path } from "../../geometry/path";
 import { deg, lerp, type Vec } from "../../geometry/vec";
 import type { CraftSpec } from "../types";
 import { type MastLayout, pointOf, type RigLayout } from "./rig";
-import { circle, quadPoints, railAt, ribbon, stemX, taper } from "./shapes";
+import {
+  circle,
+  quadPoints,
+  railAt,
+  ribbon,
+  stemX,
+  sternX,
+  taper,
+} from "./shapes";
 
 /**
  * Standing and running rigging, merged by pen into a few paths, with what
@@ -353,6 +361,11 @@ export function buildRiggingArt(spec: CraftSpec, rig: RigLayout): RiggingArt {
     const rb = rig.runningBowsprit;
     // Its heel lashed at the stem head, a bobstay from the stem.
     heavy.segment([stemX(h, 0.4) - 0.04, 0.4], lerp(rb.from, rb.to, 0.85));
+  }
+  if (rig.bumkin) {
+    const bk = rig.bumkin;
+    // The bumkin's shroud from its end down to the sternpost, as a bobstay.
+    heavy.segment(lerp(bk.from, bk.to, 0.92), [sternX(h, 0.45) + 0.04, 0.45]);
   }
 
   // The ensign's halyard down the staff.

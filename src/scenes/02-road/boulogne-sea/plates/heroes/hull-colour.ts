@@ -249,12 +249,14 @@ export function paintHullSide(
   }
   ctx.stroke();
 
-  // The row of sweep (or oar) ports: dark holes into the bulwark's shade,
-  // a sill lit from the sky, the lintel's shadow.
+  // The row of sweep (or oar) ports. The sun stands almost behind the
+  // eye, so through each the eye sees the patch of sunlight that comes in
+  // by the same hole on the far bulwark's inside: a small warm light under
+  // the lintel's shadow, and a sill lit from the sky.
   const holes = rowPorts(art);
   if (holes.length) {
     ctx.globalAlpha = 1;
-    ctx.fillStyle = p.inside.shadow;
+    ctx.fillStyle = linMix(p.inside.side, p.inside.low, 0.3);
     ctx.beginPath();
     for (const [x, y, w, hh] of holes) ctx.rect(x, -(y + hh), w, hh);
     ctx.fill();

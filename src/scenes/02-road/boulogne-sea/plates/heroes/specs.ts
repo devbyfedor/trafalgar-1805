@@ -63,6 +63,12 @@ export const SEA_CHALOUPE: CraftSpec = {
 export const SEA_BATEAU: CraftSpec = {
   ...BATEAU,
   id: "bateau-sea",
+  // The 24-pounder on its slide in the bow and the field gun on its
+  // carriage aft stand high enough to show over the washboard.
+  guns: [
+    { ...BATEAU.guns[0], y: 1.54 },
+    { ...BATEAU.guns[1], y: 1.62 },
+  ],
   ensign: {
     ...BATEAU.ensign,
     fly: 3.2,

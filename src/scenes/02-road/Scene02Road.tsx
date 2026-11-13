@@ -140,15 +140,19 @@ export function Scene02Road() {
           };
           let inLude: InterludeState | null = null;
           const drive = { q: 0 };
-          // The share of the pin is the driver's own time, never drive.q:
-          // GSAP rounds a plain tweened number to six decimals (gsap-core,
-          // _renderPlain), and over the pin's 34.8 screens that moved p by
-          // up to 6e-7, enough to tip the story's p (rounded to six
-          // decimals by its own tween) onto the next step and shift the
-          // flying camera by a fraction of a pixel (session 26, look-diff
-          // against the build before the interlude).
+          // The share of the pin: the scrub's, and once the scrub has
+          // settled, the scroll's own exact share. The scrub's tween carries
+          // its value rounded to six decimals (gsap-core, _renderPlain), and
+          // over the pin's 34.8 screens that moved p by up to 6e-7, enough
+          // to tip the story's p (rounded to six decimals by its own tween,
+          // as it always was) onto the next step: a resting frame then
+          // showed the flying camera a fraction of a pixel off where it
+          // stood before the interlude (session 26, look-diff).
           const follow = () => {
-            const screens = driver.time() * SCROLL.length;
+            const st = driver.scrollTrigger;
+            let q = driver.progress();
+            if (st && Math.abs(q - st.progress) < 2e-6) q = st.progress;
+            const screens = q * SCROLL.length;
             inLude = SCROLL.interludeAt(screens, lude);
             tl.time(SCROLL.pAt(screens));
           };

@@ -479,6 +479,23 @@ function inkArt(
   };
   const xs = -hs.sternRake;
   const xe = hs.length + hs.stemRake;
+  /** Layer units of a box given in the craft's metres (y up from the waterline). */
+  const boxOf = (
+    mx0: number,
+    mx1: number,
+    my0: number,
+    my1: number,
+  ): [number, number, number, number] => {
+    const sx = pl.bowLeft ? -pl.s : pl.s;
+    const a = pl.x + sx * (mx0 - art.midX);
+    const b = pl.x + sx * (mx1 - art.midX);
+    return [
+      Math.min(a, b),
+      Math.max(a, b),
+      pl.y + pl.s * my0,
+      pl.y + pl.s * my1,
+    ];
+  };
 
   // Paper behind every solid, so nearer craft hide farther lines.
   ctx.fillStyle = PAPER.low;
@@ -577,7 +594,7 @@ function inkArt(
   ctx.rect(xs - 1, -hs.deck * 0.55, xe - xs + 2, hs.deck * 0.55 + 0.05);
   ctx.clip();
   ctx.setTransform(base);
-  strokesIn(c, [ext.x0, ext.x1, ext.bottom, ext.top], {
+  strokesIn(c, boxOf(xs - 1, xe + 1, -0.1, hs.deck * 0.6), {
     angle: 0,
     spacing: 1.5,
     width: 0.5,
@@ -593,7 +610,7 @@ function inkArt(
   ctx.rect(hs.length - 2.4, -10, 4, 11);
   ctx.clip();
   ctx.setTransform(base);
-  strokesIn(c, [ext.x0, ext.x1, ext.bottom, ext.top], {
+  strokesIn(c, boxOf(xs - 1, xe + 1, -0.1, Math.max(...hs.rail) + 0.6), {
     angle: 74,
     spacing: 1.7,
     width: 0.45,
@@ -654,14 +671,23 @@ function inkArt(
       ctx.save();
       ctx.clip(P(layer.d));
       ctx.setTransform(base);
-      strokesIn(c, [ext.x0, ext.x1, ext.bottom, ext.top], {
-        angle: which === "blue" ? 90 : 0,
-        spacing: which === "blue" ? 1.2 : 1.9,
-        width: 0.45,
-        colour: INK.line,
-        alpha: 0.85,
-        seed: seed + 6,
-      });
+      strokesIn(
+        c,
+        boxOf(
+          flag.anchor[0] - flag.fly - 0.6,
+          flag.anchor[0] + 0.6,
+          flag.anchor[1] - flag.height - 0.6,
+          flag.anchor[1] + 0.6,
+        ),
+        {
+          angle: which === "blue" ? 90 : 0,
+          spacing: which === "blue" ? 1.2 : 1.9,
+          width: 0.45,
+          colour: INK.line,
+          alpha: 0.85,
+          seed: seed + 6,
+        },
+      );
       ctx.setTransform(flagT);
       ctx.restore();
     }
@@ -779,16 +805,17 @@ export function reflectionJobs(
       sctx.globalAlpha = 1;
       sctx.restore();
     } else {
-      // A mask of the shapes, then broken strokes kept only inside it.
-      sctx.fillStyle = "#000";
-      for (const d of [r.canvas, r.spars, r.flags, r.hull]) sctx.fill(P(d));
+      // Broken horizontal strokes over the whole region, then kept only
+      // inside the flipped shapes (one mask path: each composite wipes
+      // what lies outside its own shape).
+      const mask = new Path2D();
+      for (const d of [r.canvas, r.spars, r.flags, r.hull]) mask.addPath(P(d));
+      const flipT = sctx.getTransform();
       sctx.restore();
-      sctx.globalCompositeOperation = "source-in";
       const rng = createRng(seed + 11);
       sctx.strokeStyle = INK.hatch;
       sctx.lineCap = "round";
-      let y = y1 - c.pen(0.6);
-      let i = 0;
+      let y = pl.y - c.pen(0.8);
       while (y > y0) {
         const depth = y1 - y;
         sctx.lineWidth = c.pen(depth < 6 ? 0.9 : 0.7);
@@ -802,8 +829,14 @@ export function reflectionJobs(
         }
         sctx.stroke();
         y -= c.pen(1.6 + Math.min(3.2, depth * 0.03) + rng() * 0.6);
-        i++;
       }
+      // No clip here: outside a clip, destination-in would keep everything.
+      sctx.save();
+      sctx.setTransform(flipT);
+      sctx.globalCompositeOperation = "destination-in";
+      sctx.fillStyle = "#000";
+      sctx.fill(mask);
+      sctx.restore();
       sctx.globalCompositeOperation = "source-over";
     }
   };
@@ -814,9 +847,13 @@ export function reflectionJobs(
     const [x0, x1, y0, y1] = region;
     const w = x1 - x0;
     if (c.mode === "ink") {
+      // drawImage lays rows top-down: flip the y axis for it.
+      ctx.save();
       ctx.globalAlpha = 0.9;
-      ctx.drawImage(src, x0, y0, w, y1 - y0);
-      ctx.globalAlpha = 1;
+      ctx.translate(0, y1);
+      ctx.scale(1, -1);
+      ctx.drawImage(src, x0, 0, w, y1 - y0);
+      ctx.restore();
       scratch = null;
       return;
     }

@@ -2,11 +2,57 @@
 
 An independent, adversarial check of `town-and-defences.md` (same folder), claim by claim. I did not write that note and do not edit it. Every verdict says what I opened and where. Verdicts: **confirmed** (the source says it, at that place, and nothing better contradicts it), **corrected** (substantially right, but a page, figure, date, attribution or confidence needs changing), **unsupported** (the cited source does not say it, or I could not find it there or anywhere), **refuted** (the evidence says otherwise). Confidence uses the scale at the top of `docs/history-notes.md`. Kinds of evidence as in the note: **period**, **later scholarly**, **modern**, **DEM**, **inference**.
 
-Status: in progress.
+Status: complete (13 November 2026, session 26).
+
+Summary of the outcome:
+- The note is careful. Its quotations, dates and figures are mostly where it says. Its distances and bearings are right.
+- Its main errors are in what the eye sees from the boat. The belfry's top does break the skyline. The château is on the wrong side of the belfry. The belfry may still have carried a spire in August 1805.
+- It also puts mortars on the stone forts that the 1805 state does not list.
+- It misreads the Crèche fort's height, misdates Pocock's sketch, and repeats Bertrand's late dates for the wooden fort.
 
 ## What the painter must change or know
 
-(in progress)
+1. **The belfry's top breaks the skyline.**
+   - From a boat 0.7–2.5 km off the harbour mouth, the top 4–8 m of the belfry, and the telegraph on it, stand against the sky, not against Mont Lambert.
+   - The ground straight behind the belfry is Mont Lambert's north-west shoulder: 140–166 m high, 5–6 km from the boat, lower than the summit. The summit itself is 2–6° to the right of the belfry.
+   - The lower two-thirds of the tower stand against the hill. From 3 km off, the top just touches the skyline.
+   - Medium. This rests on a bare-earth terrain model. Trees on the crest would lift the skyline a little.
+2. **What crowned the belfry in August 1805 is not settled.**
+   - The town's own leaflet says a spire stood on the octagon "until 1805". The engraving of 1803–04 and Lewis's view of October 1804 draw a slender pointed top with the telegraph on its point. Pocock's view (sketched in July 1804) draws a blunt top with the arms on it. Bertrand's small turret is the state of 1828.
+   - The owner should choose: a slim spire carrying the telegraph (two views of three), or a blunt octagon with a small turret and the telegraph.
+   - Either way, the square lower stage has four small corner turrets.
+   - Low. The tower without a spire is 35–37 m.
+3. **The château is left of the belfry, not at the right-hand end.**
+   - Seen from the roads, the château stands behind the middle of the north-west rampart, about 2° left of the belfry.
+   - The rampart's west corner, nearest the sea, is 1–2° right of the belfry. The north-west face runs off to the left over 6–9° of the view. The south-west face runs off to the right over only about 3°.
+   - The wall top is about 0.8° above the horizon from 2 km off, and 1.1° from 1 km off.
+   - Medium.
+4. **No mortars on Fort de l'Heurt or Fort de la Crèche.**
+   - The state of March 1805 lists twelve 36-pounders and four howitzers at l'Heurt, and six 36-pounders, six 24-pounders and four howitzers at la Crèche. It lists no mortars.
+   - The parapets were only 3 feet high and their coping unfinished. A guard-house over the rear casemates had only been asked for.
+   - Both forts had plank ramps on piers running to the shore.
+   - Medium.
+5. **La Crèche stood on a lower rock; it was not lower on its rock.**
+   - Both platforms are 41 French feet (13.3 m) above their rock. La Crèche's rock was lower and more often covered, so its platform stood about a metre lower than l'Heurt's.
+   - It lay close under the cliff, within reach of the cliff batteries.
+   - Medium.
+6. **At low water the harbour is a bed of sand and mud.**
+   - The jetty heads stood high on the beach. Their foot was 6 m above chart datum, with the low-water line about 750 m further out. Only the Liane ran between them, 20–40 m wide.
+   - The craft along the quays and in the basin sat on the mud. The basin was dug as a drying basin.
+   - Even at spring high water the jetty heads had only about 3 m of water at their foot.
+   - High.
+7. **The lower town was mostly dark stone in 1805, with some new pale fronts.**
+   - Bertrand's brightening by plaster and lime wash began after about 1800 and grew with the peace.
+   - His houses "à deux et trois étages" have three or four levels (a ground floor plus two or three floors), not two or three.
+   - Low to medium.
+8. **No earth forts on the hills, not even begun.** Napoleon first asked for the plan of the redoubts round Boulogne on 29 August 1805. High.
+9. **The period views show 1803–04, not 1805.** Pocock's covering letter is dated 31 July 1804, not October. By August 1805 the wooden fort, the pierhead battery and the two stone forts had stood finished for a year. High.
+10. **Smaller fixes.**
+    - The column site is 1.8 km north-north-east of the belfry, not 2.5 km north-east.
+    - The Tour d'Odre cliff stands about 1.1° above the horizon from 2 km off and 1.8° from 1 km off.
+    - The wooden fort's piling began in early August 1803.
+    - The fascine dike is not dated.
+    - Paint no "Batterie de l'Impératrice": no source names it.
 
 ## Verdicts
 

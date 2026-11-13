@@ -1,32 +1,56 @@
-// The least the chapter marker's soft scrim can show at each p and keep the
-// marker's contrast over the chart at TARGET (development only; the scrim's
-// curve in src/scenes/02-road/ink.ts, CHAPTER_SCRIM).
+// The least the chapter marker's soft scrim can show at each point and keep
+// the marker's contrast over the chart, or over Boulogne's painting, at
+// TARGET (development only; the scrim's curve in src/scenes/02-road/ink.ts,
+// CHAPTER_SCRIM).
 //   node scripts/dev/chapter-scrim.mjs [from] [to] [step]
-// At each p the scene is scrolled there and settled; the marker's line
-// boxes are read; then the frame is shot twice with the text made
-// transparent, the scrim forced off and forced full. CSS composites an
-// element's opacity linearly in sRGB, so each pixel under the marker at
-// opacity o is off + o·(full − off): the least o at which the background's
-// 95th-percentile luminance (the bright end a letter can sit on, as
-// contrast.mjs takes it) gives TARGET is found by bisection. Prints p, the
-// contrast with no scrim, with the scene's own scrim and with a full one,
-// and the least opacity. Needs a server, as road.mjs does: BASE
-// (http://127.0.0.1:3000), W, H, S; TARGET (4.7); JSON=<file>.
+//   node scripts/dev/chapter-scrim.mjs 0.2..0.22:0.005 hold:0..1:0.25
+// The points: bare numbers keep their old meaning (p from, to, step; 0,
+// 1, 0.01); anything else is the road tools' point syntax (road-scroll.
+// mjs). With no arguments: p 0 to 1 by 0.01, then Boulogne's interlude
+// (its dive and rise every 0.05, its hold every 0.25). At each point the
+// scene is scrolled there by the page's own map and settled; the marker's
+// line boxes are read, with its opacity as it shows (its own times every
+// ancestor's, the text layer's included, which the scene fades through
+// the interlude's transition; under 0.05 it is not showing); then the
+// frame is shot twice with the text made transparent, the scrim forced
+// off and forced full (shown even where the scene hides it). CSS
+// composites an element's opacity linearly in sRGB, so each pixel under
+// the marker at opacity o is off + o·(full − off): the least o at which
+// the background's 95th-percentile luminance (the bright end a letter can
+// sit on, as contrast.mjs takes it) gives TARGET is found by bisection.
+// Prints the point, the contrast with no scrim, with the scene's own scrim
+// and with a full one, and the least opacity. Where the scene hides the
+// scrim (over the painting, which keeps the sky behind the marker dark
+// instead) its own scrim counts as 0, so "scene" is the marker's contrast
+// against the painting itself, flagged "hidden". Needs a server, as
+// road.mjs does: BASE (http://127.0.0.1:3000), W, H, S; TARGET (4.7);
+// JSON=<file>.
 import { writeFile } from "node:fs/promises";
 import { chromium } from "@playwright/test";
 import sharp from "sharp";
+import {
+  inInterlude,
+  pointName,
+  pointP,
+  pointsFromArgs,
+  roadPin,
+  scrollToPoint,
+  waitForRoad,
+} from "./road-scroll.mjs";
 
 const base = process.env.BASE ?? "http://127.0.0.1:3000";
-const from = Number(process.argv[2] ?? 0);
-const to = Number(process.argv[3] ?? 1);
-const step = Number(process.argv[4] ?? 0.01);
+const points = pointsFromArgs(process.argv.slice(2), {
+  order: ["from", "to", "step"],
+  defaults: { from: 0, to: 1, step: 0.01 },
+  fallback: "0..1:0.01 dive:0..1:0.05 hold:0..1:0.25 rise:0..1:0.05",
+});
 const width = Number(process.env.W ?? 1280);
 const height = Number(process.env.H ?? 720);
 const scale = Number(process.env.S ?? 1.5);
 const TARGET = Number(process.env.TARGET ?? 4.7);
-const SCENE1 = 3;
-const SCENE2 = 30;
 const SETTLE_MS = 1700;
+/** Below this opacity the marker is not showing. */
+const HIDDEN = 0.05;
 
 const lin = (c) => {
   const v = c / 255;
@@ -43,11 +67,17 @@ const context = await browser.newContext({
 });
 const page = await context.newPage();
 await page.goto(`${base}/?quality=0`);
-await page.waitForFunction(() => window.__road?.ready, null, {
+await waitForRoad(page, {
+  baked: false,
+  sea: points.some(inInterlude),
   timeout: 120_000,
 });
+const pin = await roadPin(page);
 
-/** A style switched on for a shot: the text transparent, the scrim at `o` (null: as the scene sets it). */
+/**
+ * A style switched on for a shot: the text transparent, the scrim at `o`,
+ * shown even where the scene hides it (null: as the scene sets it).
+ */
 async function setShot(o) {
   await page.evaluate((o) => {
     let style = document.getElementById("chapter-scrim-shot");
@@ -59,7 +89,7 @@ async function setShot(o) {
     style.textContent = `#road [data-layer=text] h2, #road [data-layer=text] p { color: transparent !important; }${
       o === null
         ? ""
-        : ` #road [data-el=scrim-chapter] { opacity: ${o} !important; }`
+        : ` #road [data-el=scrim-chapter] { opacity: ${o} !important; visibility: visible !important; }`
     }`;
     style.disabled = false;
   }, o);
@@ -103,13 +133,9 @@ function bright(off, full, o) {
 }
 
 const rows = [];
-const count = Math.round((to - from) / step);
-for (let i = 0; i <= count; i++) {
-  const p = Math.round(Math.min(to, from + i * step) * 1e4) / 1e4;
-  await page.evaluate(
-    (y) => window.__lenis.scrollTo(y, { immediate: true, force: true }),
-    (SCENE1 + p * SCENE2) * height,
-  );
+for (const point of points) {
+  const name = pointName(point).padStart(10);
+  await scrollToPoint(page, point);
   await page.waitForTimeout(SETTLE_MS);
   const marker = await page.evaluate(() => {
     const el = document.querySelector("#road [data-el=chapter]");
@@ -122,15 +148,22 @@ for (let i = 0; i <= count; i++) {
       .map((r) => [r.left, r.top, r.width, r.height]);
     const style = getComputedStyle(el);
     const [r, g, b] = style.color.match(/[\d.]+/g).map(Number);
+    let opacity = Number(style.opacity);
+    for (let a = el.parentElement; a; a = a.parentElement)
+      opacity *= Number(getComputedStyle(a).opacity);
+    const scrimStyle = scrim ? getComputedStyle(scrim) : null;
+    // A scrim the scene hides shows nothing, whatever its opacity.
+    const hidden = scrimStyle?.visibility !== "visible";
     return {
       boxes,
       color: [r, g, b],
-      opacity: Number(style.opacity),
-      scrim: scrim ? Number(getComputedStyle(scrim).opacity) : 0,
+      opacity: style.visibility === "visible" ? opacity : 0,
+      scrim: !scrimStyle || hidden ? 0 : Number(scrimStyle.opacity),
+      hidden: Boolean(scrimStyle) && hidden,
     };
   });
-  if (!marker || marker.opacity < 0.5 || !marker.boxes.length) {
-    console.log(`${p.toFixed(3)}  marker not showing`);
+  if (!marker || marker.opacity < HIDDEN || !marker.boxes.length) {
+    console.log(`${name}  marker not showing`);
     continue;
   }
   await setShot(0);
@@ -158,17 +191,25 @@ for (let i = 0; i <= count; i++) {
     }
   }
   const row = {
-    p,
+    point: pointName(point),
+    p: pointP(pin, point),
+    ...(inInterlude(point) ? { phase: point.phase, t: point.t } : {}),
+    markerOpacity: marker.opacity,
     none: at(0),
     scene: at(marker.scrim),
     full: at(1),
     sceneOpacity: marker.scrim,
+    hidden: marker.hidden,
     least,
   };
   rows.push(row);
   console.log(
-    `${p.toFixed(3)}  none ${row.none.toFixed(2)}  scene ${row.scene.toFixed(2)} (at ${row.sceneOpacity.toFixed(2)})  full ${row.full.toFixed(2)}  least ${Number.isNaN(least) ? "-" : least.toFixed(2)}`,
+    `${name}  none ${row.none.toFixed(2)}  scene ${row.scene.toFixed(2)} (${row.hidden ? "hidden" : `at ${row.sceneOpacity.toFixed(2)}`})  full ${row.full.toFixed(2)}  least ${Number.isNaN(least) ? "-" : least.toFixed(2)}${row.markerOpacity < 0.995 ? `  (marker at ${row.markerOpacity.toFixed(2)})` : ""}`,
   );
 }
+const low = rows.filter((r) => r.scene < TARGET);
+console.log(
+  `below ${TARGET}:1 as the scene has it: ${low.length} of ${rows.length}${low.length ? ` (${low.map((r) => r.point.trim()).join(", ")})` : ""}`,
+);
 if (process.env.JSON) await writeFile(process.env.JSON, JSON.stringify(rows));
 await browser.close();

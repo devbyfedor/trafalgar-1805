@@ -140,12 +140,13 @@ await browser.close();
 async function chartFrames() {
   // Into scene 2, so scene 1's loops pause and only the chart draws:
   // halfway, or for an interlude's points just before that interlude (the
-  // painting away, the chart's detail that place's). Never in the handoff,
-  // where scene 1 still plays over the chart.
+  // painting away: it is drawn faintly from 0.012 of p before it; the
+  // chart's detail that place's). Never in the handoff, where scene 1
+  // still plays over the chart.
   const first = points[0];
   const into =
     first && inInterlude(first)
-      ? Math.max(0.1, pointP(pin, first) - 0.01)
+      ? Math.max(0.1, pointP(pin, first) - 0.02)
       : 0.5;
   await scrollRoadTo(page, into);
   await page.waitForTimeout(2500);

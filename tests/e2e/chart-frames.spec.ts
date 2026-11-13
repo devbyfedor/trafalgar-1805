@@ -242,8 +242,9 @@ test.describe("scene 2's frame budget through Boulogne's interlude", () => {
     const renderer = await chartRenderer(page);
     const lude = interludeOf(await roadPin(page));
     // Into scene 2 just before the interlude: scene 1's loops are paused,
-    // the chart's detail is Boulogne's and the painting is away.
-    await scrollToRoad(page, lude.at - 0.01);
+    // the chart's detail is Boulogne's and the painting is away (it is
+    // drawn faintly from 0.012 of p before the interlude).
+    await scrollToRoad(page, lude.at - 0.02);
     await page.waitForTimeout(SETTLE_MS);
 
     // The chart's own frames wherever the page draws it (in the dive and

@@ -91,10 +91,14 @@ function measure(page: Page): Promise<Width> {
       clientWidth: root.clientWidth,
       innerWidth: window.innerWidth,
       scrollX: window.scrollX,
-      wide: wide.slice(0, 12),
+      wide,
     };
   });
 }
+
+/** What reaches past the window, for a failure's message. */
+const named = (m: Width) =>
+  m.wide.slice(0, 12).join("; ") || "nothing reaches past the window";
 
 async function openRoad(page: Page): Promise<void> {
   // The scroll bar's style goes into <head> as soon as the parser makes it,
@@ -140,7 +144,7 @@ test.describe("the page's width with classic scroll bars", () => {
     ).toBeGreaterThanOrEqual(10);
     expect(
       top.scrollWidth,
-      `the top: the document's width (${top.wide.join("; ") || "nothing reaches past the window"})`,
+      `the top: the document's width (${named(top)})`,
     ).toBe(top.clientWidth);
 
     for (const point of POINTS) {
@@ -150,7 +154,7 @@ test.describe("the page's width with classic scroll bars", () => {
       const at = await measure(page);
       expect(
         at.scrollWidth,
-        `${name(point)}: the document's width (${at.wide.join("; ") || "nothing reaches past the window"})`,
+        `${name(point)}: the document's width (${named(at)})`,
       ).toBe(at.clientWidth);
       expect(at.scrollX, `${name(point)}: scrolled sideways, px`).toBe(0);
     }
@@ -165,7 +169,9 @@ test.describe("the page's width with classic scroll bars", () => {
     await scrollToInterlude(page, { phase: "hold", t: 0.5 });
     await page.waitForTimeout(SCRUB_SETTLE_MS);
     const clean = await measure(page);
-    expect(clean.scrollWidth, "before the plant").toBe(clean.clientWidth);
+    expect(clean.scrollWidth, `before the plant (${named(clean)})`).toBe(
+      clean.clientWidth,
+    );
 
     // 100vw counts the scroll bar's width (and a pixel more, should a
     // browser one day leave the scroll bar out of vw): wider than the
@@ -182,9 +188,10 @@ test.describe("the page's width with classic scroll bars", () => {
       planted.scrollWidth,
       "the document's width with the plant",
     ).toBeGreaterThan(planted.clientWidth);
-    expect(planted.wide.join("; "), "the plant, named").toContain(
-      "#overflow-plant",
-    );
+    expect(
+      planted.wide.some((w) => w.startsWith("div#overflow-plant")),
+      "the plant among what reaches past the window",
+    ).toBe(true);
 
     await page.evaluate(() =>
       document.getElementById("overflow-plant")?.remove(),

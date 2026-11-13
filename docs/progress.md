@@ -2,6 +2,13 @@
 
 Live checklist. A later session picks up from here. The briefs are `docs/scene-01-brief.md` and `docs/scene-02-brief.md`; decisions and deviations are in `docs/decisions.md`.
 
+## Session 24 (13 November 2026): Boulogne from the sea, stage A
+
+**The owner's order:** a new sub-brief, `docs/scene-02-boulogne-brief.md` (it wins over `scene-02-brief.md` for beat 1): at Boulogne the camera leaves the chart, dives to the water and holds on a painted, living view of the roads from the sea, then rises back into the chart. This session: **stage A only** (a working prototype of the dive, the view and the rise; composition, light and transition final-intent, details rough), then the report and a deliberate stop. The brief's status line is kept current; only the owner marks anything approved.
+- **Waiting for this work (deferred by the sub-brief, not to be touched):** the rest of session 23's stage B plan below: step 1's remaining checks, the Cádiz/Gulf labels on `wip/s23-gulf-labels`, branch 2 (smoke, night lights, signals), the signal relay in beat 4, the history section on `s23-history`, and the last session's stills, final check and README.
+- **Start:** clean tree at `d7ed575` on `main`; the sub-brief untracked. Branch `s24-boulogne-sea` made from it; the brief committed first (`b4f2d51`), status "Stage A — in progress".
+- **History helper** (workflow `s24-history`, run `wf_b3fc7bee-9e0`, started at the session's start): in worktree `.claude/worktrees/s24-history` (made by hand), branch `s24-boulogne-history` from `b4f2d51`; four topic researchers (the light and the Royal Navy's watch, the flotilla, the camps and Napoleon's hut, the town and the defences), each with an independent checker, notes committed as they go into `docs/research/scene-02/boulogne-sea/`; then the new section in `history-notes.md` and `painter-brief.md`. To be merged into `s24-boulogne-sea` when done (docs only). Script: `C:\Users\User\.claude\projects\d--dev-trafalgar-1805\4bb81d81-caa6-4ec4-8f3b-b1af5f8e1fc9\workflows\scripts\s24-history-wf_b3fc7bee-9e0.js`.
+
 ## Session 23 (13 November 2026): Boulogne's hold, the Gulf frames, branch 2, the relay, the history section
 
 **Where we stopped (the owner's deliberate stop, 13 November 2026).** In step 2 (the Gulf frames), mid-code: the change to `src/components/chart/lettering/HeadLabels.ts` is parked on `wip/s23-gulf-labels`. Main is committed, clean, typecheck and lint pass. Nothing runs: both workflows, the check chain, the dev server (3000) and both previews (4173, 4174) were mine and are stopped; no merge, rebase, lock or stash anywhere. No context compression this session.

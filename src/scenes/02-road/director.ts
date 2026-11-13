@@ -892,6 +892,18 @@ function flotillaGroup(layer: Glyphs): FreeGroup {
   };
 }
 
+/**
+ * An interlude's camera for the chart (RoadDirector.applyState): eye and
+ * target in world km, the vertical field of view in degrees, and how much
+ * of the chart's own marks of the place still show (0..1).
+ */
+export interface InterludeView {
+  eye: Vector3;
+  target: Vector3;
+  fov: number;
+  marks: number;
+}
+
 export interface RoadLayers {
   chart: Chart;
   rig: CameraRig;
@@ -1485,9 +1497,12 @@ export class RoadDirector {
     this.painted = el;
   }
 
-  /** Sets the chart's state for progress p; call before chart.frame. */
-  apply(p: number): void {
-    this.applyState(p);
+  /**
+   * Sets the chart's state for progress p; call before chart.frame. With
+   * `view`, an interlude's camera instead of the flight's (applyState).
+   */
+  apply(p: number, view?: InterludeView): void {
+    this.applyState(p, view);
     this.applyPainted(p);
   }
 
@@ -1495,15 +1510,21 @@ export class RoadDirector {
    * The chart's state for progress p (camera, light, ships, routes) and
    * the glyph layout's progress, without touching scene 1's painted
    * Victory: for baking the layout's tables ahead (stage.ts).
+   *
+   * With `view`, an interlude's dive or rise (scenes/alive/interlude.ts,
+   * interludes.ts): the story held at p, the camera where the interlude
+   * has it (the detail tile still the flight's at p), and the chart's own
+   * marks of the place shown only as much as `view.marks`.
    */
-  applyState(p: number): void {
+  applyState(p: number, view?: InterludeView): void {
     const { chart, rig } = this.layers;
-    chart.fly(rig, p);
+    if (view) chart.flyFrom(rig, p, view.eye, view.target, view.fov);
+    else chart.fly(rig, p);
     this.applyLight(p);
     const d = dayAt(p);
     this.applyFleets(p, d);
     this.applySquadrons(p, d);
-    this.applyBoulogne(p);
+    this.applyBoulogne(p, view ? view.marks : 1);
     this.applyTracks(p, d);
     this.applyHeads(p);
     this.layout?.setProgress(p);
@@ -1514,14 +1535,15 @@ export class RoadDirector {
    * them inside it is decided by the view (the camps' rows fade as they run
    * together, Camps.ts; the craft come in together where every one reads
    * one by one, behind the flotilla's gate), and outside it nothing of them
-   * is drawn or laid out.
+   * is drawn or laid out. `marks` (0..1) holds both back while an
+   * interlude's painting takes their place.
    */
-  private applyBoulogne(p: number): void {
+  private applyBoulogne(p: number, marks: number): void {
     const within = ([a, b, c, d]: readonly number[]) =>
       smooth(a, b, p) * (1 - smooth(c, d, p));
-    this.flotilla.shown = within(FLOTILLA_WINDOW);
+    this.flotilla.shown = within(FLOTILLA_WINDOW) * marks;
     const camps = within(CAMPS_WINDOW);
-    this.layers.camps.opacity = camps;
+    this.layers.camps.opacity = camps * marks;
     // Out of its window the layer isn't drawn at all; set only as it
     // crosses the window's ends, so a timing that hides it by name on
     // alternate frames (Chart.showNamed, road-bench.mjs AB=camps) can.

@@ -30,6 +30,7 @@ import {
 } from "@/components/chart/lettering/HeadLabels";
 import type { LabelState } from "@/components/chart/lettering/Lettering";
 import type { WaterLift } from "@/components/chart/terrain/liftProbe";
+import type { InterludePhase } from "../alive/interlude";
 import { CAPTIONS } from "./beats";
 import { CAMPS, FLOTILLA, FLOTILLA_TYPES } from "./boulogne";
 import { ROAD_FLIGHT } from "./camera";
@@ -37,6 +38,7 @@ import {
   FLOTILLA_GATE,
   fleetMarks,
   fleetNames,
+  type InterludeView,
   RoadDirector,
   roadHeads,
   squadronMarks,
@@ -49,8 +51,22 @@ import {
   GLYPH_TYPES,
 } from "./fleets";
 import { GAZETTEER } from "./gazetteer";
+import { interludeView } from "./interludeCamera";
+import { marksAt, SEA_EYE, type SeaPose } from "./interludes";
 import { legTracks, NELSON, VILLENEUVE } from "./routes";
 import { SOUNDING_ANGLES } from "./soundings";
+
+/** The soundings' ink (Soundings' own default strength). */
+const SOUNDING_INK = 0.75;
+
+/** The interlude's chart view (RoadStage.interlude), reused frame to frame. */
+const interludeAt: InterludeView & { u: number } = {
+  eye: new Vector3(),
+  target: new Vector3(),
+  fov: SEA_EYE.fov,
+  marks: 1,
+  u: 0,
+};
 
 /** smoothstep: 0 before a, 1 after b. */
 function rise(a: number, b: number, x: number): number {
@@ -76,15 +92,35 @@ export interface RoadStage {
     p: number,
     mode?: number,
   ): { fleets: Float32Array; squadrons: Float32Array };
-  /** Sets the chart for progress p and draws a frame (gsap.ticker time). */
-  draw(p: number, time: number): void;
+  /**
+   * Sets the chart for progress p and draws a frame (gsap.ticker time).
+   * With `view`, an interlude's dive or rise: the story at p, the camera
+   * and the marks as the view has them (RoadDirector.applyState).
+   */
+  draw(p: number, time: number, view?: InterludeView): void;
+  /**
+   * An interlude's camera at a point of it (interludeCamera.ts): the
+   * chart's view, its rig's u and how much of the chart's marks shows,
+   * with the painting's pose written into `pose`. One object, reused.
+   */
+  interlude(
+    phase: InterludePhase,
+    t: number,
+    pose: SeaPose,
+  ): InterludeView & { u: number };
   /**
    * Development: draws `frames` frames at p, each timed on the GPU and the
    * CPU (engine/bench.ts; scripts/dev/road-bench.mjs). The host holds its
    * own drawing meanwhile. With `alternate`, the chart's objects of that
    * name (Chart.showNamed) are drawn on even frames and hidden on odd ones.
+   * With `view`, an interlude's chart at that point (`interlude`).
    */
-  bench(frames: number, p: number, alternate?: string): Promise<BenchResult>;
+  bench(
+    frames: number,
+    p: number,
+    alternate?: string,
+    view?: InterludeView,
+  ): Promise<BenchResult>;
   /** Development: draws the scene at p and probes its water (Chart.probeWaterLift). */
   waterLift(p: number): WaterLift;
   /**
@@ -243,6 +279,10 @@ export async function createRoadStage(
   });
   let atlas: GlyphAtlas | null = null;
   let digits: DigitAtlas | null = null;
+  // The soundings, held back with the chart's other marks while an
+  // interlude's painting stands for the place (draw's `view.marks`).
+  let soundings: Soundings | null = null;
+  let soundingMarks = 1;
   try {
     const riverData = await loadRivers(chart.manifest, options.signal);
     const rivers = new Rivers(chart.field, riverData);
@@ -319,11 +359,12 @@ export async function createRoadStage(
         SOUNDING_ANGLES,
         options.signal,
       );
-      const soundings = new Soundings(
+      soundings = new Soundings(
         chart.field,
         soundingData.index,
         figures,
         digits,
+        { opacity: SOUNDING_INK },
       );
       chart.add(soundings, soundings.mesh);
     }
@@ -431,20 +472,37 @@ export async function createRoadStage(
           probe.read(chart.renderer, chart.camera, mode).values.slice();
         return { fleets: read(probes[0]), squadrons: read(probes[1]) };
       },
-      draw(p, time) {
+      draw(p, time, view) {
         sampled = Number.NaN;
-        director.apply(p);
+        director.apply(p, view);
+        const marks = view ? view.marks : 1;
+        if (soundings && marks !== soundingMarks) {
+          soundings.opacity = SOUNDING_INK * marks;
+          soundingMarks = marks;
+        }
         keepCard(p);
         chart.frame(time);
       },
-      async bench(frames, p, alternate) {
+      interlude(phase, t, pose) {
+        const u = interludeView(
+          phase,
+          t,
+          interludeAt.eye,
+          interludeAt.target,
+          pose,
+        );
+        interludeAt.u = u;
+        interludeAt.marks = marksAt(u);
+        return interludeAt;
+      },
+      async bench(frames, p, alternate, view) {
         sampled = Number.NaN;
         const gl = chart.renderer.getContext() as WebGL2RenderingContext;
         try {
           return await benchFrames(
             gl,
             (time) => {
-              director.apply(p);
+              director.apply(p, view);
               chart.frame(time);
             },
             frames,

@@ -30,11 +30,20 @@
 // only; STEP=0.1 one step for every set; P=0.16,0.2 only those points;
 // WAIT the settle time in ms after each scroll of the scene (1500: its
 // scrub takes 0.6 s); TOP how many of the worst points get images (6);
-// AMP the difference images' gain (8).
+// AMP the difference images' gain (8); TEXT=1 keeps scene 2's HTML in the
+// shots (captions, date line, chapter marker, scrims, names over the
+// canvas: everything but scene 1 and Boulogne's painting), to hold the
+// whole frame, not only the chart, against a reference taken the same way.
+// The scene is scrolled to p by the page's own map where it has one
+// (road-scroll.mjs: Boulogne's interlude lengthened the pin), else by the
+// old linear pin, so a build from before the interlude is its reference.
+// Boulogne's painting is always hidden: near its p it is drawn faintly
+// ahead of the dive (1/255), which is no part of the chart's look.
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { chromium } from "@playwright/test";
 import sharp from "sharp";
+import { scrollRoadTo } from "./road-scroll.mjs";
 
 const base = process.env.BASE ?? "http://127.0.0.1:4173";
 const [refDir, outArg] = process.argv.slice(2);
@@ -51,9 +60,7 @@ const top = Number(process.env.TOP ?? 6);
 const amp = Number(process.env.AMP ?? 8);
 const pages = (process.env.PAGES ?? "road,lab").split(",");
 const only = process.env.P ? process.env.P.split(",").map(Number) : null;
-/** Scene 1's pin before the handoff and scene 2's pin, viewport heights. */
-const SCENE1 = 3;
-const SCENE2 = 30;
+const withText = process.env.TEXT === "1";
 
 const OWNER = "1280x720@1.5";
 const sizes = (
@@ -91,11 +98,18 @@ function pointsOf(page, size) {
 }
 
 // Everything but the canvas: scene 1 whole, scene 2's text layer and
-// anything lettered over its canvas.
-const HIDE = `
+// anything lettered over its canvas, and Boulogne's painting; with TEXT=1
+// only scene 1 and the painting.
+const HIDE = withText
+  ? `
+[data-scene-wrapper=dawn] { visibility: hidden !important; }
+[data-scene=road] [data-layer=sea] { visibility: hidden !important; }
+`
+  : `
 [data-scene-wrapper=dawn] { visibility: hidden !important; }
 [data-scene=road] [data-layer=text] { visibility: hidden !important; }
 [data-scene=road] [data-layer=chart] > :not(canvas) { visibility: hidden !important; }
+[data-scene=road] [data-layer=sea] { visibility: hidden !important; }
 `;
 
 const nameOf = (page, size, p) =>
@@ -218,14 +232,9 @@ for (const size of sizes) {
     );
     await tab.addStyleTag({ content: HIDE });
     for (const p of pointsOf("road", size)) {
-      await tab.evaluate(
-        (y) => {
-          if (window.__lenis)
-            window.__lenis.scrollTo(y, { immediate: true, force: true });
-          else window.scrollTo(0, y);
-        },
-        (SCENE1 + p * SCENE2) * size.height,
-      );
+      // The page's own map from p to scroll where it has one (Boulogne's
+      // interlude lengthened the pin), else the old linear pin.
+      await scrollRoadTo(tab, p);
       await tab.waitForTimeout(wait);
       await take(tab, "road", size, p);
     }

@@ -429,4 +429,43 @@ Facts the note does not have, useful to the painters. Each gives its source.
 
 ## Sources opened for this check
 
-(in progress)
+I searched the full archive.org texts page by page, using the page-structured OCR (`_djvu.xml`) mapped to printed page numbers. I checked key figures on the page images. The downloads are not in the repository; they sit in the untracked folder `.claude/s26/history/check-town/` of the main working tree.
+
+**Period documents and works that print them**
+- Napoleon, *Correspondance*, vol. VIII, Nos. 7061, 7069, 7074 (pp. 508–509, 513–514, 517): https://archive.org/details/correspondancede08napouoft
+- Vol. IX, Nos. 7431 (p. 174) and 7650–7651 (p. 308): https://archive.org/details/correspondancede09napouoft
+- Vol. X, No. 8177 (p. 51): https://archive.org/details/correspondancede10napouoft
+- Vol. XI, Nos. 9159 (pp. 159–160) and 9325 (p. 283): https://archive.org/details/correspondancede11napouoft
+- *The Naval Chronicle*, vol. XIV, plate list and pp. 481–482: https://archive.org/details/navalchronicleco14londiala/page/481/mode/1up
+
+**Later scholarly works**
+- É. Desbrière, *Projets et tentatives*, vol. III, pp. 141–161, 435, 453–454, 552: https://archive.org/details/projetsettentat00histgoog
+- Same, vol. IV, pp. 372–374, 381–384 (page image of p. 384 checked): https://archive.org/details/projetsettentat02histgoog
+- P.-J.-B. Bertrand, *Précis*, vol. I (1828): legend pp. vii–x; pp. 97, 292, 319, 330–332, 337, 344–346, 383–384, 390–391, 406–408, 426. https://archive.org/details/prcisdelhistoir01bertgoog
+- Same, vol. II (1829): pp. 11–16, 54, 62, 95–105, 113, 137–140, 188. https://archive.org/details/bub_gb_MLwWAAAAQAAJ
+- D. Haigneré, *Histoire de Notre-Dame de Boulogne* (1857), ch. XXVI–XXVIII (pp. 259–262 and the 1820 pages): https://archive.org/details/bub_gb_Nnby-0MKeo8C
+- F. Nicolay, *Napoleon at the Boulogne Camp* (1907), pp. 16, 21–22, 29, 33–34, 36–37, 45, 47, 79–82, 309–313 (page images of pp. 33, 34, 81, 82): https://archive.org/details/napoleonatboulog00nicouoft
+- W. James, *Naval History*, vol. III, p. 229: https://archive.org/details/navalhistoryofgr03jameuoft
+
+**Images** (the note's author's saved scans, which I re-examined)
+- Pocock's watercolour (Commons, from Bonhams).
+- Lewis's drawing and key (RMG PAF/PZ6989, Commons TIFF).
+- Hue's painting (Versailles, Commons).
+- Luffman's plan of 1801 (David Rumsey).
+- Links as in the note's section 3.
+
+**Modern**
+- Ville de Boulogne-sur-Mer, Ville d'art et d'histoire, *Focus: le beffroi et l'hôtel de ville* (2016), via https://vpah-hauts-de-france.fr/wp-content/uploads/2019/04/focus-beffroi-hotel-de-ville.pdf
+- Région Hauts-de-France, regional inventory dossier on the belfry. Its pages refused automated access (403, bot check). Seen only as a search summary.
+- French Wikipedia, raw text read: *Beffroi de Boulogne-sur-Mer*, *Ville fortifiée de Boulogne-sur-Mer*, *Fort de l'Heurt*. Wikipedia geosearch API around the upper town.
+- POP (Mérimée) record IA00059456, *Remparts de la Haute Ville*: https://www.pop.culture.gouv.fr/notice/merimee/IA00059456
+- *Le réseau Chappe sous le Consulat et l'Empire*: http://www.telegraphe-chappe.com/chappe/reseauB.html
+- An informal blog on the belfry ("a little history of Boulogne-sur-Mer belfry", anecdotrip.com). Unsourced; not used as evidence.
+- OpenStreetMap API extracts (© OpenStreetMap contributors) for the upper town's walls and gates and for Fort de l'Heurt.
+- IGN Géoplateforme altimetry service, RGE ALTI: https://data.geopf.fr/altimetrie/1.0/calcul/alti/rest/elevation.json
+
+**Searched without result**
+- "Batterie de l'Impératrice" in all the full texts above.
+- The date of the end of the cathedral's demolition (web search).
+- The month in 1805 when the belfry's spire was removed (web search).
+- The planting date of the rampart trees (Bertrand 1828 and 1829 full text).

@@ -351,7 +351,56 @@ The only near-quotation that misleads is the "reverberating lamp" for "four à r
 
 ## Recomputations
 
-(in progress)
+**Method (mine, not the note's).**
+- Positions are converted from WGS84 latitude, longitude and height to earth-centred coordinates and then to a local east-north-up frame at the camera. That gives exact straight-line geometry with the earth's curvature built in.
+- Normal refraction is added as k·d²/2R with k = 0.13.
+- Heights come from the IGN RGE ALTI service (NGF-IGN69, close to mean sea level), queried at my own points and along my own profiles.
+- The eye is 3 m above NGF, roughly mid-tide in a boat. I also ran −1 m (low water) and +7 m (high water).
+- The ramparts come from a minimum-area rectangle fitted to the OpenStreetMap city-wall lines and gate nodes (OSM API extract of 13 November 2026).
+- Cameras are the note's A (50.7300 N 1.5650 E, about 2 km off the mouth) and B (50.7300 N 1.5780 E, about 1.1 km off), plus C (0.7 km off, 1.5841 E) and D (3 km off, 1.5514 E).
+
+**Distances and bearings.** Every value in the note's 1.1 is reproduced within 0.1 km and 1°.
+- From A: belfry 3.45 km at 99.2°; château 3.70 km at 97.6°; Tour d'Odre 2.28 km at 85.2°; wooden fort (assumed) 1.43 km at 81.0°; harbour mouth (assumed) 2.05 km at 90.0°; Crèche fort (assumed) 2.89 km at 43.1°; Fort de l'Heurt 2.47 km at 188.7°; column site 3.96 km at 71.8°; Mont Lambert 6.17 km at 103.1°.
+- From B: belfry 2.55 km at 102.6°; Tour d'Odre 1.37 km at 82.1°; wooden fort 0.54 km at 65.8°; Crèche fort 2.36 km at 26.6°; Fort de l'Heurt 2.76 km at 207.9°; Mont Lambert 5.28 km at 105.4°.
+
+**Heights (terrain model).**
+- Belfry foot 52.3 m; by the basilica 58.7 m; château 58.1 m; Saint-Nicolas 13.1 m; Tour d'Odre site 46.7 m; column site 91.6 m; the 1879 Crèche battery 68.6 m.
+- Mont Lambert summit 190 m at 50.7174 N 1.6501 E (a grid search; the coarse grid gave 188 m).
+- Fort de l'Heurt's point −1.2 m, that is on the foreshore.
+
+**Angular heights above the horizon** (eye 3 m, refraction included; A first, then B).
+- Belfry top at 87.3 m (35 m tower): 1.39° and 1.89°. At 89.3 m (37 m tower): 1.42° and 1.93°.
+- Mont Lambert summit: 1.71° and 2.01°.
+- Tour d'Odre site: 1.09° and 1.82°.
+- Rampart top: at the west corner (49 m) 0.79° and 1.10°; on the north-west face (53 m) 0.84° and 1.15°.
+- Château ground: 0.84° and 1.12°.
+- Platform of Fort de l'Heurt (about 12 m NGF): 0.20° and 0.18°.
+- Column site ground: 1.27° and 1.62°.
+
+**The belfry against the skyline.** I sampled the terrain every 50 m along the camera-to-belfry line, from the belfry out to 8 km beyond it, and took the highest angle.
+- Camera C (0.7 km off): belfry top 2.31° against a skyline of 2.09°. At low water, 2.42° against 2.14°.
+- Camera B (1.1 km off): 1.93° against 1.76°.
+- Camera A (2 km off): 1.42° against 1.35°. At low water 1.49° against 1.40°; at high water 1.35° against 1.31°.
+- Camera D (3 km off): 1.11° against 1.12°.
+- The skyline points are on Mont Lambert's north-west shoulder: ground 140 m at 50.7218 N 1.6448 E (from A), 166 m at 50.7197 N 1.6507 E (from B).
+- A point 20 m up the tower (72 m) is at 1.14° from A, against 1.35°. A point 25 m up (77 m) is at 1.66° from B, against 1.76°.
+- So the lower two-thirds of the tower always stand against the hill. The top 4–8 m, and anything on top, stand against the sky from inside about 2.5 km.
+- Caveat: a bare-earth model. Ten metres of trees on that shoulder would add about 0.1° to the skyline.
+
+**The ramparts in plan.**
+- Fitted rectangle 431 × 333 m. Corners at about N 50.72760 N 1.61438 E; E 50.72567 N 1.61800 E; S 50.72270 N 1.61407 E; W 50.72463 N 1.61046 E.
+- The long faces run at 40°/220°. The gates sit on the faces: Dunes on NW, Neuve on NE, Gayole on SE, Degrés on SW.
+- From A: N corner 94.4°, château 97.6° (the east corner 97.3°), belfry 99.2°, W corner 100.5°, S corner 103.2°.
+- From B: N corner 95.9°, château 100.1°, belfry 102.6°, W corner 104.6°, S corner 107.7°.
+- So the north-west face spans 6–9° to the left of the west corner, and the south-west face only about 3° to its right. The château stands behind the middle of the north-west face, left of the belfry.
+- A terrain profile across the west corner rises from about 37 m to 49 m within 20 m: a 12 m wall, consistent with Bertrand's 40–50 feet.
+
+**Other checks.**
+- The D-shaped fort (half-round front of 32 m, straight sides, 32 m gorge, 48 m deep) has a perimeter of 146 m. An ellipse of 48 × 32 m has 127 m. The stated circumference is 150.75 m.
+- 2,400 toises = 4.68 km. Fort de l'Heurt to the note's assumed Crèche fort = 5.1 km.
+- Belfry to Mont Lambert: 2.8 km. The 1805 harbour mouth (assumed) to Mont Lambert: 4.2 km. Belfry to column site: 1.8 km at about 11°.
+- Earth's curvature: 2.8 m drop at 6 km, 2.4 m with refraction.
+- Sunset azimuth, 9–11 August 1805: about 294–296° true (geometric, declination about +15.3°). The camera, looking about 100°, has the sun 10–20° off straight behind it.
 
 ## Additional facts found
 

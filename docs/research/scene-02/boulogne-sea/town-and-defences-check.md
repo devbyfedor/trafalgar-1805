@@ -180,35 +180,120 @@ I queried the same IGN service at my own points and wrote my own geometry (see R
 
 ### 2.1 The scheme of defence
 
-(in progress)
+- **The roads from la Crèche to Cap d'Alprech.** Confirmed: Corr. IX, No. 7650 (28 March 1804), p. 308.
+- **Dode's notice, the two rocks, 2,400 toises, the need for a middle fort, the first design.** Confirmed: Desbrière III, pp. 153–154.
+  - The first design had 13 guns in a casemated battery, plus 6 guns and 4 mortars on an upper platform.
+  - The project was settled at the end of germinal XI (20 April 1803).
+  - The notice is dated 30 brumaire XII (22 November 1803) at its end, p. 160. The footnote on p. 153 seems to print the 23rd.
+  - Dode's "left" (l'Heurt) and "right" (la Crèche) are seen from the land, facing the sea. This matters for "to the right of the east jetty" in 2.4.
+- **Forfait's floating fort.** Confirmed. No place could be found to build it but the beach, and it was given up (III, p. 153). III, p. 453, says it "could not have got out of the port".
+- **The 4.7 km against 5 km.** My own distance from the Wikipedia l'Heurt to the note's assumed Crèche fort is 5.1 km. Confirmed as an open question. Low.
 
 ### 2.2 Fort de l'Heurt
 
-(in progress)
+- **Where.** Confirmed: the Wikipedia coordinates and the terrain model (ground about −1 m NGF at the fort, that is on the foreshore). Distances confirmed by my computation.
+- **When.**
+  - Work began on 4 prairial XI (24 May 1803): Bertrand 1828, p. 319, confirmed.
+  - The two months of borings, cutting the bed and ramps down the cliff, and the first stones on 29 June 1803: Desbrière III, p. 154, confirmed.
+  - 7–8 feet by mid-September, the shell only from October, the gale of 10 November 1803 sweeping away a month's work "in three tides": III, p. 160, confirmed.
+  - Add: the same note gives "the fort" as 10 feet high on 26 vendémiaire XII (19 October 1803) and 15 feet 6 inches on 9 brumaire (1 November) (III, p. 161).
+  - Stopped in December 1803, resumed on 23 March 1804 (III, pp. 453–454); the storm of 30 May 1804 (IV, p. 381): confirmed.
+  - June 1804, the level of the solstice spring tides: IV, p. 382, confirmed. III, p. 436, not re-read.
+  - 15 July 1804, cores finished and the first 36-pounders mounted; 16 July, guns and howitzers in battery on provisional platforms; a garrison of 30 men and gunners for six pieces from the evening of 16 July: IV, pp. 382–383, confirmed.
+  - 40–45 large dressed stones a day at each fort in August 1804; the first battery's level reached by September; then only the parapets: IV, pp. 383–384, confirmed.
+  - Corr. X, No. 8177 (11 November 1804), p. 51: the forts "being made and not to have casemates", and the budget cut from 960,000 to 500,000 francs. Confirmed.
+  - **Corrected wording:** "the upper, casemated battery was dropped" mixes two things. The first design had a *lower* casemated gun battery with an open upper platform above it. As built, the guns stood in the open at the level of the first battery, and only the gorge (the rear) had casemates, as quarters (IV, p. 384).
+- **State in 1805.** Confirmed in every figure from the page image of IV, p. 384: 41 feet, sixteen pieces, twelve 36-pounders and four long-range howitzers, casemates finished, cordon set, parapet raised 3 feet, 18 feet of paving, coping to do, the guard-house over the casemate asked for. Add: the stair steps were to be set "within a month".
+- **Mortars.** Corrected to unsupported for 1805 (painter's item 8).
+  - French Wikipedia does say three 12-inch mortars in the centre, but without a source.
+  - The order of 28 March 1804 (Corr. IX, No. 7651) is for three "mortiers à semelle" for each fort, to stand elsewhere until the forts were ready.
+  - In June 1804 two 12-inch mortars "cast on a bed" (*coulés sur semelle*) went to the Crèche battery and the Tour d'Odre battery on the cliff, not to the forts (III, p. 435).
+- **Size and shape.**
+  - 48 m, 32 m and 150.75 m for "the fort": III, p. 160, confirmed.
+  - Shell of dressed blocks, rubble core and buttresses: III, p. 160; IV, p. 384, confirmed.
+  - The French Wikipedia details (blocks 1.90 × 1.30 × 0.40 m from Ainghem and Wimille, a door reached by a ladder, a spiral stair in a tower, a half-circle "of 150 m development", 175 m²): confirmed as Wikipedia's.
+  - The D shape: my own sum for a half-round front of 32 m plus two straight sides of 32 m plus a 32 m gorge is 146 m, as the note says. An ellipse of 48 × 32 m would give only 127 m. So the D or horseshoe fits the stated circumference better. Medium, as an inference.
+  - OpenStreetMap's outline of the present ruin is only about 37 × 14 m, so the ruin as mapped no longer shows the plan.
+- **From the sea.** Inference, as marked.
+  - 7–8 m above a spring high tide: if the rock is near mean sea level (−1 m NGF in the terrain model), then spring high water (about +4.5 m NGF) leaves 13.3 − 5.5 ≈ 8 m of wall. Confirmed as an estimate.
+  - Grey-buff stone: Low (painter's item 8). Flagstaff: likely, not documented.
+  - Timber ramps: Dode's report of 11 August 1804 speaks of a left ramp at la Crèche that lost 25 planks, a right ramp whose pier was damaged, and a pier being built for the left ramp at l'Heurt (IV, pp. 383–384). So both forts had plank ramps on piers to the shore. Medium.
+- **Later.** Confirmed as Wikipedia's: the German slab of the Second World War, the storm of November 1998.
 
 ### 2.3 Fort de la Crèche
 
-(in progress)
+- **Where.** Corrected in part (painter's item 9).
+  - The rock lower and flatter, half of it uncovered at neap low water, and the bed cut 8–10 inches deep against 2 inches at l'Heurt: III, p. 154, confirmed.
+  - Dode's remark that la Crèche, unlike l'Heurt, could be backed by the cliff batteries (III, p. 160) and the 450 m foreshore at la Crèche (III, p. 141) put it within a few hundred metres of the cliff foot.
+  - The note's 50.749 N 1.593 E is about 600 m west of the 1879 cliff-top battery. It is plausible but not located. Low.
+- **Same design.** Confirmed: Bertrand 1828, legend no. 42, "semblable à celui de l'Heurt".
+- **Height in June 1804.** Refuted as worded (painter's item 9): equally high above a lower rock (IV, p. 382).
+- **First shot.** Corrected: on 15 July 1804 at 3 p.m. ("since yesterday at 3 in the afternoon", Dode's letter of 16 July). The target was a British frigate with two brigs (IV, p. 382).
+- **Armament in March 1805.** Confirmed (IV, p. 384).
+- **A battery on the land behind; ruins removed later.** Confirmed: Nicolay, p. 80.
 
 ### 2.4 The wooden fort
 
-(in progress)
+- **What and where.** Confirmed: the order of 21 July 1803 and "at the end of the fascine dike" (III, p. 155). The dike from the Pidou jetty: III, p. 148. Bertrand's "end of the channel, close to the low-water mark": 1828, p. 331. Nicolay's "close to the harbour entrance" and the sand: p. 80.
+  - Napoleon's "fort Rouge ... tout à fait à la laisse de basse mer": Corr. VIII, No. 7074 (4 September 1803), confirmed.
+  - "It uncovers at low water": the note annexed to the letter of 22 August 1803, in Desbrière III, p. 158. So August, not September.
+- **"Right" means north.** Confirmed by the same convention in Dode (2.1). It agrees with Lewis's "Pile Battery" north of the mouth.
+- **Names.** Confirmed: III, p. 155. Bertrand 1828, p. 331, calls it "Fort l'Expédition"; legend no. 40 has "Fort-en-Bois ou de l'Expédition, détruit en 1814".
+- **When.** Corrected.
+  - Bertrand puts the first piles at "the beginning of fructidor (end of August 1803)" and the British cutting of the pile-driving engines on 21 fructidor (8 September 1803), pp. 331–332. Nicolay gives 1 fructidor.
+  - The documents in Desbrière contradict all three dates. The *Moniteur* of 14 August 1803 reports British ships firing, at 350 toises, on "the pile-drivers set up for building a fort" (III, p. 156, note 4). Napoleon's letter to Bruix of 22 August 1803 rebukes him for letting the British destroy them (III, pp. 156–157).
+  - So the piling began by early August 1803, and the engines were cut before 19 August. Bertrand's dates look a month late (perhaps thermidor misread as fructidor).
+  - The rest is confirmed: work from 17 September 1803 to 5 February 1804 with about 50 men (III, p. 159); resumed in May 1804 (III, p. 453); finished at the end of August 1804 and armed before winter (IV, p. 381).
+- **Armament and supplies.** Confirmed, IV, p. 381. "Garrison post for 50 men" over-reads rations for 50 men. Two Gomer mortars allowed in March 1804: Corr. IX, No. 7651, confirmed.
+- **Look.** Confirmed as stated, Low. Nicolay's figure, which I looked at, is a weatherboarded house with a hipped roof on a grid of piles, reached by two braced stairs. It shows no gun, embrasure or parapet. So it looks more like the fort's guard-house, or a later imagining, than the battery itself.
+- **Later.** Confirmed: Bertrand legend no. 40; Nicolay, p. 81.
 
 ### 2.5 The pierhead battery
 
-(in progress)
+- **The order of 3 July 1803.** Confirmed: Desbrière III, pp. 154–155. Ten 36-pounders (3 + 3 + 4), two long-range mortars, coast carriages, a grate for red-hot shot, four guns ready during the work, the old lantern razed, a taller wooden lantern set back. Two 36-pounders at the end of the Pidou jetty, in the second order of the same day: confirmed.
+  - The "reverberating lamp" is a *four à réverbère*, see 1.5.
+- **Fort Napoléon.**
+  - Unfinished in spring 1804: III, p. 453, confirmed.
+  - 20 more days and 6,775 francs on 3 August 1804, finished at the end of August: IV, p. 381, confirmed.
+  - Two tiers: Corr. IX, No. 7650, p. 308, confirmed.
+  - No vault: Corr. IX, No. 7431 (26 December 1803), p. 174, confirmed, including "at the engineer's cost".
+- **Its look from the sea.** Confirmed as a description of the two views. I saw both crops. Lewis's pier-head work is whitish, with guns at two levels and a tall white pointed "Light House". Pocock's is a long white low battery with a flag.
 
-### 2.6 The batteries
+### 2.6 The batteries along the cliffs and beaches
 
-(in progress)
+- **The orders of 3 July 1803.** Confirmed, III, p. 155: long-range mortars instead of short-range, the Moulin Hubert battery's 24-pounders moved to the platform above, ten new two-gun earth batteries between Boulogne and Calais, plank magazines and guard-houses.
+- **Beach platforms.** Confirmed: Corr. VIII, No. 7061, in Desbrière III, pp. 158–159. Thirds at the low-water line, at 50 toises and at 80 toises; light 24-pounders and 8-inch howitzers in teams.
+  - The tide-covered mortar bed is No. 7045 (26 August 1803, III, p. 158), which the note does not cite.
+- **Thirty mortars in March 1804.** Confirmed: Corr. IX, No. 7650 (eleven plate mortars and nineteen Gomer mortars).
+- **The prairial XII report.** Confirmed, III, p. 435. The batteries named, "Haut-Blaner" as printed, and 62 bombs, 15 shells and 220 round shot fired at British ships.
+  - Add: that month the low battery of the Tour d'Odre lost its four 6-inch howitzers and received two 12-inch Gomer mortars, and the Le Portel battery was rebuilt for four 36-pounders.
+- **The Alprech battery, 17 July 1804.** Confirmed, IV, p. 383.
+- **Ney's letter.** Confirmed, III, p. 552: an enemy squadron could anchor "between the Grenadiers' battery and the fort de l'Heurt".
+- **Nicolay's batteries.** Confirmed as Nicolay's, pp. 79–80, 82, unsourced.
+- **"Batterie de l'Impératrice."** Confirmed as not found. I searched the full texts of Desbrière III–IV, Bertrand 1828 and 1829, Nicolay and the Correspondence VIII–XI.
+- **The look.**
+  - The etching in Nicolay, p. 80: confirmed.
+  - Lewis's batteries: confirmed in the crops. Low reddish-brown blocks with dark guns and tricolours, on the cliff tops, at mid-slope and at the cliff foot.
+  - Bertrand's "iron coast": confirmed, legend p. x. The note's "pp. 333 and x" is right for the legend; p. 333 not re-read.
+  - James III, p. 229: confirmed (the passage is about 1804).
 
 ### 2.7 Signal posts
 
-(in progress)
+- **The belfry telegraph.** See 1.3.
+- **The Tour d'Odre.**
+  - The "tour des signaux" (No. 7061, 31 August 1803, p. 509) and the "croix des signaux" with the wooden "tente" (No. 7069, 3 September 1803, p. 513): confirmed. The text continues on p. 514.
+  - The "Signal" semaphore between the two pavilions (Nicolay, p. 22) and the signalling terrace (p. 29): confirmed.
+  - The order of the day of 27 germinal XII for flagstaffs "on the summit of the Fort de la Crèche and the Mont du Couple": Nicolay, p. 29, confirmed. "Summit of the fort" means a flagstaff on the fort itself.
+  - The engraving's labels: confirmed (Nicolay, p. 33).
+  - The 1809 "sémaphore de la Tour-d'Ordre": Bertrand 1828, p. 426, confirmed.
+- **"Telegraph Hill".** Confirmed as unidentified. In the crops I see a small mast with a crossbar and arms on a distant crest in Lewis, and a windmill on the summit of the high hill in Pocock.
+- **Coast-guard posts.** Not re-checked (Corr. IX, p. 51). Low, as the note says.
 
-### 2.8 Napoleon's pavilion
+### 2.8 Napoleon's pavilion and the headquarters huts
 
-(in progress)
+- **The pavilion.** Confirmed, Bertrand 1828, pp. 344–345: on a small mound on the cliff edge inside the 1544 English works, wood painted grey, 100 × 22½ feet, a rotunda of 30 feet facing the port as the council room.
+  - Bruix's built on the same lines but smaller: Nicolay, p. 21. Soult's thatched to the ground and lit from above: p. 22. Decrès's planned like Soult's but smaller, looking from afar "like an enormous extinguisher": p. 22. All confirmed.
+- **From the roads.** Confirmed by my computation: the Tour d'Odre site lies 1.4–2.3 km away at bearings of 82–85°, that is 5–8° left of the harbour mouth. "About 50 m up": the terrain model gives 47 m at the site.
 
 ### 3. Period views
 

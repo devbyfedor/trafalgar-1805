@@ -108,7 +108,100 @@ Angular heights follow from these: the belfry top (about 89 m) stands 1.5° abov
 
 ## 2. The shore defences of the roads
 
-*(to come)*
+### 2.1 The scheme
+
+The roads of Boulogne ran from the Crèche in the north to Cap d'Alprech in the south (Napoleon to Berthier, 28 March 1804, Corr. IX, No. 7650). Dode, the engineer in charge, set out the plan in a report of 22 November 1803 (Desbrière III, pp. 153–154). The anchorage could only be safe for a large flotilla if strong works held both ends. Nature had marked the places: the rock of l'Heurt for the left (south) wing and the rock of la Crèche for the right (north) wing, 2,400 toises (4.7 km) apart. That was too far for the two to cover the centre, so a third, middle fort was needed. The two wing forts were designed for 13 guns in a casemated battery plus 6 guns and 4 mortars on an upper platform; the project was settled at the end of germinal an XI (about 20 April 1803). The centre was first to have Forfait's floating fort, which could not be got out of the port. It was given instead a timber fort on piles at the low-water line, the fort en bois (2.4). Behind and between them the cliff tops and beaches carried batteries (2.6). Period (Dode's report and Napoleon's letters, printed by Desbrière, a later scholar). High.
+
+The straight-line distance between the modern Fort de l'Heurt and the rocks off the Pointe de la Crèche is nearer 5 km than 4.7 km by our reckoning, a difference that may come from where the Crèche fort's rock lay (2.3). Low.
+
+### 2.2 Fort de l'Heurt (the south wing)
+
+- **Where.** On a rock reef on the foreshore off Le Portel, at 50°42′29″ N 1°33′35″ E (Wikipedia). The DEM puts the reef about 0.7 km out from the top of the beach and 0.8 km from the low cliff of Le Portel, on ground that dries at low water. From a camera off the harbour mouth it lies 2.5–3 km away to the south-south-west. High.
+- **When.** Work began on 4 prairial an XI, 24 May 1803 (Bertrand 1828, p. 319; Wikipedia). Two months went on borings, cutting the rock bed and building ramps down the cliff. The first stones were laid on 29 June 1803 (Desbrière III, p. 154). The rest of the story is one of storms:
+  - The masonry reached 7–8 feet by mid-September 1803. Gales then tore away whole courses, and from October only the outer shell was built (Desbrière III, p. 160). The gale of 10 November 1803 swept away a month's work in three tides.
+  - Work stopped in December 1803 and resumed on 23 March 1804 (III, pp. 453–454). The storm of 30 May 1804 nearly demolished both forts (IV, p. 381).
+  - In June 1804 l'Heurt reached the level of the solstice spring tides (III, p. 436; IV, p. 382). On 15 July 1804 the cores were finished and the first 36-pounders mounted. On 16 July guns and howitzers stood in battery on temporary platforms. From 17 July l'Heurt had a garrison of 30 men and gunners for six pieces (IV, pp. 382–383).
+  - In August 1804, 40–45 large dressed stones were laid at each fort daily (IV, p. 383). By September the core had reached the level of the first battery, and before winter only the parapets were added (IV, p. 384).
+  - On 11 November 1804 Napoleon noted that the two forts were "made" and were not to have casemates, and cut their budget (Corr. X, No. 8177, p. 51). The upper, casemated battery of the first design was dropped.
+  - High (period reports and letters).
+- **State in 1805.** Soult's report of 8 March 1805 (Desbrière IV, p. 384) gives the state after the winter.
+  - Both forts stood at the level of the first battery, "41 pieds au-dessus du rocher" (41 French feet, about 13.3 m, above the rock).
+  - Each had 16 pieces. L'Heurt had twelve 36-pounders and four long-range howitzers.
+  - The casemates in the gorge (the rear) were finished and being fitted with bunks, doors and windows. The cordon (the string course under the parapet) was in place, and the parapet had been raised 3 feet.
+  - 18 feet of paving was laid around the platform's edge. The parapet's coping and the rest of the paving were still to do.
+  - The engineers asked to build a guard-house over the casemate to keep the rain out.
+
+  Napoleon had ordered three long-range mortars for each fort in March 1804 (Corr. IX, No. 7651). Wikipedia gives the armament as twelve 36-pounders and four 6-inch howitzers behind a parapet, with three 12-inch mortars in the centre of the platform. High for the guns and the height; medium for the mortars.
+- **Size and shape.** A note attached to Dode's report of 22 November 1803 gives "the fort" a great diameter of 48 m, a small diameter of 32 m and a circumference of 150.75 m (Desbrière III, p. 160). It was built as a shell of large dressed blocks, with a rubble core and internal buttresses (*noyau et contreforts*; III, p. 160; IV, p. 384). Wikipedia describes the gun deck as a half-circle "with a development of 150 m". It gives the facing blocks as 1.90 × 1.30 × 0.40 m from the quarries of Ainghem and Wimille (Desbrière prints "Aingban"), with a rubble core in lime or cement mortar. Entry was by a door reached by a ladder, then a spiral stair in a tower up to the platform.
+  - Our reading of the figures is a D or horseshoe plan: a half-round front of 32 m diameter facing the sea, straight sides, and a straight gorge 32 m long, 48 m from gorge to nose. That shape gives a perimeter of about 146 m, close to the 150.75 m stated. Medium for the size; low for the exact plan and orientation. The ruin can still be seen at Le Portel and would settle it.
+- **From the sea.** A massive pale stone drum rises from a dark reef. In August 1805 the stone was new, grey-buff with weed and wet dark at the foot. It stands about 13 m above its rock, with a projecting string course and a low parapet over which the muzzles of the 36-pounders show. A flagstaff carries the tricolour, and timber ramps or ladders lead down to the rock. At high water the reef is covered and some 7–8 m of wall show above a spring tide. At low water the whole height and the reef show. The heights above water are our inference: the DEM puts the reef near mean sea level, which we take as about 4.4 m above the port's chart datum, against the tide scale in 1.5. Low. The colour is inferred from the stone. Medium for the rest.
+- **Later.** It is a ruin today, preserved by a German concrete slab of the Second World War and damaged by a storm in 1998 (Wikipedia).
+
+### 2.3 Fort de la Crèche (the north wing)
+
+- **Where.** On a rock in front of the Pointe de la Crèche, between Boulogne and Wimereux, about 2.3 km north of the harbour mouth and 2.4–2.9 km from a camera off the harbour at bearings of 25–45°. Its rock was lower and flatter than l'Heurt's: neap low water left only half of it uncovered, and the bed had to be cut 8–10 inches deeper (Desbrière III, p. 154). High for the general place. Its exact rock is not fixed here. The coordinates of the 1879 battery on the cliff top (50.7489 N 1.6014 E) are not the Napoleonic fort's. We take the fort as about 50.749 N 1.593 E. Low.
+- **Same design, a little lower.** It was built at the same time and to the same design as l'Heurt (Desbrière; English Wikipedia calls it a copy). In June 1804 it stood two or three feet lower than l'Heurt above its rock and was often covered by the sea (Desbrière III, p. 436; IV, p. 382). It fired its first shot on 16 July 1804, at a British frigate that came in with two brigs (IV, p. 382). In March 1805 it carried six 36-pounders, six 24-pounders and four long-range howitzers (IV, p. 384). A battery on the land behind protected it (Nicolay, p. 80). High.
+- **Later.** The sea wore it down, and its ruins, a danger to shipping, were removed (Nicolay, p. 80). Only foundations are said to be visible today (English Wikipedia). The fort now called Fort de la Crèche is the 1879 battery on the cliff top.
+
+### 2.4 The wooden fort (fort en bois, fort Rouge, fort de l'Expédition)
+
+- **What and where.** On 21 July 1803 an order charged the naval engineers with building a timber platform on the low-water line, to the right of the east jetty, able to carry five heavy guns and two mortars (Desbrière III, p. 155). It stood at the seaward end of the fascine dike that ran about 700 m from the east (Pidou) jetty to the spring low-water line (III, pp. 148, 155). Bertrand puts it at the end of the channel, close to the low-water mark (1828, p. 331); Nicolay says it was close to the harbour entrance and built of timber because the sand would not bear masonry (pp. 80–81). Napoleon noted in September 1803 that it stood right at the low-water line and that it uncovered at low tide (Corr. VIII, No. 7074; Desbrière III, p. 158).
+  - "Right" here means right as seen from the harbour looking out, that is on the north side of the channel. Lewis's view from the sea of October 1804 draws his "Pile Battery" on the beach north of the harbour mouth (section 3).
+  - From the roads it was the nearest work of all, 0.5–1.5 km from the camera. High for the place in general; low for exact coordinates (about 50.732 N 1.585 E, our inference).
+- **Names.** It was called successively *fort en charpente* (timber fort), *fort Rouge* (red fort) and *fort de l'Expédition* (Desbrière III, p. 155), and the Fort-en-Bois in Boulogne (Bertrand 1828, legend no. 40). High.
+- **When.** The first piles were driven at the start of fructidor an XI, late August 1803. Nicolay gives 1 fructidor, 19 August (Bertrand 1828, p. 331; Nicolay, p. 80). The British cut down the pile-driving engines one night (Bertrand dates it 8 September 1803). Real work went on only from 17 September 1803 to 5 February 1804, with about 50 men when the weather allowed (Desbrière III, p. 159). It was taken up again in May 1804 and finished at the end of August 1804, armed and provisioned before the winter, through which it stood (III, p. 453; IV, p. 381). High.
+- **Armament and garrison.** In March 1805 it was "in the best possible state and entirely finished": eight 24-pounders and two 6-inch long-range howitzers, with biscuit, water, brandy and cheese for 50 men for six days. A raised step behind the parapet and a palisade of piles around the fort had been asked for and put off (Soult's report of 8 March 1805, in Desbrière IV, p. 381). Napoleon had allowed it two Gomer mortars in March 1804 (Corr. IX, No. 7651). High.
+- **Look.** No technical description was found. The evidence is three pictures and a name:
+  - Lewis (October 1804) draws the "Pile Battery" as a squat, reddish-brown block on the beach with a row of guns along its top.
+  - Hue's painting (1804–06) shows, at the seaward end of the jetty works, a long low battery with small buildings and a flagstaff, standing in the sea.
+  - Nicolay (p. 81) prints a drawing of uncertain source of a weatherboarded building with a hipped roof raised on a grid of piles, with braced timber stairs.
+  - The name "fort Rouge" suggests it was painted red, but no source found says so.
+  - Paint a timber platform on a forest of piles, with a parapet of heavy timber, guns, a timber guard-house and a flagstaff, dark-tarred or reddish. Low.
+- **Later.** The British required its demolition in 1814, and it was pulled down (Bertrand 1828, legend no. 40; Nicolay, p. 81). A street in the fishermen's quarter keeps the name.
+
+### 2.5 The pierhead battery (the musoir, "Fort Napoléon")
+
+- An order of 3 July 1803, made at Dunkirk, had the head (*musoir*) of the jetty enlarged in stone or timber for a battery of ten 36-pounders on coast carriages: three on each side and four in the middle, with two long-range mortars and a furnace for heating shot. Four guns were to stay ready to fire while the work went on (Desbrière III, pp. 154–155). The same order raised the old lantern and its lamp at the jetty end, replacing it with a much taller wooden lantern set back from the guns. A second order of the same day put two 36-pounders at the end of the Pidou (east) jetty (III, p. 155). High.
+- The west pierhead was to be named Fort Napoléon. It was unfinished in the spring of 1804, needed 20 more days on 3 August 1804, and was finished at the end of August 1804 (Desbrière III, p. 453; IV, p. 381). Napoleon wrote of mortars to go "between the first battery and the high battery" of the musoir, so it had two tiers (Corr. IX, No. 7650). He had forbidden any vault over "the fort of the musoir" and threatened to have one pulled down at the engineer's cost, so its guns stood in the open (Corr. IX, No. 7431, 26 December 1803, p. 174). High for the dates, the tiers and the open platform.
+- From the sea, Lewis's view of October 1804 shows the pier head as a rounded whitish masonry work with two rows of guns, which his key calls "a battery carrying [a] line of guns on the pier head", with "The Light House" rising beside it. Pocock's view shows a long white low battery with a flag at the harbour entrance. Medium for the look.
+
+### 2.6 The batteries along the cliffs and beaches
+
+- **What was ordered.** Napoleon's orders of 3 July 1803 (Desbrière III, p. 155) did several things:
+  - They replaced the short-range 12-inch mortars of the coast batteries round Boulogne with long-range ones.
+  - They moved the 24-pounders of the battery at the Moulin Hubert to the platform above it.
+  - They added ten new two-gun batteries of 24-pounders or heavier between Boulogne and Calais. These were built in earth, with magazines and guard-houses of planks.
+
+  In August–September 1803 he wanted two-gun platforms on the beaches: a third of them on the low-water line, a third at 50 toises above it and a third at 80 toises. He wanted mortar beds that the tide covered, with the mortars brought out at low water, and light 24-pounders and 8-inch howitzers kept in teams to run down onto the sand when the British came near (Corr. VIII, Nos. 7061 and 7074; Desbrière III, pp. 157–159). By March 1804 the roads from the Crèche to Alprech had 30 mortars, which he thought too few (Corr. IX, No. 7650). Period. High.
+- **Names in the reports.** The monthly report for prairial XII (May–June 1804) shows guns being changed at the batteries of the Petite-Garenne, Ningle, la Crèche, the Tour d'Ordre and the "low battery of the Tour d'Ordre", Le Portel, the "Haut-Blaner" (so printed) and the Chasseurs' battery. That month the coast batteries fired 62 bombs, 15 shells and 220 round shot at British ships (Desbrière III, p. 435). The "battery of lower Alprech" was finished and armed on 17 July 1804 (IV, p. 383). Ney, writing to Soult on 12 March 1804 about a possible bombardment, names the Grenadiers' battery as one end of the stretch an enemy squadron might anchor along, with the fort de l'Heurt at the other (III, pp. 551–552). Nicolay (pp. 79–80, 82) adds several more:
+  - three plunging-fire batteries on Cap d'Alprech;
+  - a battery half-way down the slope north of the harbour;
+  - the great battery at the top of the Tour d'Odre cliff, with twelve 24-pounders and six huge mortars, nicknamed the "monsters";
+  - a battery by the Moulin-Wibert, which is the Moulin Hubert of 1803;
+  - the "battery of the Republic" on a headland, since washed away, opposite the later Legion of Honour monument;
+  - a well-armed rampart north of the Tour d'Odre near the Honvault farm.
+
+  Medium. Nicolay's figures for the Tour d'Odre battery are not sourced.
+- **"Batterie de l'Impératrice."** No battery of that name was found in Desbrière III–IV, Napoleon's Correspondence (vols VIII–XI), Bertrand or Nicolay, nor in a web search. Do not use the name without a source.
+- **What a battery looked like.** An etching of 1804 of the Tour d'Odre mortar battery (reproduced in Nicolay, p. 80) shows a row of very large mortars on timber platforms behind a long parapet of gabions (earth-filled wicker baskets), with heaps of shells. Lewis's view of 1804 draws the batteries as low reddish-brown earthworks with a line of dark guns along the top and tricolour flags. They stand on the cliff tops, at mid-slope and at the cliff foot on both sides of the harbour. In Pocock's view the battery on the northern cliff top is pale, with a flag. Bertrand says the English called the coast between l'Heurt and the Crèche "the iron coast" for its guns (1828, pp. 333 and x). James speaks of masked as well as open batteries all along the cliff edge, with seven or eight "forts erected on the sands at low water" and mortar beds over which the tide flowed (III, p. 229). Medium.
+
+### 2.7 Signal posts
+
+- **The belfry telegraph.** The Chappe telegraph on the belfry linked Boulogne to Paris by Lille (1.3). High for 1803–04; medium for August 1805.
+- **The Tour d'Odre.**
+  - At the end of August 1803 Napoleon asked to be lodged outside the town, in one of two country houses he had noticed near the "tour des signaux", which he thought was on the Calais road (Corr. VIII, No. 7061, 31 August 1803, pp. 508–510). Three days later he turned down Sganzin's plan for quarters at the "croix des signaux" as too big and costly and asked instead for a wooden "tent" the size of a ship's great cabin, with four small cabins and a roof projecting six feet all round (No. 7069, 3 September 1803, pp. 513–514). That lodging became the baraque on the Tour d'Odre. The names suggest a signal tower or a signal mast with a cross-yard on that cliff in 1803. Medium.
+  - Between Napoleon's and Admiral Bruix's pavilions stood the naval "Signal" semaphore. Next to Napoleon's observation post was a "signalling terrace" from which orders went to the flotilla (Nicolay, pp. 22, 29).
+  - An order of the day of 27 germinal XII (17 April 1804) had flagstaffs on the Fort de la Crèche and on Mont de Couppes repeat the admiral's signals from the Tour d'Odre (Nicolay, p. 29). The engraving of 1803–04 marks a signal mast by the baraque and a flagstaff on the Châtillon heights (Nicolay, p. 33).
+  - In 1809 a "semaphore of the Tour d'Ordre" served as a survey mark (Bertrand 1828, p. 426).
+
+  Medium. Paint a tall mast with a yard and flag halyards on the cliff top near the pavilions, and flagstaffs on the forts and the southern heights.
+- **"Telegraph Hill."** Lewis's key of October 1804 lists "The Telegraph on Telegraph Hill" as well as the one in the town, and draws a small mast with arms on a distant hilltop to the right of the town. Pocock paints something like a windmill on the top of the high hill behind the town. Which hill this was, and whether it was a Chappe relay, was not found. Low.
+- **Coast guard posts.** The coast guard's guard-houses and signal posts ran along the whole coast; Napoleon ordered them put in the best state in October 1803 (Corr. IX, p. 51, a letter of 12 October 1803). The plank guard-houses of the batteries are in the order of 3 July 1803 (2.6). Low for any detail.
+
+### 2.8 Napoleon's pavilion and the headquarters huts on the Tour d'Odre
+
+- The pavilion stood on a small mound on the cliff edge, inside the old English fortifications of 1544 around the site of the Roman lighthouse, looking over the camps, the town, the harbour, the roads and the English coast. It was of wood painted grey, 100 feet long by 22½ feet wide (about 32.5 × 7.3 m). The end facing the harbour was a rotunda 30 feet (9.7 m) across, the council room (Bertrand 1828, pp. 344–345). Near it stood the huts of the ministers, the commander-in-chief and the admiral (same). Bruix's was built on the same lines but smaller. Soult's was thatched down to the ground and lit from above; Decrès's was like Soult's (Nicolay, pp. 21–22). Medium.
+- From a camera in the roads the pavilion is 1.4–2.3 km away on the cliff top, about 50 m up, just left (north) of the harbour mouth. It would read as a long low grey building with a round end, beside a signal mast, among the camp's huts. Inference. The camps themselves are in the companion note on the camps.
 
 ## 3. Period views
 

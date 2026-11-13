@@ -34,18 +34,19 @@ export const BOULOGNE: InterludeSpec = {
 export const ROAD_INTERLUDES: readonly InterludeSpec[] = [BOULOGNE];
 
 /**
- * The painting's eye at the hold: a boat in the roads about 1.3 km west
- * by north of the harbour mouth (the Liane's piers, 50.7275 N 1.5885 E),
- * among the craft moored there, looking east by south at the shore: the
- * cliffs and the camp north of the harbour on the left, the harbour mouth
- * and the town on its hill in the middle, the heights south of the Liane
- * on the right. The evening sun (azimuth about 285-290°) is behind it.
- * Scene 1's lens: 40° vertical, the horizon at 61 % of the height (pitched
- * 4.6° up), the eye a few metres above the water.
+ * The painting's eye at the hold: a boat in the roads a kilometre west by
+ * north of the heads of the harbour's piers (about 50.7277 N 1.5865 E),
+ * among the craft moored across the road, looking east by south at the
+ * shore: the cliffs and the camp north of the harbour on the left, the
+ * harbour mouth and the town on its hill in the middle, the flats and the
+ * heights south of the Liane on the right. The evening sun (azimuth about
+ * 285-290°) is behind it. Scene 1's lens: 40° vertical, the horizon at
+ * 61 % of the height (pitched 4.6° up), the eye a few metres above the
+ * water.
  */
 export const SEA_EYE = {
-  lon: 1.5704,
-  lat: 50.7295,
+  lon: 1.5725,
+  lat: 50.7293,
   /** Degrees from north, clockwise. */
   heading: 100,
   /** Degrees, up positive: the horizon at 61 % of the height. */
@@ -55,6 +56,22 @@ export const SEA_EYE = {
   /** Metres above the water. */
   height: 6,
 } as const;
+
+/**
+ * Where the painting's waterline meets the shore ahead of its eye, metres
+ * along the view (the beach north and south of the piers; the piers' heads
+ * stand out to about a kilometre).
+ */
+export const SHORE_AHEAD = 1300;
+
+/**
+ * How far behind the painting's eye the chart's camera stands, metres
+ * along the view, so the chart's straight coast (about 130 m ahead of the
+ * painting's eye: Natural Earth's line across the Liane's mouth) lies at
+ * SHORE_AHEAD from it, where the painting's shore is (interludeCamera.ts;
+ * measured with scripts/dev/sea-coast.mjs).
+ */
+export const CHART_BACK = 1179;
 
 /**
  * A pose of the low camera in the painting's own frame: x metres to the

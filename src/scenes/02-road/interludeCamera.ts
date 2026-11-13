@@ -12,6 +12,7 @@ import type { InterludePhase } from "../alive/interlude";
 import { ROAD_FLIGHT } from "./camera";
 import {
   BOULOGNE_AT,
+  CHART_BACK,
   driftAt,
   flightU,
   SEA_DRIFT,
@@ -25,17 +26,30 @@ import {
  * painting alike: one rig from the chart's pose at p* down to the
  * painting's eye for the dive, the same way back up for the rise, and the
  * painting's own drift through the hold. In the chart's chunk (three.js).
+ *
+ * The chart's coast at Boulogne is Natural Earth's line over the Channel
+ * tile's 0.46 km relief, straight across the Liane's mouth about a
+ * kilometre west of the true shore (docs/decisions.md, "Boulogne, the
+ * camps and the flotilla"). So the chart's camera keeps CHART_BACK metres
+ * behind the painting's eye, wherever the pose: the two see the same
+ * horizon from the same height, and the chart's waterline lies across the
+ * frame where the painting's shore does, so the coast matches through the
+ * dissolve (scripts/dev/sea-coast.mjs measures it).
  */
 
 const DEG = Math.PI / 180;
 /** World km per ground km at the eye (sec φ). */
 const K = mercatorScale(SEA_EYE.lat);
-const O_X = worldX(SEA_EYE.lon);
-const O_Y = worldY(SEA_EYE.lat);
 const H0 = SEA_EYE.heading * DEG;
 /** The hold's right and forward, in world x (east), y (north). */
 const RIGHT = [Math.cos(H0), -Math.sin(H0)] as const;
 const AHEAD = [Math.sin(H0), Math.cos(H0)] as const;
+/**
+ * The chart's eye for the painting's: CHART_BACK metres behind it along
+ * the view, so the chart's coast lies where the painting's shore does.
+ */
+const O_X = worldX(SEA_EYE.lon) - ((CHART_BACK * K) / 1000) * AHEAD[0];
+const O_Y = worldY(SEA_EYE.lat) - ((CHART_BACK * K) / 1000) * AHEAD[1];
 
 /** The chart's eye and target (world km) for a pose of the painting's camera. */
 export function chartViewOf(

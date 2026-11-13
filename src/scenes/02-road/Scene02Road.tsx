@@ -17,10 +17,13 @@ import type { SeaViewHandle, SeaViewProps } from "./boulogne-sea/handle";
 import { buildRoadChoreography, collect, dawnElements } from "./choreography";
 import {
   BOULOGNE,
+  CHART_BACK,
   coveredSpan,
   ROAD_INTERLUDES,
+  SEA_EYE,
   SEA_HOLD,
   type SeaPose,
+  SHORE_AHEAD,
 } from "./interludes";
 import { RoadStills } from "./layers/RoadStills";
 import { RoadText } from "./layers/RoadText";
@@ -363,6 +366,11 @@ export function Scene02Road() {
               get seaReady() {
                 return sea.current?.ready === true;
               },
+              seaEye: {
+                ...SEA_EYE,
+                shoreAhead: SHORE_AHEAD,
+                chartBack: CHART_BACK,
+              },
               sample: (p: number, mode?: number) => s.sample(p, mode),
               bakedSizes: (layer: number, i: number, k0: number, k1: number) =>
                 s.bakedSizes(layer, i, k0, k1),
@@ -377,6 +385,12 @@ export function Scene02Road() {
               },
               siteView: (p: number, lon: number, lat: number) =>
                 s.siteView(p, lon, lat),
+              coastAlong: (
+                lon: number,
+                lat: number,
+                heading: number,
+                maxKm?: number,
+              ) => s.coastAlong(lon, lat, heading, maxKm),
               waterLift: (p: number) => {
                 drawn = -1;
                 return s.waterLift(p);
@@ -535,6 +549,11 @@ declare global {
       ) => number;
       /** Boulogne's painting is mounted and its layers drawn. */
       readonly seaReady: boolean;
+      /** Development: the painting's eye, its shore and the chart's camera behind it (interludes.ts). */
+      seaEye: typeof import("./interludes").SEA_EYE & {
+        shoreAhead: number;
+        chartBack: number;
+      };
       /** Draws the scene at p and reads back its glyphs (RoadStage.sample). */
       sample: (
         p: number,
@@ -552,6 +571,13 @@ declare global {
         sinElev: number;
         pxPerRad: number;
       };
+      /** Development: how far the chart's coast lies along a heading, ground km (RoadStage.coastAlong). */
+      coastAlong: (
+        lon: number,
+        lat: number,
+        heading: number,
+        maxKm?: number,
+      ) => number;
       /** Development: every water pixel's height above the sea at p (RoadStage.waterLift). */
       waterLift: (
         p: number,

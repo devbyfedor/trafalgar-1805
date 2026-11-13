@@ -19,7 +19,7 @@ import {
   Tracks,
 } from "@/components/chart";
 import { type BenchResult, benchFrames } from "@/components/chart/engine/bench";
-import { worldX, worldY } from "@/components/chart/geo/mercator";
+import { mercatorScale, worldX, worldY } from "@/components/chart/geo/mercator";
 import type { ClashResult } from "@/components/chart/glyphs/clash";
 import { glyphPxAt } from "@/components/chart/glyphs/height";
 import { GlyphLayout } from "@/components/chart/glyphs/layout";
@@ -217,6 +217,13 @@ export interface RoadStage {
   gates(p: number): number[];
   /** Development: every change of a label's strength (RoadDirector.labelChanges). */
   labelChanges(): ReturnType<RoadDirector["labelChanges"]>;
+  /**
+   * Development: how far the chart's coast lies from a point at sea along
+   * a heading (degrees from north), in ground km, up to `maxKm`; NaN if it
+   * finds none (the coast as the layout reads it, with the detail tile the
+   * last frame held). For matching a painting's shore to the chart's.
+   */
+  coastAlong(lon: number, lat: number, heading: number, maxKm?: number): number;
   /**
    * Development: where a site on the sea level stands in the frame at p
    * (normalised device coordinates), how far from the eye (km), how steeply
@@ -526,6 +533,31 @@ export async function createRoadStage(
         const height = chart.renderer.domElement.clientHeight || 720;
         const pxPerRad = height / (2 * Math.tan((camera.fov * Math.PI) / 360));
         return { x: site.x, y: site.y, dist, sinElev, pxPerRad };
+      },
+      coastAlong(lon, lat, heading, maxKm = 20) {
+        const k = mercatorScale(lat);
+        const h = (heading * Math.PI) / 180;
+        const x0 = worldX(lon);
+        const y0 = worldY(lat);
+        const at = (km: number) =>
+          coast.distance(x0 + km * k * Math.sin(h), y0 + km * k * Math.cos(h));
+        if (at(0) <= 0) return 0;
+        const step = 0.005;
+        let a = 0;
+        for (let km = step; km <= maxKm; km += step) {
+          if (at(km) > 0) {
+            a = km;
+            continue;
+          }
+          let b = km;
+          for (let i = 0; i < 30; i++) {
+            const mid = (a + b) / 2;
+            if (at(mid) > 0) a = mid;
+            else b = mid;
+          }
+          return (a + b) / 2;
+        }
+        return Number.NaN;
       },
       waterLift(p) {
         sampled = Number.NaN;

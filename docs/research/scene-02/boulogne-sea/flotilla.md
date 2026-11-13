@@ -75,4 +75,54 @@ Status: in progress.
 - **The Batavian flotilla.** Ver Huell's craft (Dutch schooners and armed schuyts of about 75 tons with three guns each, chiefly long 24-pounders, plus French prames) were based at Ambleteuse in the summer of 1805, with part at Calais (James III pp. 315–316, 318–321, 325–326; Desbrière IV pp. 397–398). They were brought into Boulogne only by the decree of 30 August 1805, after the army had left. In Boulogne's roads in August 1805 they would not normally be seen. Period and scholarly. Medium-High.
 - **Show craft.** On 26 August 1804 a British cutter fought "a heavy gun-brig and two lugger-rigged yachts, painted with white bottoms and green sides, and richly gilt" (James III p. 230). The return of March 1804 lists péniches for the First Consul, the admiral and the general-in-chief and a caïque for the First Consul (Desbrière III p. 558). Such painted and gilt craft were the exception. Scholarly. Medium.
 
+### 2.7 Colours: hulls, sails, spars
+
+- **No document found.** None of the period documents read (Desbrière's two volumes of orders and returns, Napoleon's Correspondance for 1804–1805, James, Dumas, Willaumez, the Naval Chronicle for 1805) says how the flotilla's craft were painted. Searches for French and English descriptions ("peints en noir", "goudronnés", "painted black") found nothing. Everything below rests on period images and inference.
+- **What the period images show.**
+  - E. D. Lewis's watercolour of 1804, drawn from the British bomb vessel Tartarus (RMG PAI6989): the French line as a row of two-masted craft with dark grey to black hulls and no visible bands, each with a tricolour at the stern and a long red pennant at the masthead. A naive but first-hand drawing. Period.
+  - Hue's oil painting of Napoleon visiting the camp in July 1804 (Salon of 1806, Versailles): the flotilla's hulls dark brown to black; the lug sails cream to off-white, one lugger's sails darker and browner; masts and yards brown wood. Period, by a marine painter, but painted in the studio.
+  - Pocock's watercolour, after an officer's sketch of July 1804: the harbour craft as a dense comb of brown-grey bare masts; the hulls hidden behind the jetty. Period.
+  - Baugean's engraving of the flotilla going out to its lines (about 1804–1805) is monochrome. Period.
+  - The Trianon model of the Foudroyante (2.2) is built in ebony and boxwood, so its black and pale bands are the woods of a fine model, not evidence of paint.
+- **Inference for the painter.** Hulls black or very dark tarred brown above the water, matt and weathered after one or two years in a tidal harbour; no bright bands are evidenced. A pale or ochre strake along the gun ports of the prames, as on contemporary French warships, is possible but unsupported. Below the waterline the craft lay on the mud twice a day, so whatever showed when they rolled would be dark and fouled. The imperial show craft (green sides, white bottoms, gilding) were exceptions. Low for the details; Medium that the general effect was dark hulls.
+- **Sails.** Navy canvas of hemp, one to two years old by August 1805: off-white weathered to buff and grey, darker where wetted and patched. Requisitioned fishing craft from the Channel ports may have had tanned, red-brown sails, which would fit the darker sail in Hue's picture. Inference from period images. Low-Medium.
+- **Flags.** Willaumez notes that French ensigns and pennants were made of linen ("toile"), where foreign navies used bunting (p. 444): a slightly heavier, duller cloth that hangs more limply in a light air. Period (1825). Medium-Low.
+
+### 2.8 Flags, pennants and numbers
+
+- **Ensign.** The French naval ensign in 1805 was the tricolour of three equal vertical bands, blue at the staff, white, red (fixed by the decree of 27 pluviôse an II, 15 February 1794). On the craft at anchor in the 1804 watercolour it flies from a staff at the stern; under sail it would go to the peak of the gaff (Willaumez: the large stern ensign is hoisted at the gaff of every vessel that carries a fore-and-aft "brigantine" sail, p. 443). High for the flag; Medium for where it flew on luggers.
+- **Ensign size.** Willaumez's rule: the large stern ensign is as long (fly) as the vessel's beam and two-thirds of the beam deep (hoist); the medium ensign is two-thirds of that (pp. 443–444). That gives up to about 8 × 5.4 m for a prame, 5.5 × 3.7 m for a chaloupe canonnière, 3.3 × 2.2 m for a péniche, and two-thirds of these for medium ensigns. Small craft probably wore the smaller sizes (inference). Period rule (1825). Medium-Low.
+- **Masthead pennant.** A warship flies at the head of the mainmast a long, narrow pennant in the colours of its stern ensign, ending in a point (Willaumez p. 291); pennants are at least twice the beam in length and one metre wide at the hoist (p. 444): about 16 m for a prame, 11 m for a chaloupe canonnière, 6–7 m for a péniche. The 1804 watercolour shows such long pennants on every craft of the French line. The order of the three colours along the 1805 pennant was not found in the sources read. Period. Medium for the pennant, Low for its colour arrangement.
+- **Command marks.** Division commanders flew a split pennant, the "guidon", half the beam long and split to half its length (Willaumez pp. 444, and s.v. Guidon); the plate facing Desbrière III p. 90 shows two flotilla flags labelled "Amiral" (a broad swallow-tailed flag) and "Ordinaire" (a long pennant). Rear-Admiral Lacrosse flew his flag in the prame Ville-de-Mayence in the centre of the line in October 1804 (James III p. 232). Period. Medium.
+- **Signals.** When the general signalled to dress the line, the craft at its head, centre and rear hoisted a distinguishing flag at the foremast; captains were forbidden private signals and used only the flotilla's signal book (ordre du jour of 16 April 1804, Desbrière III p. 560). Period. High.
+- **Numbers.** The craft were numbered: bateau of the 1st kind No. 1 (March 1804; Desbrière III p. 557), péniche No. 267 and craft Nos. 142 and 149 of the second line (October 1804; James III p. 233), chaloupe No. 275 (May 1805; Desbrière IV p. 396), gun-boats Nos. 34, 61, 62, 138, 280, 291, 305 and 306 in the line of September 1805 (Lacrosse's report, Naval Chronicle XIV p. 339). Where the numbers were painted (bow, stern or sail) was not found. Period. High for the numbers, unknown for their display.
+
+### 2.9 Sizes for scale and mast heights
+
+Hull figures are the 1803 design dimensions (Desbrière III p. 90), with the loaded draughts read from the period table (plate facing p. 90). Mast heights are **estimates**: no sail plan of a Boulogne craft was found (the ANCRE monograph on the bateau canonnier contains masting and sail plates, not seen).
+
+| Type | Length | Beam | Draught loaded | Side above water (est.) | Highest masthead above water (est.) |
+| --- | --- | --- | --- | --- | --- |
+| Prame | 35.7 m | 8.1 m | 2.8 m | 1.8–2.5 m to the top of the bulwark | 28–36 m |
+| Chaloupe canonnière | 24.7–26.0 m | 5.5 m | 1.8 m (new type) | 1.0–1.5 m | 16–24 m |
+| Bateau canonnier | 19.5 m | 4.5 m | 1.1–1.5 m | 0.8–1.2 m with the washboard | 10–14 m |
+| Péniche | 19.5 m (2nd kind 13.6 m) | 3.25 m | 1.1 m | about 0.5 m (open boat) | about 9 m |
+| Caïque | 14.0 m | 3.4 m | 0.95 m | about 0.5 m | 7–9 m |
+
+How the mast heights were estimated (all Low; inference):
+
+- **Prame.** Rule of thumb of the period for square-rigged ships (Steel's, close to French practice): mainmast about half the sum of length and beam, here (35.7 + 8.1) / 2 ≈ 22 m; topmast about 0.6 of the mainmast (13 m); topgallant about half the topmast (6.5 m). Taking off the part of the mainmast below deck (about 3 m) and the overlaps at the mastheads (about 2.4 m and 1.6 m), and adding about 1 m from waterline to deck, the main truck comes to about 36 m. Prames were notoriously slow and may well have been under-rigged, so the range is set at 28–36 m. Checks: in Hue's painting the ship-rigged craft inside the jetty carries its mastheads about as high above the water as its hull is long (about 36 m); the late-18th-century prame model in the Musée de la Marine shows the same proportion; James judged the 20-gun Ariadne "not above a third larger" than a prame.
+- **Chaloupe canonnière.** The same rule gives a mainmast of about 15 m and a main truck of about 24–25 m with a topgallant; without one, or with the "simplified" rig asked for in 1803, about 16–20 m. Range 16–24 m.
+- **Péniche.** Measured on the Desbrière plate: the mainmast head of the three-masted péniche stands about 0.47 of the hull's length above the water, so about 9 m for a 19.5 m boat; the lug yards peak a little higher.
+- **Bateau canonnier.** Between the péniche and the chaloupe: a beamier, heavier 19.5 m boat, "under-canvassed" according to the modern monograph; 10–14 m.
+
+Apparent size (full angle in degrees) for a craft seen broadside, from the figures above (computed):
+
+| Type | 100 m: hull / mast | 300 m | 1 km | 3 km |
+| --- | --- | --- | --- | --- |
+| Prame (35.7 m, mast 30 m) | 20.2° / 16.7° | 6.8° / 5.7° | 2.05° / 1.72° | 0.68° / 0.57° |
+| Chaloupe canonnière (25.3 m, 18 m) | 14.4° / 10.2° | 4.8° / 3.4° | 1.45° / 1.03° | 0.48° / 0.34° |
+| Bateau canonnier (19.5 m, 11.5 m) | 11.1° / 6.6° | 3.7° / 2.2° | 1.12° / 0.66° | 0.37° / 0.22° |
+| Péniche (19.5 m, 9 m) | 11.1° / 5.1° | 3.7° / 1.7° | 1.12° / 0.52° | 0.37° / 0.17° |
+
 ---

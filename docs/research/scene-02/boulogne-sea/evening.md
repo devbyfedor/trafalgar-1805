@@ -96,3 +96,42 @@ Horizons (DE441) for this eye, and the bare-ground skyline from the IGN RGE ALTI
 - **11 August** (98.2 % lit, 30.2′): sunset 19:24. The upper limb shows at 19:39, 0.6° right of the belfry. **The disc is clear at 19:44, 20 minutes after sunset**, at azimuth 104.0°, centre 2.22° up, 0.29° above the skyline (1.93°, the top of Mont Lambert). That is x = 105, straight above the west corner of the walls, 1.4° right of the belfry and 1.0° left of Mont Lambert's summit. The sun is then 3.0° below the horizon, in civil dusk (it ends at 20:01). Every 10 minutes after: 19:54, azimuth 105.9°, 3.66° up (x 139); 20:04, 107.8°, 5.11° (x 173); 20:14, 109.7°, 6.57° (x 207); 20:24, 111.6°, 8.01° (x 243). Low water 18:50 (1.3 m); 1.7 m at 19:44. This is the moon by the belfry, if the owner prefers it; the liberty of moment is then 72 minutes instead of 52.
 - **9 August** (99.6 %): the disc clears the hills at 19:06, 21 minutes before sunset, at azimuth 119.3° (x 390), over the Liane valley, right of the town.
 - **12 August** (94.5 %): the disc clears at 19:57, 35 minutes after sunset, at azimuth 95.0° (x −52), left of the upper town.
+
+## 4. The tide that evening
+
+The TICON-3 harmonic prediction for the Boulogne gauge, the predictor of `light-and-watch-check.md` (section 6) run unchanged, with times turned into LAT. Heights on Desbrière's zero. It is good to about ±20–30 minutes and ±0.3 m for the astronomical tide; wind and pressure add a few decimetres. The barometer stood high (section 5), which lowers the sea by a few centimetres only. Medium.
+
+### 4.1 Low water and the heights
+
+- **High water 11:15 LAT (8.2 m), low water 18:18 LAT (1.4 m), high water 23:32 (8.3 m).** A range of 6.8–6.9 m: small springs, because this full moon came near apogee (mean springs 7.9 m).
+- **Low water fell 68 minutes before sunset**, inside the golden window. At the painting's light (18:33) the water stood at 1.45 m, 3 cm above low water.
+
+| Minutes from sunset | LAT | Height | Rise in the half hour around it | Water's edge seaward of the west jetty head |
+| --- | --- | --- | --- | --- |
+| −90 | 17:56 | 1.49 m | −0.16 m (still falling) | about 490 m |
+| −60 | 18:26 | 1.43 m | +0.06 m (low water 18:18) | about 500 m |
+| −30 | 18:56 | 1.63 m | +0.35 m | about 460 m |
+| 0 (sunset) | 19:26 | 2.13 m | +0.66 m | about 350 m |
+| +30 | 19:56 | 2.94 m | +0.94 m | about 170 m |
+| +60 | 20:26 | 3.98 m | +1.11 m | at the jetty heads (from about 20:18) |
+
+### 4.2 The strand
+
+**In front of the jetty heads.** Cadier's plan of 1768 marks 3.40 m of fall from the west jetty to the low-water line, 386 toises (752 m) out. Desbrière reads that line as the lowest low water, +0.30 m, and puts the bar at the jetty head at +3.70 m (Desbrière III 142). His footnote to the fascine dike (III 148) likewise puts its "laisse de basse mer de vive eau", 700 m out, at +0.36 m. So the 700–750 m line is the line of the lowest tides of the year. With Cadier's even slope of about 1:220, the water's edge at height h lies 752 × (3.70 − h) / 3.40 m seaward of the west jetty head (last column above). Medium-Low (one plan of 1768, applied to 1805).
+- At the painting's light (18:33, 1.45 m) the edge lay about **500 m** off the jetty heads: some 250 m inside the 750 m line that `geo.ts` draws as SHORE_LOW.
+- At sunset (2.13 m) about 350 m off; by 20:18 the flood reached the jetty heads.
+- The eye, 1.1 km off, then floated about 600 m seaward of the water's edge. If Cadier's slope goes on, the bottom under it lay at about −1.3 m, in some 2.7 m of water at low water: enough for a chaloupe canonnière (2 m draught). Low.
+
+**In front of the cliffs.** Desbrière gives the strand as 700–800 m wide at the head of the bay and still 450 m at the Crèche (III 141), at the same lowest tides. With an even slope from the high-water mark (+8.90 m, the foot of the cliffs) down to that line, its width at height h is the full width × (8.90 − h) / 8.54. Low (the real beach is flatter below and steeper above, so near low water the edge moves faster than this).
+
+| | 18:33 (1.45 m) | Sunset (2.13 m) | 19:56 (2.94 m) | 20:26 (3.98 m) |
+| --- | --- | --- | --- | --- |
+| Under the cliffs north of the harbour (700–800 m at the lowest tides) | 610–700 m | 555–635 m | 490–560 m | 405–460 m |
+| At the Crèche (450 m) | 395 m | 355 m | 315 m | 260 m |
+
+### 4.3 The harbour and the bank at the mouth
+
+- **The harbour lay dry all evening.** The bed of the Liane in the harbour stood at +4 to +5.7 m (Desbrière III 145–146). The water was below +5 m from 14:32 to 20:53 LAT and below +4 m from 15:17 to 20:26. Through the golden hour and the sunset the craft in the harbour sat on the mud; only the narrow stream of the Liane ran through it, under 40 m wide (III 147). High for the mechanism, Medium for the hours.
+- **The bar and the bank.** The bar at the west jetty head (+3.70 m) lay dry from 15:32 to 20:18. The bank 150 m in front of the west pierhead (+5.5 m, III 148), which barred the west half of the mouth, lay dry from 14:10 to 21:06; the outflow ran along the east (Pidou) jetty. Medium.
+- **When the craft could move that night.** The water stood 2 m over the bank (+7.5 m, enough for the canonnières) from 22:13 to 00:57, and 1.3 m over it (+6.8 m, for the bateaux and péniches) from 21:45 to 01:32: about 3 and 4 hours round the high water of 23:32, as Desbrière reckons for springs (III 145). Medium.
+- **Not checked:** which way the stream ran off the harbour at low water, and so which way the craft in the roads lay (`light-and-watch-check.md`, section 10.9).

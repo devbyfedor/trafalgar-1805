@@ -334,6 +334,9 @@ function frameRecorder() {
       rec.query = rec.gl.createQuery();
       rec.queryFrame = i;
       rec.gl.beginQuery(rec.ext.TIME_ELAPSED_EXT, rec.query);
+      // Sent now: a chart that doesn't draw (under the painting) sends
+      // nothing that would carry the last query's end to the GPU.
+      rec.gl.flush();
     }
   };
   requestAnimationFrame(tick);
@@ -371,7 +374,10 @@ function frameRecorder() {
   rec.stop = () => {
     rec.on = false;
     rec.t1 = performance.now();
-    if (rec.gl && rec.ext) close();
+    if (rec.gl && rec.ext) {
+      close();
+      rec.gl.flush();
+    }
   };
 }
 

@@ -426,6 +426,9 @@ export async function recordFrames(page: Page): Promise<void> {
         rec.query = rec.gl.createQuery();
         rec.queryFrame = i;
         rec.gl.beginQuery(rec.ext.TIME_ELAPSED_EXT, rec.query);
+        // Sent now: a chart that doesn't draw (under the painting) sends
+        // nothing that would carry the last query's end to the GPU.
+        rec.gl.flush();
       }
     };
     requestAnimationFrame(tick);
@@ -467,6 +470,7 @@ export async function recordFrames(page: Page): Promise<void> {
       rec.on = false;
       rec.t1 = performance.now();
       close();
+      rec.gl?.flush();
     };
   });
 }

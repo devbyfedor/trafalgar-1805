@@ -74,8 +74,10 @@ export function boxStyle(
   height: string;
 } {
   const u = UNIT_VH;
+  // Centred on the painting's own box, never on the window's width: 50vw
+  // counts a classic scroll bar, so the art sat off centre by half of one.
   return {
-    left: `calc(50vw + ${(x0 * u).toFixed(4)}vh)`,
+    left: `calc(50% + ${(x0 * u).toFixed(4)}vh)`,
     top: `${(HORIZON * 100 - y1 * u).toFixed(4)}vh`,
     width: `${((x1 - x0) * u).toFixed(4)}vh`,
     height: `${((y1 - y0) * u).toFixed(4)}vh`,

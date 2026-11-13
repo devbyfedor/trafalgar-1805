@@ -34,21 +34,23 @@ export const BOULOGNE: InterludeSpec = {
 export const ROAD_INTERLUDES: readonly InterludeSpec[] = [BOULOGNE];
 
 /**
- * The painting's eye at the hold: a boat in the roads a kilometre west by
- * north of the heads of the harbour's piers (about 50.7277 N 1.5865 E),
- * among the craft moored across the road, looking east by south at the
- * shore: the cliffs and the camp north of the harbour on the left, the
- * harbour mouth and the town on its hill in the middle, the flats and the
- * heights south of the Liane on the right. The evening sun (azimuth about
- * 285-290°) is behind it. Scene 1's lens: 40° vertical, the horizon at
- * 61 % of the height (pitched 4.6° up), the eye a few metres above the
- * water.
+ * The painting's eye at the hold: a boat in the roads 1.1 km due west of
+ * the 1805 jetty heads (boulogne-sea/geo.ts; the research's "camera B"),
+ * among the craft moored off the strand, looking east by south at the
+ * shore: the wooden fort and the cliffs with the right camp on the left,
+ * the harbour mouth, the town on its hill with the belfry against Mont
+ * Lambert in the middle, the heights of Outreau on the right. As close to
+ * the jetties as low water allows (the owner's wish): the strand dries
+ * some 750 m out from the jetty heads, so the moored line, afloat, lies
+ * about 380 m ahead at most. The evening sun (azimuth about 290°) is
+ * behind it. Scene 1's lens: 40° vertical, the horizon at 61 % of the
+ * height (pitched 4.6° up), the eye a few metres above the water.
  */
 export const SEA_EYE = {
-  lon: 1.5725,
-  lat: 50.7293,
+  lon: 1.578,
+  lat: 50.73,
   /** Degrees from north, clockwise. */
-  heading: 100,
+  heading: 98,
   /** Degrees, up positive: the horizon at 61 % of the height. */
   pitch: 4.6,
   /** Vertical field of view, degrees. */
@@ -58,20 +60,24 @@ export const SEA_EYE = {
 } as const;
 
 /**
- * Where the painting's waterline meets the shore ahead of its eye, metres
- * along the view (the beach north and south of the piers; the piers' heads
- * stand out to about a kilometre).
+ * Where the high-water shore lies ahead of the painting's eye, metres
+ * along the view (boulogne-sea/geo.ts, SHORE_HIGH: just south of the
+ * harbour's mouth on the axis). At low water the sea's edge is far nearer
+ * (about 380 m ahead) and the strand lies wet between.
  */
-export const SHORE_AHEAD = 1300;
+export const SHORE_AHEAD = 1350;
 
 /**
  * How far behind the painting's eye the chart's camera stands, metres
- * along the view, so the chart's straight coast (about 130 m ahead of the
- * painting's eye: Natural Earth's line across the Liane's mouth) lies at
- * SHORE_AHEAD from it, where the painting's shore is (interludeCamera.ts;
- * measured with scripts/dev/sea-coast.mjs).
+ * along the view, so the chart's straight coast lies at SHORE_AHEAD from
+ * it, where the painting's high-water shore is (interludeCamera.ts). The
+ * chart's coast at Boulogne is Natural Earth's line across the Liane's
+ * mouth, about 220 m BEHIND this eye (the eye stands on the chart's land):
+ * measured from 3 km behind the eye along each bearing (session 25,
+ * .claude/s25/coast-back.mjs: -189 to -274 m across ±45°), so the chart's
+ * coast lies 1300-1385 m along the view across the frame.
  */
-export const CHART_BACK = 1179;
+export const CHART_BACK = 1573;
 
 /**
  * A pose of the low camera in the painting's own frame: x metres to the
@@ -112,16 +118,20 @@ export function driftAt(t: number): number {
 /**
  * The dive's pace: the camera rig's parameter u (interludeCamera.ts) for
  * the dive's progress t. Away gently from the chart's hold, a fast swoop
- * down and round, slowing onto the view's line, then the last few dozen
- * metres down to the water slow and even, while the chart turns into the
- * painting. The rise runs it backwards.
+ * down and round onto the view's line, arriving over the boat 60 m up at
+ * u 0.64 (t 0.45); then the last 54 m down to the water slow and even
+ * over more than half the dive, while the chart becomes an engraving of
+ * the view and the engraving takes its colour (TRANSITION). The rise runs
+ * it backwards. The dive's length (1.2 screens) is the owner's; only its
+ * pace inside changed (session 25).
  */
 const DIVE_PACE: readonly Keyframe[] = [
   [0, 0],
   [0.1, 0.03],
-  [0.4, 0.4],
-  [0.58, 0.6],
-  [0.8, 0.86],
+  [0.3, 0.38],
+  [0.45, 0.64],
+  [0.6, 0.73],
+  [0.86, 0.93],
   [1, 1],
 ];
 const divePace = monotoneCurve(DIVE_PACE);
@@ -134,16 +144,28 @@ export function flightU(phase: InterludePhase, t: number): number {
 }
 
 /**
- * The dissolve between the chart and the painting, by the rig's u: the
- * painting's share of the frame (0 the chart alone, 1 the painting alone).
- * Sky and land first, as the eye comes down past the cliffs' height; the
- * water last, nearly at the water.
+ * The transition between the chart and the painting, by the rig's u (the
+ * owner's plan, brief "Owner review, 13 November"): first the chart turns
+ * into an engraving of the same view, lines on the chart's paper in the
+ * chart's inks (each plate's ink raster, paper-backed, so nearer things
+ * hide farther ones as an engraver leaves them out); then colour comes
+ * into the engraving, group by group like a print coloured by hand: the
+ * sky, the land, the water, the craft last. The rise runs it backwards.
+ * Opacity only. The text steps aside while the ground under it is in
+ * flux (paper is bright where the chart and the painting are dark) and
+ * comes back over the painting.
  */
-export const DISSOLVE = {
-  /** The painting's sky, land, town and far craft. */
-  land: [0.66, 0.8] as const,
-  /** The painting's water and its near craft. */
-  water: [0.72, 0.88] as const,
+export const TRANSITION = {
+  /** The engraving over the chart: from nothing to whole. */
+  engraving: [0.64, 0.71] as const,
+  /** Colour by group, each from nothing to whole over the engraving. */
+  sky: [0.72, 0.8] as const,
+  land: [0.74, 0.85] as const,
+  water: [0.78, 0.89] as const,
+  craft: [0.82, 0.93] as const,
+  /** The captions, the date line and the chapter marker: out, then back in. */
+  textOut: [0.585, 0.635] as const,
+  textIn: [0.95, 0.995] as const,
 };
 
 /** Where the chart's own marks (the flotilla's glyphs, the camps, the soundings) go, by u. */
@@ -160,17 +182,37 @@ export function marksAt(u: number): number {
   return 1 - smooth(MARKS_OUT[0], MARKS_OUT[1], u);
 }
 
-/** The painting's share at the rig's u: its land and sky, and its water. */
-export function paintingAt(u: number): { land: number; water: number } {
-  return {
-    land: smooth(DISSOLVE.land[0], DISSOLVE.land[1], u),
-    water: smooth(DISSOLVE.water[0], DISSOLVE.water[1], u),
-  };
+/** The painting's shares at the rig's u: its engraving, each group's colour. */
+export interface PaintingShare {
+  engraving: number;
+  sky: number;
+  land: number;
+  water: number;
+  craft: number;
 }
 
-/** Whether the painting covers the chart wholly at the rig's u. */
+export function paintingAt(u: number, out: PaintingShare): PaintingShare {
+  const T = TRANSITION;
+  out.engraving = smooth(T.engraving[0], T.engraving[1], u);
+  out.sky = smooth(T.sky[0], T.sky[1], u);
+  out.land = smooth(T.land[0], T.land[1], u);
+  out.water = smooth(T.water[0], T.water[1], u);
+  out.craft = smooth(T.craft[0], T.craft[1], u);
+  return out;
+}
+
+/** How much of the text (captions, date line, chapter marker) shows at the rig's u. */
+export function textAt(u: number): number {
+  const T = TRANSITION;
+  return Math.max(
+    1 - smooth(T.textOut[0], T.textOut[1], u),
+    smooth(T.textIn[0], T.textIn[1], u),
+  );
+}
+
+/** Whether the painting covers the chart wholly at the rig's u (the engraving is whole). */
 export function coveredAt(u: number): boolean {
-  return u >= DISSOLVE.land[1] && u >= DISSOLVE.water[1];
+  return u >= TRANSITION.engraving[1];
 }
 
 /**
@@ -188,7 +230,7 @@ const WARM_SCREENS = 0.1;
  * (it is monotone), once per interlude.
  */
 export function coveredSpan(spec: InterludeSpec): readonly [number, number] {
-  const cover = Math.max(DISSOLVE.land[1], DISSOLVE.water[1]);
+  const cover = TRANSITION.engraving[1];
   let lo = 0;
   let hi = 1;
   for (let i = 0; i < 40; i++) {

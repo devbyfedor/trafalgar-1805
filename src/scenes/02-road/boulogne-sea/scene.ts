@@ -1,4 +1,5 @@
 import { SEA_EYE } from "../interludes";
+import { en, ORIGIN } from "./geo";
 
 /**
  * The composition of Boulogne from the sea (docs/scene-02-boulogne-brief.md,
@@ -8,24 +9,18 @@ import { SEA_EYE } from "../interludes";
  * beat 1) and docs/research/scene-02/boulogne-sea/; the licences are in
  * docs/decisions.md ("Boulogne from the sea").
  *
- * Places are given in metres from the heads of the harbour's piers (about
- * 50.7277 N 1.5865 E), east and north; the painting sees them from its eye
+ * Places are given in metres from the 1805 jetty heads (geo.ts, about
+ * 50.730 N 1.594 E), east and north; the painting sees them from its eye
  * (interludes.ts, SEA_EYE) through view.ts's layer units: x = 1000 · tan
  * of the angle right of the view's axis, y = 1000 · tan of the angle above
  * the eye's horizon.
  */
 
-/** The piers' heads, degrees. */
-export const HARBOUR = { lon: 1.5865, lat: 50.7277 } as const;
+/** The 1805 jetty heads, degrees (geo.ts, ORIGIN): the places' origin. */
+export const HARBOUR = ORIGIN;
 
-const M_PER_DEG_LAT = 111_200;
-const M_PER_DEG_LON = 111_320 * Math.cos((HARBOUR.lat * Math.PI) / 180);
-
-/** The eye, metres east and north of the piers' heads. */
-export const EYE_EN = [
-  (SEA_EYE.lon - HARBOUR.lon) * M_PER_DEG_LON,
-  (SEA_EYE.lat - HARBOUR.lat) * M_PER_DEG_LAT,
-] as const;
+/** The eye, metres east and north of the jetty heads. */
+export const EYE_EN = en(SEA_EYE.lat, SEA_EYE.lon);
 
 const PSI = (SEA_EYE.heading * Math.PI) / 180;
 const SIN = Math.sin(PSI);

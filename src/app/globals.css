@@ -156,6 +156,14 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /*
+     * The page never scrolls sideways: every scene is as wide as the
+     * window, and anything wider is clipped (the owner saw a horizontal
+     * scroll bar over Boulogne's painting with a classic scroll bar,
+     * session 25). On the root this is the viewport's overflow-x: hidden,
+     * while it still scrolls down as before.
+     */
+    overflow-x: clip;
   }
 
   body {

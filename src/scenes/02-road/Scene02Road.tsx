@@ -18,12 +18,14 @@ import { buildRoadChoreography, collect, dawnElements } from "./choreography";
 import {
   BOULOGNE,
   CHART_BACK,
+  coveredAt,
   coveredSpan,
   ROAD_INTERLUDES,
   SEA_EYE,
   SEA_HOLD,
   type SeaPose,
   SHORE_AHEAD,
+  textAt,
 } from "./interludes";
 import { RoadStills } from "./layers/RoadStills";
 import { RoadText } from "./layers/RoadText";
@@ -287,6 +289,17 @@ export function Scene02Road() {
             const pose: SeaPose = { ...SEA_HOLD };
             // Whether the painting covers the chart, so it isn't drawn.
             let covered = false;
+            // The text steps aside while the chart turns into the painting
+            // and back (interludes.ts, textAt); over the painting the
+            // chapter marker reads without its scrim (the painting's sky is
+            // dark enough there), so the scrim is hidden while it covers.
+            const textLayer =
+              el.querySelector<HTMLElement>("[data-layer=text]");
+            const chapterScrim = el.querySelector<HTMLElement>(
+              "[data-el=scrim-chapter]",
+            );
+            let textShown = 1;
+            let scrimHidden = false;
             render = (time: number) => {
               if (held) return;
               writeDate();
@@ -300,6 +313,17 @@ export function Scene02Road() {
                   : undefined;
               const painting = sea.current;
               painting?.frame(state.p, at, view ? view.u : 0, pose, time);
+              const painted = view !== undefined && painting?.ready === true;
+              const text = painted ? textAt(view.u) : 1;
+              if (text !== textShown && textLayer) {
+                textLayer.style.opacity = text === 1 ? "" : text.toFixed(4);
+                textShown = text;
+              }
+              const hideScrim = painted && coveredAt(view.u);
+              if (hideScrim !== scrimHidden && chapterScrim) {
+                chapterScrim.style.visibility = hideScrim ? "hidden" : "";
+                scrimHidden = hideScrim;
+              }
               // While the painting covers it, the chart isn't drawn: from a
               // little after it covers it on the way down to a little
               // before it shows again (interludes.ts, coveredSpan).

@@ -200,8 +200,8 @@ function Strip({ strip }: { strip: WaterStrip }) {
         className="block h-full w-full"
       >
         <path d={g.body} fill={strip.body} />
-        <path d={g.inner} fill={strip.inner} opacity={0.55} />
-        <path d={g.crest} fill={strip.crest} opacity={0.75} />
+        <path d={g.inner} fill={strip.inner} opacity={0.42} />
+        <path d={g.crest} fill={strip.crest} opacity={0.62} />
       </svg>
     </div>
   );

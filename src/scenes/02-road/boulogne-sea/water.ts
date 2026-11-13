@@ -53,13 +53,13 @@ export function buildWater(): WaterStrip[] {
     const near = EDGES[i + 1] ?? far * 0.6;
     const top = (1000 * EYE_H) / far;
     const bottom = (1000 * EYE_H) / near;
-    // Waves: a swell about 11 m long with shorter chop on it, seen at the
-    // strip's distance and as tall as half-metre waves look there; far off
-    // drawn longer than true, as scene 1's are, so they read (and their
-    // paths stay small).
+    // Waves: a long, low evening swell (some 25 m crest to crest, a third
+    // of a metre high) with shorter ripples on it, seen at the strip's
+    // distance; far off drawn longer than true, as scene 1's are, so they
+    // read (and their paths stay small).
     const scale = 1000 / far;
-    const period = Math.max(64, 11 * scale * (0.9 + rng() * 0.2));
-    const amp = Math.min(12, Math.max(0.45, 0.5 * scale));
+    const period = Math.max(70, 25 * scale * (0.85 + rng() * 0.3));
+    const amp = Math.min(6.5, Math.max(0.4, 0.33 * scale));
     const t = i / (n - 1);
     const k = t ** 0.8;
     const body = mixHex(
@@ -87,8 +87,8 @@ export function buildWater(): WaterStrip[] {
         { k: 2, a: amp * 0.42 },
         { k: 5, a: amp * 0.16 },
       ],
-      sharpness: 0.2 + 0.25 * k,
-      highlight: Math.max(0.25, amp * (0.55 + 0.6 * k)),
+      sharpness: 0.18 + 0.2 * k,
+      highlight: Math.max(0.3, amp * (0.22 + 0.2 * k)),
       seed: 700 + i,
     });
     strips.push({

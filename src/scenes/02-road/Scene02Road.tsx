@@ -140,8 +140,15 @@ export function Scene02Road() {
           };
           let inLude: InterludeState | null = null;
           const drive = { q: 0 };
+          // The share of the pin is the driver's own time, never drive.q:
+          // GSAP rounds a plain tweened number to six decimals (gsap-core,
+          // _renderPlain), and over the pin's 34.8 screens that moved p by
+          // up to 6e-7, enough to tip the story's p (rounded to six
+          // decimals by its own tween) onto the next step and shift the
+          // flying camera by a fraction of a pixel (session 26, look-diff
+          // against the build before the interlude).
           const follow = () => {
-            const screens = drive.q * SCROLL.length;
+            const screens = driver.time() * SCROLL.length;
             inLude = SCROLL.interludeAt(screens, lude);
             tl.time(SCROLL.pAt(screens));
           };

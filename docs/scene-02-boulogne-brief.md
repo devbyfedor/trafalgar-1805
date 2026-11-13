@@ -23,6 +23,7 @@ Never mark anything as approved on your own judgement. "Complete" means every do
 Log:
 - 2026-11-13 — brief written; stage A not started.
 - 2026-11-13 — session 24: brief committed as the first commit on `s24-boulogne-sea` (from `main` at `d7ed575`); stage A in progress.
+- 2026-11-13 — session 24 stopped by the owner mid stage A (the prototype half built: the scroll and the chart's dive and rise work, the painting's first passes in; checks, screenshots and the report's stage-A proof not done); see `docs/progress.md`, session 24.
 
 ## <context>
 

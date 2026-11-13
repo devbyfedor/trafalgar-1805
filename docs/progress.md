@@ -2,6 +2,13 @@
 
 Live checklist. A later session picks up from here. The briefs are `docs/scene-01-brief.md` and `docs/scene-02-brief.md`; decisions and deviations are in `docs/decisions.md`.
 
+## Session 25 (13 November 2026, from about 16:15): Boulogne from the sea, stage A to its done criteria
+
+**The owner's order** (complete; it ends "Конец сообщения"): he looked at the painting on the dev server; his review, answers and order of work are in the brief, "Owner review, 13 November" (`b6f42a3`). Work in that order of priority; likely two sessions; stop at a safe point if the session ends early. Nothing into `main`, the deferred plan's branches untouched, never `npm run screenshots`. His screenshot was saved as `docs/owner-feedback/Снимок экрана 2026-11-13 161210.jpg`; a PNG copy under the name he gave, `boulogne-sea-01.png` (the folder is git-ignored).
+- **Start:** clean tree at `86e3f97` on `s24-boulogne-sea`.
+- **Step 1, the review in the brief: done** (`b6f42a3`).
+- **Step 2, history: running** (workflow `s25-history`, run `wf_fd1ecaf5-825`, in worktree `.claude/worktrees/s24-history` on `s24-boulogne-history`): the four checks filled from their skeletons; a new note `evening.md` (9–11 August 1805 at the painting's eye: the sun, the full moon and the terrain horizon, the tide at sunset, the strand, the drying harbour) and its check; then the history section (it merges `s24-boulogne-sea` into the history branch first and replaces the interim section), `painter-brief.md`, `README.md`, a completeness pass. Script: `C:\Users\User\.claude\projects\d--dev-trafalgar-1805\7ba3a265-a35a-48b7-bea7-af1dfc4d02af\workflows\scripts\s25-history-wf_fd1ecaf5-825.js`. When it ends: merge `s24-boulogne-history` into `s24-boulogne-sea` (docs only). Don't edit `history-notes.md` in the main tree until then.
+
 ## Session 24 (13 November 2026): Boulogne from the sea, stage A
 
 **Where we stopped (the owner's deliberate stop, 13 November 2026).** On branch `s24-boulogne-sea` (main untouched at `d7ed575`), in stage A's step 3 (building the painting), after its first art passes and before revising its composition from the research. All committed and clean; lint and typecheck pass on the branch. No context compression. Nothing runs: both helper workflows stopped, my dev server (3000) and reference server (4175) stopped; no merge, rebase, lock or stash. The brief's status stays "Stage A — in progress".

@@ -34,7 +34,7 @@ import { FOOT, P, WATER, WATER_LIGHT } from "./common";
  */
 
 /** A seam line under the rail (hull.ts's planking): its height at x. */
-function seamLines(h: CraftHullSpec): ((x: number) => number)[] {
+export function seamLines(h: CraftHullSpec): ((x: number) => number)[] {
   const low = h.rail[1];
   const keel = low + h.draught;
   const out: ((x: number) => number)[] = [];

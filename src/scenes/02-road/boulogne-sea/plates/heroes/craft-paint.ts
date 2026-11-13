@@ -4,7 +4,6 @@ import type { PlateJob } from "../../paint/plate";
 import { colourArt } from "./colour";
 import {
   type CraftPlace,
-  craftExtent,
   type Detail,
   enter,
   FOOT,
@@ -41,11 +40,9 @@ export function craftJob(
   return (c) => {
     const art = buildCraftArt(spec);
     const { ctx } = c;
-    const ext = craftExtent(spec, pl, seed);
     const base = ctx.getTransform();
     ctx.save();
     enter(c, pl, art);
-    const craftT = ctx.getTransform();
     const vb = art.viewBox;
     ctx.beginPath();
     const foot = c.mode === "colour" ? FOOT : 0.02;
@@ -63,7 +60,7 @@ export function craftJob(
     };
     if (c.mode === "colour")
       colourArt(c, art, pl, paletteAt(spec, pl.ahead), detail, seed, flags);
-    else inkArt(c, art, pl, detail, seed, ext, base, craftT, flags);
+    else inkArt(c, art, pl, detail, seed, flags);
     ctx.restore();
   };
 }

@@ -281,9 +281,9 @@ export function reflectionJobs(
       };
       sctx.fillStyle = "#000";
       const r = art.reflection;
-      fillIn(r.hull, 1);
-      fillIn(r.spars, 0.9);
-      fillIn(r.canvas, 0.22);
+      fillIn(r.hull, 0.8);
+      fillIn(r.spars, 0.85);
+      fillIn(r.canvas, 0.18);
       for (const f of flagsOf(art, seed)) {
         const shape = clothShape(siteOf(pl, art), f, true);
         for (const q of shape.quads) {
@@ -338,19 +338,19 @@ export function reflectionJobs(
     const pxPerM = pl.s * c.k;
     sctx.strokeStyle = INK.hatch;
     sctx.lineCap = "round";
-    sctx.lineWidth = Math.max(0.6, Math.min(1.1, pxPerM * 0.06));
+    sctx.lineWidth = Math.max(0.55, Math.min(1, pxPerM * 0.05));
     sctx.beginPath();
-    let y = over * c.k + 1.2;
+    let y = over * c.k + 1.4;
     while (y < strokes.height) {
       const dm = Math.max(0, (y - over * c.k) / pxPerM);
-      let x = rng() * 6;
+      let x = rng() * 8;
       while (x < strokes.width) {
-        const len = 2 + rng() * (dm < 1 ? 16 : 9);
+        const len = 3 + rng() * (dm < 1 ? 15 : 8);
         sctx.moveTo(x, y);
         sctx.lineTo(x + len, y);
-        x += len + 1.5 + rng() * (2.5 + dm * 0.35);
+        x += len + 2.5 + rng() * (4 + dm * 0.45);
       }
-      y += 1.7 + Math.min(3.2, dm * 0.22) + rng() * 0.7;
+      y += 2.6 + Math.min(3.6, dm * 0.25) + rng() * 1.1;
     }
     sctx.stroke();
     sctx.globalCompositeOperation = "destination-in";

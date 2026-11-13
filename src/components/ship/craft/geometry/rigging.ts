@@ -456,15 +456,17 @@ export function buildRiggingArt(spec: CraftSpec, rig: RigLayout): RiggingArt {
           ],
         ]);
       }
-      // The stock across the shank near the ring, and the ring.
+      // The stock across the shank near the ring: with the flukes fished up
+      // against the bow it stands out from the side toward the eye, seen
+      // end-on as a short block; and the ring.
       const sc = lerp(o(ring), o(crown), 0.1);
-      const half = L * 0.42;
+      const half = L * 0.07;
       b.polygon(
         taper(
           [sc[0] - nrm[0] * half, sc[1] - nrm[1] * half],
           [sc[0] + nrm[0] * half, sc[1] + nrm[1] * half],
-          w * 1.2,
-          w * 1.2,
+          w * 1.7,
+          w * 1.5,
         ),
       );
       circle(b, o(ring), w * 1.15);

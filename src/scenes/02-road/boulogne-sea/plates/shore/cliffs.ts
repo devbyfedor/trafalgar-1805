@@ -1,4 +1,4 @@
-import { createRng, mix, type Pt, rgba, vRamp } from "../../paint/kit";
+import { createRng, mix, type Pt } from "../../paint/kit";
 import {
   INK,
   PAPER,
@@ -9,7 +9,6 @@ import {
 } from "../../paint/plate";
 import { BUILD, project, VEX, viewOf } from "../../scene";
 import {
-  addBroken,
   addLine,
   air,
   band,
@@ -23,122 +22,25 @@ import {
   SHORE,
   stroke,
 } from "./draw";
+import {
+  browAt,
+  buildFace,
+  type Face,
+  faceColourJobs,
+  faceE,
+  faceInkJobs,
+  indexOf,
+  lineFace,
+  shapeFace,
+} from "./face";
 import { edgeAt, northUp, shoreAt } from "./terrain";
 
 /**
  * The cliffs north of the harbour, from the high-water line to their
- * broken brow, with what stands on the edge: the batteries, Napoleon's
- * pavilion with the admiral's and the signal mast between them, Soult's and
- * Decrès's huts, flagstaffs. They face due west: lit square-on by the low
- * sun behind the eye, modelled a little from the left, so the shade lies
- * only on the walls of gullies and buttresses turned south (to the right),
- * and under the ledges of the hard beds.
+ * broken brow (shore/face.ts), with what stands on the edge: the
+ * batteries, Napoleon's pavilion with the admiral's and the signal mast
+ * between them, Soult's and Decrès's huts, flagstaffs.
  */
-
-const N_MAX = 1500;
-const N_MIN = 18;
-const STEP = 5;
-/** The face's foot (the top of the beach), true metres. */
-const FOOT = 3;
-
-interface Gully {
-  n: number;
-  w: number;
-  s: number;
-  /** The share of the face (from the brow down) the gully runs. */
-  reach: number;
-}
-
-interface CliffGeo {
-  ns: number[];
-  /** True top height and east of the face per sample (gullies carved). */
-  top: number[];
-  east: number[];
-  gullies: Gully[];
-  edge: Pt[];
-  foot: Pt[];
-  hw: Pt[];
-}
-
-function buildGeo(): CliffGeo {
-  const rng = createRng(301);
-  const gullies: Gully[] = [];
-  for (let n = N_MAX; n > 140; n -= 55 + rng() * 95)
-    gullies.push({
-      n,
-      w: 9 + rng() * 20,
-      s: 0.35 + rng() * 0.65,
-      reach: 0.25 + rng() * 0.5,
-    });
-  const notch = (n: number) => {
-    let g = 0;
-    for (const q of gullies) {
-      const u = (n - q.n) / q.w;
-      if (Math.abs(u) < 1) g = Math.max(g, q.s * (1 - u * u) ** 2);
-    }
-    return g;
-  };
-  const ns: number[] = [];
-  const top: number[] = [];
-  const east: number[] = [];
-  for (let n = N_MAX; n >= N_MIN; n -= STEP) {
-    const [e, h] = edgeAt(n);
-    const g = notch(n);
-    ns.push(n);
-    top.push(h - 7 * g);
-    east.push(e + 22 * g);
-  }
-  const geo: CliffGeo = { ns, top, east, gullies, edge: [], foot: [], hw: [] };
-  for (let i = 0; i < ns.length; i++) {
-    geo.edge.push(faceAt(geo, i, 1));
-    geo.foot.push(faceAt(geo, i, 0));
-    geo.hw.push(project(shoreAt(ns[i]), ns[i], -0.6));
-  }
-  return geo;
-}
-
-/** A point of the face at sample `i`, `f` of the way up from its foot. */
-function faceAt(g: CliffGeo, i: number, f: number): Pt {
-  const h = FOOT + (g.top[i] - FOOT) * f;
-  // A steep upper face of hard beds over a talus of clays.
-  const e = g.east[i] - 46 * (1 - f) ** 1.5;
-  return project(e, g.ns[i], h * VEX);
-}
-
-/** A point of the face at true height `h` (clamped to the face). */
-function faceAtH(g: CliffGeo, i: number, h: number): Pt {
-  const f = Math.min(1, Math.max(0, (h - FOOT) / (g.top[i] - FOOT)));
-  return faceAt(g, i, f);
-}
-
-/** A point of the face at `n` metres north (between samples), `f` of the way up. */
-function faceAtN(g: CliffGeo, n: number, f: number): Pt {
-  const u = Math.max(0, Math.min(g.ns.length - 1.001, (N_MAX - n) / STEP));
-  const i = Math.floor(u);
-  const t = u - i;
-  const a = faceAt(g, i, f);
-  const b = faceAt(g, i + 1, f);
-  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
-}
-
-/** Sample index nearest to `n`. */
-function indexOf(g: CliffGeo, n: number): number {
-  return Math.max(0, Math.min(g.ns.length - 1, Math.round((N_MAX - n) / STEP)));
-}
-
-/** The beds of the cliff, true metres, top down: hard caps over clays, dipping gently north. */
-const BEDS = [
-  { h0: 37, h1: 60, colour: SHORE.chalk, hard: true },
-  { h0: 35.5, h1: 37, colour: SHORE.seam, hard: false },
-  { h0: 26, h1: 35.5, colour: SHORE.sand, hard: true },
-  { h0: 24, h1: 26, colour: SHORE.clayDeep, hard: false },
-  { h0: 16.5, h1: 24, colour: SHORE.ochre, hard: true },
-  { h0: FOOT, h1: 16.5, colour: SHORE.clay, hard: false },
-] as const;
-
-function bedH(h: number, n: number): number {
-  return h - 0.0035 * (n - 600);
-}
 
 const AHEAD = 1350;
 
@@ -147,317 +49,40 @@ export function cliffsPlate(o: {
   depth: number;
   box: Plate["box"];
 }): Plate {
-  let geo: CliffGeo | undefined;
-  const get = () => {
-    if (!geo) geo = buildGeo();
-    return geo;
+  // The face's geometry is built in three jobs, so none is long; any job
+  // that needs it finishes what is left.
+  let face: Face | undefined;
+  let stage = 0;
+  const step = () => {
+    face ??= buildFace();
+    if (stage === 0) stage = 1;
+    else if (stage === 1) {
+      shapeFace(face);
+      stage = 2;
+    } else if (stage === 2) {
+      lineFace(face);
+      stage = 3;
+    }
+    return face;
   };
-  const facePath = (g: CliffGeo) => band(g.edge, g.foot);
-
+  const get = () => {
+    let f = step();
+    while (stage < 3) f = step();
+    return f;
+  };
   const colour: PlateJob[] = [
-    // The beach at the cliff's foot, down to the high-water line.
-    (c) => {
-      const g = get();
-      const p = band(g.foot, g.hw);
-      fill(
-        c,
-        p,
-        vRamp(c.ctx, 2, -6, [
-          air(SHORE.beach, AHEAD),
-          air(SHORE.beachLow, AHEAD),
-        ]),
-      );
-      const rng = createRng(311);
-      const sh = new Path2D();
-      for (let i = 0; i < g.ns.length; i += 2) {
-        const a = g.foot[i];
-        const b = g.hw[i];
-        const t = 0.2 + rng() * 0.7;
-        const x = a[0] + (b[0] - a[0]) * t;
-        const y = a[1] + (b[1] - a[1]) * t;
-        sh.moveTo(x, y);
-        sh.lineTo(x + 0.6 + rng() * 1.5, y - 0.05);
-      }
-      stroke(c, sh, 0.6, air(SHORE.beachLow, AHEAD), 0.5);
-      // The wrack at the high-water mark.
-      const wrack = new Path2D();
-      addBroken(
-        wrack,
-        g.hw.map(([x, y]) => [x, y + 0.5] as Pt),
-        2,
-        1.5,
-        rng,
-      );
-      stroke(c, wrack, 0.8, air(SHORE.seam, AHEAD), 0.45);
-    },
-    // The face: its body ramped from the lit caps to the cooler clays.
-    (c) => {
-      const g = get();
-      fill(
-        c,
-        facePath(g),
-        vRamp(c.ctx, 100, 0, [
-          air(SHORE.chalk, AHEAD),
-          air(SHORE.sand, AHEAD),
-          air(SHORE.ochre, AHEAD),
-          air(SHORE.clay, AHEAD),
-        ]),
-      );
-    },
-    // The beds, each its own colour, clipped to the face.
-    (c) => {
-      const g = get();
-      c.ctx.save();
-      c.ctx.clip(facePath(g));
-      for (const bed of BEDS) {
-        const hi: Pt[] = [];
-        const lo: Pt[] = [];
-        for (let i = 0; i < g.ns.length; i++) {
-          hi.push(faceAtH(g, i, bedH(bed.h1, g.ns[i])));
-          lo.push(faceAtH(g, i, bedH(bed.h0, g.ns[i])));
-        }
-        fill(c, band(hi, lo), air(bed.colour, AHEAD), bed.hard ? 0.55 : 0.6);
-      }
-      c.ctx.restore();
-    },
-    // Ledges: a lit lip on each hard bed, the shade of its overhang under it.
-    (c) => {
-      const g = get();
-      const rng = createRng(321);
-      c.ctx.save();
-      c.ctx.clip(facePath(g));
-      const lips = new Path2D();
-      const under = new Path2D();
-      const runnels = new Path2D();
-      for (const bed of BEDS) {
-        if (!bed.hard) continue;
-        const lip: Pt[] = [];
-        const sh: Pt[] = [];
-        for (let i = 0; i < g.ns.length; i++) {
-          lip.push(faceAtH(g, i, bedH(bed.h1, g.ns[i]) - 0.2));
-          sh.push(faceAtH(g, i, bedH(bed.h0, g.ns[i]) - 0.5));
-        }
-        addBroken(lips, lip, 9, 3, rng);
-        addBroken(under, sh, 12, 4, rng);
-      }
-      stroke(c, under, 1.3, air(SHORE.shadeDeep, AHEAD), 0.5);
-      stroke(c, lips, 0.8, air("#fff1cf", AHEAD), 0.45);
-      // Rain runnels down the soft beds: fine, low in contrast.
-      for (let i = 0; i < g.ns.length; i += 1) {
-        if (rng() > 0.35) continue;
-        const f0 = 0.15 + rng() * 0.5;
-        const f1 = Math.max(0.02, f0 - 0.1 - rng() * 0.25);
-        const pts: Pt[] = [];
-        for (let k = 0; k <= 4; k++)
-          pts.push(faceAt(g, i, f0 + ((f1 - f0) * k) / 4));
-        addLine(runnels, pts);
-      }
-      stroke(c, runnels, 0.5, air(SHORE.seam, AHEAD), 0.3);
-      c.ctx.restore();
-    },
-    // Gullies: their north walls, turned south, in the sky's cool shade,
-    // from the notch in the brow down the fall line, tapering and fading.
-    (c) => {
-      const g = get();
-      const rng = createRng(305);
-      c.ctx.save();
-      c.ctx.clip(facePath(g));
-      const shade = air(SHORE.shade, AHEAD);
-      const deep = air(SHORE.shadeDeep, AHEAD);
-      for (const q of g.gullies) {
-        const K = 14;
-        const left: Pt[] = [];
-        const right: Pt[] = [];
-        const core: Pt[] = [];
-        for (let k = 0; k <= K; k++) {
-          const t = k / K;
-          const f = 1 - q.reach * t;
-          const taper = 1 - t * 0.85;
-          const jit = (rng() - 0.5) * 0.18 * q.w;
-          left.push(faceAtN(g, q.n + q.w * 0.5 * taper + jit, f));
-          right.push(
-            faceAtN(g, q.n + q.w * (0.5 - 0.6 * taper) + jit * 0.5, f),
-          );
-          core.push(faceAtN(g, q.n + q.w * (0.5 - 0.22 * taper) + jit, f));
-        }
-        const top = left[0][1];
-        const bottom = left[K][1];
-        const gr = c.ctx.createLinearGradient(0, top, 0, bottom);
-        gr.addColorStop(0, rgba(shade, 0.25 + 0.4 * q.s));
-        gr.addColorStop(0.6, rgba(shade, 0.18 * q.s + 0.05));
-        gr.addColorStop(1, rgba(shade, 0));
-        fill(c, poly([...left, ...right.slice().reverse()]), gr);
-        const gc = c.ctx.createLinearGradient(
-          0,
-          top,
-          0,
-          top + (bottom - top) * 0.6,
-        );
-        gc.addColorStop(0, rgba(deep, 0.35 * q.s));
-        gc.addColorStop(1, rgba(deep, 0));
-        fill(c, poly([...left, ...core.slice().reverse()]), gc);
-      }
-      c.ctx.restore();
-    },
-    // The flank toward the harbour, turned south: in shade.
-    (c) => {
-      const g = get();
-      c.ctx.save();
-      c.ctx.clip(facePath(g));
-      const x0 = faceAt(g, indexOf(g, 210), 1)[0];
-      const x1 = faceAt(g, indexOf(g, 60), 1)[0];
-      const gr = c.ctx.createLinearGradient(x0, 0, x1, 0);
-      gr.addColorStop(0, `${air(SHORE.shade, AHEAD)}00`);
-      gr.addColorStop(1, air(SHORE.shade, AHEAD));
-      c.ctx.globalAlpha = 0.55;
-      c.ctx.fillStyle = gr;
-      c.ctx.fillRect(x0, -10, x1 - x0 + 40, 140);
-      c.ctx.globalAlpha = 1;
-      c.ctx.restore();
-    },
-    // The turf on the brow, hanging into the gullies, and the clays' grass.
-    (c) => {
-      const g = get();
-      const rng = createRng(331);
-      const low: Pt[] = [];
-      for (let i = 0; i < g.ns.length; i++) {
-        const drop = 1.2 + rng() * 0.6 + Math.max(0, 1 - g.top[i] / 45) * 3;
-        low.push(faceAtH(g, i, g.top[i] - drop));
-      }
-      fill(c, band(g.edge, low), air(SHORE.turfLit, AHEAD));
-      const shadow = new Path2D();
-      addBroken(shadow, low, 10, 2, rng);
-      stroke(c, shadow, 1, air(SHORE.turfShade, AHEAD), 0.55);
-      const grass = new Path2D();
-      for (let i = 0; i < g.ns.length; i += 3) {
-        if (rng() > 0.5) continue;
-        const f = 0.05 + rng() * 0.25;
-        const a = faceAt(g, i, f);
-        const r = 1 + rng() * 3;
-        grass.moveTo(a[0] - r, a[1]);
-        grass.quadraticCurveTo(a[0], a[1] + r * 0.5, a[0] + r, a[1]);
-        grass.closePath();
-      }
-      fill(c, grass, air(SHORE.turf, AHEAD), 0.4);
-    },
-    // Fallen blocks and the old tower's rubble on the beach.
-    (c) => paintBlocks(c, get(), "colour"),
+    () => step(),
+    () => step(),
+    () => step(),
+    ...faceColourJobs(get),
+    (c) => paintBlocks(c, "colour"),
     (c) => paintEdgeWorks(c, get(), "colour"),
   ];
-
   const ink: PlateJob[] = [
-    (c) => {
-      const g = get();
-      fill(c, band(g.foot, g.hw), PAPER.low);
-      fill(c, facePath(g), PAPER.low);
-      const rng = createRng(341);
-      // The beach: sparse broken strokes; the wrack line at the high-water mark.
-      const s = new Path2D();
-      for (let i = 0; i < g.ns.length; i += 4) {
-        const a = g.foot[i];
-        const b = g.hw[i];
-        const t = 0.3 + rng() * 0.6;
-        const x = a[0] + (b[0] - a[0]) * t;
-        const y = a[1] + (b[1] - a[1]) * t;
-        s.moveTo(x, y);
-        s.lineTo(x + 0.8 + rng() * 1.2, y);
-      }
-      stroke(c, s, 0.5, INK.hatch, 0.5);
-      const wrack = new Path2D();
-      addBroken(
-        wrack,
-        g.hw.map(([x, y]) => [x, y + 0.5] as Pt),
-        1.5,
-        2,
-        rng,
-      );
-      stroke(c, wrack, 0.6, INK.hatch, 0.6);
-    },
-    // Strata: fine broken lines along the beds, firmer under the hard ones.
-    (c) => {
-      const g = get();
-      const rng = createRng(351);
-      c.ctx.save();
-      c.ctx.clip(facePath(g));
-      const hard = new Path2D();
-      const soft = new Path2D();
-      for (const bed of BEDS) {
-        for (const [h, path] of [
-          [bed.h0, bed.hard ? hard : soft],
-          [(bed.h0 + bed.h1) / 2, soft],
-        ] as const) {
-          if (h > 50) continue;
-          const pts: Pt[] = [];
-          for (let i = 0; i < g.ns.length; i++)
-            pts.push(faceAtH(g, i, bedH(h, g.ns[i])));
-          addBroken(path, pts, 8, 2.5, rng, () => 0.8);
-        }
-      }
-      stroke(c, hard, 0.9, INK.line, 0.75);
-      stroke(c, soft, 0.6, INK.hatch, 0.55);
-      c.ctx.restore();
-    },
-    // Shade by hatching down the fall line: the gullies' walls dense,
-    // their cores cross-hatched; the clays lightly.
-    (c) => {
-      const g = get();
-      const rng = createRng(361);
-      c.ctx.save();
-      c.ctx.clip(facePath(g));
-      const dense = new Path2D();
-      const cross = new Path2D();
-      const light = new Path2D();
-      for (const q of g.gullies) {
-        const iL = indexOf(g, q.n + q.w * 0.55);
-        const iR = indexOf(g, q.n + q.w * 0.02);
-        for (let i = iL; i <= iR; i += 1) {
-          const t = (i - iL) / Math.max(1, iR - iL);
-          const f0 = 1;
-          const f1 = 1 - q.reach * (1 - t * 0.7) + rng() * 0.08;
-          const pts: Pt[] = [];
-          for (let k = 0; k <= 5; k++)
-            pts.push(faceAt(g, i, f0 + ((f1 - f0) * k) / 5));
-          addLine(dense, pts);
-          if (t < 0.45 && i % 2 === 0) {
-            const a = faceAt(g, i, 0.9 - rng() * 0.2);
-            cross.moveTo(a[0] - 1.2, a[1] + 1.4);
-            cross.lineTo(a[0] + 1.2, a[1] - 1.4);
-          }
-        }
-      }
-      for (let i = 0; i < g.ns.length; i += 3) {
-        if (rng() > 0.5) continue;
-        const f0 = 0.05 + rng() * 0.2;
-        const pts: Pt[] = [faceAt(g, i, f0 + 0.18), faceAt(g, i, f0)];
-        addLine(light, pts);
-      }
-      stroke(c, dense, 0.6, INK.hatch, 0.85);
-      stroke(c, cross, 0.5, INK.hatch, 0.7);
-      stroke(c, light, 0.5, INK.hatch, 0.45);
-      // The flank toward the harbour, in shade: hatched across.
-      const flank = new Path2D();
-      for (let i = indexOf(g, 200); i < g.ns.length; i += 1) {
-        const pts: Pt[] = [faceAt(g, i, 1), faceAt(g, i, 0.05)];
-        addLine(flank, pts);
-      }
-      stroke(c, flank, 0.5, INK.hatch, 0.55);
-      c.ctx.restore();
-    },
-    // The brow's contour, firm; the foot's, broken.
-    (c) => {
-      const g = get();
-      const rng = createRng(371);
-      const edge = new Path2D();
-      addLine(edge, g.edge);
-      stroke(c, edge, 1.4, INK.line, 0.9);
-      const foot = new Path2D();
-      addBroken(foot, g.foot, 6, 2, rng);
-      stroke(c, foot, 0.8, INK.line, 0.6);
-    },
-    (c) => paintBlocks(c, get(), "ink"),
+    ...faceInkJobs(get),
+    (c) => paintBlocks(c, "ink"),
     (c) => paintEdgeWorks(c, get(), "ink"),
   ];
-
   return {
     id: o.id,
     depth: o.depth,
@@ -471,7 +96,7 @@ export function cliffsPlate(o: {
 
 // ------------------------------------------------------------ the foot
 
-function paintBlocks(c: PlateCanvas, _g: CliffGeo, mode: PlateMode): void {
+function paintBlocks(c: PlateCanvas, mode: PlateMode): void {
   const rng = createRng(381);
   const blocks: { pts: Pt[]; lit: Pt[]; tower: boolean }[] = [];
   const add = (n: number, e: number, size: number, tower: boolean) => {
@@ -574,13 +199,12 @@ const BATTERIES: readonly Battery[] = [
   { n0: 1320, n1: 1370, guns: 4 },
 ];
 
-/** Sample index's top point plus `up` drawn metres, set back `back` metres behind the edge. */
-function onEdge(g: CliffGeo, n: number, back: number, up: number): Pt {
-  const i = indexOf(g, n);
-  return project(g.east[i] + back, n, g.top[i] * VEX + up);
+/** A point `back` metres behind the brow at `n`, `up` drawn metres above the ground. */
+function onEdge(g: Face, n: number, back: number, up: number): Pt {
+  return browAt(g, n, back, up);
 }
 
-function paintEdgeWorks(c: PlateCanvas, g: CliffGeo, mode: PlateMode): void {
+function paintEdgeWorks(c: PlateCanvas, g: Face, mode: PlateMode): void {
   const colourMode = mode === "colour";
   const rng = createRng(391);
   // The batteries: earth parapets of gabions along the edge, embrasures with dark muzzles.
@@ -610,7 +234,7 @@ function paintEdgeWorks(c: PlateCanvas, g: CliffGeo, mode: PlateMode): void {
       gab.moveTo(p[0], p[1]);
       gab.lineTo(p[0], p[1] + 0.55);
     }
-    const ahead = viewOf(g.east[indexOf(g, b.n0)], b.n0)[0];
+    const ahead = viewOf(faceE(g, indexOf(g, b.n0), g.top[indexOf(g, b.n0)]), b.n0)[0];
     const fl = onEdge(g, b.n0 - 6, 12, 0);
     const f = flag(fl[0], fl[1], 12 * BUILD * (1000 / ahead), 2.4);
     if (colourMode) {
@@ -659,7 +283,7 @@ function paintEdgeWorks(c: PlateCanvas, g: CliffGeo, mode: PlateMode): void {
   ] as const) {
     const i = indexOf(g, n);
     huts.push({
-      e: g.east[i] + back,
+      e: faceE(g, i, g.top[i]) + back,
       n,
       g: Math.max(g.top[i] * VEX, northUp(n, back)) + 0.5,
       l,
@@ -677,7 +301,7 @@ function paintEdgeWorks(c: PlateCanvas, g: CliffGeo, mode: PlateMode): void {
 
 function pavilion(
   c: PlateCanvas,
-  g: CliffGeo,
+  g: Face,
   n: number,
   back: number,
   length: number,
@@ -685,7 +309,7 @@ function pavilion(
   mode: PlateMode,
 ): void {
   const i = indexOf(g, n);
-  const e0 = g.east[i] + back;
+  const e0 = faceE(g, i, g.top[i]) + back;
   const ground = g.top[i] * VEX + 3 * VEX;
   // The long axis from the rotunda toward the east-north-east.
   const ue = Math.sin((60 * Math.PI) / 180);
@@ -817,13 +441,13 @@ function pavilion(
 
 function signalMast(
   c: PlateCanvas,
-  g: CliffGeo,
+  g: Face,
   n: number,
   back: number,
   mode: PlateMode,
 ): void {
   const i = indexOf(g, n);
-  const e = g.east[i] + back;
+  const e = faceE(g, i, g.top[i]) + back;
   const ground = g.top[i] * VEX;
   const ahead = viewOf(e, n)[0];
   const foot = project(e, n, ground);

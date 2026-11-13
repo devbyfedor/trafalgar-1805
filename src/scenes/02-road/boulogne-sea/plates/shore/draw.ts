@@ -129,9 +129,13 @@ export function stroke(
   const { ctx } = c;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
-  ctx.strokeStyle = rgba(colour, alpha);
+  // A hex colour takes the alpha into its style; a CSS colour through the context.
+  const hex = colour.startsWith("#");
+  ctx.strokeStyle = hex ? rgba(colour, alpha) : colour;
+  if (!hex) ctx.globalAlpha = alpha;
   ctx.lineWidth = c.pen(px);
   ctx.stroke(p);
+  ctx.globalAlpha = 1;
 }
 
 /**

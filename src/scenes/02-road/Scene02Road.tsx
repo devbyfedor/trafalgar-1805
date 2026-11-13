@@ -1,17 +1,44 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { type ComponentType, useRef, useState } from "react";
 import { chartContext } from "@/components/chart/engine/context";
 import { chartPixelRatio } from "@/components/chart/engine/quality";
 import { registerChartReadout, reportProgress } from "@/lib/debug";
 import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
 import { DESKTOP_QUERY, isDebug, REDUCED_MOTION_QUERY } from "@/lib/media";
+import {
+  type InterludePhase,
+  InterludeScroll,
+  type InterludeState,
+} from "../alive/interlude";
 import { HANDOFF_LENGTH } from "../handoff";
 import { dateLineAt, PIN_LENGTH } from "./beats";
+import type { SeaViewHandle, SeaViewProps } from "./boulogne-sea/handle";
 import { buildRoadChoreography, collect, dawnElements } from "./choreography";
+import {
+  BOULOGNE,
+  CHART_BACK,
+  coveredAt,
+  coveredSpan,
+  ROAD_INTERLUDES,
+  SEA_EYE,
+  SEA_HOLD,
+  type SeaPose,
+  SHORE_AHEAD,
+  textAt,
+} from "./interludes";
 import { RoadStills } from "./layers/RoadStills";
 import { RoadText } from "./layers/RoadText";
 import type { RoadStage } from "./stage";
+
+/**
+ * The scene's scroll (scenes/alive/interlude.ts): p over PIN_LENGTH
+ * screens as before, and Boulogne's interlude inserted at its p with its
+ * own screens; every other moment lands on the same p as before.
+ */
+const SCROLL = new InterludeScroll(PIN_LENGTH, ROAD_INTERLUDES);
+/** Where Boulogne's painting covers the chart, screens from the interlude's start. */
+const COVERED = coveredSpan(BOULOGNE);
 
 /**
  * Scene 2, "The road to Trafalgar": the sea chart, pinned and scrubbed by
@@ -51,6 +78,13 @@ export function Scene02Road() {
   // The scene's progress, for the stills when the chart can't run.
   const progress = useRef(0);
   const readProgress = useRef(() => progress.current).current;
+  // Boulogne's painting (boulogne-sea/), loaded once the chart is ready, in
+  // chart mode only: phones and reduced motion never load it.
+  const [Sea, setSea] = useState<ComponentType<SeaViewProps> | null>(null);
+  const sea = useRef<SeaViewHandle | null>(null);
+  const onSeaReady = useRef((handle: SeaViewHandle | null) => {
+    sea.current = handle;
+  }).current;
 
   useGSAP(
     () => {
@@ -85,13 +119,46 @@ export function Scene02Road() {
               progress.current = value;
             },
           };
+          // The story's timeline: p as its time (every tween at its p), not
+          // scrolled itself but set to the p of each scroll position
+          // (SCROLL.pAt), so every moment outside an interlude shows exactly
+          // what it showed when the timeline was the scroll's own.
           const tl = gsap.timeline({
+            paused: true,
+            defaults: { ease: "none" },
+          });
+          tl.fromTo(state, { p: 0 }, { p: 1, duration: 1 }, 0);
+          buildRoadChoreography(tl, els, dawn);
+          // The scroll, scrubbed as before, drives a share of the pin; its
+          // screen gives p and, inside an interlude, where that runs.
+          const lude: InterludeState = {
+            spec: BOULOGNE,
+            phase: "dive",
+            t: 0,
+            u: 0,
+            screens: 0,
+          };
+          let inLude: InterludeState | null = null;
+          const drive = { q: 0 };
+          // The share of the pin is the driver's own time, never drive.q:
+          // GSAP rounds a plain tweened number to six decimals (gsap-core,
+          // _renderPlain), and over the pin's 34.8 screens that moved p by
+          // up to 6e-7, enough to tip the story's p (rounded to six
+          // decimals by its own tween) onto the next step and shift the
+          // flying camera by a fraction of a pixel (session 26, look-diff
+          // against the build before the interlude).
+          const follow = () => {
+            const screens = driver.time() * SCROLL.length;
+            inLude = SCROLL.interludeAt(screens, lude);
+            tl.time(SCROLL.pAt(screens));
+          };
+          const driver = gsap.timeline({
             defaults: { ease: "none" },
             scrollTrigger: {
               id: "road",
               trigger: el,
               start: "top top",
-              end: () => `+=${window.innerHeight * PIN_LENGTH}`,
+              end: () => `+=${window.innerHeight * SCROLL.length}`,
               pin: true,
               pinSpacing: true,
               anticipatePin: 1,
@@ -102,8 +169,16 @@ export function Scene02Road() {
               onUpdate: (self) => reportProgress("road", self.progress),
             },
           });
-          tl.fromTo(state, { p: 0 }, { p: 1, duration: 1 }, 0);
-          buildRoadChoreography(tl, els, dawn);
+          driver.fromTo(
+            drive,
+            { q: 0 },
+            { q: 1, duration: 1, onUpdate: follow },
+            0,
+          );
+          follow();
+          // The page's scroll position (CSS px) of a screen of the pin.
+          const scrollAt = (screens: number) =>
+            (driver.scrollTrigger?.start ?? 0) + screens * window.innerHeight;
 
           // The date line's text runs with the story.
           const dateline = els.one("[data-el=dateline]");
@@ -217,19 +292,80 @@ export function Scene02Road() {
             let drawing = false;
             // Held while a bench draws its own frames (development).
             let held = false;
+            // The painting's pose, written by the interlude's camera.
+            const pose: SeaPose = { ...SEA_HOLD };
+            // Whether the painting covers the chart, so it isn't drawn.
+            let covered = false;
+            // The text steps aside while the chart turns into the painting
+            // and back (interludes.ts, textAt); over the painting the
+            // chapter marker reads without its scrim (the painting's sky is
+            // dark enough there), so the scrim is hidden while it covers.
+            const textLayer =
+              el.querySelector<HTMLElement>("[data-layer=text]");
+            const chapterScrim = el.querySelector<HTMLElement>(
+              "[data-el=scrim-chapter]",
+            );
+            let textShown = 1;
+            let scrimHidden = false;
             render = (time: number) => {
               if (held) return;
               writeDate();
+              // Inside an interlude, its camera for the chart and the
+              // painting alike (at its very first screen, the chart's own
+              // frame at p).
+              const at = inLude;
+              const view =
+                at && at.screens > 0
+                  ? s.interlude(at.phase, at.t, pose)
+                  : undefined;
+              const painting = sea.current;
+              painting?.frame(state.p, at, view ? view.u : 0, pose, time);
+              const painted = view !== undefined && painting?.ready === true;
+              const text = painted ? textAt(view.u) : 1;
+              if (text !== textShown && textLayer) {
+                textLayer.style.opacity = text === 1 ? "" : text.toFixed(4);
+                textShown = text;
+              }
+              const hideScrim = painted && coveredAt(view.u);
+              if (hideScrim !== scrimHidden && chapterScrim) {
+                chapterScrim.style.visibility = hideScrim ? "hidden" : "";
+                scrimHidden = hideScrim;
+              }
+              // While the painting covers it, the chart isn't drawn: from a
+              // little after it covers it on the way down to a little
+              // before it shows again (interludes.ts, coveredSpan).
+              const cover =
+                painting?.ready === true &&
+                at !== null &&
+                at.screens > COVERED[0] &&
+                at.screens < COVERED[1];
+              if (cover !== covered) {
+                covered = cover;
+                if (cover) s.chart.pause();
+              }
               // Draw while on screen, and off screen only while the scrub is
               // still settling (scrolled back past the start, scene 1's
               // Victory is handed back whole; past the end, the last frame
               // holds and nothing more is drawn).
-              drawing = (near || state.p !== drawn) && !document.hidden;
+              drawing =
+                (near || state.p !== drawn || view !== undefined) &&
+                !document.hidden &&
+                !covered;
               if (!drawing) return;
-              s.draw(state.p, time);
+              s.draw(state.p, time, view);
               drawn = state.p;
             };
             gsap.ticker.add(render);
+            // Boulogne's painting, once the chart is ready and the page idle:
+            // its chunk, then its layers in idle slices of their own, well
+            // before the reader comes down to Boulogne.
+            void (async () => {
+              await idle(1500, controller.signal);
+              if (controller.signal.aborted) return;
+              const view = await import("./boulogne-sea/BoulogneSea");
+              if (controller.signal.aborted) return;
+              setSea(() => view.BoulogneSea);
+            })();
             // Readouts while scene 2 is on screen (or about to be).
             unregister = registerChartReadout(() =>
               near && drawing ? s.chart.stats : null,
@@ -238,6 +374,34 @@ export function Scene02Road() {
               ready: true,
               baked: false,
               stats: s.chart.stats,
+              pin: {
+                base: PIN_LENGTH,
+                length: SCROLL.length,
+                interludes: SCROLL.spans.map((span) => ({
+                  id: span.spec.id,
+                  at: span.spec.at,
+                  from: span.from,
+                  to: span.to,
+                  dive: span.spec.dive,
+                  hold: span.spec.hold,
+                  rise: span.spec.rise,
+                  covered: [span.from + COVERED[0], span.from + COVERED[1]],
+                })),
+              },
+              scrollFor: (p: number) => scrollAt(SCROLL.screensFor(p)),
+              scrollForInterlude: (
+                id: string,
+                phase: InterludePhase,
+                t: number,
+              ) => scrollAt(SCROLL.screensForInterlude(id, phase, t)),
+              get seaReady() {
+                return sea.current?.ready === true;
+              },
+              seaEye: {
+                ...SEA_EYE,
+                shoreAhead: SHORE_AHEAD,
+                chartBack: CHART_BACK,
+              },
               sample: (p: number, mode?: number) => s.sample(p, mode),
               bakedSizes: (layer: number, i: number, k0: number, k1: number) =>
                 s.bakedSizes(layer, i, k0, k1),
@@ -252,6 +416,12 @@ export function Scene02Road() {
               },
               siteView: (p: number, lon: number, lat: number) =>
                 s.siteView(p, lon, lat),
+              coastAlong: (
+                lon: number,
+                lat: number,
+                heading: number,
+                maxKm?: number,
+              ) => s.coastAlong(lon, lat, heading, maxKm),
               waterLift: (p: number) => {
                 drawn = -1;
                 return s.waterLift(p);
@@ -297,10 +467,18 @@ export function Scene02Road() {
                 drawn = -1;
                 return s.layoutDebug(p);
               },
-              bench: async (frames: number, p: number, alternate?: string) => {
+              bench: async (
+                frames: number,
+                p: number,
+                alternate?: string,
+                at?: { phase: InterludePhase; t: number },
+              ) => {
                 held = true;
                 try {
-                  return await s.bench(frames, p, alternate);
+                  const view = at
+                    ? s.interlude(at.phase, at.t, { ...SEA_HOLD })
+                    : undefined;
+                  return await s.bench(frames, p, alternate || undefined, view);
                 } finally {
                   held = false;
                   drawn = -1;
@@ -351,6 +529,7 @@ export function Scene02Road() {
           data-layer="chart"
           className="absolute inset-0 fallback:hidden"
         />
+        {Sea && mode === "chart" ? <Sea onReady={onSeaReady} /> : null}
         {mode === "stills" ? (
           <RoadStills variant="crossfade" showImages progress={readProgress} />
         ) : null}
@@ -369,6 +548,43 @@ declare global {
       /** The glyph layout's tables are baked for the current viewport. */
       baked: boolean;
       stats: import("@/components/chart").ChartStats;
+      /**
+       * The pin: `base` screens for p 0..1, its whole `length` with the
+       * interludes, and each interlude's place (screens from the pin's
+       * start; `covered`, where its painting hides the chart).
+       */
+      pin: {
+        base: number;
+        length: number;
+        interludes: {
+          id: string;
+          at: number;
+          from: number;
+          to: number;
+          dive: number;
+          hold: number;
+          rise: number;
+          covered: [number, number];
+        }[];
+      };
+      /**
+       * Tools and tests: the page's scroll position (CSS px) that shows the
+       * scene at p (at an interlude's p, where the interlude begins).
+       */
+      scrollFor: (p: number) => number;
+      /** Tools and tests: the scroll position of a point of an interlude. */
+      scrollForInterlude: (
+        id: string,
+        phase: import("../alive/interlude").InterludePhase,
+        t: number,
+      ) => number;
+      /** Boulogne's painting is mounted and its layers drawn. */
+      readonly seaReady: boolean;
+      /** Development: the painting's eye, its shore and the chart's camera behind it (interludes.ts). */
+      seaEye: typeof import("./interludes").SEA_EYE & {
+        shoreAhead: number;
+        chartBack: number;
+      };
       /** Draws the scene at p and reads back its glyphs (RoadStage.sample). */
       sample: (
         p: number,
@@ -386,6 +602,13 @@ declare global {
         sinElev: number;
         pxPerRad: number;
       };
+      /** Development: how far the chart's coast lies along a heading, ground km (RoadStage.coastAlong). */
+      coastAlong: (
+        lon: number,
+        lat: number,
+        heading: number,
+        maxKm?: number,
+      ) => number;
       /** Development: every water pixel's height above the sea at p (RoadStage.waterLift). */
       waterLift: (
         p: number,
@@ -453,12 +676,17 @@ declare global {
       /**
        * Development: frames at p timed on the GPU and the CPU; with
        * `alternate`, the chart's objects of that name drawn on even frames
-       * only (RoadStage.bench).
+       * only (RoadStage.bench); with `at`, the chart as an interlude has
+       * it at that point (its camera, its marks).
        */
       bench: (
         frames: number,
         p: number,
         alternate?: string,
+        at?: {
+          phase: import("../alive/interlude").InterludePhase;
+          t: number;
+        },
       ) => Promise<import("@/components/chart/engine/bench").BenchResult>;
     };
   }

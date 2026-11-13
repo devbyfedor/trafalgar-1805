@@ -23,6 +23,95 @@ Never mark anything as approved on your own judgement. "Complete" means every do
 Log:
 - 2026-11-13 — brief written; stage A not started.
 - 2026-11-13 — session 24: brief committed as the first commit on `s24-boulogne-sea` (from `main` at `d7ed575`); stage A in progress.
+- 2026-11-13 — session 24 stopped by the owner mid stage A (the prototype half built: the scroll and the chart's dive and rise work, the painting's first passes in; checks, screenshots and the report's stage-A proof not done); see `docs/progress.md`, session 24.
+- 2026-11-13 — the owner reviewed the first painting on the dev server; his review, answers and order of work recorded below as "Owner review, 13 November"; session 25 continues stage A to all its done criteria.
+- 2026-11-13 — session 25 stopped by the owner mid stage A: the painting rebuilt on plates painted ahead (colour and engraving), the engraved transition and the eye's move done; the area painters and the history checks stopped before finishing; checks, screenshots and the report's stage-A proof not done; see `docs/progress.md`, session 25.
+- 2026-11-13 — the owner's second look (the engraving stage, the huts' horizon, how the painters work) recorded as "Second look, 13 November" under "Owner review, 13 November"; session 26 continues stage A.
+
+## Owner review, 13 November
+
+The owner looked at the painting on the dev server. His screenshot: `docs/owner-feedback/boulogne-sea-01.png` (local, git-ignored; he saved it as `Снимок экрана 2026-11-13 161210.jpg`). This section wins over the rest of this brief where they differ.
+
+### Answers to session 24's questions
+
+1. **The evening.** Take the evening of 9–11 August 1805, with the full moon. The moon, rising over the town at sunset, is part of the composition already in stage A: low over the town, in the haze. The dusk with the moon is stage B. Record the date and its calculation in `history-notes.md`.
+2. **The tide.** Paint low water, with a wide wet strand in front of the town: the sunset and the moon reflect in the wet sand, and in the harbour the vessels sit on the ground. This tells the story: Boulogne's harbour dried out, and the flotilla could only get out at high water. Verify this, and verify the water level at sunset on the chosen evening. If it was not low water then, paint low water anyway and record the liberty in `decisions.md`.
+3. **The lengths** of the dive, the hold and the rise stay as they are for now; they are revisited in stage B.
+
+### Bugs seen in the screenshot (fix all)
+
+1. A horizontal scroll bar at the bottom: the page shifts sideways. The painting's layer is clipped to the window's width; the page never scrolls horizontally.
+2. The near vessels' spars and rigging don't join. On the right vessel a long spar sticks out of the side to the left at deck level; bowsprits and booms hang apart from the hull; lines stop short of the masts and mastheads. Every line starts and ends where it belongs.
+3. The vessels sit on the water as if cut out: no waterline, no reflections; the hull is a flat dark silhouette.
+4. Above the left cliffs, a half-transparent rectangle of the camp with a hard right edge.
+5. Slanting dark stripes on the cliffs that look like an artefact.
+6. The cloud above the left cliffs is shaped like a tooth. And every cloud is clip-art: flat blobs with flat bottoms.
+7. The chapter title's scrim over the bright sky reads as a dirty smudge. Over the painting the title must read with no smudge, at a contrast of at least 4.5:1.
+8. The town is a set of grey-blue cubes.
+
+### Detail: the bar
+
+The painting is flat and poor now, which this brief forbids outright. The bar:
+- **Near vessels** at the level of scene 1's "Victory", allowing for type: planking and wales, ports as the type has them, the shape of bow and stern, tops, yards with furled sails (at anchor the sails are stowed), shrouds with ratlines, stays, flags and pennants, the anchor cable, a reflection, warm light from the west on the sides. Take the art from branch `s24-craft` and bring it up to that level.
+- **Detail by distance:** the middle distance simpler, but each type known by its silhouette; the far distance silhouettes.
+- **The shore:** cliffs with rock strata, light and shade that follow the form; tiers of huts with roofs, light and shade, chimneys and smoke; the town as separate houses with roofs, the belfry with the telegraph, the upper town's ramparts with their gates; the harbour with its jetties, the timber fort and the forest of masts; hills with fields and hedges, drawn in hatching, not flat fill.
+- **The sky:** painterly clouds, their undersides lit by the low sun.
+- **The water:** reflections of the vessels and of the sunset; the wet strand.
+- **The technical key:** static layers are drawn once, ahead of time, before the dive begins, into finished raster images, and only their wrappers move. Then detail costs almost nothing per frame. Spread that preparation into small pieces, with no long tasks.
+- **The proof:** one near vessel shot beside scene 1's "Victory" at the same scale, the comparison saved in `docs/screenshots/scene-02/boulogne-sea/`. If the vessel looks cheaper, keep working on it.
+
+### The transition
+
+It works now but is raw. The owner's plan: the chart does not simply dissolve into the painting. First the chart's coastlines and relief hatching turn into an engraved drawing of the same view, lines only. Then colour comes into it, like an engraving coloured by hand. On the rise everything runs back. Opacity and transform only.
+
+### Order of work
+
+1. These remarks into this brief.
+2. History: finish the checks on `s24-boulogne-history` and merge it into `s24-boulogne-sea`, in parallel, through a subagent.
+3. Bugs 1–8.
+4. The near vessels up to the bar, with the comparison against "Victory".
+5. Composition and the shore's detail from the research: the eye closer to the piers; the tiers of huts; Napoleon's pavilion; the belfry with the telegraph; the forest of masts and the timber fort; the line of vessels broadside to the viewer; the rising moon; low water with the strand. Then the sky and the water.
+6. The transition through the engraving.
+7. The tools and tests onto the new scroll.
+8. Checks on the production build at the laptop size: the frame budget on the dive, the hold and the rise; scene 1's regression; every other beat frame for frame against the reference; the contrast of the caption and the title over the painting.
+9. The stage's screenshots in `docs/screenshots/scene-02/boulogne-sea/`, the status "Stage A — complete, awaiting owner review", the report by this brief's rules, the stop.
+
+Stage A will likely take two sessions: work in this order of priority. If a session ends early, stop at a safe point: `progress.md` current, everything committed. Nothing goes into `main`. The deferred plan's branches stay untouched. Never run `npm run screenshots`.
+
+### Second look, 13 November
+
+The owner looked at this branch again after session 25. His screenshots: `docs/owner-feedback/boulogne-sea-02.png` (the colour painting at the hold) and `docs/owner-feedback/boulogne-sea-03.png` (the engraving stage on the dive); local and git-ignored, saved as `boulogne-sea-02.png.jpg` and `boulogne-sea-03.png.jpg`. Copies (the browser's frame cropped off) stand beside the after frames in `docs/screenshots/scene-02/boulogne-sea/`.
+
+**His answer on the evening.** The evening with the full moon matters more. Low water is painted as a recorded liberty, as decided. Finish the tide computation only to record that liberty exactly in `decisions.md` and `history-notes.md`. Spend no more time choosing the evening.
+
+**New remarks (fix all):**
+
+9. **The engraving stage looks like a loading bug.** He took it for one himself, so it is badly made. Keep the transition through the engraving, but:
+   - the wholly colourless frame holds only briefly; colour starts coming in while the camera is still coming down; the stages overlap;
+   - now the whole picture (sky, sea and land) is covered with the same horizontal ruling, like a page of an exercise book. The engraving must be an engraving: the stroke follows the form; in the sky it is sparser and lighter; on the water it follows the waves; on the cliffs and the hulls it becomes hatching for the shadows;
+   - a broken horizontal line runs across the middle of the frame and leaves it on the right. It is an artefact: remove it;
+   - the engraving is no worse in quality than the colour painting. Now it is a diagram of outlines.
+10. **The horizon at the huts is still broken**, as last time (bug 4). The left camp is painted as a flat slab that hangs over the cliffs with hard edges. On the right a strip of huts of the same kind hangs over the hills. The huts lie on the slopes of the heights and follow the relief: no slabs, no hanging strips, no hard edges, in colour and in the engraving.
+
+**The proof for both:** after the fix, frames at the same stages as his screenshots (the engraving on the dive, the colour painting at the hold), saved beside his in `docs/screenshots/scene-02/boulogne-sea/`.
+
+**How the painters work** (the previous session spent its limit on eight painters and critics who read and stopped before writing anything):
+- At most three or four painters at once.
+- Each painter commits a draft of its area to its own branch as early as possible, and only then improves it. Every noticeable improvement is a new commit.
+- Critics come only once the drafts are in the branches, in one pass, not alongside the painters from the start.
+- Painters get compressed material: this brief, this review section and the historians' findings they need, not the whole history.
+
+**Order of work for the rest of stage A:**
+1. Restart the painters by these rules. The remarks above are part of their tasks.
+2. In parallel, history: finish the checks on `s24-boulogne-history`, the note on the evening and the section in `history-notes.md`, then merge the branch.
+3. Merge the painters' branches and bring the painting together: the smoke from the camps, the moon's place, the colour, the dark sky under the chapter title. The caption's and the title's contrast at least 4.5:1.
+4. Fix the engraving stage as above.
+5. Go through this whole "Owner review" section: the eight bugs of the first list and the new remarks. Each is closed, with frames before and after. The near vessel beside scene 1's "Victory" at the same scale also goes into `docs/screenshots/scene-02/boulogne-sea/`.
+6. The tools and tests onto the new scroll, by the plan in `progress.md`.
+7. Checks on the production build at the laptop size: the frame budget on the dive, the hold and the rise; scene 1's regression; every other beat frame for frame against the reference; the contrast.
+8. The stage's screenshots, the status "Stage A — complete, awaiting owner review", the report by this brief's rules, the stop.
+
+If the session ends earlier, stop at a safe point: `progress.md` current, everything committed. Nothing goes into `main`. The deferred plan's branches stay untouched. Never run `npm run screenshots`.
 
 ## <context>
 

@@ -153,6 +153,17 @@ High for the split, medium for 26.
 - Whether the strict reading should letter the British 26 for the night of 20–21 October, while the Africa was out of touch to the north. The label keeps 27: she was under Nelson's flag and fought.
 - Whether the America's two days astern after Cádiz (13, not 14) should be lettered. The owner chose 14 from Cádiz.
 
+## Scene 2, beat 1: Boulogne from the sea (session 24, research in progress)
+
+The research for the painted view is on branch `s24-boulogne-history`, `docs/research/scene-02/boulogne-sea/`: `camps.md`, `flotilla.md`, `light-and-watch.md`, `town-and-defences.md` (complete notes, paraphrased with links) and their independent checks (`*-check.md`, begun, unfinished at the owner's stop). This section and the painter's brief are still to be written from them. The main doubts so far:
+- No line of craft in the roads is documented for August 1805: none on 3–6 August, a sortie of 5 prames, 30 chaloupes and 40 péniches on 12 August; the painting's line reconstructs July 1805's. Low.
+- The huts' colour: thatch golden when new, grey-brown after two winters; walls earth-ochre, or white in one painting. Low.
+- Napoleon's hut: its size and plan from one local historian (1828) and a valet's memoir, which differ in detail. Medium.
+- How much of the old cathedral (sold 1798, pulled down) stood in August 1805: unknown; the views of 1803–04 show no church beside the belfry. Low.
+- The Chappe telegraph on the belfry in August 1805 (engraving of 1803–04, views of 1804). Medium.
+- The tide on a given evening (±45 min) and the beach's width in 1805. Medium.
+- A full moon rose in the east-south-east at sunset on 9–11 August 1805, over the town as the painting looks (computed, checked against the US Naval Observatory). High.
+
 ## Key sources
 
 Full lists with every URL are at the end of each file in `docs/research/`.

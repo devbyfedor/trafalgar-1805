@@ -27,6 +27,7 @@ Log:
 - 2026-11-13 — the owner reviewed the first painting on the dev server; his review, answers and order of work recorded below as "Owner review, 13 November"; session 25 continues stage A to all its done criteria.
 - 2026-11-13 — session 25 stopped by the owner mid stage A: the painting rebuilt on plates painted ahead (colour and engraving), the engraved transition and the eye's move done; the area painters and the history checks stopped before finishing; checks, screenshots and the report's stage-A proof not done; see `docs/progress.md`, session 25.
 - 2026-11-13 — the owner's second look (the engraving stage, the huts' horizon, how the painters work) recorded as "Second look, 13 November" under "Owner review, 13 November"; session 26 continues stage A.
+- 2026-11-13 — session 26 stopped by the owner mid stage A: the history done and merged (the evening of 10 August 1805), the transition's overlap, two regressions of the scroll driver found and fixed (scene 1's layers, a sub-pixel shift of the other beats); the four area painters' branches drafted and improved but not merged or reviewed; the tools unmerged; checks, screenshots and the report's stage-A proof not done; see `docs/progress.md`, session 26.
 
 ## Owner review, 13 November
 

@@ -1,5 +1,11 @@
 import { createRng, field, mix, rgba, softBlob } from "../../paint/kit";
-import { INK, PAPER, type Plate, type PlateCanvas } from "../../paint/plate";
+import {
+  INK,
+  PAPER,
+  type Plate,
+  type PlateCanvas,
+  type PlateJob,
+} from "../../paint/plate";
 import { MOON } from "../sky/moon";
 import { distanceAt, highWaterY, lowWaterY, strandY, waterBody } from "./shore";
 
@@ -69,10 +75,44 @@ function mirrorAt(x: number, rng: () => number): string {
 
 /** The Liane's channel across the strand: centre and half-width at share u. */
 function channel(u: number): [number, number] {
-  return [-140 + 6 * Math.sin(u * 5.2) - 4 * u, 20 + 34 * u];
+  return [-140 + 3 * Math.sin(u * 4) - 2 * u, 11 + 19 * u];
 }
 
 const CHANNEL_U0 = 0.02;
+
+/**
+ * Where share u of the strand lies at x on the plate being painted: the
+ * strand as drawn at the hold, except on the far plate, whose art carries
+ * on below the hold's view (hidden there under the near plate) as the
+ * strand seen from higher up in the dive (farY). Set for a job's length
+ * by `on()`; painting is synchronous.
+ */
+let at: (x: number, u: number) => number = strandY;
+
+function on(pos: (x: number, u: number) => number, job: PlateJob): PlateJob {
+  return (c) => {
+    at = pos;
+    try {
+      job(c);
+    } finally {
+      at = strandY;
+    }
+  };
+}
+
+/** The far plate's art drawn as at the hold down to this share. */
+const FAR_END = 0.45;
+
+/** The far plate's strand: as drawn down to FAR_END, then on down to the plate's bottom by u = 1. */
+function farY(x: number, u: number): number {
+  if (u <= FAR_END) return strandY(x, u);
+  const y = strandY(x, FAR_END);
+  return y + ((u - FAR_END) / (1 - FAR_END)) * (FAR_BOX[2] + 1 - y);
+}
+
+/** The far plate's tones below FAR_END change slowly, to meet the near plate's top in the dive. */
+const farTone = (u: number): number =>
+  u <= FAR_END ? u : FAR_END + (u - FAR_END) * 0.3;
 
 /** Samples x across the box. */
 function across(x0: number, x1: number, step: number): number[] {
@@ -96,22 +136,28 @@ function bandPath(
   return p;
 }
 
-/** The strand's ramp: bands following the shore, from ua to ub. */
-function paintSand(c: PlateCanvas, ua: number, ub: number, below: number) {
+/** The strand's ramp: bands following the shore, from ua to ub (tone: the share whose colour a share takes). */
+function paintSand(
+  c: PlateCanvas,
+  ua: number,
+  ub: number,
+  below: number | null,
+  tone: (u: number) => number = (u) => u,
+) {
   const { ctx } = c;
   const [x0, x1] = c.box;
-  const xs = across(x0, x1, 6);
+  const xs = across(x0, x1, 12);
   const n = Math.max(2, Math.round((ub - ua) * 40));
   for (let i = 0; i < n; i++) {
     const a = ua + ((ub - ua) * i) / n;
     const b = ua + ((ub - ua) * (i + 1)) / n;
     const last = i === n - 1;
-    ctx.fillStyle = sandAt((a + b) / 2);
+    ctx.fillStyle = sandAt(tone((a + b) / 2));
     ctx.fill(
       bandPath(
         xs,
-        (x) => strandY(x, a) + (i === 0 ? 0 : 0.15),
-        (x) => (last ? below : strandY(x, b) - 0.15),
+        (x) => at(x, a) + (i === 0 ? 0 : 0.15),
+        (x) => (last && below !== null ? below : at(x, b) - 0.15),
       ),
     );
   }
@@ -134,7 +180,7 @@ function pools(seed: number, ua: number, ub: number, x0: number): Pool[] {
     const x = x0 + rng() * (RIGHT - x0);
     const [cx, hw] = channel(u);
     if (Math.abs(x - cx) < hw + 12) continue;
-    const y = strandY(x, u);
+    const y = at(x, u);
     out.push({ x, y, w: (6 + rng() * 40) * (0.5 + u), h: 0.3 + u * 0.9 });
   }
   return out;
@@ -154,25 +200,32 @@ function lens(p: Pool): Path2D {
 }
 
 /** The wet sand's mirror: soft vertical smears of the lit shore, wet patches, pools, runnels, ripple marks. */
-function paintWet(c: PlateCanvas, seed: number, ua: number, ub: number) {
+function paintWet(
+  c: PlateCanvas,
+  seed: number,
+  ua: number,
+  ub: number,
+  part: "smears" | "marks",
+) {
   const { ctx } = c;
   const rng = createRng(seed);
   const [x0] = c.box;
-  const span = (x: number) => strandY(x, ua) - strandY(x, ub);
+  const span = (x: number) => at(x, ua) - at(x, ub);
   // Smears of the shore's reflection.
-  for (let i = 0; i < 260; i++) {
+  for (let i = 0; i < (part === "smears" ? 130 : 0); i++) {
     const x = x0 + rng() * (RIGHT - x0);
     const u = ua + (ub - ua) * (0.2 + 0.6 * rng());
     softBlob(
       c,
       x,
-      strandY(x, u),
+      at(x, u),
       1.5 + rng() * 3.5,
       span(x) * (0.3 + rng() * 0.4),
       mirrorAt(x, rng),
       0.16 + rng() * 0.18,
     );
   }
+  if (part === "smears") return;
   // Darker wet patches.
   for (let i = 0; i < 40; i++) {
     const x = x0 + rng() * (RIGHT - x0);
@@ -180,7 +233,7 @@ function paintWet(c: PlateCanvas, seed: number, ua: number, ub: number) {
     softBlob(
       c,
       x,
-      strandY(x, u),
+      at(x, u),
       20 + rng() * 60,
       0.8 + rng() * 1.6,
       "#bfa385",
@@ -217,8 +270,8 @@ function paintWet(c: PlateCanvas, seed: number, ua: number, ub: number) {
     for (let k = 0; k <= 12; k++) {
       const x = a + (len * k) / 12;
       const uu = u + 0.025 * Math.sin(ph + k * 0.7);
-      if (k === 0) ctx.moveTo(x, strandY(x, uu));
-      else ctx.lineTo(x, strandY(x, uu));
+      if (k === 0) ctx.moveTo(x, at(x, uu));
+      else ctx.lineTo(x, at(x, uu));
     }
   }
   ctx.lineWidth = c.pen(1);
@@ -231,7 +284,7 @@ function paintWet(c: PlateCanvas, seed: number, ua: number, ub: number) {
     const u = ua + (ub - ua) * rng();
     for (let k = 0; k < 6; k++) {
       const x = cx + (rng() - 0.5) * 30;
-      const y = strandY(x, u) + (rng() - 0.5) * span(x) * 0.15;
+      const y = at(x, u) + (rng() - 0.5) * span(x) * 0.15;
       const l = 2 + rng() * 5;
       ctx.moveTo(x, y);
       ctx.lineTo(x + l, y + (rng() - 0.5) * 0.2);
@@ -246,8 +299,8 @@ function paintWet(c: PlateCanvas, seed: number, ua: number, ub: number) {
 function paintMoonStreak(c: PlateCanvas, ua: number, ub: number) {
   const { ctx } = c;
   const x = MOON.x;
-  const top = strandY(x, ua);
-  const bot = strandY(x, ub);
+  const top = at(x, ua);
+  const bot = at(x, ub);
   softBlob(c, x, (top + bot) / 2, 4.5, (top - bot) * 0.55, "#fbeed4", 0.5);
   ctx.fillStyle = rgba("#fff4df", 0.3);
   ctx.fillRect(x - 0.7, bot, 1.4, top - bot);
@@ -262,8 +315,8 @@ function channelPath(ua: number, ub: number): Path2D {
   for (let i = 0; i <= n; i++) {
     const u = ua + ((ub - ua) * i) / n;
     const [cx, hw] = channel(u);
-    left.push([cx - hw, strandY(cx - hw, u)]);
-    right.push([cx + hw, strandY(cx + hw, u)]);
+    left.push([cx - hw, at(cx - hw, u)]);
+    right.push([cx + hw, at(cx + hw, u)]);
   }
   p.moveTo(left[0][0], left[0][1]);
   for (const [x, y] of left) p.lineTo(x, y);
@@ -275,11 +328,11 @@ function channelPath(ua: number, ub: number): Path2D {
 
 function paintChannel(c: PlateCanvas, ua: number, ub: number) {
   const { ctx } = c;
-  const top = strandY(-140, ua);
-  const bot = strandY(-140, ub);
+  const top = at(-140, ua);
+  const bot = at(-140, ub);
   const g = ctx.createLinearGradient(0, top, 0, bot);
-  g.addColorStop(0, "#d6c6bb");
-  g.addColorStop(1, "#cbbcb6");
+  g.addColorStop(0, "#e4d1b3");
+  g.addColorStop(1, "#dac6ab");
   ctx.fillStyle = g;
   ctx.fill(channelPath(ua, ub));
   ctx.save();
@@ -291,10 +344,10 @@ function paintChannel(c: PlateCanvas, ua: number, ub: number) {
     softBlob(
       c,
       cx + (rng() - 0.5) * hw,
-      strandY(cx, u),
+      at(cx, u),
       1.5 + rng() * 3,
       3 + rng() * 4,
-      rng() < 0.6 ? "#f4e4c4" : "#b9a99f",
+      rng() < 0.6 ? "#f6e7c9" : "#c6b5a6",
       0.4,
     );
   }
@@ -306,12 +359,12 @@ function paintChannel(c: PlateCanvas, ua: number, ub: number) {
       const u = ua + ((ub - ua) * i) / 24;
       const [cx, hw] = channel(u);
       const x = cx + side * hw;
-      if (i === 0) ctx.moveTo(x, strandY(x, u));
-      else ctx.lineTo(x, strandY(x, u));
+      if (i === 0) ctx.moveTo(x, at(x, u));
+      else ctx.lineTo(x, at(x, u));
     }
   }
   ctx.lineWidth = c.pen(0.8);
-  ctx.strokeStyle = rgba("#9c8468", 0.45);
+  ctx.strokeStyle = rgba("#a08a70", 0.22);
   ctx.stroke();
 }
 
@@ -327,8 +380,8 @@ function paintDriftLine(c: PlateCanvas, ink: boolean) {
     const [cx, hw] = channel(0.09);
     if (Math.abs(x - cx) > hw + 4 && rng() > 0.15) {
       const u = 0.085 + 0.012 * Math.sin(x * 0.05);
-      ctx.moveTo(x, strandY(x, u));
-      ctx.lineTo(x + len, strandY(x + len, u + (rng() - 0.5) * 0.01));
+      ctx.moveTo(x, at(x, u));
+      ctx.lineTo(x + len, at(x + len, u + (rng() - 0.5) * 0.01));
     }
     x += len + (ink ? 1.5 + rng() * 3 : 1 + rng() * 6);
   }
@@ -366,7 +419,7 @@ function inkStrand(c: PlateCanvas, seed: number, ua: number, ub: number) {
     while (x < RIGHT) {
       const len = 3 + rng() * 12;
       const gap = 3 + rng() * 16;
-      const y = strandY(x, u);
+      const y = at(x, u);
       const [cx, hw] = channel(u);
       const shine =
         Math.abs(x - MOON.x) < 8 ||
@@ -374,7 +427,7 @@ function inkStrand(c: PlateCanvas, seed: number, ua: number, ub: number) {
         inPool(ps, x, y);
       if (!shine && rng() < 0.35 + 0.35 * patch(x, u * 100)) {
         ctx.moveTo(x, y);
-        ctx.lineTo(x + len, strandY(x + len, u) + (rng() - 0.5) * 0.25);
+        ctx.lineTo(x + len, at(x + len, u) + (rng() - 0.5) * 0.25);
       }
       x += len + gap;
     }
@@ -400,9 +453,9 @@ function inkStrand(c: PlateCanvas, seed: number, ua: number, ub: number) {
         Math.max(CHANNEL_U0, ua) + ((ub - Math.max(CHANNEL_U0, ua)) * i) / 30;
       const [cx, hw] = channel(uu);
       const x = cx + side * hw;
-      const keep = rng() > 0.2;
-      if (keep && on) ctx.lineTo(x, strandY(x, uu));
-      else if (keep) ctx.moveTo(x, strandY(x, uu));
+      const keep = rng() > 0.45;
+      if (keep && on) ctx.lineTo(x, at(x, uu));
+      else if (keep) ctx.moveTo(x, at(x, uu));
       on = keep;
     }
   }
@@ -525,28 +578,30 @@ function paintEdgeWaves(
 function inkEdge(c: PlateCanvas, seed: number, bottom: number) {
   const { ctx } = c;
   const rng = createRng(seed);
+  const patch = field(seed + 5, 90, 3);
   const [x0, x1] = c.box;
   // The low-water edge: a fine broken line.
   ctx.beginPath();
   let x = x0;
   while (x < x1) {
-    const len = 8 + rng() * 40;
-    ctx.moveTo(x, lowWaterY(x));
+    const len = 5 + rng() * 24;
+    const skip = rng() < 0.2;
+    if (!skip) ctx.moveTo(x, lowWaterY(x));
     for (let k = 1; k <= 4; k++) {
       const xx = x + (len * k) / 4;
-      ctx.lineTo(xx, lowWaterY(xx) + (rng() - 0.5) * 0.2);
+      if (!skip) ctx.lineTo(xx, lowWaterY(xx) + (rng() - 0.5) * 0.2);
     }
-    x += len + 1 + rng() * 5;
+    x += len + (rng() < 0.15 ? 25 + rng() * 80 : 2 + rng() * 12);
   }
   ctx.lineWidth = c.pen(0.75);
   ctx.strokeStyle = rgba(INK.line, 0.75);
   ctx.stroke();
   // The shore's reflection: broken verticals just off the edge, more under the cliffs.
   ctx.beginPath();
-  for (let i = 0; i < 520; i++) {
+  for (let i = 0; i < 230; i++) {
     const xx = x0 + rng() * (x1 - x0);
-    if (xx > -340 && rng() < 0.45) continue;
-    const e = lowWaterY(xx) - 1 - rng() * 2;
+    if (xx > -340 && rng() < 0.6) continue;
+    const e = lowWaterY(xx) - 1 - rng() * 6;
     let y = e;
     const n = 1 + Math.floor(rng() * 3);
     for (let k = 0; k < n; k++) {
@@ -570,7 +625,12 @@ function inkEdge(c: PlateCanvas, seed: number, bottom: number) {
     while (xx < x1) {
       const len = (3 + rng() * 10) * (1 + near * 2);
       const top = Math.min(lowWaterY(xx), lowWaterY(xx + len)) - 0.8;
-      if (y < top && rng() < 0.45 + near * 0.35) {
+      if (
+        y < top &&
+        rng() <
+          (0.45 + near * 0.35) *
+            (0.35 + 0.65 * Math.max(0, 0.5 + 0.5 * patch(xx, y)))
+      ) {
         const amp = Math.min(2.5, 60 / d);
         ctx.moveTo(xx, y);
         ctx.quadraticCurveTo(xx + len / 2, y + amp, xx + len, y);
@@ -632,27 +692,39 @@ function farStrand(): Plate {
     jobs: (mode) =>
       mode === "colour"
         ? [
-            (c) => paintSand(c, 0, 0.45, y0),
-            (c) => paintWet(c, 1201, 0.12, FAR_U),
-            (c) => {
+            on(farY, (c) => paintSand(c, 0, 0.25, null, farTone)),
+            on(farY, (c) => paintSand(c, 0.25, 0.5, null, farTone)),
+            on(farY, (c) => paintSand(c, 0.5, 1, y0, farTone)),
+            on(farY, (c) => paintWet(c, 1201, 0.12, FAR_U, "smears")),
+            on(farY, (c) => paintWet(c, 1701, 0.12, FAR_U, "smears")),
+            on(farY, (c) => paintWet(c, 1201, 0.12, FAR_U, "marks")),
+            // The art below the hold's view, in four bands so no job runs long.
+            ...[0.47, 0.6, 0.73, 0.86].flatMap((u, k) => [
+              on(farY, (c) => paintWet(c, 1210 + k, u, u + 0.12, "smears")),
+              on(farY, (c) => paintWet(c, 1710 + k, u, u + 0.12, "smears")),
+              on(farY, (c) => paintWet(c, 1210 + k, u, u + 0.12, "marks")),
+            ]),
+            on(farY, (c) => {
               paintMoonStreak(c, 0.1, FAR_U);
-              paintChannel(c, CHANNEL_U0, 0.45);
+              paintMoonStreak(c, 0.47, 0.98);
+              paintChannel(c, CHANNEL_U0, 1);
               paintDriftLine(c, false);
-            },
+            }),
           ]
         : [
             (c) => inkPaper(c, (x) => strandY(x, 0), y0),
-            (c) => {
+            on(farY, (c) => {
               inkStrand(c, 1301, 0.1, FAR_U);
+              inkStrand(c, 1302, 0.47, 0.98);
               paintDriftLine(c, true);
-            },
+            }),
           ],
   };
 }
 
 function nearStrand(): Plate {
   const [, , y0] = NEAR_BOX;
-  const seam = (x: number) => strandY(x, SEAM_U);
+  const seam = (x: number) => at(x, SEAM_U);
   return {
     id: "strand-edge",
     depth: 480,
@@ -665,7 +737,9 @@ function nearStrand(): Plate {
               paintSand(c, SEAM_U, 1, -40);
               paintEdgeWater(c, y0);
             },
-            (c) => paintWet(c, 1401, NEAR_U, 0.97),
+            (c) => paintWet(c, 1401, NEAR_U, 0.97, "smears"),
+            (c) => paintWet(c, 1901, NEAR_U, 0.97, "smears"),
+            (c) => paintWet(c, 1401, NEAR_U, 0.97, "marks"),
             (c) => {
               paintMoonStreak(c, NEAR_U, 0.99);
               paintChannel(c, SEAM_U, 1);

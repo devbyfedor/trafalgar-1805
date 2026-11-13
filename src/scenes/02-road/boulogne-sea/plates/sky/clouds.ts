@@ -283,7 +283,14 @@ function inkPaper(c: PlateCanvas, f: Form): void {
 }
 
 /** Curved strokes along the forms: the outline, light on the lit side; the crevices; arcs of hatching in the shade, denser low down. */
-function inkForms(c: PlateCanvas, f: Form, seed: number, weight: number): void {
+function inkForms(
+  c: PlateCanvas,
+  f: Form,
+  seed: number,
+  weight: number,
+  from: number,
+  to: number,
+): void {
   const { ctx } = c;
   const rng = createRng(seed);
   const h = f.top - f.base;
@@ -291,7 +298,7 @@ function inkForms(c: PlateCanvas, f: Form, seed: number, weight: number): void {
   const shade = new Path2D();
   const hatch = new Path2D();
   const n = f.puffs.length;
-  for (let i = 0; i < n; i++) {
+  for (let i = Math.floor(n * from); i < Math.floor(n * to); i++) {
     const p = f.puffs[i];
     // The outline and the crevices.
     let pen: Path2D | null = null;
@@ -600,7 +607,12 @@ function groupPlate(g: Group): Plate {
           });
         } else {
           jobs.push((c) => inkPaper(c, get()[i]));
-          jobs.push((c) => inkForms(c, get()[i], s.seed + 70, g.weight));
+          jobs.push((c) =>
+            inkForms(c, get()[i], s.seed + 70, g.weight, 0, 0.5),
+          );
+          jobs.push((c) =>
+            inkForms(c, get()[i], s.seed + 71, g.weight, 0.5, 1),
+          );
         }
       });
       return jobs;

@@ -242,12 +242,20 @@ function dashes(
   keep: number,
 ): [number, number][] {
   const rng = createRng(seed);
+  // Patches of open water (the shine) between patches of strokes.
+  const patch = periodic(seed + 11, period, [
+    [1, 0.5],
+    [2, 0.35],
+    [3, 0.25],
+    [5, 0.15],
+  ]);
   const out: [number, number][] = [];
   let s = rng() * gap;
   while (s < period) {
     const l = len * (0.5 + rng());
     const e = Math.min(period, s + l);
-    if (rng() < keep) out.push([s, e]);
+    const m = Math.min(1, Math.max(0, 0.5 + 0.75 * patch((s + e) / 2)));
+    if (rng() < keep * m) out.push([s, e]);
     s = e + gap * (0.3 + rng() * 1.3);
   }
   return out;
@@ -278,6 +286,8 @@ function inkRows(c: PlateCanvas, s: Strip, rs: readonly Row[]): void {
   const { ctx } = c;
   ctx.lineCap = "round";
   for (const r of rs) {
+    // Some close far rows left out, so the far water never reads as ruling.
+    if (r.dy < 3.4 && (r.seed * 7919) % 10 < 3) continue;
     const wv = wave(r, s.period);
     const near = Math.min(1, Math.max(0, (-r.y - 30) / 230));
     const len = Math.min(40, Math.max(5, 1200 / r.d));
@@ -341,13 +351,13 @@ function swellPlate(i: number): Plate {
   const chunks = (): Row[][] => {
     const rs = get();
     const out: Row[][] = [];
-    for (let k = 0; k < rs.length; k += 5) out.push(rs.slice(k, k + 5));
+    for (let k = 0; k < rs.length; k += 2) out.push(rs.slice(k, k + 2));
     return out;
   };
   const rng = createRng(4200 + i);
   const seconds = 8 + rng() * 2.5;
   // Jobs are listed before the rows exist; each picks its chunk when it runs.
-  const maxChunks = 8;
+  const maxChunks = 24;
   return {
     id: `swell-${i}`,
     depth: s.depth,

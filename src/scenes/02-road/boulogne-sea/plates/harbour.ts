@@ -8,6 +8,7 @@ import {
   type PlateJob,
 } from "../paint/plate";
 import { aerial, BUILD, viewOf } from "../scene";
+import { basinCraft, basinTiers, engraveCraft, paintCraft } from "./harbour/basin";
 import {
   type Box,
   brokenLine,
@@ -43,161 +44,7 @@ function proj(e: number, n: number, up: number): Pt {
 // ----------------------------------------------------------- the basin
 
 const BASIN_DEPTH = 1600;
-const BASIN_BOX: Box = [-240, 300, -26, 40];
-
-interface Craft {
-  /** Mast feet and heads, layer units. */
-  masts: { x: number; y0: number; y1: number; square: boolean }[];
-  hull: Pt[];
-  wale: Pt[];
-  distance: number;
-  /** How square across the view the yards lie (1: full length). */
-  across: number;
-  u: number;
-}
-
-let basinCache: Craft[] | undefined;
-
-/** Points along the river, every `step` metres, with the direction there. */
-function alongRiver(
-  from: number,
-  to: number,
-  step: number,
-): { e: number; n: number; dx: number; dn: number }[] {
-  const out: { e: number; n: number; dx: number; dn: number }[] = [];
-  let s = 0;
-  for (let i = 0; i < RIVER.length - 1; i++) {
-    const [ax, ay] = RIVER[i];
-    const [bx, by] = RIVER[i + 1];
-    const len = Math.hypot(bx - ax, by - ay);
-    for (let t = 0; t < len; t += step) {
-      const at = s + t;
-      if (at >= from && at <= to)
-        out.push({
-          e: ax + ((bx - ax) * t) / len,
-          n: ay + ((by - ay) * t) / len,
-          dx: (bx - ax) / len,
-          dn: (by - ay) / len,
-        });
-    }
-    s += len;
-  }
-  return out;
-}
-
-/**
- * The craft aground: tiers moored side by side off the east quays, from
- * the jetties' roots up the harbour past the bend, each tier four to eight
- * abreast; prames with three masts, gun-brigs and gunboats with two or
- * three, péniches with two, all with their canvas furled.
- */
-function basin(): Craft[] {
-  if (basinCache) return basinCache;
-  const rng = createRng(6113);
-  const out: Craft[] = [];
-  const stations = alongRiver(440, 1500, 1);
-  let s = 0;
-  while (s < stations.length) {
-    const st = stations[Math.floor(s)];
-    const abreast = 4 + Math.floor(rng() * 5);
-    const len = 18 + rng() * 14;
-    // Left of the stream's direction is the town's bank.
-    const nx = -st.dn;
-    const ny = st.dx;
-    for (let j = 0; j < abreast; j++) {
-      const off = 34 - j * (5.5 + rng() * 1.5);
-      const kind = rng();
-      const cl = len * (kind < 0.1 ? 1.35 : kind < 0.75 ? 1 : 0.75);
-      const nMasts = kind < 0.1 ? 3 : kind < 0.75 ? (rng() < 0.5 ? 2 : 3) : 2;
-      const mastH =
-        kind < 0.1 ? 28 : kind < 0.45 ? 21 + rng() * 3 : 13 + rng() * 5;
-      const square = kind < 0.45;
-      const ce = st.e + nx * off + st.dx * (rng() - 0.5) * 3;
-      const cn = st.n + ny * off + st.dn * (rng() - 0.5) * 3;
-      const [ahead] = viewOf(ce, cn);
-      const u = 1000 / ahead;
-      const deck = 2.6 * BUILD;
-      const masts: Craft["masts"] = [];
-      for (let m = 0; m < nMasts; m++) {
-        const f = -0.32 + (0.64 * m) / (nMasts - 1);
-        const me = ce + st.dx * cl * f;
-        const mn = cn + st.dn * cl * f;
-        const h =
-          mastH *
-          (m === nMasts - 1 && nMasts === 3 ? 0.78 : 1) *
-          (0.95 + rng() * 0.1);
-        const [x, y0] = proj(me, mn, deck);
-        const [, y1] = proj(me, mn, deck + h * BUILD);
-        masts.push({ x, y0, y1, square });
-      }
-      // The hull between its ends, low on the mud.
-      const a = proj(ce - st.dx * cl * 0.5, cn - st.dn * cl * 0.5, 0.4);
-      const b = proj(ce + st.dx * cl * 0.5, cn + st.dn * cl * 0.5, 0.4);
-      const at = proj(ce - st.dx * cl * 0.5, cn - st.dn * cl * 0.5, deck + 0.6);
-      const bt = proj(ce + st.dx * cl * 0.5, cn + st.dn * cl * 0.5, deck + 0.6);
-      const beam = 3.2 * BUILD * u;
-      const lx = Math.min(a[0], b[0]) - beam;
-      const rx = Math.max(a[0], b[0]) + beam;
-      const yb = Math.min(a[1], b[1]);
-      const yt = Math.max(at[1], bt[1]);
-      const hull: Pt[] = [
-        [lx, yt],
-        [rx, yt + (yt - yb) * 0.1],
-        [rx - beam * 0.6, yb],
-        [lx + beam * 0.5, yb],
-      ];
-      // A view straight down the channel sees the yards square; the reach turning south-east, foreshortened.
-      const across = Math.abs(st.dx * 0.99 + st.dn * -0.14);
-      out.push({
-        masts,
-        hull,
-        wale: [
-          [lx + beam * 0.2, yt - (yt - yb) * 0.25],
-          [rx - beam * 0.2, yt - (yt - yb) * 0.2],
-        ],
-        distance: ahead,
-        across: 0.25 + 0.75 * across,
-        u,
-      });
-    }
-    s += (len + 4) * (0.9 + rng() * 0.3);
-  }
-  // The semicircular basin's ring of craft, by the quay at the bend.
-  for (let k = 0; k < 26; k++) {
-    const a = Math.PI * (0.15 + (0.7 * k) / 25);
-    const ce = 520 + Math.cos(a) * 95;
-    const cn = -170 - Math.sin(a) * 70;
-    const [ahead] = viewOf(ce, cn);
-    const u = 1000 / ahead;
-    const deck = 2.6 * BUILD;
-    const h = 13 + rng() * 6;
-    const [x, y0] = proj(ce, cn, deck);
-    const [, y1] = proj(ce, cn, deck + h * BUILD);
-    const [x2] = proj(ce + 8, cn - 3, deck);
-    out.push({
-      masts: [
-        { x, y0, y1, square: rng() < 0.4 },
-        { x: x2, y0, y1: y0 + (y1 - y0) * 0.85, square: false },
-      ],
-      hull: [
-        [Math.min(x, x2) - 3 * u, y0 + 0.5],
-        [Math.max(x, x2) + 3 * u, y0 + 0.5],
-        [Math.max(x, x2) + 2 * u, y0 - 3],
-        [Math.min(x, x2) - 2 * u, y0 - 3],
-      ],
-      wale: [
-        [Math.min(x, x2) - 2 * u, y0 - 0.4],
-        [Math.max(x, x2) + 2 * u, y0 - 0.4],
-      ],
-      distance: ahead,
-      across: 0.6,
-      u,
-    });
-  }
-  out.sort((p, q) => q.distance - p.distance);
-  basinCache = out;
-  return out;
-}
+const BASIN_BOX: Box = [-240, 300, -14, 48];
 
 function basinFloor(c: PlateCanvas): void {
   const { ctx } = c;
@@ -288,125 +135,20 @@ function basinQuay(c: PlateCanvas): void {
   }
 }
 
-function basinCraft(c: PlateCanvas, from: number, to: number): void {
-  const { ctx } = c;
-  const list = basin().slice(from, to);
-  if (list.length === 0) return;
-  const air = BASIN_DEPTH;
-  const timber = tones(MAT.timber, air);
-  const hullC = aerial("#4e4038", air);
-  const canvas = aerial("#e9d2a2", air);
-  if (c.mode === "colour") {
-    for (const cr of list) {
-      ctx.fillStyle = hullC;
-      ctx.beginPath();
-      ctx.moveTo(cr.hull[0][0], cr.hull[0][1]);
-      for (const q of cr.hull) ctx.lineTo(q[0], q[1]);
-      ctx.closePath();
-      ctx.fill();
-    }
-    strokeLines(
-      c,
-      list.map((cr) => cr.wale),
-      0.8,
-      timber.lit,
-      0.9,
-    );
-  } else {
-    for (const cr of list) {
-      ctx.fillStyle = PAPER.low;
-      ctx.beginPath();
-      ctx.moveTo(cr.hull[0][0], cr.hull[0][1]);
-      for (const q of cr.hull) ctx.lineTo(q[0], q[1]);
-      ctx.closePath();
-      ctx.fill();
-    }
-    const hl: Pt[][] = [];
-    for (const cr of list) {
-      hl.push([cr.hull[3], cr.hull[0], cr.hull[1], cr.hull[2]]);
-      hl.push(cr.wale);
-    }
-    strokeLines(c, hl, penAt(air) * 0.8, INK.line, 0.85);
-  }
-  // Masts, yards, canvas furled on them, a stay or two.
-  const masts: Pt[][] = [];
-  const yards: Pt[][] = [];
-  const rolls: Pt[][] = [];
-  const stays: Pt[][] = [];
-  for (const cr of list) {
-    const rng = createRng(Math.floor(cr.distance * 10));
-    cr.masts.forEach((m, i) => {
-      masts.push([
-        [m.x, m.y0],
-        [m.x, m.y1],
-      ]);
-      const h = m.y1 - m.y0;
-      if (m.square) {
-        // The lower and topsail yards; a topgallant on some; each a
-        // little out of square, as the crews left them.
-        const set: (readonly [number, number])[] = [[0.5, 0.5]];
-        if (rng() < 0.8) set.push([0.74, 0.38]);
-        if (rng() < 0.3) set.push([0.9, 0.24]);
-        for (const [f, w] of set) {
-          const half = h * w * 0.5 * cr.across * (0.85 + rng() * 0.3);
-          const y = m.y0 + h * f;
-          const tilt = (rng() - 0.5) * half * 0.12;
-          yards.push([
-            [m.x - half, y - tilt],
-            [m.x + half, y + tilt],
-          ]);
-          rolls.push([
-            [m.x - half * 0.85, y + 0.25],
-            [m.x + half * 0.85, y + 0.25],
-          ]);
-        }
-      } else {
-        // A lug yard slung slanting, its sail furled along it.
-        const half = h * (0.24 + rng() * 0.14) * cr.across;
-        const y = m.y0 + h * (0.62 + rng() * 0.16);
-        yards.push([
-          [m.x - half, y - half * 0.35],
-          [m.x + half * 0.6, y + half * 0.2],
-        ]);
-        rolls.push([
-          [m.x - half * 0.9, y - half * 0.3 + 0.25],
-          [m.x + half * 0.5, y + half * 0.17 + 0.25],
-        ]);
-      }
-      if (i > 0 && rng() < 0.8) {
-        const p = cr.masts[i - 1];
-        stays.push([
-          [m.x, m.y0 + h * 0.95],
-          [p.x, p.y0 + (p.y1 - p.y0) * 0.45],
-        ]);
-      }
-    });
-  }
-  if (c.mode === "colour") {
-    strokeLines(c, stays, 0.45, timber.shade, 0.4);
-    strokeLines(c, masts, 1.05, mix(timber.graze, timber.shade, 0.35), 1);
-    strokeLines(
-      c,
-      masts.map((m) => m.map(([x, y]) => [x - 0.22, y] as Pt)),
-      0.5,
-      timber.lit,
-      0.55,
-    );
-    strokeLines(c, yards, 0.75, timber.shade, 0.9);
-    strokeLines(c, rolls, 1.1, canvas, 0.6);
-  } else {
-    const pen = penAt(BASIN_DEPTH);
-    strokeLines(c, stays, pen * 0.3, INK.hatch, 0.45);
-    strokeLines(c, masts, pen * 0.7, INK.line, 0.8);
-    strokeLines(c, yards, pen * 0.5, INK.line, 0.7);
-    strokeLines(c, rolls, pen * 0.45, INK.hatch, 0.6);
-  }
-}
-
 function basinPlate(): Plate {
   const jobs = (): PlateJob[] => {
     const out: PlateJob[] = [(c) => basinFloor(c), (c) => basinQuay(c)];
-    for (let i = 0; i < 900; i += 60) out.push((c) => basinCraft(c, i, i + 60));
+    for (let k = 0; k < 8; k++) out.push(() => void basinTiers(12));
+    out.push(() => void basinCraft());
+    for (let i = 0; i < 600; i += 30)
+      out.push((c) => {
+        const list = basinCraft();
+        if (i >= list.length) return;
+        const slice = list.slice(i, i + 30);
+        if (c.mode === "colour") paintCraft(c, slice);
+        else engraveCraft(c, slice, penAt(BASIN_DEPTH));
+      });
+    out.push((c) => fadeEdges(c, BASIN_BOX, 50, 6));
     return out;
   };
   return {

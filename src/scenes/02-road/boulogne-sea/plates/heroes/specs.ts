@@ -22,17 +22,18 @@ import type { CraftPaint, CraftSpec } from "@/components/ship/craft/types";
  */
 
 const TARRED: CraftPaint = {
-  hull: "#2d2925",
-  wale: "#25221f",
+  hull: "#2b2621",
+  wale: "#1f1c19",
   band: undefined,
   rail: "#7c6448",
-  bottom: "#332e29",
+  bottom: "#312b26",
   mast: "#9a7a52",
-  spar: "#5a4836",
+  spar: "#4f3f30",
   canvas: "#d4c6a6",
-  rope: "#3a3029",
-  running: "#6e5d49",
-  iron: "#33312e",
+  // Standing rigging tarred black, running rigging of plain hemp.
+  rope: "#221c18",
+  running: "#5f4f3d",
+  iron: "#3a3530",
   inside: "#6b5b47",
 };
 
@@ -86,4 +87,39 @@ export const SEA_PRAME: CraftSpec = {
     ? { ...PRAME.pennant, length: 12, hoist: 0.45 }
     : undefined,
   paint: TARRED,
+};
+
+/**
+ * Small ports along the bulwark for the sweeps (a chaloupe's) or cut in
+ * the washboard for the oars (a bateau's, which the research describes):
+ * their first and last centre, x in metres, the step between them, their
+ * sill above the deck, width and height. None where a gun's port, a
+ * channel or the hawse stands.
+ */
+export interface RowPorts {
+  from: number;
+  to: number;
+  step: number;
+  sill: number;
+  width: number;
+  height: number;
+}
+
+export const ROW_PORTS: Readonly<Record<string, RowPorts>> = {
+  [SEA_CHALOUPE.id]: {
+    from: 2.2,
+    to: 22.2,
+    step: 1.15,
+    sill: 0.24,
+    width: 0.2,
+    height: 0.17,
+  },
+  [SEA_BATEAU.id]: {
+    from: 2.4,
+    to: 15.6,
+    step: 1.05,
+    sill: 0.2,
+    width: 0.15,
+    height: 0.13,
+  },
 };

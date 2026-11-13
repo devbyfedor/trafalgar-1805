@@ -31,13 +31,13 @@ export function colourArt(
   const k = Math.min(1, Math.max(0.45, hs.length / 34.8));
   const pen = (px: number, metres: number) => Math.max(dev(px), metres);
   const W = {
-    stays: pen(1.25, 0.07 * k),
-    staysLight: pen(0.85, 0.04 * k),
-    heavy: pen(1.25, 0.07 * k),
-    shrouds: pen(1.0, 0.055 * k),
-    light: pen(0.8, 0.035 * k),
-    ratlines: pen(0.55, 0.016 * k),
-    running: pen(0.65, 0.022 * k),
+    stays: pen(1.35, 0.07 * k),
+    staysLight: pen(0.95, 0.04 * k),
+    heavy: pen(1.35, 0.07 * k),
+    shrouds: pen(1.15, 0.055 * k),
+    light: pen(0.9, 0.035 * k),
+    ratlines: pen(0.6, 0.016 * k),
+    running: pen(0.7, 0.022 * k),
     lanyards: pen(0.5, 0.014 * k),
     chain: pen(0.8, 0.045 * k),
     gammoning: pen(0.8, 0.04 * k),
@@ -100,8 +100,8 @@ export function colourArt(
   F(g.darkSparShade, p.spar.under);
 
   // Stays, behind the yards.
-  L(rg.stays, p.rope.side, W.stays, 0.92);
-  L(rg.staysLight, p.rope.side, W.staysLight, 0.85);
+  L(rg.stays, p.rope.side, W.stays, 1);
+  L(rg.staysLight, p.rope.side, W.staysLight, 0.92);
 
   // Yards, and the canvas furled on them.
   F(g.yards, p.spar.side);
@@ -168,11 +168,11 @@ export function colourArt(
   }
 
   // Rigging in front.
-  L(rg.shrouds, p.rope.side, W.shrouds, 0.9);
-  if (hero) L(rg.ratlines, p.rope.side, W.ratlines, 0.62, "butt");
-  L(rg.light, p.rope.side, W.light, 0.85);
-  L(rg.heavy, p.rope.side, W.heavy, 0.9);
-  L(rg.running, p.running.side, W.running, hero ? 0.62 : 0.45);
+  L(rg.shrouds, p.rope.side, W.shrouds, 1);
+  if (hero) L(rg.ratlines, p.rope.side, W.ratlines, 0.7, "butt");
+  L(rg.light, p.rope.side, W.light, 0.92);
+  L(rg.heavy, p.rope.side, W.heavy, 1);
+  L(rg.running, p.running.side, W.running, hero ? 0.7 : 0.5);
   L(rg.gammoning, p.rope.side, W.gammoning, 0.9);
 
   // The cable into the water ahead; the catted anchor.

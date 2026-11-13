@@ -14,6 +14,7 @@ import type { CraftHullSpec } from "@/components/ship/craft/types";
 import { forkRng } from "@/lib/random";
 import { rgba } from "../../paint/kit";
 import { FOOT, P, WATER, WATER_LIGHT } from "./common";
+import { ROW_PORTS } from "./specs";
 
 /**
  * A tarred hull's side in the evening sun, square-on to the eye and the
@@ -91,6 +92,28 @@ function stroke(
   for (const [x, y] of pts) ctx.lineTo(x, y);
 }
 
+/** The row ports' rectangles (x, bottom, width, height in metres, up from the water), clear of guns' ports, channels and the hawse. */
+export function rowPorts(art: CraftArt): [number, number, number, number][] {
+  const spec = art.spec;
+  const r = ROW_PORTS[spec.id];
+  if (!r) return [];
+  const hs = spec.hull;
+  const busy: [number, number][] = [];
+  for (const x of hs.ports?.xs ?? []) busy.push([x - 0.55, x + 0.55]);
+  for (const m of spec.masts) {
+    if (!m.channel) continue;
+    const feet = m.shrouds.map((d) => m.x + d);
+    busy.push([Math.min(...feet) - 0.6, Math.max(...feet) + 0.6]);
+  }
+  busy.push([spec.anchor.hawse[0] - 0.8, spec.anchor.hawse[0] + 0.8]);
+  const out: [number, number, number, number][] = [];
+  for (let x = r.from; x <= r.to + 1e-6; x += r.step) {
+    if (busy.some(([a, b]) => x > a && x < b)) continue;
+    out.push([x - r.width / 2, deckAt(hs, x) + r.sill, r.width, r.height]);
+  }
+  return out;
+}
+
 const SALT = "#8d877c";
 const TAR = "#120f0c";
 const RUST = "#7d4f2e";
@@ -123,11 +146,11 @@ export function paintHullSide(
   for (let j = 0; j + 1 < lines.length; j++) {
     const t = rng();
     const base =
-      t < 0.16
-        ? linMix(p.hull.side, SALT, 0.13 + rng() * 0.08)
-        : t > 0.88
-          ? linMix(p.hull.side, TAR, 0.2 + rng() * 0.1)
-          : linMix(p.hull.side, j % 2 ? p.hull.low : p.hull.top, 0.06 * rng());
+      t < 0.12
+        ? linMix(p.hull.side, SALT, 0.09 + rng() * 0.07)
+        : t > 0.86
+          ? linMix(p.hull.side, TAR, 0.25 + rng() * 0.12)
+          : linMix(p.hull.side, j % 2 ? p.hull.low : p.hull.top, 0.08 * rng());
     const g = ctx.createLinearGradient(xs, 0, xe, 0);
     const stops = 4 + Math.floor(rng() * 3);
     for (let s = 0; s <= stops; s++) {
@@ -210,7 +233,7 @@ export function paintHullSide(
     ctx.fill();
   }
   ctx.globalAlpha = 1;
-  ctx.fillStyle = linMix(p.wale.side, TAR, 0.25);
+  ctx.fillStyle = linMix(p.wale.side, TAR, 0.4);
   ctx.fill(P(h.wales));
   ctx.globalAlpha = 0.9;
   ctx.fillStyle = p.wale.under;
@@ -226,11 +249,33 @@ export function paintHullSide(
   }
   ctx.stroke();
 
+  // The row of sweep (or oar) ports: dark holes into the bulwark's shade,
+  // a sill lit from the sky, the lintel's shadow.
+  const holes = rowPorts(art);
+  if (holes.length) {
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = p.inside.shadow;
+    ctx.beginPath();
+    for (const [x, y, w, hh] of holes) ctx.rect(x, -(y + hh), w, hh);
+    ctx.fill();
+    ctx.fillStyle = p.cast;
+    ctx.globalAlpha = 0.7;
+    ctx.beginPath();
+    for (const [x, y, w, hh] of holes) ctx.rect(x, -(y + hh), w, hh * 0.3);
+    ctx.fill();
+    ctx.fillStyle = p.rail.top;
+    ctx.globalAlpha = 0.8;
+    ctx.beginPath();
+    for (const [x, y, w] of holes)
+      ctx.rect(x - 0.02, -(y + 0.025), w + 0.04, Math.max(0.03, dev(0.8)));
+    ctx.fill();
+  }
+
   // A warm sheen of the low sun along the topsides.
   const sheen = [0.12, 0.2, 0.3, 0.42, 0.56];
   ctx.fillStyle = GOLD;
   for (let i = 0; i + 1 < sheen.length; i++) {
-    ctx.globalAlpha = [0.025, 0.045, 0.04, 0.02][i];
+    ctx.globalAlpha = [0.035, 0.065, 0.055, 0.03][i];
     band(
       ctx,
       xs,

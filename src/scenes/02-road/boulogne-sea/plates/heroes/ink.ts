@@ -8,7 +8,7 @@ import {
 import { forkRng, type Rng } from "@/lib/random";
 import { INK, PAPER, type PlateCanvas } from "../../paint/plate";
 import { type CraftPlace, type Detail, P } from "./common";
-import { seamLines } from "./hull-colour";
+import { rowPorts, seamLines } from "./hull-colour";
 
 /**
  * A craft engraved (paint/plate.ts, the "ink" raster): the same craft in
@@ -345,6 +345,14 @@ export function inkArt(
   });
   hatch(h.rudder, 90, 1.6, 0.4, 0.75);
   tone(h.ports, 0.95, INK.line);
+  const holes = rowPorts(art);
+  if (holes.length) {
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = INK.line;
+    ctx.beginPath();
+    for (const [x, y, w, hh] of holes) ctx.rect(x, -(y + hh), w, hh);
+    ctx.fill();
+  }
   tone(h.muzzleFaces, 0.9, INK.line);
   line(h.tiller, INK.line, 0.55);
   tone(h.hawse, 1, INK.line);

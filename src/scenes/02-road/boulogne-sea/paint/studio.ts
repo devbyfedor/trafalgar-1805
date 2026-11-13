@@ -14,7 +14,8 @@ import { type PlateTarget, paintPlates } from "./raster";
  *
  * Reads `window.__studioOptions`: { plates?: string[] (solo ids), mode:
  * "colour" | "ink" | number (the transition's share of colour, 0..1, over
- * the engraving), x?: number (the drift, metres) }. Writes
+ * the engraving), x?: number (the drift, metres), h?: number and pitch?:
+ * number (the camera's height and pitch, for a view from the dive) }. Writes
  * `window.__studio` when done: { done, timings }.
  */
 
@@ -22,6 +23,9 @@ interface StudioOptions {
   plates?: string[];
   mode: PlateMode | number;
   x?: number;
+  /** The camera's height (metres) and pitch (degrees), for a view from the dive (the hold's by default). */
+  h?: number;
+  pitch?: number;
 }
 
 interface Timing {
@@ -30,6 +34,9 @@ interface Timing {
   jobs: number;
   total: number;
   worst: number;
+  /** The raster's canvas, device px (0 × 0 when the plate has no raster of that mode). */
+  width: number;
+  height: number;
 }
 
 declare global {
@@ -49,7 +56,12 @@ async function run(): Promise<void> {
     : all;
   const height = window.innerHeight;
   const dpr = window.devicePixelRatio || 1;
-  const pose: SeaPose = { ...SEA_HOLD, x: o.x ?? 0 };
+  const pose: SeaPose = {
+    ...SEA_HOLD,
+    x: o.x ?? 0,
+    h: o.h ?? SEA_HOLD.h,
+    pitch: o.pitch ?? SEA_HOLD.pitch,
+  };
   const shift: Shift = { x: 0, y: 0 };
   const targets: PlateTarget[] = [];
   const views: {
@@ -95,6 +107,8 @@ async function run(): Promise<void> {
           jobs: jobs.length,
           total: 0,
           worst: 0,
+          width: 0,
+          height: 0,
         };
         timings.push(rec);
         return jobs.map((job) => (c: Parameters<typeof job>[0]) => {
@@ -114,6 +128,14 @@ async function run(): Promise<void> {
     new AbortController().signal,
     () => 1000,
   );
+  for (const rec of timings) {
+    const v = views.find((w) => w.plate.id === rec.plate);
+    const c = v?.[rec.mode];
+    if (c && rec.jobs > 0) {
+      rec.width = c.width;
+      rec.height = c.height;
+    }
+  }
   for (const v of views) {
     if (o.mode === "colour") {
       v.colour.style.opacity = "1";

@@ -90,6 +90,14 @@ export interface Plate {
   jobs(mode: PlateMode): readonly PlateJob[];
   rock?: PlateRock;
   swell?: PlateSwell;
+  /**
+   * A raster's resolution as a share of the viewport's (1 by default): a
+   * smooth backdrop (a sky's ramp, the deep water's body) can be painted
+   * at a half, so its canvas costs a quarter of the memory, and the
+   * compositor stretches it. Never below 1 for fine lines: `pen()` gives
+   * device pixels of the raster, which then cover more of the screen.
+   */
+  resolution?: Partial<Record<PlateMode, number>>;
 }
 
 /**

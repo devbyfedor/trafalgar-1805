@@ -22,15 +22,17 @@ export function plateScale(height: number, dpr: number): number {
   return (UNIT_VH / 100) * height * dpr;
 }
 
-/** The size, device px, of a plate's canvases at scale `k`. */
+/** The size, device px, of a plate's canvas of `mode` at scale `k` (its resolution applied). */
 export function plateSize(
   plate: Plate,
   k: number,
+  mode: PlateMode = "colour",
 ): { width: number; height: number } {
   const [x0, x1, y0, y1] = plate.box;
+  const r = k * (plate.resolution?.[mode] ?? 1);
   return {
-    width: Math.max(1, Math.ceil((x1 - x0) * k)),
-    height: Math.max(1, Math.ceil((y1 - y0) * k)),
+    width: Math.max(1, Math.ceil((x1 - x0) * r)),
+    height: Math.max(1, Math.ceil((y1 - y0) * r)),
   };
 }
 
@@ -40,7 +42,7 @@ function canvasFor(
   mode: PlateMode,
   k: number,
 ): PlateCanvas | null {
-  const { width, height } = plateSize(plate, k);
+  const { width, height } = plateSize(plate, k, mode);
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d", { alpha: true });

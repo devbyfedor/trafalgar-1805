@@ -43,5 +43,56 @@ Conventions:
 | +15 | 19:41 | 299.2° | −2.9° (true) | 21.2° |
 | +30 | 19:56 | 302.1° | −5.0° (true) | 24.1° |
 
-- In the last half hour the sun sinks about 0.14° a minute and moves 0.19° a minute to the right as seen from the shore (to the north-west).
+- In the last half hour the sun sinks about 0.14° a minute, and its azimuth grows about 0.19° a minute: it slides further to the viewer's left, toward the north-west.
 - The anti-solar point, where the shadows point and the Belt of Venus is centred, lies at 106.2° at 18:33 and 116.2° at sunset: 8° and 18° right of the axis.
+
+## 3. The moon
+
+Horizons (DE441) for this eye, and the bare-ground skyline from the IGN RGE ALTI terrain model (method in section 8). The moon's altitudes are apparent, with refraction; the skyline angles include the earth's curvature and terrestrial refraction. High for the moon's positions; Medium for the moments it shows over the hills (modern ground; about ±1 minute).
+
+### 3.1 Rise and the skyline
+
+- **Moonrise** over the sea horizon: 19:09 LAT at azimuth 108.8°, 17 minutes before sunset. From this eye the hills hide it for another quarter of an hour.
+- **The upper limb shows** over the hills at **19:22 LAT**, at azimuth 111.3°, where the skyline stands 1.75° (the slope of Mont Lambert, ground 163 m at 5.1 km).
+- **The whole disc is clear at 19:26 LAT**, the minute of sunset: azimuth **111.95°**, centre **1.96°** up (1.65° without refraction). The skyline under it stands **1.68°**: the southern shoulder of Mont Lambert, ground 154 m at 5.10 km (50.713 N 1.645 E). The centre is 0.28° above the skyline, so the lower limb just touches it.
+- **Then, every 10 minutes:**
+
+| LAT | Minutes after sunset | Azimuth | Altitude | Skyline there | Centre above the skyline | x |
+| --- | --- | --- | --- | --- | --- | --- |
+| 19:26 | 0 | 111.95° | 1.96° | 1.68° | 0.28° | 248 |
+| 19:36 | 10 | 113.85° | 3.32° | 1.59° | 1.73° | 284 |
+| 19:46 | 20 | 115.76° | 4.69° | 1.54° | 3.15° | 320 |
+| 19:56 | 30 | 117.69° | 6.06° | 1.51° | 4.55° | 358 |
+| 20:06 | 40 | 119.65° | 7.41° | 1.47° | 5.94° | 397 |
+
+- **Its path** climbs to the right at about 36° to the horizon: 1.9° to the right and 1.4° up every 10 minutes (in layer units about 36 across and 25 up). By the end of civil dusk (20:03) it stands 7° up at azimuth 119°. High.
+
+### 3.2 Against the town
+
+| Place | Azimuth | Distance | Top above the horizontal | x |
+| --- | --- | --- | --- | --- |
+| Upper town, north corner of the walls | 96.2° | 2.5 km | 1.4° | −32 |
+| Upper town, east corner (château) | 99.5° | 2.8 km | 1.4° | 25 |
+| **Belfry** (top about 89 m) | **102.6°** | 2.54 km | **1.92°** | **81** |
+| Upper town, west corner | 104.2° | 2.3 km | 1.3° | 109 |
+| **Mont Lambert's summit** (187 m) | **105.0°** | 5.36 km | **1.94°** | **124** |
+| Upper town, south corner | 106.6° | 2.7 km | 1.3° | 151 |
+| Saint-Nicolas (ground 13 m) | 109.8° | 2.2 km | 0.2° (ground) | 210 |
+| **The moon at sunset** | **111.95°** | | **1.96°** | **248** |
+
+- **At sunset the moon stands 9.3° right of the belfry and 6.9° right of Mont Lambert's summit,** 5.3° right of the upper town's south corner and 2.1° right of Saint-Nicolas. Below it lies the southern part of the lower town, 2.0–2.4 km off, and behind that the slope rising to the southern shoulder of Mont Lambert. So it rises over the town's right-hand part, not over the walled upper town. Medium (the lower town's southern edge in 1805 is read from the 1804 plan, BnF GE D-6281, not measured).
+- **The belfry's top just breaks the skyline.** It stands 1.92°, against Mont Lambert's northern slope at 1.77° behind it. The upper town's walls (1.3–1.4°) stand below the skyline everywhere.
+- **At the painting's light (18:33)** the moon was 5.5° below the horizon, almost exactly under the belfry (azimuth 102.2°).
+
+### 3.3 Its disc, phase and colour
+
+- **Phase:** 99.9 % lit at sunset; the full moon came at 11:57 UT that day. High.
+- **Size:** 397,800 km away, **30.0′ across (0.50°)**. The apogee was on 6 August, so this full moon was about 10 % smaller than one at perigee. In layer units the true disc is 8.7 across, about 9 CSS px on a screen 720 px high. High.
+- **Shape:** at 2° up refraction squashes the disc to about 0.92 of its width; at 7° up to about 0.98. High (computed with Bennett's refraction formula).
+- **Colour and brightness** (general optics; Medium as inference): at 2° up its light crosses about 19 times as much air as overhead, at 7° about 8 times. At sunset it is therefore a dim, warm disc, apricot to pink, hardly brighter than the sky around it, and in thick haze it can be lost altogether. It whitens and brightens as it climbs, and reads plainly from about 5° up (19:45 onward). It stands in the pink anti-twilight band at sunset, 4° left of the anti-solar point; in the next ten minutes the blue-grey band of the earth's shadow rises beneath it.
+
+### 3.4 The other evenings, from the same eye
+
+- **11 August** (98.2 % lit, 30.2′): sunset 19:24. The upper limb shows at 19:39, 0.6° right of the belfry. **The disc is clear at 19:44, 20 minutes after sunset**, at azimuth 104.0°, centre 2.22° up, 0.29° above the skyline (1.93°, the top of Mont Lambert). That is x = 105, straight above the west corner of the walls, 1.4° right of the belfry and 1.0° left of Mont Lambert's summit. The sun is then 3.0° below the horizon, in civil dusk (it ends at 20:01). Every 10 minutes after: 19:54, azimuth 105.9°, 3.66° up (x 139); 20:04, 107.8°, 5.11° (x 173); 20:14, 109.7°, 6.57° (x 207); 20:24, 111.6°, 8.01° (x 243). Low water 18:50 (1.3 m); 1.7 m at 19:44. This is the moon by the belfry, if the owner prefers it; the liberty of moment is then 72 minutes instead of 52.
+- **9 August** (99.6 %): the disc clears the hills at 19:06, 21 minutes before sunset, at azimuth 119.3° (x 390), over the Liane valley, right of the town.
+- **12 August** (94.5 %): the disc clears at 19:57, 35 minutes after sunset, at azimuth 95.0° (x −52), left of the upper town.

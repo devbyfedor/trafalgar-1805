@@ -325,7 +325,29 @@ I looked at the scans the note's author saved (full images and crops) and at the
 
 ### Sections 4 and 5: doubts, sources and quotations
 
-(in progress)
+**Section 4, doubts.** Every doubt listed is real, and I found nothing that settles the old cathedral's state, "Telegraph Hill", the column's state or the Crèche fort's rock. Changes:
+- **The belfry.** The doubt is larger than the note says. Three modern accounts disagree on the octagon's date (before 1544, Bertrand; early 1700s, Wikipedia; 1734, the town and the regional inventory). The town says a spire stood on it until 1805, and two of the three period views show a pointed top (see 1.3 and the painter's item 1).
+- **The forts' dimensions.** Agreed. Wikipedia's 13.50 m is a different conversion of the same 41 feet.
+- **The forts' start.** Agreed.
+- **The wooden fort.** The doubt is about Bertrand's and Nicolay's dates more than the order. Period letters put the pile-driving in early August 1803 (2.4).
+- **The beach.** The dike is not dated by Desbrière (painter's item 7).
+- **Missing doubts.** The note should also list: the château's place in the view (left of the belfry, 1.2); the Crèche fort's height (equal above a lower rock, 2.3); the absence of mortars on the forts in the March 1805 state (2.2); and the date of Pocock's sketch (3).
+
+**Section 5, sources.** I checked the links I used.
+- One is wrong. Bertrand 1828, "the pavilion, pp. 344–345", points to leaf n376, the blank back of a plate. The pavilion is on n380–n381: https://archive.org/details/prcisdelhistoir01bertgoog/page/n380/mode/1up.
+- All the other Desbrière, Bertrand, Correspondence, Nicolay, James and *Naval Chronicle* links I followed open the pages they name, within one leaf.
+- Haigneré's book has no printed-page map on archive.org. His cathedral pages are leaves n271–n273 of `bub_gb_Nnby-0MKeo8C`.
+
+**Quotations.** The French quotations are exact where I checked them in the scans:
+- "couleur sombre comme l'extérieur des remparts" (Bertrand 1829, p. 113)
+- "41 pieds au-dessus du rocher" (Desbrière IV, p. 384, page image)
+- "Le tachygraphe de Chappe sur le beffroi de Boulogne" and "Signaux au Beffroi" (Nicolay, p. 33)
+- "tour des signaux" and "croix des signaux" (Corr. VIII, pp. 509 and 513)
+- "Haut-Blaner" (Desbrière III, p. 435)
+
+The English ones are the sources' own: Lewis's key, the *Naval Chronicle* plate title, James's "forts erected on the sands at low water". Each is short and from a public-domain text.
+
+The only near-quotation that misleads is the "reverberating lamp" for "four à réverbère" (1.5).
 
 ## Recomputations
 

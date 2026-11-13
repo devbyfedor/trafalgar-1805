@@ -2,7 +2,9 @@
 
 Research note for scene 2, beat 1 ("Boulogne from the sea"): an evening view from a boat anchored in Boulogne's roads in August 1805, looking at the shore. This note covers the flotilla's craft (what each type looked like, its size, rig, guns and colours) and how they lay in the harbour and the roads. It builds on `../history-scene-02-merged.md` ("Boulogne and the invasion army"), `../h2-boulogne-cadiz.md` (H2-04, H2-05) and `../a-h2a.md` (R14).
 
-Confidence uses the scale at the top of `docs/history-notes.md`. Each fact says what it rests on: **period** (documents, memoirs, plans and images of 1803–1805), **scholarly** (later works built on the archives: Desbrière 1902, James, Clowes, Troude), **modern** (modern secondary works and web pages, used as leads), or **inference** (ours).
+Confidence uses the scale at the top of `docs/history-notes.md`. Each fact says what it rests on: **period** (documents, memoirs, dictionaries, plans and images of 1803–1825), **scholarly** (later works built on the archives: Desbrière 1902, James, Clowes), **modern** (modern secondary works and web pages, used as leads), or **inference** (ours).
+
+Units: French measures are converted at 1 pied du roi = 0.3248 m, 1 pouce = 2.7 cm, 1 toise = 1.95 m, 1 encablure (cable) = 120 brasses = 195 m, 1 lieue marine = 5.56 km. James's feet are French feet where he says so.
 
 Status: in progress.
 
@@ -12,30 +14,65 @@ Status: in progress.
 
 ## 2. Findings
 
-### 2.1 Names and the types present at Boulogne
+### 2.1 Names, spellings and the classes at Boulogne
+
+| French (period) | Also called | British name | Rig |
+| --- | --- | --- | --- |
+| prame (pl. prames) | bateau (bâtiment) de grande espèce | praam, prame | ship (three masts, square sails) |
+| chaloupe canonnière, or canonnière | bateau (bâtiment) de 1re espèce | gun-brig, first-class gun-vessel | brig (Willaumez draws one as a brigantine) |
+| bateau canonnier (pl. bateaux canonniers) | bateau de 2e espèce | gun-boat, second-class gun-vessel | lugger (some schooners) |
+| péniche (pl. péniches) | bateau de 3e espèce | peniche, pinnace | lugger, two or three masts |
+| caïque (pl. caïques) | bateau de petite espèce | launch | lugger or small cutter |
+| bombarde, bateau bombarde, galiote à bombes, sloop-bombarde | | bomb vessel | various |
+| corvette canonnière (Foudre, Audacieuse) | | brig | brig |
+| transports | flottille de transport | transports | fishing and merchant rigs |
+
+- The "espèce" names came into use at the end of 1803 (Desbrière III p. 546, which speaks of canonnières "or vessels of the 1st kind, as they were beginning to be called"). A period table of loaded draughts, reproduced by Desbrière facing p. 90, pairs the names exactly as above ("Une Prame ou Bateau de grande espèce", "Une Canonnière ou Bateau de 1re espèce", "Un Bateau canonnier ou de 2e espèce", "Une Péniche ou Bateau de 3e espèce"). Period. High.
+- British usage: James calls the prame "prame, or corvette", the chaloupe canonnière "gun-vessel, or canonniere" or a brig, and the péniche "peniche" or "a heavily-armed launch, or peniche" (James III pp. 216–217, 233). The Naval Chronicle's translation of Lacrosse's report of 1 October 1805 renders the craft of the line as "Gun-boats" and the British boats as "Pinnaces" (Naval Chronicle XIV p. 339). Scholarly and period. High.
+- Spelling: prame is feminine in French ("la prame"); péniche takes an acute accent; "chaloupe canonnière" is written without a hyphen in Desbrière's documents; plural "bateaux canonniers". The modern French "péniche" (a river barge) is a later, different sense. High.
+- How many of each at Boulogne. On 30 March 1804 the port held 2 prames, 61 craft of the 1st kind, 158 of the 2nd kind, 118 péniches (plus 3 for the First Consul, 1 for the admiral and 1 for the general-in-chief), 9 packet boats, caïques (one for the First Consul) and 2 bomb galliots, besides 474 transports (Desbrière III p. 558, a return in the Archives nationales). On 20 July 1805 Boulogne held 578 prames and gun craft and 526 transports (James III p. 325). The decree of 30 August 1805 kept 6 prames, 72 chaloupes canonnières and 72 péniches armed in Boulogne (Corr. XI No. 9164). Period and scholarly. High for each date; the mix in August 1805 is not given type by type.
 
 ### 2.2 Prame
 
+- **Design.** 110 × 25 × 8 pieds (35.7 × 8.1 × 2.6 m), "gréement de corvette" (ship rig), three keels; 12 × 24-pounders; 38 seamen and 120 soldiers (Desbrière III p. 90, from the construction records of the Ministry of Marine). James agrees: strongly built, about 110 French feet in extreme length and 25 in breadth, drawing 7–8 feet, ship-rigged, 12 long 24-pounders, 38 sailors and upwards of 100 soldiers; the first 20 were ordered with stalls for 50 horses (James III pp. 216–217). The period draught table gives a loaded prame 8½ pieds (2.8 m) (plate facing Desbrière III p. 90, my reading of its scale to ±¼ foot). Period and scholarly. High for the design.
+- **Origin.** On 5 July 1803 the First Consul ordered 50 boats on the model of one he had seen at Dunkirk, the Foudroyant, each to carry 12 × 24-pounders and 60 horses with their riders, and fitted with a leeboard on each side (Decrès to Forfait, Desbrière III pp. 87–88). By 1804 there were 18 prames, 16 of them new (p. 90). Period. High.
+- **Hull.** Flat-floored ("à plates varangues", Willaumez's definition of a prame) with three keels instead of one (design table), so it could sit on the mud of the harbour at low water. No plan of the 1803 prame was found. The only prame model checked, the "Foudroyante" in the Musée national de la Marine (17 MG 18, Trianon collection, made about 1813–1818), is catalogued by the museum as a late-18th-century 20-gun artillery prame, not the 1803 design; it shows a long, low, flush-decked ship hull with one row of ports in a high bulwark, a plain stem and a square stern. It can serve only as a type reference. Period definition; model is a lead. Low for the details of the 1803 hull.
+- **Guns.** Twelve heavy guns on a single deck. Their placement is not documented in what was read; a battery of six a side is the natural reading of a 12-gun ship-rigged hull and of the British prints of 1811 ("praams carrying each 12 guns, 24 p."). Inference. Medium-Low.
+- **Under way.** Slow: in July 1805 "the slow sailing of the prames" held back Ver Huell's division (James III p. 319). James judged the British 20-gun ship Ariadne "not above a third larger" than a prame (same page). Scholarly. Medium.
+- **Names met in the sources.** Ville-de-Mayence (Lacrosse's flagship, at the centre of the line on 1–2 October 1804; James III pp. 232–233), Ville-de-Lille (at Dunkirk in 1803; Desbrière III p. 223), Ville-d'Aix, Ville-d'Anvers and Ville-de-Genève (with Ver Huell's division, July 1805; James III pp. 318–319), Ville-de-Lyon (taken off Boulogne in 1811). High.
+- **At Boulogne in 1805.** Five prames that could not enter on 21 February came in at the end of March (Desbrière IV p. 395). Five went out with the flotilla on 12 August 1805 (Dumas XII p. 76; see 2.10). The decree of 30 August kept six armed in the port and placed them in the semicircular basin, "le bassin circulaire" (Corr. XI No. 9164). Period. High for the decree; medium for the 12 August sortie (a French account only).
+
 ### 2.3 Chaloupe canonnière (gun-brig)
+
+- **Design.** 76–80 × 17 × 5–6 pieds (24.7–26.0 × 5.5 × 1.6–1.9 m), brig rig; 3 × 24-pounders and a howitzer or mortar of 6–8 inches; 22 seamen and 130 soldiers (Desbrière III p. 90). The period draught table distinguishes the canonnière "of new construction", drawing 5½ pieds (1.8 m) loaded, from the canonnière "of old construction", drawing 8 pieds (2.6 m) (plate facing p. 90). The old ones were the deeper gun-brigs of the 1801 flotilla, which James describes as vessels of 200–250 tons with four to eight heavy long guns (James III p. 67). Period. High for the design.
+- **Rig.** Two masts with square sails, a brig. James: the first-class gun-vessels were "rigged as brigs" (III p. 217). The 1804 British watercolour of the French line (E. D. Lewis, RMG PAI6989) and Hue's painting of 1806 show two-masted square-rigged craft with a gaff sail on the mainmast. Willaumez's dictionary illustrates "une canonnière de première espèce gréée en brigantin" (a brigantine, i.e. square sails at least on the foremast; *Dictionnaire de marine*, 1825, p. 123, pl. B fig. 10), and in July 1803 the First Consul asked that the chaloupes still to be built have a simpler rig, avoiding "the complication of a square-rigged masting" (Desbrière III p. 88). So brig is the norm, with some simplified or brigantine rigs. Period. Medium-High.
+- **Guns and their places.** The three 24-pounders and the howitzer or mortar (design); "three long 24-pounders and an 8-inch mortar" (James III p. 217; and the four canonnières of Hamelin's division in June 1805, Desbrière IV p. 402). The small chaloupes already built in 1803 were to carry four 36-pounder carronades on the sides and three 18- or 12-pounders fore and aft (Desbrière III p. 88). Napoleon reckoned that four chaloupes could fire only eight guns at an enemy (Corr. No. 8925, 20 June 1805, in Desbrière IV p. 401), which fits heavy guns on slides firing over the bow and stern rather than a broadside. Period. Medium for the placement (inference from the figures).
+- **Oars and leeboards.** Leeboards were ordered for all chaloupes in July 1803 (Desbrière III p. 88). French Wikipedia gives 12 pairs of oars, citing modern works not checked here. Willaumez says Swedish and Russian gun-sloops, "superior to those of France in every respect", rowed 24 oars (p. 123). The British watched "Gun-boats, which carry a number of oars" (Naval Chronicle XIV p. 482). Period; the number of oars is modern and unchecked. Medium for oars being used, Low for their number.
+- **Crew in the roads.** When the craft lay in the roads in April 1804, the garrisons were raised to 50 men (officers included) in each chaloupe and 40 in each bateau canonnier (Soult, 15 April 1804, Desbrière III p. 559). Napoleon put six canonnières at no more than 450 men (Desbrière IV p. 401). Period. High.
 
 ### 2.4 Bateau canonnier (gunboat)
 
+- **Design.** 60 × 14 × 4½ pieds (19.5 × 4.5 × 1.5 m), lugger rig; one 24-pounder and a howitzer or a field gun; 6 seamen, 100 soldiers and 2 horses (Desbrière III p. 90). Loaded draught on the period table: 3½ pieds (1.1 m), the same as a péniche (plate facing p. 90). Period. High for the design.
+- **Guns.** A 24-pounder forward and a field piece aft: "one 24-pounder forward, and a field-piece abaft" (James III p. 217). The plan approved on 23 fructidor an XI (10 September 1803) put the field guns at the stern on their own field carriages, where they would serve to defend the boat; 40 boats were to carry a bronze 12-pounder field gun and 100 a light bronze 24 instead of the navy's iron 24 (Desbrière III pp. 100–101). A modern monograph on Forfait's 60-foot model of an XII (ANCRE, by S. Muffat, P. Grandvilliers and D. Désormière, drawn from plans in the Service historique de la Défense, the Boulogne library and the Crucy yard archives) gives the 24-pounder on a slide in the bow and a Gribeauval field gun at the stern, to be landed with the troops. Period and modern. High.
+- **Rig.** Lug sails ("gréement de lougre", Desbrière III p. 90). James: the second class were "some rigged as schooners, and some as luggers" (III p. 217). The number of masts is not in the documents read; period views (Hue 1806, Baugean about 1804–1805) show many two- and three-masted luggers among the flotilla. The modern monograph calls the boat under-canvassed, a poor sailer that made much leeway. Period and modern. Medium for lug rig on two or three masts.
+- **Hull and freeboard.** A flat-bottomed boat ("bateau plat"). In July 1803 the First Consul had the side raised 18 inches (49 cm) by a removable washboard pierced for the oars, on the 100 boats already built at Dunkirk and on all new ones, and leeboards fitted (Desbrière III p. 88). The monograph confirms both changes. With 3½–4½ feet of draught the deck lies low, a little under a metre above the water at the side, with the washboard above it (inference from the draught and the 18-inch washboard). Period, with inference. Medium.
+- **Oars.** Napoleon's own pencil note on a minute of 1803: a bateau canonnier has 28 oars, needing 56 men (Desbrière III p. 101). French Wikipedia gives 14 pairs. Period. High.
+
 ### 2.5 Péniche
 
-### 2.6 Other craft: bomb vessels, caïques, transports, the Batavian flotilla
+- **Design.** 60 × 10 × 3½ pieds (19.5 × 3.25 × 1.1 m), lugger rig; a 6-inch howitzer and a 4-pounder, or a Prussian howitzer, or an 8-inch mortar; 5 seamen and 66 soldiers (Desbrière III p. 90). Period. High.
+- **Willaumez (1825), a naval officer of the period.** The Boulogne péniches were heavy and carvel-built ("à franc bord"). Those of the first kind were 60 pieds from stem to sternpost (19.5 m), 53 pieds 8 pouces on the keel, 10 pieds in beam and 5 in depth, and carried forty oars and forty swivel guns or espingoles; those of the second kind were 42 × 8½ pieds and 3 deep (13.6 × 2.8 × 1.0 m), with 28 oars; others built as coastguards were 50 × 10 × 5 pieds, with a 12-pounder and 12 espingoles, lug-rigged and double-banked (*Dictionnaire de marine*, p. 447). Period. High.
+- **Shape and rig, from the period drawings.** The plate facing Desbrière III p. 90 ("Bateaux de 3e espèce", from the Archives de la Guerre) shows péniches as long, low, open boats with an almost straight sheer, a raked stem and a near-vertical stern, under lug sails on two masts or on three (with the mizzen sheeted to an outrigger) and a jib on a bowsprit; its detail drawing shows an open hull with about fifteen thwarts and a round-bilged, fairly flat-floored midship section. In the drawing the mainmast head stands about half the boat's length above the water. Period. Medium-High.
+- **Oars.** Napoleon's 1803 note gives a péniche 64 men at the oars (Desbrière III p. 101); Willaumez gives 40 oars. Period. High that they were primarily rowing boats.
+- **Role in the roads.** Péniches lay at the ends of the line and between it and the shore, and at night some were posted a cable ahead as pickets; péniches "à obusiers prussiens" (with long-range Prussian howitzers) supported the line (ordre du jour of 16 April 1804, Desbrière III p. 560; Desbrière IV p. 397). Period. High.
 
-### 2.7 Colours: hulls, sails, spars
+### 2.6 Other craft: caïques, bomb vessels, corvettes, transports, the Batavian flotilla
 
-### 2.8 Flags, pennants and numbers
+- **Caïques.** Launches like those of ships of the line, each with a 24-pounder (Desbrière III p. 90). Willaumez: caïques were oak-built gun-launches on Forfait's plan, 43 pieds 3 pouces long, 10 pieds 6 pouces in beam, 4 pieds deep and drawing 2 pieds 11 pouces (14.0 × 3.4 × 1.3 × 0.95 m), with a 36-pounder gun aft and a 36-pounder carronade forward, both on slides, and a short deck of about 5 pieds at each end (p. 123). The Desbrière plate shows one with a sloop-like rig (a gaff mainsail, square yards and a jib) and one with two lug sails. 41 were built (p. 90). Period. High.
+- **Bomb craft.** The line of 23 March 1804 had 6 "bombardes" and 2 "galiotes à bombes"; on 15 April 1804 the 120 craft in the roads included 9 bombardes (Desbrière III pp. 556, 559). In 1805 the sorties included 3 bombardes and a sloop-bombarde (9 March) and 3 "bateaux bombardes" (15 June) (Desbrière IV pp. 395, 397). The bomb craft kept a short distance behind (inshore of) the line (Desbrière III p. 560). Their rigs are not described in what was read. Period. High for presence, no data on looks.
+- **Corvettes canonnières.** Foudre and Audacieuse, each with 10 guns (four or six long 18-pounders and brass 36-pounder carronades) and over 80 men, called brigs by the British; they reached Boulogne with Hamelin's division at the end of July 1805 (James III pp. 316, 324–325; Desbrière IV pp. 401–404). Scholarly. High.
+- **Transports.** Fishing and merchant craft bought or requisitioned: in 1803 the plan was for 1,000 chasse-marées and fishing boats (Desbrière III p. 89). The period draught table lists, for the transport flotilla, a Blankenberge boat (2¾ pieds loaded), a chasse-marée (6½), a schooner (7), a smack and a sloop fitted as horse stables (8 and 8½), a brig of 80 tons (9) and a Dieppe boat (9½). At Boulogne in March 1804 the 474 transports included 190 for cavalry, 45 for artillery, 76 for infantry and 125 Newfoundland fishing ships. Saint-Haouen's plan of 3 August 1805 sent the transports into the roads only on the eve of a general sailing, so on an ordinary day they lay in the harbour. Period. High for the types; medium that none lay in the roads.
+- **The Batavian flotilla.** Ver Huell's craft (Dutch schooners and armed schuyts of about 75 tons with three guns each, chiefly long 24-pounders, plus French prames) were based at Ambleteuse in the summer of 1805, with part at Calais (James III pp. 315–316, 318–321, 325–326; Desbrière IV pp. 397–398). They were brought into Boulogne only by the decree of 30 August 1805, after the army had left. In Boulogne's roads in August 1805 they would not normally be seen. Period and scholarly. Medium-High.
+- **Show craft.** On 26 August 1804 a British cutter fought "a heavy gun-brig and two lugger-rigged yachts, painted with white bottoms and green sides, and richly gilt" (James III p. 230). The return of March 1804 lists péniches for the First Consul, the admiral and the general-in-chief and a caïque for the First Consul (Desbrière III p. 558). Such painted and gilt craft were the exception. Scholarly. Medium.
 
-### 2.9 Mast heights and sizes for scale
-
-### 2.10 How they lay: basin, harbour and roads
-
-### 2.11 At anchor: sails, yards, colours, lights
-
-### 2.12 Riding at anchor in a swell
-
-## 3. Doubts and disagreements
-
-## 4. Sources
+---

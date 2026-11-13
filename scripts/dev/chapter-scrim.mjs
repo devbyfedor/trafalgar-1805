@@ -70,7 +70,7 @@ await page.goto(`${base}/?quality=0`);
 await waitForRoad(page, {
   baked: false,
   sea: points.some(inInterlude),
-  timeout: 120_000,
+  timeout: points.some(inInterlude) ? 240_000 : 120_000,
 });
 const pin = await roadPin(page);
 

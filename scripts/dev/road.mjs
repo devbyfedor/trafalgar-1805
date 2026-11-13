@@ -67,10 +67,10 @@ try {
   // An interlude's points wait for Boulogne's painting as well.
   await waitForRoad(page, {
     sea: points.some(inInterlude),
-    timeout: 120_000,
+    timeout: points.some(inInterlude) ? 240_000 : 120_000,
   });
 } catch {
-  console.log("scene 2: not ready after 120 s");
+  console.log("scene 2: not ready in time");
 }
 for (const point of points) {
   const scene1 = point.kind === "p" && point.p < 0;

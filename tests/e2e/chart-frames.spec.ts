@@ -216,6 +216,18 @@ const INTERLUDE_POINTS: InterludePoint[] = [
 /** Where the page's own frames are timed at rest through the hold, and how many. */
 const HOLD_REST = [0.25, 0.5, 0.75];
 const REST_FRAMES = 90;
+/**
+ * The page's whole main thread per frame through the hold (its scripts and
+ * the browser's style, layerizing and commit for the painting's layers),
+ * 95th percentile: under half a frame. Not the chart's CPU budget, which
+ * times the chart's own script alone: on this laptop the same build read
+ * 3.9-4.4 ms in one hour and 5.7-7.6 in the next, the page without the
+ * painting 3.7-4.4, while no frame came late in any run (session 28,
+ * docs/decisions.md). What the reader sees is judged by the frames' own
+ * intervals: none over 25 ms at rest, the 95th percentile under 20.
+ */
+const HOLD_MAIN_MS = 8;
+const HOLD_INTERVAL_P95_MS = 20;
 
 /** The renderer scene 2's chart draws with. */
 function chartRenderer(page: Page): Promise<string> {
@@ -335,8 +347,16 @@ test.describe("scene 2's frame budget through Boulogne's interlude", () => {
     ).toBeLessThan(FRAME_CPU_MS);
     expect(
       holdMain,
-      "the main thread per frame through the hold, 95th percentile, ms",
-    ).toBeLessThan(FRAME_CPU_MS);
+      "the page's main thread per frame through the hold, 95th percentile, ms",
+    ).toBeLessThan(HOLD_MAIN_MS);
+    expect(
+      Math.max(...rest.map((r) => r.late)),
+      "frames over 25 ms at rest through the hold",
+    ).toBe(0);
+    expect(
+      Math.max(...rest.map((r) => r.intervalP95)),
+      "the frames' intervals at rest through the hold, 95th percentile, ms",
+    ).toBeLessThan(HOLD_INTERVAL_P95_MS);
     if (!OWNER_GPU.test(renderer)) return;
     if (!rows.some((r) => Number.isNaN(r.gpuP95)))
       expect(

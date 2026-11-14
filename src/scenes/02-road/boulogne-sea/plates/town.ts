@@ -90,7 +90,10 @@ export const TOWN_SMOKE: readonly {
 
 // ----------------------------------------------------------- the lower town
 
-const LOWER_BOX: Box = [-262, 292, -6, 80];
+const LOWER_BOX: Box = [-262, 292, -6, 64];
+
+/** The far band's box reaches higher, for Saint-Nicolas's spire; the near band's top keeps the smoke site's house on the plateau's edge hidden, as before. */
+const FAR_BOX: Box = [-262, 292, -6, 70];
 
 /** Where the lower-town plates split, metres ahead. */
 const SPLIT = 1960;
@@ -501,6 +504,7 @@ function lowerPlate(id: string, which: "near" | "far"): Plate {
   const near = which === "near" ? 1300 : SPLIT;
   const far = which === "near" ? SPLIT : 2520;
   const depth = which === "near" ? 1760 : 2180;
+  const box = which === "near" ? LOWER_BOX : FAR_BOX;
   let band: Item[] | undefined;
   const items = () => {
     band ??= lowerItems().filter((it) => {
@@ -528,10 +532,10 @@ function lowerPlate(id: string, which: "near" | "far"): Plate {
         drawItems(c, list.slice(i, i + CHUNK));
       });
     // Soft sides and foot: the overscan never shows a cut when the camera rises.
-    out.push((c) => fadeEdges(c, LOWER_BOX, 28, 4));
+    out.push((c) => fadeEdges(c, box, 28, 4));
     return out;
   };
-  return { id, depth, box: LOWER_BOX, group: "land", jobs };
+  return { id, depth, box, group: "land", jobs };
 }
 
 // ----------------------------------------------------------- the upper town

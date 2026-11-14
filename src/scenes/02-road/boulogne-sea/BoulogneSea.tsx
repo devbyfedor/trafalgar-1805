@@ -137,6 +137,7 @@ interface Mover {
   x: number;
   y: number;
   swell: Plate["swell"] | null;
+  bob: Plate["bob"] | null;
 }
 
 interface PlateView {
@@ -158,6 +159,9 @@ function controller(root: HTMLElement): SeaViewHandle & { dispose(): void } {
     y: Number.NaN,
     swell: el.dataset.plate
       ? (PLATES.find((p) => p.id === el.dataset.plate)?.swell ?? null)
+      : null,
+    bob: el.dataset.plate
+      ? (PLATES.find((p) => p.id === el.dataset.plate)?.bob ?? null)
       : null,
   }));
   const views: PlateView[] = PLATES.map((plate) => {
@@ -317,6 +321,15 @@ function controller(root: HTMLElement): SeaViewHandle & { dispose(): void } {
           x = (along > 0 ? along - w.period : along) * px;
           y +=
             w.amp * px * Math.sin(((time - w.delay) * 2 * Math.PI) / w.seconds);
+        }
+        const b = m.bob;
+        if (b) {
+          // A moored row rising and falling with the swell, all together.
+          y -=
+            b.heave *
+            (1000 / m.depth) *
+            px *
+            Math.sin(((time + b.phase) * 2 * Math.PI) / b.period);
         }
         if (x === m.x && y === m.y) continue;
         m.x = x;

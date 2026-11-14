@@ -79,6 +79,20 @@ export interface PlateSwell {
   delay: number;
 }
 
+/**
+ * A plate that rises and falls with the swell all of a piece, without
+ * rolling: a stretch of a moored row, whose craft lie along the crests
+ * and rise together (flotilla-check.md item 12).
+ */
+export interface PlateBob {
+  /** Metres up and down. */
+  heave: number;
+  /** Seconds. */
+  period: number;
+  /** Seconds added to the clock. */
+  phase: number;
+}
+
 /** Paint-order keys (Plate.order): every reflection over all the water, every craft over every reflection. */
 export const ORDER = {
   /** Reflections, farther first: nearer than the nearest strip of swell (23 m). */
@@ -110,6 +124,7 @@ export interface Plate {
   /** Jobs for a raster, in paint order. An empty list: no raster of that mode. */
   jobs(mode: PlateMode): readonly PlateJob[];
   rock?: PlateRock;
+  bob?: PlateBob;
   swell?: PlateSwell;
   /**
    * A raster's resolution as a share of the viewport's (1 by default): a

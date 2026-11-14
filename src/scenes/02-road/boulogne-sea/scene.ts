@@ -59,6 +59,22 @@ export function project(
 }
 
 /**
+ * The swell in the roads (flotilla-check.md item 12, Low): a gentle
+ * westerly swell about half a metre high, its crests running along the
+ * shore and in toward it, away from the eye, at about 6 m/s in the roads'
+ * shallow water; one period for everything on the water. The craft follow
+ * it (they roll quicker than it): they rise and fall with it by about a
+ * quarter of a metre and tilt by about its slope (about 1°), and the craft
+ * of one row, which lies along the crests, rise together.
+ */
+export const SWELL = { seconds: 8.8, speed: 6, heave: 0.25 } as const;
+
+/** Seconds after the swell lifts the water at the eye that it lifts the water `ahead` metres along the view. */
+export function swellLag(ahead: number): number {
+  return ahead / SWELL.speed;
+}
+
+/**
  * The layers' depths, metres ahead of the eye: each flat layer moves as a
  * thing at that depth would (view.ts, shiftFor).
  */

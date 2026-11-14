@@ -1,6 +1,6 @@
 import type { CraftSpec } from "@/components/ship/craft/types";
 import { ORDER, type Plate } from "../paint/plate";
-import { EYE_H } from "../scene";
+import { EYE_H, SWELL, swellLag } from "../scene";
 import {
   type CraftPlace,
   craftExtent,
@@ -17,7 +17,10 @@ import { SEA_BATEAU, SEA_CHALOUPE } from "./heroes/specs";
  * on the right and a bateau canonnier (a lugger) about 135 m off on the
  * left, both bows to the left like the whole line (to the stream), at
  * their true size. Each is two plates rocking at anchor: the craft, and
- * its reflection, which rolls the other way.
+ * its reflection, which rolls the other way. They follow the swell
+ * (scene.ts, SWELL; flotilla-check.md item 12): its period, each later by
+ * the swell's run to it, rising and falling about a quarter of a metre and
+ * tilting about a degree, the smaller lugger a little more.
  */
 
 interface Hero {
@@ -39,10 +42,10 @@ const HEROES: readonly Hero[] = [
     spec: SEA_CHALOUPE,
     ahead: 80,
     right: 27,
-    roll: 0.75,
-    heave: 0.2,
-    period: 6.6,
-    phase: 0,
+    roll: 0.95,
+    heave: SWELL.heave,
+    period: SWELL.seconds,
+    phase: -swellLag(80),
     seed: 501,
   },
   {
@@ -50,10 +53,10 @@ const HEROES: readonly Hero[] = [
     spec: SEA_BATEAU,
     ahead: 135,
     right: -44,
-    roll: 0.6,
-    heave: 0.16,
-    period: 7.8,
-    phase: 2.3,
+    roll: 1.1,
+    heave: SWELL.heave,
+    period: SWELL.seconds,
+    phase: -swellLag(135),
     seed: 502,
   },
 ];

@@ -7,7 +7,7 @@ import {
   type PlateCanvas,
   type PlateJob,
 } from "../../paint/plate";
-import { EYE_H } from "../../scene";
+import { EYE_H, SWELL, swellLag } from "../../scene";
 import {
   distanceAt,
   numByDistance,
@@ -928,8 +928,6 @@ function swellPlate(i: number): Plate {
     const size = Math.ceil(rs.length / n);
     return rs.slice(k * size, (k + 1) * size);
   };
-  const rng = createRng(4200 + i);
-  const seconds = 8 + rng() * 2.5;
   // Jobs are listed before the rows exist; each picks its chunk when it runs.
   const parts = i < 3 ? 28 : 16;
   return {
@@ -941,8 +939,10 @@ function swellPlate(i: number): Plate {
       drift: -1200 / s.depth,
       period: s.period,
       amp: s.bob,
-      seconds,
-      delay: 0.45 * i,
+      // One swell for all the water, running in toward the shore: a
+      // farther strip rises later (flotilla-check.md item 12).
+      seconds: SWELL.seconds,
+      delay: swellLag(s.depth),
     },
     jobs: (mode) => {
       const jobs: PlateJob[] = [];

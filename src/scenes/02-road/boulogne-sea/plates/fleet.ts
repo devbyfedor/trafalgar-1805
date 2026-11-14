@@ -2,7 +2,7 @@ import type { CraftSpec } from "@/components/ship/craft/types";
 import { type EN, SHORE_LOW } from "../geo";
 import { createRng } from "../paint/kit";
 import { ORDER, type Plate, type PlateJob } from "../paint/plate";
-import { EYE_H, viewOf } from "../scene";
+import { EYE_H, SWELL, swellLag, viewOf } from "../scene";
 import {
   type CraftPlace,
   craftExtent,
@@ -23,7 +23,8 @@ import {
  * parallel to the beach just seaward of the low-water edge (geo.ts
  * SHORE_LOW), seen broadside about 300–430 m off, receding to the left
  * toward Wimereux and continuing to the right south of the harbour's
- * mouth. Craft about every 52 m in each row, the two rows staggered:
+ * mouth. Craft about every 80 m in each row (a double line: the check's
+ * 80–110 m a row, flotilla-check.md item 5, Low), the two rows staggered:
  * chaloupes canonnières and bateaux canonniers in about equal numbers (the
  * July 1805 line: 27 and 27), all lying bows to the left, to the stream
  * (north-north-east; an inference, Low). Péniches inshore of the line
@@ -92,16 +93,19 @@ function inView(spec: CraftSpec, pl: CraftPlace, seed: number): boolean {
   return ext.x1 > -890 && ext.x0 < 890 + 14000 / pl.ahead;
 }
 
+/** Metres between craft along a row. */
+const STEP = 80;
+
 const ROWS = [
   { id: "inner", offset: 24, start: 10, seed: 71 },
-  { id: "outer", offset: 84, start: 36, seed: 72 },
+  { id: "outer", offset: 84, start: 10 + STEP / 2, seed: 72 },
 ] as const;
 
 function buildLine(): { row: string; craft: Moored[] }[] {
   const rows = ROWS.map((r) => {
     const rng = createRng(r.seed);
     const craft: Moored[] = [];
-    for (const [e, n] of along(SHORE_LOW, 52, r.start, r.offset)) {
+    for (const [e, n] of along(SHORE_LOW, STEP, r.start, r.offset)) {
       const slip = (rng() - 0.5) * 14;
       const across = (rng() - 0.5) * 12;
       const kind = rng();
@@ -167,6 +171,13 @@ export function fleetPlates(): Plate[] {
       const far = [...g].sort((a, b) => b.pl.ahead - a.pl.ahead);
       const d = Math.round(depth);
       const id = `line-${row}-${plates.length / 2}`;
+      // The row lies along the swell's crests: its craft rise and fall
+      // together, the reflections with them (flotilla-check.md item 12).
+      const bob = {
+        heave: SWELL.heave,
+        period: SWELL.seconds,
+        phase: -swellLag(d),
+      };
       const prep = (): PlateJob[] =>
         [...new Set(far.map((m) => m.spec))].flatMap(prepJobs);
       // The reflections in a plate of their own, painted over the nearer
@@ -177,6 +188,7 @@ export function fleetPlates(): Plate[] {
         order: ORDER.reflection(d),
         box: [x0 - 6, x1 + 6, y0 - 3, water + 3],
         group: "craft",
+        bob,
         jobs: (): PlateJob[] => [
           ...prep(),
           ...far.flatMap((m) => reflectionJobs(m.spec, m.pl, m.seed)),
@@ -188,6 +200,7 @@ export function fleetPlates(): Plate[] {
         order: ORDER.craft(d),
         box: [x0 - 6, x1 + 6, bottom - 3, y1 + 3],
         group: "craft",
+        bob,
         jobs: (): PlateJob[] => [
           ...prep(),
           ...far.map((m) => craftJob(m.spec, m.pl, "mid", m.seed)),

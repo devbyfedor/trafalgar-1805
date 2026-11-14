@@ -34,6 +34,8 @@ interface Timing {
   jobs: number;
   total: number;
   worst: number;
+  /** The worst job's place in the plate's list (0-based). */
+  worstAt: number;
   /** The raster's canvas, device px (0 × 0 when the plate has no raster of that mode). */
   width: number;
   height: number;
@@ -107,16 +109,20 @@ async function run(): Promise<void> {
           jobs: jobs.length,
           total: 0,
           worst: 0,
+          worstAt: -1,
           width: 0,
           height: 0,
         };
         timings.push(rec);
-        return jobs.map((job) => (c: Parameters<typeof job>[0]) => {
+        return jobs.map((job, i) => (c: Parameters<typeof job>[0]) => {
           const s = performance.now();
           job(c);
           const ms = performance.now() - s;
           rec.total += ms;
-          if (ms > rec.worst) rec.worst = ms;
+          if (ms > rec.worst) {
+            rec.worst = ms;
+            rec.worstAt = i;
+          }
         });
       },
     },

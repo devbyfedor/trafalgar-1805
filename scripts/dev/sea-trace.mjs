@@ -126,10 +126,15 @@ await done;
 
 // The renderer's main thread.
 const names = events.filter(
-  (e) => e.ph === "M" && e.name === "thread_name" && e.args?.name === "CrRendererMain",
+  (e) =>
+    e.ph === "M" &&
+    e.name === "thread_name" &&
+    e.args?.name === "CrRendererMain",
 );
 const main = new Set(names.map((e) => `${e.pid}:${e.tid}`));
-const onMain = events.filter((e) => main.has(`${e.pid}:${e.tid}`) && e.ph === "X");
+const onMain = events.filter(
+  (e) => main.has(`${e.pid}:${e.tid}`) && e.ph === "X",
+);
 // Frames: the main thread's commits (one a frame; several animation
 // callbacks may run in one frame).
 const frames = onMain.filter((e) => e.name === "Commit").length;
@@ -160,12 +165,20 @@ for (const e of onMain) {
 console.log(
   `${point} at ${W}x${H}@${S}: ${SECONDS} s traced, ${frames} animation frames on the main thread`,
 );
-console.log("main thread per frame, by event (nested events count in their parents too):");
+console.log(
+  "main thread per frame, by event (nested events count in their parents too):",
+);
 for (const [k, us] of [...sum]
-  .filter(([k]) => WANT.includes(k) || /Paint|Commit|Style|Layout|GC|Animation|Canvas/i.test(k))
+  .filter(
+    ([k]) =>
+      WANT.includes(k) ||
+      /Paint|Commit|Style|Layout|GC|Animation|Canvas/i.test(k),
+  )
   .sort((a, b) => b[1] - a[1])
   .slice(0, 24))
-  console.log(`  ${(us / 1000 / Math.max(1, frames)).toFixed(3).padStart(8)} ms  ${k}`);
+  console.log(
+    `  ${(us / 1000 / Math.max(1, frames)).toFixed(3).padStart(8)} ms  ${k}`,
+  );
 
 const byId = new Map(profile.nodes.map((n) => [n.id, n]));
 const keyOf = (node) => {
@@ -180,7 +193,11 @@ profile.samples.forEach((id, i) => {
   const k = keyOf(byId.get(id));
   self.set(k, (self.get(k) ?? 0) + dt);
 });
-console.log(`JavaScript profile, self time per frame (${(total / 1000).toFixed(0)} ms sampled):`);
+console.log(
+  `JavaScript profile, self time per frame (${(total / 1000).toFixed(0)} ms sampled):`,
+);
 for (const [k, us] of [...self].sort((a, b) => b[1] - a[1]).slice(0, 25))
-  console.log(`  ${(us / 1000 / Math.max(1, frames)).toFixed(3).padStart(8)} ms  ${k}`);
+  console.log(
+    `  ${(us / 1000 / Math.max(1, frames)).toFixed(3).padStart(8)} ms  ${k}`,
+  );
 await browser.close();

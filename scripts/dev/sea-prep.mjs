@@ -100,7 +100,10 @@ for (const name of cases) {
     await tab.waitForFunction(() => window.__road?.seaReady, null, {
       timeout: 240_000,
     });
-    await tab.waitForTimeout(500);
+    // A baseline after it: the same place, AFTER seconds more, nothing
+    // preparing (the frames of the reader's view alone).
+    const AFTER = Number(process.env.AFTER ?? 6);
+    await tab.waitForTimeout(AFTER * 1000);
     const r = await tab.evaluate(() => {
       const rec = window.__prep;
       const nav = performance.getEntriesByType("navigation")[0];
@@ -120,6 +123,11 @@ for (const name of cases) {
       .map((f) => f.dt);
     const lts = r.longTasks.filter(within);
     const lfs = r.loafs.filter(within);
+    // The baseline: from a second after the painting is ready to the end.
+    const calm = r.frames
+      .filter((f) => f.ts > to + 1000 && Number.isFinite(f.dt))
+      .map((f) => f.dt);
+    const baseLoafs = r.loafs.filter((e) => e.start > to + 1000);
     const worstLoaf = lfs.reduce(
       (a, b) => (!a || b.duration > a.duration ? b : a),
       null,
@@ -145,9 +153,19 @@ for (const name of cases) {
             scripts: worstLoaf.scripts,
           }
         : null,
+      after: {
+        frames: calm.length,
+        intervalP95: +q(calm, 0.95).toFixed(1),
+        intervalMax: +Math.max(0, ...calm).toFixed(1),
+        late: calm.filter((v) => v > 25).length,
+        loafs: baseLoafs.length,
+      },
       errors,
     };
     rows.push(row);
+    console.log(
+      `  after, nothing preparing: frames ${row.after.frames}: interval p95 ${row.after.intervalP95}, worst ${row.after.intervalMax} ms, ${row.after.late} over 25 ms; long animation frames ${row.after.loafs}`,
+    );
     console.log(
       `${name} #${run}: chart ready ${row.chartReadyS} s, painting ready ${row.seaReadyS} s (prep ${row.prepS} s); frames ${row.frames}: interval median ${row.intervalMedian}, p95 ${row.intervalP95}, worst ${row.intervalMax} ms, ${row.late} over 25 ms; long tasks ${row.longTasks} (longest ${row.longestTask} ms); long animation frames ${row.loafs}${worstLoaf ? ` (worst ${row.worstLoaf.duration} ms, blocking ${row.worstLoaf.blocking}: ${JSON.stringify(row.worstLoaf.scripts)})` : ""}${errors.length ? `; errors ${errors.length}` : ""}`,
     );

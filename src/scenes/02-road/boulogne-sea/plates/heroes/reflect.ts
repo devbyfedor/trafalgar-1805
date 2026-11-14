@@ -57,6 +57,21 @@ interface Region {
 }
 
 /** A scratch canvas over a region of layer units, at the plate's k, its context's units as the plate's (y up). */
+/**
+ * A scratch canvas's context, kept in memory (willReadFrequently: drawn by
+ * the CPU). The reflection is laid from its scratch a device-px row at a
+ * time, a few hundred copies; from a canvas on the GPU each copy into
+ * another waited for the GPU's queue, everything the plates before had
+ * drawn: one job of the near chaloupe's reflection took 75-105 ms in the
+ * studio and a slice of 104 ms on the page (session 28). In memory the
+ * rows are plain copies and the plate's canvas takes the result once.
+ */
+function scratchContext(
+  canvas: HTMLCanvasElement,
+): CanvasRenderingContext2D | null {
+  return canvas.getContext("2d", { willReadFrequently: true });
+}
+
 function scratchFor(
   c: PlateCanvas,
   box: readonly [number, number, number, number],
@@ -65,7 +80,7 @@ function scratchFor(
   const canvas = document.createElement("canvas");
   canvas.width = Math.max(1, Math.ceil((x1 - x0) * c.k));
   canvas.height = Math.max(1, Math.ceil((y1 - y0) * c.k));
-  const ctx = canvas.getContext("2d");
+  const ctx = scratchContext(canvas);
   if (!ctx) return null;
   ctx.setTransform(c.k, 0, 0, -c.k, -x0 * c.k, y1 * c.k);
   return { canvas, sc: { ...c, ctx, box: [x0, x1, y0, y1] } };
@@ -314,7 +329,7 @@ export function reflectionJobs(
       const rippled = document.createElement("canvas");
       rippled.width = src.width + 40;
       rippled.height = src.height;
-      const rctx = rippled.getContext("2d");
+      const rctx = scratchContext(rippled);
       if (!rctx) return;
       layRows(rctx, src, rows, 20, 0, 0.94);
       wipeFacets(rctx, pl, c.k, over * c.k, seed + 19);
@@ -329,13 +344,13 @@ export function reflectionJobs(
     const rippled = document.createElement("canvas");
     rippled.width = src.width + 40;
     rippled.height = src.height;
-    const rctx = rippled.getContext("2d");
+    const rctx = scratchContext(rippled);
     if (!rctx) return;
     layRows(rctx, src, rows, 20, 0, 1);
     const strokes = document.createElement("canvas");
     strokes.width = rippled.width;
     strokes.height = rippled.height;
-    const sctx = strokes.getContext("2d");
+    const sctx = scratchContext(strokes);
     if (!sctx) return;
     const rng = createRng(seed + 17);
     const pxPerM = pl.s * c.k;

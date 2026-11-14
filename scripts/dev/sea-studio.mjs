@@ -99,7 +99,7 @@ for (const t of result.timings) {
   const mb = (t.width * t.height * 4) / 2 ** 20;
   bytes += t.width * t.height * 4;
   console.log(
-    `${t.plate.padEnd(22)} ${t.mode.padEnd(6)} jobs ${String(t.jobs).padStart(4)}  total ${t.total.toFixed(1).padStart(7)} ms  worst ${t.worst.toFixed(1).padStart(6)} ms  canvas ${`${t.width}x${t.height}`.padStart(9)} ${mb.toFixed(1).padStart(5)} MB`,
+    `${t.plate.padEnd(22)} ${t.mode.padEnd(6)} jobs ${String(t.jobs).padStart(4)}  total ${t.total.toFixed(1).padStart(7)} ms  worst ${t.worst.toFixed(1).padStart(6)} ms (#${t.worstAt})  canvas ${`${t.width}x${t.height}`.padStart(9)} ${mb.toFixed(1).padStart(5)} MB`,
   );
 }
 console.log(

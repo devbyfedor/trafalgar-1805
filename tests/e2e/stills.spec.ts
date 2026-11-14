@@ -9,8 +9,12 @@ import { open, scrollToRoad } from "./helpers";
  * WebP to public/stills/scene-02/. They stand in for the chart under
  * reduced motion and where WebGL fails (docs/scene-02-brief.md, "Fallbacks
  * and accessibility"), so the scene's own text is hidden: the captions and
- * the date line are HTML over them in every mode. Not part of
- * `npm run check`; re-run whenever the chart's look changes.
+ * the date line are HTML over them in every mode. Boulogne's painting is
+ * hidden too: near its interlude's p it is drawn faintly ahead of the dive,
+ * which is no part of the chart's frame (its own still is stage B's). Each
+ * p is scrolled to by the scene's own map (window.__road.scrollFor), which
+ * counts the interlude's screens. Not part of `npm run check`; re-run
+ * whenever the chart's look changes.
  */
 
 const OUT = path.join(process.cwd(), "public", "stills", "scene-02");
@@ -36,7 +40,8 @@ test("renders one still per beat", async ({ page }) => {
     { timeout: 180_000 },
   );
   await page.addStyleTag({
-    content: "#road [data-layer=text] { visibility: hidden !important; }",
+    content:
+      "#road [data-layer=text], #road [data-layer=sea] { visibility: hidden !important; }",
   });
   for (const [beat, p] of FRAMES) {
     await scrollToRoad(page, p);

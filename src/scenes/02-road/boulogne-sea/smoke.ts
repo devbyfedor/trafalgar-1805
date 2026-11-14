@@ -222,12 +222,12 @@ export function smokeGroups(
   );
   const south = plumesOf(
     kitchens.filter((k) => k.north <= 0),
-    { metres: 90, lean: -0.42, strength: 0.5, seed: 23 },
+    { metres: 90, lean: -0.42, strength: 0.6, seed: 23 },
   );
   const town = plumesOf(chimneys, {
     metres: 38,
     lean: -0.36,
-    strength: 0.38,
+    strength: 0.45,
     seed: 37,
   });
   return [

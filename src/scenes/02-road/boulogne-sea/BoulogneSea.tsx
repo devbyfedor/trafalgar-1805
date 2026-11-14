@@ -172,8 +172,10 @@ function controller(root: HTMLElement): SeaViewHandle & { dispose(): void } {
     };
   });
   const haze = root.querySelector<HTMLElement>("[data-el=sea-haze]");
-  // Wood smoke lit from behind the eye by the low sun: a warm pale grey.
-  const smokeColour = mixHex(PALETTE.cloud.shade, PALETTE.haze.near, 0.5);
+  // Wood smoke, front-lit by the low sun behind the eye: a warm mid grey,
+  // lighter than the blue sky above and darker than the pale sky low down,
+  // so it reads against both.
+  const smokeColour = mixHex(PALETTE.cloud.shadeDeep, "#7d6f66", 0.55);
   const smokes = SMOKE.flatMap((g) => {
     const canvas = root.querySelector<HTMLCanvasElement>(
       `canvas[data-smoke="${g.id}"]`,

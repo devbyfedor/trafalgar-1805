@@ -45,6 +45,7 @@ import {
   type Tree,
 } from "./town/lower";
 import {
+  engraveBelfryStage,
   engraveBelfryTop,
   engraveTower,
   engraveTrees,
@@ -52,6 +53,7 @@ import {
   INTERIOR_ROWS,
   interiorHouses,
   interiorRows,
+  paintBelfryStage,
   paintBelfryTop,
   paintTower,
   paintTrees,
@@ -592,11 +594,13 @@ function paintUpperGround(c: PlateCanvas): void {
   }
 }
 
+/** The château's towers: the walls' dark stone, a little greyer (the grey stones of the coast). */
+const CHATEAU_STONE = { lit: "#978270", graze: "#6e665f", shade: "#4b4954" };
+
 function paintChateau(c: PlateCanvas): void {
-  const stone = { lit: "#c8ac84", graze: "#988b80", shade: "#6b6977" };
   for (const k of upper().chateau)
-    if (c.mode === "colour") paintTower(c, k, stone, true);
-    else engraveTower(c, k, true);
+    if (c.mode === "colour") paintTower(c, k, CHATEAU_STONE);
+    else engraveTower(c, k);
 }
 
 function upperPlate(): Plate {
@@ -621,6 +625,8 @@ function upperPlate(): Plate {
       const b = upper().belfry;
       if (mode === "colour") paintBuildings(c, [b]);
       else engraveBuildings(c, [b]);
+      if (mode === "colour") paintBelfryStage(c);
+      else engraveBelfryStage(c);
       if (mode === "colour") paintBelfryTop(c);
       else engraveBelfryTop(c);
     });

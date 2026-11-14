@@ -103,8 +103,10 @@ export class SmokeRenderer {
         const j = i * PUFFS + k;
         // Each puff climbs the plume and starts again at the fire.
         const age = (time / CLIMB + this.phase[j]) % 1;
-        const h = age * p.rise;
-        const wind = p.lean * h * (0.6 + 0.4 * age);
+        // The column slows as it climbs into the still evening air and
+        // bends over with the breeze, then spreads flat over the plateau.
+        const h = p.rise * (1 - (1 - age) ** 1.6);
+        const wind = p.lean * h * (0.45 + 0.9 * age * age);
         const wave =
           Math.sin(time * 0.35 + this.sway[j] + age * 5) *
           age *
@@ -113,16 +115,18 @@ export class SmokeRenderer {
         const x = p.x + wind + wave;
         const y = p.y + h;
         const r = (1.2 + age * p.spread) * s;
+        const rx = r * (1 + age * 0.9);
+        const ry = r * (1 - age * 0.3);
         const alpha =
           p.strength * this.intensity * Math.min(1, age * 7) * (1 - age) ** 1.4;
         if (alpha < 0.004) continue;
         ctx.globalAlpha = alpha;
         ctx.drawImage(
           this.sprite,
-          (x - x0) * s - r,
-          (y1 - y) * s - r,
-          r * 2,
-          r * 2,
+          (x - x0) * s - rx,
+          (y1 - y) * s - ry,
+          rx * 2,
+          ry * 2,
         );
       }
     }
@@ -168,36 +172,70 @@ export function plumesOf(
   });
 }
 
-/** The camps' fires as session 24's painting had them (stage A: a few at the right camp, one at the left), until the plates export their own. */
-export function campPlumes(): Plume[] {
+/** One smoke canvas: its plumes, its box (layer units: x0, x1, y0 bottom, y1 top) and the depth it stands at among the plates. */
+export interface SmokeGroup {
+  id: string;
+  depth: number;
+  plumes: readonly Plume[];
+  box: readonly [number, number, number, number];
+}
+
+/** The box that holds every puff of `plumes`, with a margin, layer units. */
+function boxOf(plumes: readonly Plume[]): [number, number, number, number] {
+  let x0 = Number.POSITIVE_INFINITY;
+  let x1 = Number.NEGATIVE_INFINITY;
+  let y0 = Number.POSITIVE_INFINITY;
+  let y1 = Number.NEGATIVE_INFINITY;
+  for (const p of plumes) {
+    const drift = p.lean * p.rise * 1.3;
+    const reach = (1.2 + p.spread) * 1.9;
+    x0 = Math.min(x0, p.x + Math.min(0, drift) - reach);
+    x1 = Math.max(x1, p.x + Math.max(0, drift) + reach);
+    y0 = Math.min(y0, p.y - 3);
+    y1 = Math.max(y1, p.y + p.rise + reach);
+  }
   return [
-    {
-      x: -560,
-      y: 92,
-      rise: 120,
-      lean: -0.32,
-      spread: 9,
-      strength: 0.55,
-      seed: 1,
-    },
-    {
-      x: -455,
-      y: 95,
-      rise: 100,
-      lean: -0.3,
-      spread: 7,
-      strength: 0.4,
-      seed: 2,
-    },
-    {
-      x: -760,
-      y: 96,
-      rise: 110,
-      lean: -0.34,
-      spread: 8,
-      strength: 0.45,
-      seed: 3,
-    },
-    { x: 560, y: 104, rise: 95, lean: -0.3, spread: 7, strength: 0.4, seed: 4 },
+    Math.floor(x0 / 10) * 10,
+    Math.ceil(x1 / 10) * 10,
+    Math.floor(y0 / 10) * 10,
+    Math.ceil(y1 / 10) * 10,
+  ];
+}
+
+/**
+ * The painting's smoke (the brief: kitchen smoke rising and drifting with
+ * the wind): the right camp's kitchens behind its crest, the left camp's
+ * behind Outreau's brow, and a few chimneys of the lower town. Each group
+ * stands at its own depth, so the land in front hides the fires and the
+ * smoke rises from behind the skyline, and so it moves with its own land
+ * through the drift. On the evening's light westerly air the smoke leans
+ * away from the eye and to the left, the same way as the flags
+ * (decisions.md, "One wind").
+ */
+export function smokeGroups(
+  kitchens: readonly SmokeSource[],
+  chimneys: readonly SmokeSource[],
+): SmokeGroup[] {
+  const north = plumesOf(
+    kitchens.filter((k) => k.north > 0),
+    { metres: 110, lean: -0.42, strength: 0.55, seed: 11 },
+  );
+  const south = plumesOf(
+    kitchens.filter((k) => k.north <= 0),
+    { metres: 90, lean: -0.42, strength: 0.5, seed: 23 },
+  );
+  const town = plumesOf(chimneys, {
+    metres: 38,
+    lean: -0.36,
+    strength: 0.38,
+    seed: 37,
+  });
+  return [
+    // Behind the right camp's far plate (2400), in front of the hills.
+    { id: "north", depth: 2600, plumes: north, box: boxOf(north) },
+    // Behind the Outreau heights (2000).
+    { id: "south", depth: 2050, plumes: south, box: boxOf(south) },
+    // Over the lower town's near plate (1760), its chimneys showing.
+    { id: "town", depth: 1759, plumes: town, box: boxOf(town) },
   ];
 }

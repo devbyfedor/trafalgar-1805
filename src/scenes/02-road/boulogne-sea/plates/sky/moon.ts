@@ -8,13 +8,17 @@ import { INK, PAPER, type Plate } from "../../paint/plate";
  * from 50° north, a soft halo in the haze. The land's plates hide what
  * lies below their skyline.
  *
- * Layer units: its centre and radius. Provisional: just right of the
- * belfry, its lower edge just above Mont Lambert's skyline; r 9 is about
- * twice the true disc, the most allowed. The main session sets the final
- * numbers; everything that needs the moon (the strand's streak) reads it
- * from here.
+ * Layer units: its centre and radius. Where it stood at sunset on 10
+ * August 1805 from this eye (docs/research/scene-02/boulogne-sea/
+ * evening.md; decisions.md, "The evening"): x 248, 9.3° right of the
+ * belfry, over the southern shoulder of Mont Lambert, its lower limb just
+ * clear of the painted skyline there (the far hills' plate, y 83.5 at the
+ * hold's mid drift; that plate moves under 3 px through the drift).
+ * r 8.6: twice the true disc (8.7 units across), BUILD's factor, the most
+ * allowed; flattened to 0.92 of its width at 2° up. Everything that needs
+ * the moon (the strand's streak) reads it from here.
  */
-export const MOON = { x: 120, y: 105, r: 9 } as const;
+export const MOON = { x: 248, y: 92, r: 8.6 } as const;
 
 const PAD = 52;
 const BOX = [MOON.x - PAD, MOON.x + PAD, MOON.y - PAD, MOON.y + PAD] as const;
@@ -32,7 +36,7 @@ const MARIA: readonly (readonly [number, number, number, number])[] = [
 
 /** The rising moon's tilt: its north turned to the left. */
 const TILT = 0.62;
-const SQUASH = 0.97;
+const SQUASH = 0.92;
 
 function disc(): Path2D {
   const p = new Path2D();

@@ -26,7 +26,9 @@ import {
  * plateau; walls 13-16 m of dark grey-brown stone with round towers,
  * crowned by a double row of trees; the Porte des Dunes toward the lower
  * town and the harbour; roofs inside; the belfry, a square stone tower
- * with an octagonal top stage and the Chappe telegraph on it, against
+ * with an octagonal top stage under a slender spire, the Chappe telegraph
+ * on the spire's point (as Lewis drew it in October 1804, the nearest view
+ * in time; history-notes.md, "What crowned it in August 1805"), against
  * Mont Lambert's slope; the château's round towers at the far corner,
  * barely seen; nothing tall where the cathedral was being pulled down).
  */
@@ -86,7 +88,8 @@ export interface Upper {
   };
   trees: TreeCrown[];
   belfry: Building;
-  octagon: { x: number; y0: number; y1: number; r: number; cap: number };
+  /** The octagonal stage (y0 to y1), its half-width, and the spire's height above it. */
+  octagon: { x: number; y0: number; y1: number; r: number; spire: number };
   telegraph: { x: number; y0: number; y1: number; reg: number; arm: number };
   chateau: Tower[];
   ground: Pt[];
@@ -208,19 +211,21 @@ export function upper(): Upper {
   const bu = 1000 / bAhead;
   const [, oy0] = P([be, bn], ground + 27 * BUILD + 0.6 * BUILD);
   const [, oy1] = P([be, bn], ground + 35.5 * BUILD);
+  // A slender spire of about 9 m on the octagon (Lewis, October 1804, and
+  // the engraving of the telegraph, an XII: the nearest views in time).
   const octagon = {
     x: bx,
     y0: oy0,
     y1: oy1,
     r: 3.9 * BUILD * bu,
-    cap: 1.6 * BUILD * bu,
+    spire: 9 * BUILD * bu,
   };
-  // The Chappe telegraph: a mast, the regulator across its head, an indicator at each end (drawn half again its size, so it reads).
+  // The Chappe telegraph on the spire's point: a mast, the regulator across its head, an indicator at each end (drawn half again its size, so it reads).
   const T = 1.6;
   const telegraph = {
     x: bx,
-    y0: oy1 + octagon.cap * 0.6,
-    y1: oy1 + octagon.cap * 0.6 + 5.6 * BUILD * bu * T,
+    y0: oy1 + octagon.spire * 0.86,
+    y1: oy1 + octagon.spire * 0.86 + 5.6 * BUILD * bu * T,
     reg: 2.3 * BUILD * bu * T,
     arm: 1.15 * BUILD * bu * T,
   };
@@ -750,7 +755,28 @@ export function engraveTrees(
   }
 }
 
-/** The belfry's octagonal stage and its lead cap, and the telegraph on top. */
+/**
+ * The spire's three facets seen, each a triangle from the octagon's
+ * cornice to the point: left (grazed by the sun), middle, right (shade).
+ */
+function spireFacets(): { base: [number, number]; apex: Pt; bell: number }[] {
+  const o = upper().octagon;
+  const apex: Pt = [o.x, o.y1 + o.spire];
+  // The spire's foot a little inside the cornice, with a short bell-cast.
+  const xs = [
+    o.x - o.r * 0.62,
+    o.x - o.r * 0.24,
+    o.x + o.r * 0.24,
+    o.x + o.r * 0.62,
+  ];
+  return [0, 1, 2].map((i) => ({
+    base: [xs[i], xs[i + 1]],
+    apex,
+    bell: o.spire * 0.07,
+  }));
+}
+
+/** The belfry's octagonal stage and its slender spire, and the telegraph on the point. */
 export function paintBelfryTop(c: PlateCanvas): void {
   const { ctx } = c;
   const u = upper();
@@ -773,35 +799,37 @@ export function paintBelfryTop(c: PlateCanvas): void {
       (o.y1 - o.y0) * 0.48,
     );
   }
-  // The cornice and the ogee lead cap.
+  // The cornice, then the slender lead spire: three facets to the point,
+  // the left one grazed by the low sun, the middle lit, the right in shade.
   ctx.fillStyle = toneAt(tone, 0.85);
   ctx.fillRect(o.x - o.r * 1.08, o.y1 - 0.3, o.r * 2.16, 0.35);
   const lead = airTone(ROOFS.slateDark, d);
-  const g = ctx.createLinearGradient(o.x - o.r, 0, o.x + o.r, 0);
-  g.addColorStop(0, lead.graze);
-  g.addColorStop(0.4, lead.lit);
-  g.addColorStop(1, lead.shade);
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.moveTo(o.x - o.r, o.y1);
-  ctx.bezierCurveTo(
-    o.x - o.r,
-    o.y1 + o.cap * 0.8,
-    o.x - o.r * 0.2,
-    o.y1 + o.cap * 0.6,
-    o.x,
-    o.y1 + o.cap,
+  const faces = [lead.graze, lead.lit, lead.shade];
+  spireFacets().forEach((f, i) => {
+    ctx.fillStyle = faces[i];
+    ctx.beginPath();
+    ctx.moveTo(f.base[0] - (i === 0 ? f.bell * 0.6 : 0), o.y1);
+    ctx.lineTo(f.base[0], o.y1 + f.bell);
+    ctx.lineTo(f.apex[0], f.apex[1]);
+    ctx.lineTo(f.base[1], o.y1 + f.bell);
+    ctx.lineTo(f.base[1] + (i === 2 ? f.bell * 0.6 : 0), o.y1);
+    ctx.closePath();
+    ctx.fill();
+  });
+  // The sun's thin line down the spire's lit arris.
+  const arris = spireFacets()[1];
+  strokeLines(
+    c,
+    [
+      [
+        [arris.base[0] + 0.05, o.y1 + arris.bell],
+        [arris.apex[0] - 0.02, arris.apex[1] - 0.2],
+      ],
+    ],
+    0.35,
+    townAir("#d9b783", d),
+    0.55,
   );
-  ctx.bezierCurveTo(
-    o.x + o.r * 0.2,
-    o.y1 + o.cap * 0.6,
-    o.x + o.r,
-    o.y1 + o.cap * 0.8,
-    o.x + o.r,
-    o.y1,
-  );
-  ctx.closePath();
-  ctx.fill();
   telegraphLines(c, "colour");
 }
 
@@ -849,24 +877,16 @@ export function engraveBelfryTop(c: PlateCanvas): void {
   const pen = penAt(2533);
   ctx.fillStyle = PAPER.low;
   ctx.fillRect(o.x - o.r, o.y0, o.r * 2, o.y1 - o.y0);
+  const facets = spireFacets();
+  const left = facets[0];
+  const right = facets[2];
   const cap = new Path2D();
-  cap.moveTo(o.x - o.r, o.y1);
-  cap.bezierCurveTo(
-    o.x - o.r,
-    o.y1 + o.cap * 0.8,
-    o.x - o.r * 0.2,
-    o.y1 + o.cap * 0.6,
-    o.x,
-    o.y1 + o.cap,
-  );
-  cap.bezierCurveTo(
-    o.x + o.r * 0.2,
-    o.y1 + o.cap * 0.6,
-    o.x + o.r,
-    o.y1 + o.cap * 0.8,
-    o.x + o.r,
-    o.y1,
-  );
+  cap.moveTo(left.base[0] - left.bell * 0.6, o.y1);
+  cap.lineTo(left.base[0], o.y1 + left.bell);
+  cap.lineTo(left.apex[0], left.apex[1]);
+  cap.lineTo(right.base[1], o.y1 + right.bell);
+  cap.lineTo(right.base[1] + right.bell * 0.6, o.y1);
+  cap.closePath();
   ctx.fill(cap);
   const lines: Pt[][] = [];
   for (let x = o.x + o.r * 0.45; x < o.x + o.r; x += c.pen(1.3))
@@ -879,11 +899,17 @@ export function engraveBelfryTop(c: PlateCanvas): void {
       [x, o.y0],
       [x, o.y1],
     ]);
-  for (let x = o.x + o.r * 0.1; x < o.x + o.r * 0.9; x += c.pen(1.4))
+  // The spire's shaded facet hatched along its slope, toward the point.
+  for (let x = right.base[0]; x < right.base[1]; x += c.pen(1.1)) {
+    const k = (x - right.base[0]) / (right.base[1] - right.base[0]);
     lines.push([
-      [x, o.y1 + 0.1],
-      [x - o.r * 0.1, o.y1 + o.cap * 0.6],
+      [x, o.y1 + right.bell * k],
+      [
+        right.apex[0] + (x - right.apex[0]) * 0.12,
+        right.apex[1] - o.spire * 0.12,
+      ],
     ]);
+  }
   strokeLines(c, lines, pen * 0.4, INK.hatch, 0.85);
   ctx.fillStyle = rgba(INK.line, 0.9);
   const xs = [o.x - o.r, o.x - o.r * 0.41, o.x + o.r * 0.41, o.x + o.r];

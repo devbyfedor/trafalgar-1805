@@ -340,7 +340,7 @@ function lowerPlate(id: string, which: "near" | "far"): Plate {
 
 // ----------------------------------------------------------- the upper town
 
-const UPPER_BOX: Box = [-80, 196, 22, 92];
+const UPPER_BOX: Box = [-80, 196, 22, 98];
 
 function paintUpperGround(c: PlateCanvas): void {
   const u = upper();

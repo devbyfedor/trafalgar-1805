@@ -11,11 +11,11 @@ import type { SeaViewHandle, SeaViewProps } from "./handle";
 import type { Plate, PlateGroup } from "./paint/plate";
 import { type PlateTarget, paintPlates } from "./paint/raster";
 import { buildPlates } from "./plates";
-import { legacyStrips } from "./plates/water";
+import { KITCHENS } from "./plates/north";
+import { TOWN_SMOKE } from "./plates/town";
 import { mixHex, PALETTE } from "./scene";
-import { campPlumes, SmokeRenderer } from "./smoke";
-import { boxStyle, HORIZON, type Shift, shiftFor, UNIT_VH } from "./view";
-import type { WaterStrip } from "./water";
+import { SmokeRenderer, smokeGroups } from "./smoke";
+import { boxStyle, type Shift, shiftFor, UNIT_VH } from "./view";
 
 /**
  * Boulogne from the sea (docs/scene-02-boulogne-brief.md): the painting the
@@ -24,8 +24,9 @@ import type { WaterStrip } from "./water";
  * and engraving (paint/raster.ts), in idle slices; per frame the wrappers
  * move with the camera's pose (view.ts) and the rasters fade by the
  * transition (interludes.ts, TRANSITION): the engraving over the chart,
- * then each group's colour over the engraving. The swell's strips, the
- * camps' smoke and the haze are the moving parts, as scene 1's are.
+ * then each group's colour over the engraving. The swell's plates, the
+ * rocking craft, the smoke of the camps and the town and the haze are the
+ * moving parts, as scene 1's are.
  */
 
 /** How far from the interlude's p (either side) the painting is drawn faintly, so its layers are on the GPU before the dive needs them. */
@@ -36,11 +37,8 @@ const FLOOR = 1 / 255;
 const URGENT_P = 0.04;
 
 const PLATES = buildPlates();
-/** Session 24's SVG strips of swell, until the water's plates replace them (plates/water.ts). */
-const WATER = legacyStrips();
-const PLUMES = campPlumes();
-/** The smoke's canvas, layer units: x0, x1, y0 (bottom), y1 (top). */
-const SMOKE_BOX = [-1000, 1000, 40, 260] as const;
+/** The smoke's canvases, each at its own depth (smoke.ts). */
+const SMOKE = smokeGroups(KITCHENS, TOWN_SMOKE);
 
 // ------------------------------------------------------------------ art
 
@@ -85,64 +83,28 @@ function PlateArt({ plate }: { plate: Plate }) {
   );
 }
 
-/** One water strip: its parallax wrapper and its looping, swelling art. */
-function Strip({ strip }: { strip: WaterStrip }) {
-  const g = strip.geometry;
-  // The strip's mean surface lies `amp` below its top edge (seaGeometry),
-  // and `strip.top` units below the horizon.
-  const edge = strip.top - strip.amp;
-  return (
-    <div
-      data-depth={strip.depth}
-      data-strip={strip.id}
-      className="absolute will-change-transform"
-      style={{
-        left: `calc(50% - ${(1200 * UNIT_VH).toFixed(4)}vh)`,
-        top: `calc(${(100 * HORIZON).toFixed(4)}vh + ${(edge * UNIT_VH).toFixed(4)}vh)`,
-        width: `${(g.width * UNIT_VH).toFixed(4)}vh`,
-        height: `${(g.height * UNIT_VH).toFixed(4)}vh`,
-      }}
-    >
-      <svg
-        aria-hidden="true"
-        focusable="false"
-        viewBox={`0 0 ${g.width} ${g.height}`}
-        preserveAspectRatio="none"
-        className="block h-full w-full"
-      >
-        <path d={g.body} fill={strip.body} />
-        <path d={g.inner} fill={strip.inner} opacity={0.42} />
-        <path d={g.crest} fill={strip.crest} opacity={0.62} />
-      </svg>
-    </div>
-  );
-}
-
-/** Everything in paint order, far to near: plates, strips, the smoke and the haze. */
+/** Everything in paint order, far to near: plates, the smoke and the haze. */
 function Layers() {
   const items: { depth: number; node: React.ReactNode }[] = [];
   for (const p of PLATES)
     items.push({ depth: p.depth, node: <PlateArt key={p.id} plate={p} /> });
-  for (const s of WATER)
+  for (const g of SMOKE)
     items.push({
-      depth: s.depth - 0.5,
-      node: <Strip key={s.id} strip={s} />,
+      depth: g.depth,
+      node: (
+        <canvas
+          key={`smoke-${g.id}`}
+          data-el="sea-smoke"
+          data-smoke={g.id}
+          data-depth={g.depth}
+          className="absolute will-change-[transform,opacity]"
+          style={{
+            ...boxStyle(g.box[0], g.box[1], g.box[2], g.box[3]),
+            opacity: 0,
+          }}
+        />
+      ),
     });
-  items.push({
-    depth: 1650,
-    node: (
-      <canvas
-        key="smoke"
-        data-el="sea-smoke"
-        data-depth="1650"
-        className="absolute will-change-[transform,opacity]"
-        style={{
-          ...boxStyle(SMOKE_BOX[0], SMOKE_BOX[1], SMOKE_BOX[2], SMOKE_BOX[3]),
-          opacity: 0,
-        }}
-      />
-    ),
-  });
   items.push({
     depth: 1299,
     node: (
@@ -171,7 +133,6 @@ interface Mover {
   depth: number;
   x: number;
   y: number;
-  strip: WaterStrip | null;
   swell: Plate["swell"] | null;
 }
 
@@ -185,7 +146,6 @@ interface PlateView {
 }
 
 function controller(root: HTMLElement): SeaViewHandle & { dispose(): void } {
-  const strips = new Map(WATER.map((s) => [s.id, s]));
   const movers: Mover[] = Array.from(
     root.querySelectorAll<HTMLElement>("[data-depth]"),
   ).map((el) => ({
@@ -193,7 +153,6 @@ function controller(root: HTMLElement): SeaViewHandle & { dispose(): void } {
     depth: Number(el.dataset.depth),
     x: Number.NaN,
     y: Number.NaN,
-    strip: el.dataset.strip ? (strips.get(el.dataset.strip) ?? null) : null,
     swell: el.dataset.plate
       ? (PLATES.find((p) => p.id === el.dataset.plate)?.swell ?? null)
       : null,
@@ -212,21 +171,24 @@ function controller(root: HTMLElement): SeaViewHandle & { dispose(): void } {
       colourOpacity: -1,
     };
   });
-  const stripEls = Array.from(
-    root.querySelectorAll<HTMLElement>("[data-strip]"),
-  );
   const haze = root.querySelector<HTMLElement>("[data-el=sea-haze]");
-  const smokeCanvas = root.querySelector<HTMLCanvasElement>(
-    "canvas[data-el=sea-smoke]",
-  );
-  const smoke = smokeCanvas
-    ? new SmokeRenderer(
-        smokeCanvas,
-        PLUMES,
-        SMOKE_BOX,
-        mixHex(PALETTE.cloud.shade, PALETTE.haze.near, 0.5),
-      )
-    : null;
+  // Wood smoke lit from behind the eye by the low sun: a warm pale grey.
+  const smokeColour = mixHex(PALETTE.cloud.shade, PALETTE.haze.near, 0.5);
+  const smokes = SMOKE.flatMap((g) => {
+    const canvas = root.querySelector<HTMLCanvasElement>(
+      `canvas[data-smoke="${g.id}"]`,
+    );
+    return canvas
+      ? [
+          {
+            group: g,
+            canvas,
+            renderer: new SmokeRenderer(canvas, g.plumes, g.box, smokeColour),
+            opacity: -1,
+          },
+        ]
+      : [];
+  });
 
   let shown: "hidden" | "armed" | "on" = "hidden";
   let ready = false;
@@ -234,8 +196,6 @@ function controller(root: HTMLElement): SeaViewHandle & { dispose(): void } {
   let height = root.clientHeight || window.innerHeight;
   let dpr = window.devicePixelRatio || 1;
   let painting: AbortController | null = null;
-  let stripOpacity = -1;
-  let smokeOpacity = -1;
 
   const targets: PlateTarget[] = views.map((v) => ({
     plate: v.plate,
@@ -263,13 +223,11 @@ function controller(root: HTMLElement): SeaViewHandle & { dispose(): void } {
   };
 
   const sizeSmoke = () => {
-    if (!smokeCanvas || !smoke) return;
     const px = (UNIT_VH / 100) * height;
-    smoke.resize(
-      (SMOKE_BOX[1] - SMOKE_BOX[0]) * px,
-      (SMOKE_BOX[3] - SMOKE_BOX[2]) * px,
-      px,
-    );
+    for (const s of smokes) {
+      const [x0, x1, y0, y1] = s.group.box;
+      s.renderer.resize((x1 - x0) * px, (y1 - y0) * px, px);
+    }
   };
   sizeSmoke();
   paint();
@@ -338,30 +296,14 @@ function controller(root: HTMLElement): SeaViewHandle & { dispose(): void } {
           v.colourOpacity,
         );
       }
-      const water = Math.max(FLOOR, share.water);
-      if (water !== stripOpacity) {
-        for (const el of stripEls) el.style.opacity = water.toFixed(4);
-        stripOpacity = water;
-      }
       const land = Math.max(FLOOR, share.land);
-      smokeOpacity = setOpacity(smokeCanvas, land, smokeOpacity);
+      for (const s of smokes) s.opacity = setOpacity(s.canvas, land, s.opacity);
 
       const px = (UNIT_VH / 100) * height;
       for (const m of movers) {
         shiftFor(m.depth, pose, height, shift);
         let x = shift.x;
         let y = shift.y;
-        const s = m.strip;
-        if (s) {
-          // Crests drift and the swell lifts each strip, the nearer later.
-          const period = s.geometry.width / s.geometry.tiles;
-          const along = (x / px + s.drift * time) % period;
-          x = (along > 0 ? along - period : along) * px;
-          y +=
-            s.swell *
-            px *
-            Math.sin(((time - s.swellDelay) * 2 * Math.PI) / s.swellPeriod);
-        }
         const w = m.swell;
         if (w) {
           // A plate of swell: its art repeats every period across; it
@@ -397,7 +339,7 @@ function controller(root: HTMLElement): SeaViewHandle & { dispose(): void } {
           Math.max(FLOOR, share.land) *
           (0.82 + 0.18 * Math.sin(time * 0.21))
         ).toFixed(4);
-      smoke?.draw(time);
+      for (const s of smokes) s.renderer.draw(time);
     },
     dispose() {
       painting?.abort();

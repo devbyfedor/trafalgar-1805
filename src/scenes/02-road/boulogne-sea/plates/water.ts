@@ -1,5 +1,4 @@
 import type { Plate } from "../paint/plate";
-import type { WaterStrip } from "../water";
 import { strandPlates } from "./water/strand";
 import { swellPlates } from "./water/swell";
 
@@ -14,12 +13,4 @@ export { highWaterY, lowWaterY, STRAND_STRETCH, strandY } from "./water/shore";
  */
 export function waterPlates(): Plate[] {
   return [...strandPlates(), ...swellPlates()];
-}
-
-/**
- * Session 24's SVG strips of swell (../water.ts): replaced by the swell's
- * own plates, so none.
- */
-export function legacyStrips(): WaterStrip[] {
-  return [];
 }

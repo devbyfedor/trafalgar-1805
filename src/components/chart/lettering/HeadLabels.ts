@@ -60,6 +60,14 @@ export interface HeadSpec {
   counts: readonly string[];
   /** The sides it tries about its fleet, in order. */
   slots: readonly HeadSlot[];
+  /**
+   * Each place judged by the chart's colour under it and kept clear of
+   * every ship drawn, with the places measured on screen tried last (the
+   * October fleets, off Cádiz, in the night and at the dawn: session 32).
+   * Without it a label keeps the rule the chase was approved with: clean
+   * ground judged face on, and gone at HAZE_CLEAR of the haze.
+   */
+  judged?: boolean;
 }
 
 /** A label's state in the last frame, for development and the contrast check. */
@@ -163,6 +171,13 @@ const EDGE_PX = 10;
  * the land then.
  */
 const READ_CONTRAST: readonly [number, number] = [4.6, 5.0];
+/**
+ * The rule a label not judged (HeadSpec.judged) keeps: toward the horizon
+ * the haze brightens the sea under it past what its ink can read against,
+ * so it is gone by this share of the haze's visibility (in from the first),
+ * where the ground's luminance passes about 0.15 in the daylight views.
+ */
+const HAZE_CLEAR: readonly [number, number] = [0.42, 0.55];
 /** Where the ground is read about a place: its corners and its middle. */
 const READ_POINTS = 5;
 /** The step of the coast's gradient, km (inside a texel: the field is bilinear). */
@@ -242,6 +257,8 @@ interface Head {
    */
   own: Float64Array;
   aw: number;
+  /** This frame: the chart's km per CSS px at the head, face on. */
+  kmPx: number;
   /**
    * This frame: how much an em on the chart east (x) and north (y) of the
    * head shows on screen, of an em facing the eye (a screen gap's scale).
@@ -386,10 +403,11 @@ export class HeadLabels implements ChartLayer {
         for (const gap of GAPS_EM) add(true, side, gap);
       for (const gap of GAPS_EM)
         for (const side of spec.slots) add(false, side, gap);
-      for (const gap of SCREEN_GAPS_EM) {
-        add(false, "toward", gap, true);
-        for (const side of spec.slots) add(false, side, gap, true);
-      }
+      if (spec.judged)
+        for (const gap of SCREEN_GAPS_EM) {
+          add(false, "toward", gap, true);
+          for (const side of spec.slots) add(false, side, gap, true);
+        }
       const head: Head = {
         spec,
         slots,
@@ -398,6 +416,7 @@ export class HeadLabels implements ChartLayer {
         y: 0,
         own: new Float64Array(8),
         aw: 0,
+        kmPx: 1,
         fx: 1,
         fy: 1,
         inFrame: 0,
@@ -565,10 +584,14 @@ export class HeadLabels implements ChartLayer {
       // together never dip to half.
       const tilt = smooth(0.1, 0.25, eye.z / dist);
       const hx = dist / frame.hazeVisibility;
-      const seen =
-        h.presence *
-        Math.min(tilt, this.handover ? 1 - this.handover(h.spec.id) : 1) *
-        Math.exp(-hx * hx);
+      const handover = this.handover ? 1 - this.handover(h.spec.id) : 1;
+      const seen = h.spec.judged
+        ? h.presence * Math.min(tilt, handover) * Math.exp(-hx * hx)
+        : h.presence *
+          handover *
+          tilt *
+          Math.exp(-hx * hx) *
+          (1 - smooth(HAZE_CLEAR[0], HAZE_CLEAR[1], hx));
       h.emPx = emPx;
       for (const s of h.slots) s.weight = 0;
       if (!this.sized || seen <= 0.001) {
@@ -579,7 +602,8 @@ export class HeadLabels implements ChartLayer {
         continue;
       }
       const em = (emPx * dist) / cssPerRadian;
-      this.foreshortening(h, frame, em, emPx);
+      h.kmPx = dist / cssPerRadian;
+      if (h.spec.judged) this.foreshortening(h, frame, em, emPx);
       const blockWeight = this.blocks ? this.blocks(h.spec.id, this.block) : 0;
       h.aw = this.anchors ? this.anchors(h.spec.id, this.anchor) : 0;
       if (h.aw > 0.001) h.own.set(this.anchor);
@@ -930,7 +954,9 @@ export class HeadLabels implements ChartLayer {
       );
     }
     why[1] = (1 - smooth(0, 6, out)) * (s.onScreen ? h.inFrame : 1);
-    why[2] = this.ground(s, ox, w, y0, y1, frame);
+    why[2] = h.spec.judged
+      ? this.ground(s, ox, w, y0, y1, frame)
+      : this.groundFaceOn(s, ox, w, y0, y1, h.kmPx);
     // Clear of the lettering before it: the names and the caption's card.
     for (const screen of this.keepClear)
       for (let j = 0; j < screen.count; j++) {
@@ -948,7 +974,7 @@ export class HeadLabels implements ChartLayer {
         why[5] *= clearOf(q, other.lines[i], other === h ? 1 : other.presence);
     if (blockWeight > 0) why[6] = clearOf(q, this.block, blockWeight);
     // Every ship drawn, the near ones only (clearOf is 1 beyond YIELD_PX).
-    if (this.shipCount > 0) {
+    if (h.spec.judged && this.shipCount > 0) {
       let qx0 = q[0];
       let qx1 = q[0];
       let qy0 = q[1];
@@ -999,6 +1025,46 @@ export class HeadLabels implements ChartLayer {
    * corners and middle. Slot.why[7] holds the read share of the ground that
    * wins.
    */
+  /**
+   * How clean the ground under a label not judged is (0..1), as the chase
+   * was approved with: the sea beyond the inner waterlines or the land well
+   * inland, the coast's distance (world km) read at points along its middle
+   * line, each standing for its share of the box, turned into pixels at the
+   * chart's scale face on.
+   */
+  private groundFaceOn(
+    s: Slot,
+    x0: number,
+    w: number,
+    y0: number,
+    y1: number,
+    kmPx: number,
+  ): number {
+    s.why[7] = 1;
+    const coast = this.coast;
+    if (!coast) return 1;
+    const y = 0.5 * (y0 + y1);
+    const h = y1 - y0;
+    const step = w / GROUND_SAMPLES;
+    const reach = 0.5 * Math.hypot(step, h);
+    let near = Number.POSITIVE_INFINITY;
+    let inland = Number.POSITIVE_INFINITY;
+    for (let i = 0; i < GROUND_SAMPLES; i++) {
+      const d = coast.distance(x0 + (i + 0.5) * step, y);
+      near = Math.min(near, (d - reach) / kmPx);
+      inland = Math.min(inland, (-d - reach) / kmPx);
+    }
+    s.near = near;
+    s.inland = inland;
+    s.seaL = Number.NaN;
+    s.landL = Number.NaN;
+    const clear = SEA_CLEAR_SHARE * WATERLINE_REACH_PX;
+    return Math.max(
+      smooth(clear, clear + CLEAR_RISE_PX, near),
+      smooth(LAND_CLEAR_PX[0], LAND_CLEAR_PX[1], inland),
+    );
+  }
+
   private ground(
     s: Slot,
     x0: number,

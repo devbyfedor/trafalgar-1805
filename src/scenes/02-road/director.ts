@@ -807,6 +807,10 @@ export function roadHeads(): HeadSpec[] {
       name: `${fleet.name},`,
       counts: fleetCounts(fleetSchedule(fleet.side)).map((n) => `${n} sail`),
       slots: fleet.slots,
+      // Off Cádiz, in the night and at the dawn each place is judged by the
+      // chart under it (HeadLabels: the owner's 4.5:1 while readable, and a
+      // fleet in the frame shows its label or its ships).
+      judged: true,
     });
   return specs;
 }

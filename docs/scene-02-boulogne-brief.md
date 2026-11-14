@@ -8,7 +8,7 @@ This brief covers one change inside scene 2: the Boulogne close view in beat 1. 
 
 Keep this section current. Change only the status line and append to the log. Never rewrite past log entries.
 
-Status: **Stage B — complete, awaiting owner review**
+Status: **Stage B — approved by owner, merged to main**
 
 Allowed values, in order:
 - Stage A — in progress
@@ -36,6 +36,7 @@ Log:
 - 2026-11-14 — session 29 ends stage B's first part (the look): the ensign on its staff at the taffrail; the flotilla check's points; the evening through the hold from the golden light through the sun's last light to the dusk, with the lights in the camps and the town, the moon and its path; no British sail (out of the frame, no open sea in view). Status stays "Stage B — in progress"; the stills, the full checks and the history section are next session's. See `docs/progress.md`, session 29.
 - 2026-11-14 — the owner looked at the dusk on the preview and approved it (his message opening session 30); his answers: the chaloupe's masts stay at about 20 m (the doubt into the history), the moon rising through the hold kept (a recorded liberty). The painting's look is not to change.
 - 2026-11-14 — session 30: stage B complete, awaiting owner review. The still of the view from the sea for reduced motion and no WebGL (hold 0.38, the sun's last light: the craft and the shore warm, the moon clear of the rigging), in the stacked stills and crossfading in through the interlude without WebGL; the stills' text made readable without WebGL. On production builds checked with `served.mjs`: contrast at the four sizes over every label of scene 2 and the whole hold (0 rows under 4.5:1 in the interlude; only the Gulf's deferred fleet labels under it elsewhere; without WebGL 0 of 354), the frame budget on the dive, the hold (now timed at its end too) and the rise, every other beat identical to the reference frames, scene 1's regression, `npm run check` whole (37 of 37). The history section finished with stage B, its liberties checked against `decisions.md` (and decisions corrected). The stage's screenshots in `docs/screenshots/scene-02/boulogne-sea/stage-b/`. Nothing goes into `main` until the owner says so. See `docs/progress.md`, session 30.
+- 2026-11-14 — the owner looked at stage B on the production preview and approved it (his message opening session 31): this brief is closed and `s24-boulogne-sea` goes into `main`. His answers: the still stays at hold 0.38 (it is for readers who cannot see the motion and must show the beat's substance, the craft, the camps and the town; the dusk's silhouettes lose it); the guard boats and the tide rising through the dusk stay recorded liberties (`decisions.md`, session 30), the guard boats noted in `backlog.md` as a possible improvement. See `docs/progress.md`, session 31.
 
 ## Owner review, 13 November
 

@@ -2,6 +2,26 @@
 
 Live checklist. A later session picks up from here. The briefs are `docs/scene-01-brief.md` and `docs/scene-02-brief.md`; decisions and deviations are in `docs/decisions.md`.
 
+## Session 31 (14 November 2026): Boulogne's brief closed, the merge into main, the clean-up, the plan for the rest of scene 2
+
+**The owner's order** (complete; it ends "Конец сообщения"). He looked at stage B on the preview and approves it; the Boulogne brief is closed. His answers to session 30's questions: (1) the still stays at hold 0.38: it is for readers who cannot see the motion and must show the beat's substance (the craft, the camps, the town); the dusk's silhouettes lose it; (2) the guard boats and the tide rising stay recorded liberties; the guard boats go into `backlog.md` as a possible improvement. Order of work:
+1. The brief's status "Stage B — approved by owner, merged to main".
+2. Merge `s24-boulogne-sea` into `main`, after checking that `main` has not moved from `d7ed575`.
+3. On `main`: `npm run check` whole and scene 1's regression on the production build.
+4. Clean-up: delete the merged branches of this work (`s24-*`, `s25-tools`, `s26-paint-*` and any other wholly in `main`), each checked to be wholly in `main` first; worktrees removed only by this file's rule (take the `node_modules` junction away with `cmd /c rmdir` first, then `git worktree remove --force`). Not to be touched: `wip/s23-gulf-labels`, `s23-history`, branch 2 (`worktree-wf_016f0c7a-068-2`: smoke, night lights, the relay), `s21-load-wip`, `s21-perf`.
+5. This file on `main`: the brief closed; the deferred plan of scene 2 next, in order, split into sessions of about one limit window each.
+6. The report in Russian, plain, no tables: what was done, `main`'s last commit, the proposed split, at most three questions. Then stop.
+Never `npm run screenshots`.
+
+**Plan and state:**
+- [x] Step 0: oriented (clean tree at `891f5f8` on `s24-boulogne-sea`; `main` at `d7ed575`, the merge base, 245 commits behind; no remote, no stash). A read-only workflow `s31-deferred-plan` (run `wf_39899b96-985`) surveys the deferred items for the split.
+- [x] Step 1: the brief's status and log; the guard boats in `backlog.md` (committed on `s24-boulogne-sea` before the merge).
+- [ ] Step 2: the merge.
+- [ ] Step 3: `npm run check` and scene 1's regression on `main`.
+- [ ] Step 4: the clean-up.
+- [ ] Step 5: the deferred plan and its sessions, below.
+- [ ] Step 6: the report.
+
 ## Session 30 (14 November 2026): Boulogne from the sea, stage B, part two: the stills, the full checks, the history
 
 **Where we stopped (the planned end of stage B: the report sent).** On `s24-boulogne-sea` (main untouched at `d7ed575`); all committed; lint (the two old infos in `hscroll.mjs`), typecheck and `npm run check` (37 of 37) pass. The brief's status: **"Stage B — complete, awaiting owner review"**. Nothing runs: no helper; my server on 4173 stopped at the end (the owner's `npm run preview` needs the port); no merge into main, no rebase, lock or stash. The deferred plan's branches untouched.

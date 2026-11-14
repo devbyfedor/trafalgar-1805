@@ -49,7 +49,11 @@ Never `npm run screenshots`.
 - [x] Step 5: the deferred plan and its sessions, below (from the workflow `s31-deferred-plan`: five read-only surveys, one per item, and a completeness critic; its output in `.claude/s31/surveys.txt` and `.claude/s31/critic.txt`, local; the journal under this session's `subagents/workflows/wf_39899b96-985/`).
 - [x] Step 6: the report (in Russian, by the brief's rules), then the stop.
 
-### Scene 2's remaining plan (the deferred plan, from session 32)
+### Scene 2's remaining plan (updated in session 32)
+
+**Done in session 32 and merged into `main`:** item 1 (the Cádiz labels), the army's march to Ulm (the owner's answer 1), and item 4 (the history section, planned for session 37: closed here). **The owner's answers of 14 November 2026** (recorded in `decisions.md`, session 32): each item into `main` as soon as its checks pass, his look at `main` on the preview; the night signals of 20–21 October with the relay; the smoke at Finisterre only through the part of the pause when the firing really went on; the chain's four ships of the line shown apart from the fleet; "readable" is opacity 0.5 or more. **Still open, in order** (the items below keep their numbers): item 2 (branch 2: the smoke at Finisterre, the lanterns at night), item 3 (the relay of 19 October, with the night signals of 20–21 October), item 5 (the stills), item 6 (the final check), item 7 (README). **Proposed sessions now:** 33 item 2 part one; 34 item 2 part two (merged); 35 item 3 part one; 36 item 3 part two with the night signals (merged); 37 item 5 (the stills, every beat's screenshots at the four sizes, the far views' "after" frames, the names); 38 items 6 and 7 and the final report. Six sessions (33–38), not eight. The history reviews' points for the code are in `backlog.md` ("Scene 2, from the history section's reviews"): to fold into items 3 and 6.
+
+### Scene 2's remaining plan (the deferred plan, from session 32; as written in session 31)
 
 **Where scene 2 stands.** The Boulogne brief is closed: `main` holds beat 1's view from the sea, approved (stages A and B). Scene 2's own stage B (`docs/scene-02-brief.md`) is not finished: what session 23's order left, below, in the owner's order. Each item was surveyed read-only in session 31 against `main`; facts below are from that survey, checked by its critic.
 

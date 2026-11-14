@@ -252,8 +252,8 @@ function lens(p: Pool): Path2D {
 
 /**
  * The wet sand, a dull mirror (between shares ua and ub):
- * - "sheen": long lanes of the low lilac-rose sky's gloss, and in front of
- *   the town the warm glow of its lit walls mirrored;
+ * - "sheen": long lanes of the low lilac-rose sky's gloss;
+ * - "glow": in front of the town, the warm glow of its lit walls mirrored;
  * - "mirror": the land turned over in it, as vertical streaks with crisp
  *   sides in the land's own colours, broken across by the ripples;
  * - "marks": darker wet patches, pools glinting with the sky, runnels,
@@ -264,7 +264,7 @@ function paintWet(
   seed: number,
   ua: number,
   ub: number,
-  part: "sheen" | "mirror" | "marks",
+  part: "sheen" | "glow" | "mirror" | "marks",
 ) {
   const { ctx } = c;
   const rng = createRng(seed);
@@ -297,6 +297,9 @@ function paintWet(
       );
       ctx.fill(band(u, Math.min(ub, u + du), a, a + len));
     }
+    return;
+  }
+  if (part === "glow") {
     // The glow in front of the town: its lit walls mirrored, the
     // brightest light on the land (the picture's centre).
     for (let i = 0; i < 70; i++) {
@@ -1249,32 +1252,34 @@ function farStrand(): Plate {
             on(farY, (c) => paintSand(c, 0.25, 0.5, null, farTone)),
             on(farY, (c) => paintSand(c, 0.5, 1, y0, farTone)),
             on(farY, (c) => paintWet(c, 1201, 0.12, FAR_END, "sheen")),
-            on(farY, (c) => paintWet(c, 1701, 0.12, FAR_END, "mirror")),
+            on(farY, (c) => paintWet(c, 1221, 0.12, FAR_END, "glow")),
+            on(farY, (c) => paintWet(c, 1701, 0.12, 0.3, "mirror")),
+            on(farY, (c) => paintWet(c, 1702, 0.3, FAR_END, "mirror")),
             on(farY, (c) => paintWet(c, 1201, 0.12, FAR_END, "marks")),
             // The art below the hold's view, in four bands so no job runs long.
             ...[0.47, 0.6, 0.73, 0.86].flatMap((u, k) => [
               on(farY, (c) => paintWet(c, 1210 + k, u, u + 0.13, "sheen")),
+              on(farY, (c) => paintWet(c, 1230 + k, u, u + 0.13, "glow")),
               on(farY, (c) => paintWet(c, 1710 + k, u, u + 0.13, "mirror")),
               on(farY, (c) => paintWet(c, 1210 + k, u, u + 0.13, "marks")),
             ]),
             on(farY, (c) => {
               paintMoonStreak(c, 0.12, FAR_END);
               paintMoonStreak(c, 0.47, 0.98);
-              paintChannel(c, CHANNEL_U0, 1);
               paintDriftLine(c, false);
             }),
+            on(farY, (c) => paintChannel(c, CHANNEL_U0, 1)),
           ]
         : [
             (c) => inkPaper(c, (x) => strandY(x, 0), y0),
-            on(farY, (c) => inkStrand(c, 1301, 0, FAR_END)),
-            on(farY, (c) => inkStrand(c, 1302, 0.47, 0.6)),
-            on(farY, (c) => inkStrand(c, 1303, 0.6, 0.72)),
-            on(farY, (c) => inkStrand(c, 1304, 0.72, 0.85)),
-            on(farY, (c) => inkStrand(c, 1305, 0.85, 0.98)),
-            on(farY, (c) => {
-              inkChannel(c, CHANNEL_U0, 1);
-              paintDriftLine(c, true);
-            }),
+            on(farY, (c) => inkStrand(c, 1301, 0, 0.2)),
+            on(farY, (c) => inkStrand(c, 1311, 0.2, FAR_END)),
+            // The extension below the hold's view in eight bands, so no job runs long.
+            ...[0.47, 0.535, 0.6, 0.66, 0.72, 0.785, 0.85, 0.915].map((u, k) =>
+              on(farY, (c) => inkStrand(c, 1302 + k, u, u + 0.065)),
+            ),
+            on(farY, (c) => inkChannel(c, CHANNEL_U0, 1)),
+            on(farY, (c) => paintDriftLine(c, true)),
           ],
   };
 }
@@ -1295,6 +1300,7 @@ function nearStrand(): Plate {
               paintEdgeWater(c, y0);
             },
             (c) => paintWet(c, 1401, SEAM_U, 0.97, "sheen"),
+            (c) => paintWet(c, 1421, SEAM_U, 0.97, "glow"),
             (c) => paintWet(c, 1901, SEAM_U, 0.97, "mirror"),
             (c) => paintWet(c, 1401, SEAM_U, 0.97, "marks"),
             (c) => {

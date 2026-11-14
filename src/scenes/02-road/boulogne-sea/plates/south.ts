@@ -72,9 +72,12 @@ const TIERS: readonly Spec[] = [
   { f: 1 },
 ];
 
-function southContours(): Contour[] {
-  const brow = browLine();
-  return TIERS.map((t) => {
+let brow: [number, number, number][] | undefined;
+
+function southContour(i: number): Contour {
+  brow ??= browLine();
+  const t = TIERS[i];
+  {
     const line =
       t.back !== undefined ? behind(t.back) : escarpment(brow, t.f ?? 0);
     // The brow a little convex: its lip stands over the ground just
@@ -89,7 +92,7 @@ function southContours(): Contour[] {
       camp: campShare,
       light: lightOf(line, t.back === undefined),
     };
-  });
+  }
 }
 
 export function southPlates(): Plate[] {
@@ -99,7 +102,7 @@ export function southPlates(): Plate[] {
       depth: 2000,
       box: [-20, 905, 0, 98],
       seed: 501,
-      contours: southContours,
+      contour: southContour,
       count: TIERS.length,
       // A post mill on the brow in a gap between the camp's blocks, its
       // foot behind the brow's own lip.

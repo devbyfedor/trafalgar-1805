@@ -279,6 +279,18 @@ export function indexOf(f: Face, n: number): number {
   return Math.max(0, Math.min(f.ns.length - 1, Math.round((N_MAX - n) / STEP)));
 }
 
+/** The ground `back` metres behind the brow at `n`: its east (m) and its true height (m), following the brow's notches as they die away inland. */
+export function browGround(
+  f: Face,
+  n: number,
+  back: number,
+): { e: number; h: number } {
+  const i = indexOf(f, n);
+  const top = f.top[i];
+  const dip = (top - edgeTop(f, i)) * Math.exp(-back / 60);
+  return { e: faceE(f, i, top) + back, h: edgeTop(f, i) + dip };
+}
+
 /** A point on the brow at `n`, `back` metres behind the edge and `up` drawn metres above it. */
 export function browAt(f: Face, n: number, back: number, up: number): Pt {
   const i = indexOf(f, n);
@@ -305,6 +317,23 @@ function notchAt(f: Face, i: number): number {
   return g;
 }
 
+/** Slump scars on the brow, where the turf has broken away: n of their middle, half-width, depth (m). */
+const SCARS: readonly (readonly [number, number, number])[] = [
+  [950, 10, 1.8],
+  [690, 12, 2.2],
+  [490, 9, 1.6],
+];
+
+/** How far a slump scar has bitten into the brow at `n`, metres: a concave bite. */
+function scarDrop(n: number): number {
+  let g = 0;
+  for (const [m, half, depth] of SCARS) {
+    const u = Math.abs(n - m) / half;
+    if (u < 1) g = Math.max(g, depth * (1 - u * u));
+  }
+  return g;
+}
+
 /** How far a landslip bay has taken the brow down at `n`, metres. */
 function bayDrop(n: number): number {
   let g = 0;
@@ -316,7 +345,6 @@ function bayDrop(n: number): number {
 }
 
 export function buildFace(): Face {
-  const rng = createRng(301);
   const ns: number[] = [];
   for (let n = N_MAX; n >= N_MIN - 1e-6; n -= STEP) ns.push(n);
   const line = wobble(303, [
@@ -538,7 +566,7 @@ export function carveFace(f: Face): void {
     // harbour's end it comes down to the quay.
     let h = edgeAt(n)[1];
     f.top.push(h);
-    h -= notchAt(f, i) + bayDrop(n);
+    h -= notchAt(f, i) + bayDrop(n) + scarDrop(n);
     h += (FOOT + 0.4 - h) * smoothstep(46, N_MIN, n);
     f.top[i] = h;
   }
@@ -628,7 +656,7 @@ function dednAt(f: Face, b: number, i: number): number {
 
 /** The face's third stage: each bed's light; its blocks split where a wall turns, each lit as a facet; the outlines and the joints. */
 export function lineFace(f: Face): void {
-  const { ns, eb } = f;
+  const { ns } = f;
   for (let b = 0; b < BEDS.length; b++) {
     const row: number[] = [];
     for (let i = 0; i < ns.length; i++)
@@ -712,49 +740,6 @@ export function edgeFace(f: Face): void {
 }
 
 // ------------------------------------------------------------ the beds
-
-interface BandSamples {
-  count: number;
-  x: number[];
-  top: number[];
-  bot: number[];
-  /** True heights of the band's top and bottom at each sample. */
-  hTop: number[];
-  hBot: number[];
-  light: number[];
-  idx: number[];
-}
-
-/** The visible part of bed `b` along the face, sample by sample, x increasing (north to south). */
-function bedBand(f: Face, b: number): BandSamples {
-  const s: BandSamples = {
-    count: 0,
-    x: [],
-    top: [],
-    bot: [],
-    hTop: [],
-    hBot: [],
-    light: [],
-    idx: [],
-  };
-  let lastX = Number.NEGATIVE_INFINITY;
-  const lo = f.bp[b];
-  const hi = f.bp[b + 1];
-  for (let i = 0; i < f.ns.length; i++) {
-    const x = (lo[i][0] + hi[i][0]) / 2;
-    if (x <= lastX) continue;
-    lastX = x;
-    s.x.push(x);
-    s.top.push(hi[i][1]);
-    s.bot.push(lo[i][1]);
-    s.hTop.push(f.hc[b + 1][i]);
-    s.hBot.push(f.hc[b][i]);
-    s.light.push(f.light[b][i]);
-    s.idx.push(i);
-    s.count++;
-  }
-  return s;
-}
 
 const SKY_COOL = rgbOf("#aeb0c4");
 const DEEP = rgbOf("#3d3944");
@@ -1563,36 +1548,105 @@ function paintBeach(c: PlateCanvas, f: Face): void {
   stroke(c, wrack, 0.9, css(hazed(rgbOf("#6e6458"), 1350)), 0.5);
 }
 
-/** Colour: the turf and soil capping the brow, the sod overhanging, grass hanging down; the strip of ground behind. */
+/** The turf on the brow: in the low sun at a slant, and where the brow comes down to the harbour, turned from it. */
+const TURF = rgbOf("#aaa35a");
+const TURF_DULL = rgbOf("#878669");
+const SOIL = rgbOf("#9c7c55");
+const SCAR = rgbOf("#b78f5f");
+
+/** How far into the harbour's corner a sample lies, 0..1: the brow coming down to the quay, turned south, out of the sun. */
+function cornerAt(n: number): number {
+  return smoothstep(150, 35, n);
+}
+
+/**
+ * Colour: the brow: the ground behind it up to the batteries' line; the
+ * turf capping the edge, 0.3–1.5 m thick, overhanging in places with a
+ * thin cool shadow under it, the soil under the turf; the slump scars,
+ * bare earth under a dark undercut where the turf has broken away; grass
+ * hanging over in tufts; where the brow comes down to the harbour, dull
+ * and out of the sun.
+ */
 function paintBrow(c: PlateCanvas, f: Face): void {
   const rng = createRng(971);
-  // The ground behind the brow, up to the batteries' line.
-  fill(c, band(f.back, f.edge), css(hazed(rgbOf("#bdb063"), 1400)));
+  // The ground behind the brow: one fill, then the corner's shade over it.
+  fill(c, band(f.back, f.edge), css(hazed(rgbOf("#a59f58"), 1400)));
   const soil: Pt[] = [];
   const grass: Pt[] = [];
   const shade: Pt[] = [];
-  const w = wobble(973, [
-    [40, 0.35],
-    [13, 0.2],
+  const thick = wobble(973, [
+    [70, 0.5],
+    [23, 0.3],
+    [9, 0.12],
+  ]);
+  const hangs = wobble(977, [
+    [40, 1],
+    [13, 0.4],
   ]);
   for (let i = 0; i < f.ns.length; i++) {
+    const n = f.ns[i];
     const top = f.top[i];
-    const g = 0.5 + Math.max(0, w(f.ns[i])) * 0.6;
-    const s = g + 0.9 + Math.max(0, -w(f.ns[i] + 50)) * 0.9;
+    const g = 0.3 + 1.2 * Math.min(1, Math.max(0, 0.5 + thick(n)));
+    const s = g + 0.6 + Math.max(0, -thick(n + 60)) * 0.9;
     grass.push(atH(f, i, Math.max(FOOT, top - g)));
     soil.push(atH(f, i, Math.max(FOOT, top - s)));
-    shade.push(atH(f, i, Math.max(FOOT, top - s - 0.7)));
+    // Where the turf overhangs, its shadow falls on the soil under it.
+    const over = Math.max(0, hangs(n) - 0.35) * 0.9;
+    shade.push(atH(f, i, Math.max(FOOT, top - s - 0.25 - over)));
   }
-  fill(c, band(soil, shade), css(hazed(rgbOf("#7a6c66"), 1350), 0.45));
-  fill(c, band(grass, soil), css(hazed(rgbOf("#a98a5c"), 1350), 0.9));
-  fill(c, band(f.edge, grass), css(hazed(rgbOf("#c2b467"), 1350)));
-  // Grass hanging over the edge.
+  // Each band in reaches, its colour dulled toward the harbour's corner.
+  for (let i0 = 0; i0 < f.ns.length - 1; i0 += 12) {
+    const i1 = Math.min(f.ns.length - 1, i0 + 13);
+    const k = cornerAt(f.ns[Math.floor((i0 + i1) / 2)]);
+    const turf = hazed(lerp3(TURF, TURF_DULL, k), 1350);
+    const soilC = hazed(lerp3(SOIL, rgbOf("#6f6157"), k * 0.7), 1350);
+    fill(
+      c,
+      band(soil.slice(i0, i1 + 1), shade.slice(i0, i1 + 1)),
+      css(hazed(rgbOf("#4f4954"), 1350), 0.55),
+    );
+    fill(
+      c,
+      band(grass.slice(i0, i1 + 1), soil.slice(i0, i1 + 1)),
+      css(soilC),
+      0.92,
+    );
+    fill(c, band(f.edge.slice(i0, i1 + 1), grass.slice(i0, i1 + 1)), css(turf));
+  }
+  // The slump scars: bare earth where the turf has broken away, the turf's
+  // dark undercut along their top.
+  for (const [m, half] of SCARS) {
+    const i0 = indexOf(f, m + half);
+    const i1 = indexOf(f, m - half);
+    const low: Pt[] = [];
+    const lip: Pt[] = [];
+    for (let i = i0; i <= i1; i++) {
+      const d = scarDrop(f.ns[i]);
+      low.push(f.edge[i]);
+      lip.push(
+        project(faceE(f, i, f.top[i]) + 3, f.ns[i], (f.top[i] + d) * VEX),
+      );
+    }
+    const ahead = f.ahead[indexOf(f, m)];
+    fill(c, band(lip, low), css(hazed(SCAR, ahead)));
+    const under = new Path2D();
+    addLine(
+      under,
+      lip.map(([x, y]) => [x, y - 0.35] as Pt),
+    );
+    stroke(c, under, 1, css(hazed(DEEP, ahead)), 0.75);
+    const turf = new Path2D();
+    addLine(turf, lip);
+    stroke(c, turf, 0.9, css(hazed(TURF, ahead)), 1);
+  }
+  // Grass hanging over the edge in tufts.
   const hang = new Path2D();
-  for (let n = N_MAX - rng() * 5; n > N_MIN + 50; n -= 2 + rng() * 9) {
+  for (let n = N_MAX - rng() * 5; n > N_MIN + 60; n -= 3 + rng() * 12) {
+    if (rng() < 0.35) continue;
     const i = indexOf(f, n);
     const a = soil[i];
-    const len = (0.6 + rng() * 2.2) * VEX * (1000 / f.ahead[i]);
-    const wd = (0.6 + rng() * 1.6) * c.pen(1.5);
+    const len = (0.5 + rng() * 1.8) * VEX * (1000 / f.ahead[i]);
+    const wd = (0.5 + rng() * 1.3) * c.pen(1.5);
     hang.moveTo(a[0] - wd, a[1] + 0.3);
     hang.quadraticCurveTo(
       a[0] - wd * 0.2,
@@ -1608,10 +1662,36 @@ function paintBrow(c: PlateCanvas, f: Face): void {
     );
     hang.closePath();
   }
-  fill(c, hang, css(hazed(rgbOf("#a69f5c"), 1350)), 0.8);
-  const lip = new Path2D();
-  addLine(lip, f.edge);
-  stroke(c, lip, 0.8, css(hazed(rgbOf("#e2d38a"), 1350)), 0.6);
+  fill(c, hang, css(hazed(rgbOf("#8f8d55"), 1350)), 0.85);
+  // The lit lip of the turf, fading where the brow turns from the sun.
+  const lit: Pt[] = [];
+  for (let i = 0; i < f.ns.length; i++) {
+    if (cornerAt(f.ns[i]) > 0.6) break;
+    lit.push(f.edge[i]);
+  }
+  const lipP = new Path2D();
+  addBroken(lipP, lit, 30, 2, rng, () => 0.9);
+  stroke(c, lipP, 0.7, css(hazed(rgbOf("#cfc27a"), 1350)), 0.5);
+}
+
+/**
+ * Colour: the harbour's corner, where the cliff comes down to the quay
+ * and turns south from the sun: the face, its talus and the beach under
+ * it in the cliff's own shade, deepening toward the town's first roofs.
+ */
+function paintCorner(c: PlateCanvas, f: Face): void {
+  const i0 = indexOf(f, 170);
+  const i1 = f.ns.length - 1;
+  const top = f.edge.slice(i0, i1 + 1);
+  const low = f.hw.slice(i0, i1 + 1);
+  const xa = f.edge[indexOf(f, 160)][0];
+  const xb = f.edge[indexOf(f, 40)][0];
+  const g = c.ctx.createLinearGradient(xa, 0, xb, 0);
+  const cool = hazed(rgbOf("#45434f"), 1350);
+  g.addColorStop(0, css(cool, 0));
+  g.addColorStop(0.55, css(cool, 0.22));
+  g.addColorStop(1, css(cool, 0.5));
+  fill(c, band(top, low), g);
 }
 
 /** The face's colour jobs, beach first, in paint order. */
@@ -1642,6 +1722,7 @@ export function faceColourJobs(get: () => Face): PlateJob[] {
     (c) => paintScrub(c, get()),
     (c) => paintTalus(c, get()),
     (c) => paintBrow(c, get()),
+    (c) => paintCorner(c, get()),
   );
   return jobs;
 }

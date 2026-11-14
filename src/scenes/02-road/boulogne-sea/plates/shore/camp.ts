@@ -143,8 +143,8 @@ export interface CampPlateOptions {
   depth: number;
   box: Plate["box"];
   seed: number;
-  /** The tiers' contours, far to near, built inside the first job; `count` of them. */
-  contours: () => Contour[];
+  /** Tier `i`'s contour, far to near, built inside the first job that needs it; `count` of them. */
+  contour: (i: number) => Contour;
   count: number;
   /**
    * Windmills standing on this ground: [east, north, metres up as drawn,
@@ -173,12 +173,10 @@ function addHedgeLoops(p: Path2D, pts: readonly Pt[], r: number): void {
 }
 
 export function campPlate(o: CampPlateOptions): Plate {
-  let lines: Contour[] | undefined;
   const tiers: (Tier | undefined)[] = [];
   const rows: (Hut[] | undefined)[] = [];
   const tierAt = (i: number): Tier => {
-    lines ??= o.contours();
-    tiers[i] ??= prepare(lines[i]);
+    tiers[i] ??= prepare(o.contour(i));
     return tiers[i];
   };
   const hutsAt = (i: number): Hut[] => {
@@ -342,9 +340,12 @@ export function campPlate(o: CampPlateOptions): Plate {
     };
   }
 
-  function hutsJob(i: number, mode: PlateMode): PlateJob {
+  /** A row's huts in two jobs, each a stretch of the row (so neither is long). */
+  function hutsJob(i: number, part: 0 | 1, mode: PlateMode): PlateJob {
     return (c: PlateCanvas) => {
-      const huts = hutsAt(i);
+      const all = hutsAt(i);
+      const mid = Math.ceil(all.length / 2);
+      const huts = part === 0 ? all.slice(0, mid) : all.slice(mid);
       if (mode === "colour") paintHuts(c, huts);
       else engraveHuts(c, huts);
     };
@@ -368,7 +369,7 @@ export function campPlate(o: CampPlateOptions): Plate {
       for (const m of mills) if (m[4] < 0) jobs.push(millJob(m, mode));
       for (let i = 0; i < o.count; i++) {
         jobs.push(groundJob(i, mode));
-        jobs.push(hutsJob(i, mode));
+        jobs.push(hutsJob(i, 0, mode), hutsJob(i, 1, mode));
         for (const m of mills) if (m[4] === i) jobs.push(millJob(m, mode));
       }
       return jobs;

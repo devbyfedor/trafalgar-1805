@@ -66,9 +66,10 @@ function kitchenAt(n: number, d: number): boolean {
   return Math.abs(d - back) < 40 && n > 420;
 }
 
-function northContours(tiers: readonly TierSpec[]): () => Contour[] {
-  return () =>
-    tiers.map((t) => {
+function northContours(tiers: readonly TierSpec[]): (i: number) => Contour {
+  return (i) => {
+    const t = tiers[i];
+    {
       const world: [number, number, number][] = [];
       const ns: number[] = [];
       for (let n = 3600; n >= 20; n -= 12) {
@@ -85,9 +86,10 @@ function northContours(tiers: readonly TierSpec[]): () => Contour[] {
           t.row === 0
             ? (_e: number, n: number) => kitchenAt(n, t.d)
             : undefined,
-        light: (i: number) => northLight(ns[i], t.d),
+        light: (j: number) => northLight(ns[j], t.d),
       };
-    });
+    }
+  };
 }
 
 /**
@@ -148,7 +150,7 @@ export function northPlates(): Plate[] {
       depth: 1650,
       box: [-899, -150, 0, 128],
       seed: 401,
-      contours: northContours(NEAR),
+      contour: northContours(NEAR),
       count: NEAR.length,
     }),
     campPlate({
@@ -156,7 +158,7 @@ export function northPlates(): Plate[] {
       depth: 2400,
       box: [-896, -170, 0, 160],
       seed: 451,
-      contours: northContours(FAR),
+      contour: northContours(FAR),
       count: FAR.length,
       // Post mills on the fields beyond the camp, each painted after the
       // tier behind it, so the ground in front hides its foot.

@@ -271,11 +271,25 @@ const ARROW_HAND_P = 0.002;
  * Cádiz (beat 4) and in the night and at dawn again (beat 5, after the
  * cut-away to Ulm).
  */
+/** The October fleets in the story off Cádiz (fleetsShownAt): in over the first two, out over the last two. */
+const FLEETS_OFF_CADIZ = [0.655, 0.675, 0.835, 0.85] as const;
+
+/**
+ * Where the October fleets' labels first read off Cádiz (readableChanges):
+ * their presence past 0.6 (with the view's own fade there, about 0.8, a
+ * label at half opacity or more).
+ */
+const FLEETS_READ_FROM =
+  FLEETS_OFF_CADIZ[0] +
+  (FLEETS_OFF_CADIZ[1] - FLEETS_OFF_CADIZ[0]) *
+    // The smoothstep's inverse at 0.6.
+    (0.5 - Math.sin(Math.asin(1 - 2 * 0.6) / 3));
+
 function fleetsShownAt(p: number): number {
   return Math.min(
     1,
     fade(p, [-1, 0, BEATS.transition[1] + 0.03, BEATS.transition[1] + 0.06]) +
-      fade(p, [0.655, 0.675, 0.835, 0.85]) +
+      fade(p, FLEETS_OFF_CADIZ) +
       fade(p, [0.905, 0.925, 2, 3]),
   );
 }
@@ -746,6 +760,91 @@ function changeWindows(ps: readonly number[], end: number): number[] {
 const CHANGE_SHARE = 0.85;
 
 /**
+ * How long a figure lettered at a head is shown whole, at the least (p):
+ * about 160 px of scroll on the owner's screen, half a second at the
+ * brief's middle pace (the scene's 30 screens in 75 s), long enough to
+ * read a figure in a label one is looking at (the owner's rule of 14
+ * November 2026). A change's crossfade takes at least READ_W_MIN.
+ */
+const READ_P = 0.0075;
+const READ_W_MIN = 0.002;
+
+/** A label's figures as lettered (readableChanges): the one it comes in with, and each change after, at its p, over its window. */
+interface LabelSteps {
+  first: number;
+  p: number[];
+  w: number[];
+  v: number[];
+}
+
+/**
+ * The changes of a label's figure as it is lettered, from the changes of
+ * its strength (at ps, each to the figure vs[k], an index into its counts;
+ * -1 for none): every figure it shows is shown whole for READ_P of scroll
+ * at the least while the label reads, from `readFrom` (where it has come
+ * in) to `end` (where it leaves the story); one that would only flash is
+ * skipped (the owner's rule of 14 November 2026; decisions.md, session
+ * 32, part one). From the last change back, a change is kept only with
+ * READ_P and a crossfade's least window before the next kept one (the
+ * most changes so spaced); one before `readFrom`, or too near it for the
+ * figure the label comes in with to be read, is taken as that figure (the
+ * label comes in with the figure it is first read with); a kept change to
+ * the figure already shown is no change. Only the label's figure: its
+ * ships still come and go on their days.
+ */
+function readableChanges(
+  ps: readonly number[],
+  vs: readonly number[],
+  first: number,
+  readFrom: number,
+  end: number,
+): LabelSteps {
+  // Only real changes of the figure.
+  const p: number[] = [];
+  const v: number[] = [];
+  let was = first;
+  for (let k = 0; k < ps.length; k++) {
+    if (vs[k] === was) continue;
+    was = vs[k];
+    p.push(ps[k]);
+    v.push(vs[k]);
+  }
+  const keep = new Array<boolean>(p.length).fill(false);
+  let next = end;
+  for (let k = p.length - 1; k >= 0; k--)
+    if (p[k] >= readFrom && next - p[k] >= READ_P + READ_W_MIN) {
+      keep[k] = true;
+      next = p[k];
+    }
+  // The figure it comes in with: the last before it reads, or before the
+  // first kept change if that comes too soon after.
+  let start = first;
+  for (let k = 0; k < p.length; k++) {
+    if (p[k] >= readFrom && !(keep[k] && p[k] - readFrom < READ_P)) {
+      if (keep[k]) break;
+      continue;
+    }
+    start = v[k];
+    keep[k] = false;
+  }
+  const out: LabelSteps = { first: start, p: [], w: [], v: [] };
+  let shown = start;
+  for (let k = 0; k < p.length; k++) {
+    if (!keep[k] || v[k] === shown) continue;
+    shown = v[k];
+    out.p.push(p[k]);
+    out.v.push(v[k]);
+  }
+  for (let k = 0; k < out.p.length; k++) {
+    const to = k + 1 < out.p.length ? out.p[k + 1] : end;
+    out.w.push(
+      Math.max(READ_W_MIN, Math.min(CHANGE_P, to - out.p[k] - READ_P)),
+    );
+  }
+  return out;
+}
+
+/**
  * The beats in which the October fleets' strengths change, by the story's
  * unbroken clock (from Nelson's arrival on 28 September to the dawn).
  */
@@ -840,6 +939,8 @@ interface Squad {
   stageW: number[];
   /** The p at which it comes into the story and leaves it (spec.shown). */
   shownP: [number, number];
+  /** Its label's figures as lettered (readableChanges; set once the label's counts are known). */
+  label: LabelSteps;
   /** The legs it sails, in order, and the p at which each begins. */
   legs: LegClock[];
   legP: number[];
@@ -1060,6 +1161,8 @@ export class RoadDirector {
     fleetSchedule(f.side),
   );
   private readonly fleetCountIndex: Map<number, number>[];
+  /** Each October fleet's figures as lettered off Cádiz (readableChanges). */
+  private readonly fleetLabels: LabelSteps[];
   /**
    * Each fleet ship's comings and goings over the scroll from beat 4 on
    * (fleetPresence): whether she is with the fleet at its start, and each
@@ -1121,6 +1224,7 @@ export class RoadDirector {
         stageP,
         stageW: [0, ...changeWindows(stageP.slice(1), shownP[1])],
         shownP,
+        label: { first: -1, p: [], w: [], v: [] },
         legs,
         legP: legs.map((c) => pOfDay(c.first, SQUADRON_BEATS)),
         formation: {
@@ -1199,6 +1303,28 @@ export class RoadDirector {
     this.fleetCountIndex = this.fleetSchedules.map(
       (sched) => new Map(fleetCounts(sched).map((n, k) => [n, k] as const)),
     );
+    // The figures as lettered: each shown long enough to be read.
+    this.squads.forEach((squad, s) => {
+      const index = this.stageCounts[s];
+      squad.label = readableChanges(
+        squad.stageP.slice(1),
+        index.slice(1),
+        index[0],
+        squad.shownP[0],
+        squad.shownP[1],
+      );
+    });
+    this.fleetLabels = this.fleetSchedules.map((sched, f) => {
+      const index = this.fleetCountIndex[f];
+      const at = (d: number) => index.get(lineStrength(sched.side, d)) ?? 0;
+      return readableChanges(
+        sched.p,
+        sched.days.map(at),
+        at(dayAt(BEATS.cadiz[0])),
+        FLEETS_READ_FROM,
+        FLEETS_OFF_CADIZ[2],
+      );
+    });
     const start = dayAt(BEATS.cadiz[0]);
     // By her joining and her absence only: a ship left at anchor in port
     // (the Observateur) is with the fleet there, and one leaving the story
@@ -1480,30 +1606,42 @@ export class RoadDirector {
 
   /**
    * Development: every change of a label's strength over the scroll, at its
-   * p and over its window (changeWindows), with the figure after it: each
-   * squadron's by its stages, then the October fleets'.
+   * p, with the figure after it: each squadron's by its stages, then the
+   * October fleets'; with the window of its figure's change where it is
+   * lettered (readableChanges), and `lettered` false where its figure is
+   * skipped (too near the next to be read) or no figure changes.
    */
-  labelChanges(): { id: string; p: number; w: number; text: string }[] {
-    const out: { id: string; p: number; w: number; text: string }[] = [];
+  labelChanges(): {
+    id: string;
+    p: number;
+    w: number;
+    text: string;
+    lettered: boolean;
+  }[] {
+    const out: ReturnType<RoadDirector["labelChanges"]> = [];
+    const add = (id: string, steps: LabelSteps, p: number, text: string) => {
+      const k = steps.p.indexOf(p);
+      out.push({ id, p, w: k >= 0 ? steps.w[k] : 0, text, lettered: k >= 0 });
+    };
     for (const squad of this.squads)
       squad.spec.stages.forEach((stage, j) => {
         if (j === 0) return;
-        out.push({
-          id: squad.spec.id,
-          p: squad.stageP[j],
-          w: squad.stageW[j],
-          text: strengthOf(squad.spec, stage) ?? "none",
-        });
+        add(
+          squad.spec.id,
+          squad.label,
+          squad.stageP[j],
+          strengthOf(squad.spec, stage) ?? "none",
+        );
       });
     FLEET_HEADS.forEach((fleet, f) => {
       const sched = this.fleetSchedules[f];
       sched.days.forEach((d, e) => {
-        out.push({
-          id: fleet.id,
-          p: sched.p[e],
-          w: sched.w[e],
-          text: `${lineStrength(fleet.side, d)} sail`,
-        });
+        add(
+          fleet.id,
+          this.fleetLabels[f],
+          sched.p[e],
+          `${lineStrength(fleet.side, d)} sail`,
+        );
       });
     });
     return out;
@@ -1865,14 +2003,15 @@ export class RoadDirector {
     const heads = this.layers.heads;
     this.squads.forEach((squad, s) => {
       const w = this.headWeights[s];
-      const index = this.stageCounts[s];
+      // Its figures as lettered, each read whole (readableChanges).
+      const steps = squad.label;
       w.fill(0);
-      if (index[0] >= 0) w[index[0]] = 1;
-      for (let m = 1; m < squad.spec.stages.length; m++) {
-        const t = smooth(squad.stageP[m], squad.stageP[m] + squad.stageW[m], p);
+      if (steps.first >= 0) w[steps.first] = 1;
+      for (let m = 0; m < steps.p.length; m++) {
+        const t = smooth(steps.p[m], steps.p[m] + steps.w[m], p);
         if (t <= 0) break;
         for (let c = 0; c < w.length; c++) w[c] *= 1 - t;
-        if (index[m] >= 0) w[index[m]] += t;
+        if (steps.v[m] >= 0) w[steps.v[m]] += t;
       }
       let sum = 0;
       for (let c = 0; c < w.length; c++) sum += w[c];
@@ -1939,17 +2078,19 @@ export class RoadDirector {
       const w = this.headWeights[h];
       const index = this.fleetCountIndex[f];
       w.fill(0);
-      const sched = this.fleetSchedules[f];
       if (p < BEATS.cadiz[0]) {
         // At dawn on the 21st (beat 0), through its fade into beat 1.
         w[index.get(lineStrength(fleet.side, dayAt(0))) ?? 0] = 1;
       } else {
-        w[index.get(lineStrength(fleet.side, dayAt(BEATS.cadiz[0]))) ?? 0] = 1;
-        for (let e = 0; e < sched.p.length; e++) {
-          const t = smooth(sched.p[e], sched.p[e] + sched.w[e], p);
+        // Its figures as lettered off Cádiz, each read whole
+        // (readableChanges); its ships come and go on their days.
+        const steps = this.fleetLabels[f];
+        w[steps.first] = 1;
+        for (let e = 0; e < steps.p.length; e++) {
+          const t = smooth(steps.p[e], steps.p[e] + steps.w[e], p);
           if (t <= 0) break;
           for (let c = 0; c < w.length; c++) w[c] *= 1 - t;
-          w[index.get(lineStrength(fleet.side, sched.days[e])) ?? 0] += t;
+          w[steps.v[e]] += t;
         }
       }
       // Among its ships, each counting as far as she is there, so a ship

@@ -12,8 +12,8 @@ import { INK, PAPER, type PlateCanvas, type PlateJob } from "../../paint/plate";
  * horizon); thin veils of haze low over the land. No sun and no glitter
  * in front: they are behind the eye.
  *
- * Its engraving: the paper ground of the whole engraving, with only a few
- * fine broken strokes toward the top (sky-hatch).
+ * Its engraving: the paper ground of the whole engraving, and the sky's
+ * long tapered lines, closest at the top, opening downward (sky-hatch).
  */
 
 /**

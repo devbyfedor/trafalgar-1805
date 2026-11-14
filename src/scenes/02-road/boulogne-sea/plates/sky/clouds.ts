@@ -4,12 +4,15 @@ import { type CloudSpec, cloudJobs, newSlot } from "./cumulus";
 
 /**
  * Broken cloud in the east on a fine August evening, lit from behind the
- * eye by the sun 5° up and a little to the left (sky/cumulus.ts paints
- * each cloud): a bank of cumulus rising over the Outreau heights to the
- * south-east, a lower group in the haze over the cliffs to the north,
- * stratocumulus in loose patches higher up, and thin high streaks
- * catching pink. The chapter title's corner (top left) stays clear deep
- * blue, and the sky round the rising moon open.
+ * eye by the sun 7° up and 8° to the left (sky/cumulus.ts paints each
+ * cloud): a cumulus congestus over the Outreau heights to the south-east,
+ * its base high enough that the left camp's smoke rises under it against
+ * open sky; stratocumulus at one height in perspective, a few large cells
+ * high up and a far strand low over the cliffs and the harbour mouth;
+ * veils of cirrus catching the cleanest light. Restraint, perspective and
+ * one light, as scene 1's sky. The chapter title's corner (top left)
+ * stays clear deep blue; the sky round the rising moon, over the town and
+ * above the right camp's smoke stays open.
  */
 
 interface Group {

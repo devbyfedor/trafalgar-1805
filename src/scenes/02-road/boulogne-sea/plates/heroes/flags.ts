@@ -30,9 +30,9 @@ type V3 = readonly [number, number, number];
 const DEG = Math.PI / 180;
 /** The light air blows toward this azimuth (from the west, toward the east). */
 const WIND_TO = 90;
-/** The sun: azimuth and elevation, degrees. */
-const SUN_AZ = 294;
-const SUN_EL = 5;
+/** The sun: azimuth and elevation, degrees (18:33 on 10 August 1805, history-notes; the town and the sky light by it too). */
+const SUN_AZ = 286.2;
+const SUN_EL = 7;
 
 const rel = (az: number) => (az - SEA_EYE.heading) * DEG;
 /** Directions in the view's frame: ahead, right, up. */

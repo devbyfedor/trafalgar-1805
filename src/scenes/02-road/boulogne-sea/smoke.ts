@@ -118,7 +118,7 @@ export class SmokeRenderer {
         const rx = r * (1 + age * 0.9);
         const ry = r * (1 - age * 0.3);
         const alpha =
-          p.strength * this.intensity * Math.min(1, age * 7) * (1 - age) ** 1.4;
+          p.strength * this.intensity * Math.min(1, age * 4) * (1 - age) ** 1.4;
         if (alpha < 0.004) continue;
         ctx.globalAlpha = alpha;
         ctx.drawImage(
@@ -165,7 +165,7 @@ export function plumesOf(
       y,
       rise,
       lean: o.lean * (0.85 + rng() * 0.3),
-      spread: rise * (0.22 + rng() * 0.08),
+      spread: rise * (0.32 + rng() * 0.1),
       strength: o.strength * (0.75 + rng() * 0.25) * Math.min(1, 2200 / ahead),
       seed: o.seed * 100 + i,
     };

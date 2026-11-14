@@ -7,13 +7,20 @@ import {
   type PlateCanvas,
   type PlateJob,
 } from "../paint/plate";
-import { aerial, BUILD, viewOf } from "../scene";
+import { aerial, BUILD, EYE_H, viewOf } from "../scene";
 import {
   basinCraft,
   basinTiers,
   engraveCraft,
   paintCraft,
 } from "./harbour/basin";
+import { HAZE, hazeOf } from "./heroes/common";
+import {
+  type ClothShape,
+  engraveCloth,
+  paintCloth,
+  staffFlag,
+} from "./heroes/flags";
 import { DUSK } from "./town/houses";
 import {
   type Box,
@@ -830,15 +837,13 @@ function paintBattery(c: PlateCanvas): void {
       );
     }
     strokeLines(c, flag, 0.8, tar, 1);
-    // The tricolour, hanging in the calm.
-    const fy = y2 + 16 * u;
-    const fw = 4.5 * u;
-    const fh = 3 * u;
-    const cols = ["#4f5f86", "#e9e0cc", "#b4584a"];
-    cols.forEach((col, i) => {
-      ctx.fillStyle = aerial(col, ahead);
-      ctx.fillRect(fx + (i * fw) / 3, fy - fh, fw / 3 + 0.05, fh);
-    });
+    // The tricolour in the evening's one light air, as the craft's flags.
+    paintCloth(
+      c,
+      staffCloth(fx, y2 + 16 * u, ahead, 4.5, 3, 811),
+      hazeOf(ahead),
+      HAZE,
+    );
   } else {
     // The light: its outline, boards hatched on the shaded face, the lantern's bars, the roof hatched.
     ctx.fillStyle = PAPER.low;
@@ -959,9 +964,32 @@ function paintBattery(c: PlateCanvas): void {
       1,
     );
     strokeLines(c, flag, pen * 0.8, INK.line, 1);
-    const fy = y2 + 16 * u;
-    ctx.strokeRect(fx, fy - 3 * u, 4.5 * u, 3 * u);
+    engraveCloth(c, staffCloth(fx, y2 + 16 * u, ahead, 4.5, 3, 811), 0.8);
   }
+}
+
+/**
+ * A tricolour on a staff whose head stands at layer x, y, `ahead` metres
+ * off, `fly` by `hoist` metres as drawn: the craft's cloth in the one wind
+ * of the whole painting (heroes/flags.ts, staffFlag), hanging heavily and
+ * leaning toward the wind's vanishing point.
+ */
+function staffCloth(
+  x: number,
+  y: number,
+  ahead: number,
+  fly: number,
+  hoist: number,
+  seed: number,
+): ClothShape {
+  return staffFlag(
+    ahead,
+    (x * ahead) / 1000,
+    (y * ahead) / 1000 + EYE_H,
+    fly,
+    hoist,
+    seed,
+  );
 }
 
 function jettyPlate(id: string, depth: number, t0: number, t1: number): Plate {
@@ -1366,22 +1394,12 @@ function paintFort(
     if (lit.length > 1)
       strokeLines(c, [lit], 0.8, mix(red.lit, MAT.glint, 0.4), 0.9);
     strokeLines(c, staff, 1, tar, 1);
-    const fy = f.y(23);
-    const fw = 3.6 * u;
-    const fh = 2.4 * u;
-    ["#4f5f86", "#e9e0cc", "#b4584a"].forEach((col, i) => {
-      ctx.fillStyle = aerial(col, f.ahead);
-      ctx.beginPath();
-      const xa = x - 6 * u + (i * fw) / 3;
-      const xb = xa + fw / 3;
-      const sag = (i + 1) * 0.25 * u;
-      ctx.moveTo(xa, fy - i * 0.25 * u);
-      ctx.lineTo(xb + 0.05, fy - sag);
-      ctx.lineTo(xb + 0.05, fy - sag - fh);
-      ctx.lineTo(xa, fy - i * 0.25 * u - fh);
-      ctx.closePath();
-      ctx.fill();
-    });
+    paintCloth(
+      c,
+      staffCloth(x - 6 * u, f.y(23), f.ahead, 3.6, 2.4, 823),
+      hazeOf(f.ahead),
+      HAZE,
+    );
   } else {
     ctx.fillStyle = PAPER.low;
     ctx.fill(edge);
@@ -1472,8 +1490,11 @@ function paintFort(
       1,
     );
     strokeLines(c, staff, pen * 0.8, INK.line, 1);
-    const fy = f.y(23);
-    ctx.strokeRect(x - 6 * u, fy - 2.4 * u, 3.6 * u, 2.4 * u);
+    engraveCloth(
+      c,
+      staffCloth(x - 6 * u, f.y(23), f.ahead, 3.6, 2.4, 823),
+      0.8,
+    );
   }
 }
 

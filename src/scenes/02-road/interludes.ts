@@ -247,6 +247,20 @@ export function coveredAt(u: number): boolean {
 }
 
 /**
+ * Where the chart can't run (no WebGL, or its context lost for good), the
+ * scene is a sequence of stills (layers/RoadStills.tsx), and the interlude
+ * a still of the view from the sea over the beat's still of the chart: how
+ * much of it shows at a point of the interlude. It comes in where the
+ * painting's colour does (from the engraving's start to the craft's last
+ * colour, TRANSITION), while the text is out, and goes on the rise the same
+ * way back; whole through the hold.
+ */
+export function seaStillAt(phase: InterludePhase, t: number): number {
+  const T = TRANSITION;
+  return smooth(T.engraving[0], T.craft[1], flightU(phase, t));
+}
+
+/**
  * Screens of scroll the chart keeps drawing under a painting that already
  * covers it, at each end of the covered stretch: so it has drawn a few
  * frames (its GPU clocks up, its buffers in use) before it shows again,

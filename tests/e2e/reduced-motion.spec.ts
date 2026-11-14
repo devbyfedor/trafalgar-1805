@@ -31,7 +31,12 @@ test("reduced motion shows the static hero frame without a pin", async ({
   // One still per beat, each loaded from this site, with the captions as
   // real text (docs/scene-02-brief.md, "Fallbacks and accessibility").
   const stills = page.locator("[data-stills=stacked] img");
-  expect(await stills.count()).toBeGreaterThanOrEqual(6);
+  expect(await stills.count()).toBeGreaterThanOrEqual(7);
+  // Boulogne's view from the sea follows its chart's still, under the
+  // beat's caption (docs/scene-02-boulogne-brief.md, stage B).
+  await expect(
+    page.locator("[data-stills=stacked] figure img[data-still-sea=boulogne]"),
+  ).toHaveCount(1);
   for (const img of await stills.all()) {
     await img.scrollIntoViewIfNeeded();
     await expect

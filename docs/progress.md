@@ -2,6 +2,26 @@
 
 Live checklist. A later session picks up from here. The briefs are `docs/scene-01-brief.md` and `docs/scene-02-brief.md`; decisions and deviations are in `docs/decisions.md`.
 
+## Session 30 (14 November 2026): Boulogne from the sea, stage B, part two: the stills, the full checks, the history
+
+**Where we are:** on `s24-boulogne-sea` (main untouched at `d7ed575`). The brief's status: "Stage B — in progress". My server on 4173 serves `out/` (main tree's `serve`); check it with `served.mjs` before any use.
+
+**The owner's order** (complete; it ends "Конец сообщения"). He looked at the dusk on the preview and approves it. This session is stage B's second and last part: the still, the full checks and the history section. **The painting's look is not to change.** His answers: (1) the chaloupe's masts stay as they are, about 20 m (approved look; Steel's rule is British practice, not necessarily right for the French craft): the doubt into `history-notes.md`; (2) the moon rising through the hold: yes (closer to the truth than a still moon): the liberty into `decisions.md`. Order of work:
+1. The still of the view for reduced motion and no WebGL: the moment of the hold where the craft, the shore and the moon read best; show it in the report.
+2. Full checks on the production build, each time the build checked with `served.mjs`: `contrast.mjs` over the whole hold and every label of scene 2 at the four sizes; the frame budget on the dive, the hold and the rise; the other beats of scene 2 frame for frame against the reference; scene 1's regression; `npm run check` whole.
+3. The history section "Boulogne from the sea" in `history-notes.md`: everything stage B added (the dusk and its time, the flotilla by the check, the flag, the British sail and why there is none, the doubt about the masts); every liberty checked against `decisions.md`.
+4. Stage B's screenshots in `docs/screenshots/scene-02/boulogne-sea/stage-b/`: from the chart through the dive, the golden light, the dusk and the rise back to the chart.
+5. The brief's status "Stage B — complete, awaiting owner review", the report by the brief's rules, stop.
+Nothing into main (he will say when, after his look); the deferred plan's branches untouched; never `npm run screenshots`; commit after every step; keep this file current.
+
+**Plan and state:**
+- [x] Step 0: oriented (clean tree at `269ec97`, the brief, this file, git).
+- [x] Step 1: the still (decisions.md, session 30). The moment: hold 0.38, idle time frozen at 15 s (the sun's last light; the craft and the shore warm, the moon clear of the rigging; 0.40–0.58 the main topmast's stay crosses the moon). `public/stills/scene-02/boulogne-sea.webp` (2560×1440), `-1920.webp`, `-wide.webp` (3440×1440), rendered from the lab page by `npx playwright test --project=stills -g "view from the sea"` (the tests' server on 4174, `served.mjs` OK on the build of 269ec97 + the uncommitted stills code). `RoadStills`: stacked (reduced motion) Boulogne's figure = the chart's still, the view, the caption; crossfade (no WebGL) the view comes in over the chart's still through the dive (`seaStillAt`), the text steps aside and back, the scrim hidden while it covers, the wide still on screens over 2:1; the date line now runs in the stills mode (it was written only by the chart's loop). Tests: `no-webgl.spec.ts` (project road) and `reduced-motion.spec.ts` pass (4 of 4, `.claude/s30/fallback-tests.log`). Looked at: `.claude/s30/still-final-*.png`, `.claude/s30/fallback/` (no WebGL at p 0.2, dive 0.7, 0.85, hold 0.5, rise 0.3; the reduced-motion figure).
+- [ ] Step 2: the full checks (on the production build of the step 1 commit or later).
+- [ ] Step 3: the history section.
+- [ ] Step 4: the screenshots.
+- [ ] Step 5: status, report, stop.
+
 ## Session 29 (14 November 2026): Boulogne from the sea, stage B, part one: the look
 
 **Where we stopped (the planned end of part one: the look done, the report sent).** On `s24-boulogne-sea` (main untouched at `d7ed575`); all committed; lint (the two old infos in `hscroll.mjs`), typecheck pass. The brief's status: **"Stage B — in progress"** (stage B's second part is next session). Nothing runs: no helper, my server on 4173 left serving the build of `9f3508e` until the report, then stopped; every s29 worktree removed (branches `s29-lights-town`, `s29-lights-camps`, `s29-lights-fix` merged and kept); no merge into main, no rebase, lock or stash. The deferred plan's branches untouched.

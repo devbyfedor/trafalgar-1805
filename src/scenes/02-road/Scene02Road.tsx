@@ -20,11 +20,13 @@ import {
   CHART_BACK,
   coveredAt,
   coveredSpan,
+  flightU,
   ROAD_INTERLUDES,
   SEA_EYE,
   SEA_HOLD,
   type SeaPose,
   SHORE_AHEAD,
+  seaStillAt,
   textAt,
 } from "./interludes";
 import { RoadStills } from "./layers/RoadStills";
@@ -78,6 +80,9 @@ export function Scene02Road() {
   // The scene's progress, for the stills when the chart can't run.
   const progress = useRef(0);
   const readProgress = useRef(() => progress.current).current;
+  // How much Boulogne's still from the sea covers the chart's, for the same.
+  const seaShare = useRef(0);
+  const readSea = useRef(() => seaShare.current).current;
   // Boulogne's painting (boulogne-sea/), loaded once the chart is ready, in
   // chart mode only: phones and reduced motion never load it.
   const [Sea, setSea] = useState<ComponentType<SeaViewProps> | null>(null);
@@ -154,6 +159,10 @@ export function Scene02Road() {
             if (st && Math.abs(q - st.progress) < 2e-6) q = st.progress;
             const screens = q * SCROLL.length;
             inLude = SCROLL.interludeAt(screens, lude);
+            seaShare.current =
+              inLude && inLude.screens > 0
+                ? seaStillAt(inLude.phase, inLude.t)
+                : 0;
             tl.time(SCROLL.pAt(screens));
           };
           const driver = gsap.timeline({
@@ -190,6 +199,16 @@ export function Scene02Road() {
           // The page's scroll position (CSS px) of a screen of the pin.
           const scrollAt = (screens: number) =>
             (driver.scrollTrigger?.start ?? 0) + screens * window.innerHeight;
+          // The scroll's map for the tests in every mode (window.__road
+          // comes only once the chart has started).
+          window.__roadScroll = {
+            scrollFor: (p: number) => scrollAt(SCROLL.screensFor(p)),
+            scrollForInterlude: (
+              id: string,
+              phase: InterludePhase,
+              t: number,
+            ) => scrollAt(SCROLL.screensForInterlude(id, phase, t)),
+          };
 
           // The date line's text runs with the story.
           const dateline = els.one("[data-el=dateline]");
@@ -199,6 +218,31 @@ export function Scene02Road() {
             if (text !== shownDate && dateline) {
               dateline.textContent = text;
               shownDate = text;
+            }
+          };
+
+          // The text steps aside while the chart turns into the painting
+          // and back (interludes.ts, textAt); over the painting the
+          // chapter marker reads without its scrim (the painting's sky is
+          // dark enough there), so the scrim is hidden while it covers.
+          // `u` is the interlude rig's, or null outside an interlude (and
+          // before the painting is ready).
+          const textLayer = el.querySelector<HTMLElement>("[data-layer=text]");
+          const chapterScrim = el.querySelector<HTMLElement>(
+            "[data-el=scrim-chapter]",
+          );
+          let textShown = 1;
+          let scrimHidden = false;
+          const stepText = (u: number | null) => {
+            const text = u === null ? 1 : textAt(u);
+            if (text !== textShown && textLayer) {
+              textLayer.style.opacity = text === 1 ? "" : text.toFixed(4);
+              textShown = text;
+            }
+            const hideScrim = u !== null && coveredAt(u);
+            if (hideScrim !== scrimHidden && chapterScrim) {
+              chapterScrim.style.visibility = hideScrim ? "hidden" : "";
+              scrimHidden = hideScrim;
             }
           };
 
@@ -218,6 +262,23 @@ export function Scene02Road() {
           });
 
           const controller = new AbortController();
+          // Where the chart can't run (no WebGL, or its context lost for
+          // good): the stills (RoadStills, crossfade) under the scene's own
+          // text, which runs with the story and steps aside through
+          // Boulogne's interlude as it does over the painting (its still
+          // comes in while the text is out).
+          let stills = false;
+          const stillsTick = () => {
+            writeDate();
+            const at = inLude;
+            stepText(at && at.screens > 0 ? flightU(at.phase, at.t) : null);
+          };
+          const toStills = () => {
+            if (stills) return;
+            stills = true;
+            gsap.ticker.add(stillsTick);
+            setMode("stills");
+          };
           let stage: RoadStage | null = null;
           let render: ((time: number) => void) | null = null;
           let unregister = () => {};
@@ -275,7 +336,7 @@ export function Scene02Road() {
               labels: canvasHost,
               signal: controller.signal,
               quality: quality === null ? undefined : Number(quality),
-              onFatal: () => setMode("stills"),
+              onFatal: toStills,
             });
             if (controller.signal.aborted) {
               stage.dispose();
@@ -307,19 +368,8 @@ export function Scene02Road() {
             const pose: SeaPose = { ...SEA_HOLD };
             // Whether the painting covers the chart, so it isn't drawn.
             let covered = false;
-            // The text steps aside while the chart turns into the painting
-            // and back (interludes.ts, textAt); over the painting the
-            // chapter marker reads without its scrim (the painting's sky is
-            // dark enough there), so the scrim is hidden while it covers.
-            const textLayer =
-              el.querySelector<HTMLElement>("[data-layer=text]");
-            const chapterScrim = el.querySelector<HTMLElement>(
-              "[data-el=scrim-chapter]",
-            );
-            let textShown = 1;
-            let scrimHidden = false;
             render = (time: number) => {
-              if (held) return;
+              if (held || stills) return;
               writeDate();
               // Inside an interlude, its camera for the chart and the
               // painting alike (at its very first screen, the chart's own
@@ -332,16 +382,7 @@ export function Scene02Road() {
               const painting = sea.current;
               painting?.frame(state.p, at, view ? view.u : 0, pose, time);
               const painted = view !== undefined && painting?.ready === true;
-              const text = painted ? textAt(view.u) : 1;
-              if (text !== textShown && textLayer) {
-                textLayer.style.opacity = text === 1 ? "" : text.toFixed(4);
-                textShown = text;
-              }
-              const hideScrim = painted && coveredAt(view.u);
-              if (hideScrim !== scrimHidden && chapterScrim) {
-                chapterScrim.style.visibility = hideScrim ? "hidden" : "";
-                scrimHidden = hideScrim;
-              }
+              stepText(painted ? view.u : null);
               // While the painting covers it, the chart isn't drawn: from a
               // little after it covers it on the way down to a little
               // before it shows again (interludes.ts, coveredSpan).
@@ -500,7 +541,7 @@ export function Scene02Road() {
           start().catch((error: unknown) => {
             if (controller.signal.aborted) return;
             console.error("scene 2:", error);
-            setMode("stills");
+            toStills();
           });
           const onVisibility = () => stage?.chart.pause();
           document.addEventListener("visibilitychange", onVisibility);
@@ -508,6 +549,7 @@ export function Scene02Road() {
           return () => {
             controller.abort();
             if (render) gsap.ticker.remove(render);
+            gsap.ticker.remove(stillsTick);
             document.removeEventListener("visibilitychange", onVisibility);
             observer.disconnect();
             unregister();
@@ -516,6 +558,7 @@ export function Scene02Road() {
             canvas.remove();
             outer.style.marginTop = "";
             window.__road = undefined;
+            window.__roadScroll = undefined;
             setMode("none");
           };
         },
@@ -542,7 +585,12 @@ export function Scene02Road() {
         />
         {Sea && mode === "chart" ? <Sea onReady={onSeaReady} /> : null}
         {mode === "stills" ? (
-          <RoadStills variant="crossfade" showImages progress={readProgress} />
+          <RoadStills
+            variant="crossfade"
+            showImages
+            progress={readProgress}
+            sea={readSea}
+          />
         ) : null}
         <RoadText />
       </section>
@@ -553,6 +601,15 @@ export function Scene02Road() {
 
 declare global {
   interface Window {
+    /** Scene 2's scroll map, for the end-to-end tests, in every mode (also in window.__road). */
+    __roadScroll?: {
+      scrollFor: (p: number) => number;
+      scrollForInterlude: (
+        id: string,
+        phase: InterludePhase,
+        t: number,
+      ) => number;
+    };
     /** Scene 2's chart, for the end-to-end tests. */
     __road?: {
       ready: boolean;

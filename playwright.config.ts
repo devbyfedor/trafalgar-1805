@@ -17,7 +17,8 @@ import { defineConfig, devices } from "@playwright/test";
  *   at the laptop's 1920×1080 device pixels, so it gets a quarter of them),
  *   and in the new headless mode on the GPU at the owner's viewport
  * - road: scene 2 on the home page (its beats, its pin and Boulogne's
- *   interlude), and the page's width with classic scroll bars
+ *   interlude), the page's width with classic scroll bars, and the scene
+ *   as its stills where WebGL is unavailable
  * - chart-frames: the chart's frames timed on the GPU and long tasks while
  *   the flight is scrolled, and scene 2's through Boulogne's interlude,
  *   after every other project, so nothing else uses the GPU meanwhile
@@ -127,7 +128,7 @@ export default defineConfig({
       // seconds. overflow.spec.ts starts its own browser with classic
       // scroll bars (without --hide-scrollbars).
       name: "road",
-      testMatch: /[\\/](road|overflow)\.spec\.ts$/,
+      testMatch: /[\\/](road|overflow|no-webgl)\.spec\.ts$/,
       use: {
         ...desktop,
         channel: "chromium",

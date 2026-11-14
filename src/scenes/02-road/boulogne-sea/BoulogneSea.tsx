@@ -72,19 +72,25 @@ const HAZE_DUSK =
 function PlateArt({ plate }: { plate: Plate }) {
   const [x0, x1, y0, y1] = plate.box;
   const dusk = duskOf(plate);
+  const has = (m: "ink" | "colour") =>
+    !plate.rasters || plate.rasters.includes(m);
   const canvases = (
     <>
-      <canvas
-        data-mode="ink"
-        className="absolute inset-0 block h-full w-full will-change-[opacity]"
-        style={{ opacity: 0 }}
-      />
-      <canvas
-        data-mode="colour"
-        className="absolute inset-0 block h-full w-full will-change-[opacity]"
-        style={{ opacity: 0 }}
-      />
-      {dusk ? (
+      {has("ink") ? (
+        <canvas
+          data-mode="ink"
+          className="absolute inset-0 block h-full w-full will-change-[opacity]"
+          style={{ opacity: 0 }}
+        />
+      ) : null}
+      {has("colour") ? (
+        <canvas
+          data-mode="colour"
+          className="absolute inset-0 block h-full w-full will-change-[opacity]"
+          style={{ opacity: 0 }}
+        />
+      ) : null}
+      {dusk && (!plate.rasters || plate.rasters.includes("dusk")) ? (
         <canvas
           data-mode="dusk"
           className={`absolute inset-0 block h-full w-full ${dusk.rise ? "will-change-[transform,opacity]" : "will-change-[opacity]"}`}

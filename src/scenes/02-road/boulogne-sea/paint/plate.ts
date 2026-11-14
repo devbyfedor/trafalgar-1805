@@ -1,3 +1,5 @@
+import type { LightSink } from "./lights";
+
 /**
  * A plate of Boulogne's painting (docs/scene-02-boulogne-brief.md, "Owner
  * review, 13 November"): one flat layer standing at a depth, painted ONCE,
@@ -46,6 +48,12 @@ export interface PlateCanvas {
   box: readonly [number, number, number, number];
   /** For a dusk job: the plate's colour raster, painted already (paint/dusk.ts grades it). */
   colour?: HTMLCanvasElement;
+  /**
+   * In the colour pass: where the area's painter records its lights and
+   * what hides them, in paint order (paint/lights.ts), for its lights
+   * plates' dusk.
+   */
+  lights?: LightSink;
 }
 
 export type PlateJob = (c: PlateCanvas) => void;
@@ -161,6 +169,8 @@ export interface Plate {
   /** Its box, layer units: x0, x1, y0 (bottom), y1 (top). */
   box: readonly [number, number, number, number];
   group: PlateGroup;
+  /** The rasters it has (by default the engraving, the colour, and the dusk if `duskOf` gives one). */
+  rasters?: readonly PlateMode[];
   /** Jobs for a raster, in paint order. An empty list: no raster of that mode. */
   jobs(mode: PaintMode): readonly PlateJob[];
   rock?: PlateRock;

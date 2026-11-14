@@ -1,6 +1,7 @@
 import { Slicer } from "@/components/chart/engine/slice";
 import { UNIT_VH } from "../view";
 import { duskJobs, duskOf } from "./dusk";
+import { lightSink } from "./lights";
 import type { Plate, PlateCanvas, PlateJob, PlateMode } from "./plate";
 
 /**
@@ -118,11 +119,17 @@ export async function paintPlates(
         const canvas = t.canvases[mode];
         if (!canvas) continue;
         let jobs: readonly PlateJob[];
-        if (mode === "dusk") {
+        if (t.plate.rasters && !t.plate.rasters.includes(mode)) jobs = [];
+        else if (mode === "dusk") {
           const dusk = duskOf(t.plate);
-          if (!dusk) continue;
-          jobs = duskJobs(dusk);
+          jobs = dusk ? duskJobs(dusk) : [];
         } else jobs = t.plate.jobs(mode);
+        if (!jobs.length) {
+          // No raster of this mode: no memory for one.
+          canvas.width = 1;
+          canvas.height = 1;
+          continue;
+        }
         const c = canvasFor(
           t.plate,
           canvas,
@@ -131,6 +138,11 @@ export async function paintPlates(
           mode === "dusk" ? t.canvases.colour : undefined,
         );
         if (!c) continue;
+        if (mode === "colour") {
+          const sink = lightSink(t.plate.id);
+          sink.clear();
+          c.lights = sink;
+        }
         for (const job of jobs) {
           c.ctx.save();
           job(c);

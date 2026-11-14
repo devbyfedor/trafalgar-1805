@@ -169,7 +169,8 @@ const LAST_LIGHT_CLOUD: DuskGrade = {
  * The hold's stretches (0..1). The golden light holds to 0.2; the sun's
  * last light comes over the land 0.2-0.4 (it is still sunlight, weaker
  * and redder); then the sunset takes the land from the water up, quickly
- * (0.40-0.62), the clouds keeping their rose to the end; the sky turns
+ * (0.38-0.65: about a screen of scroll, each part over about half a
+ * screen), the clouds keeping their rose to the end; the sky turns
  * all along, the water with it (its colour is the sky it mirrors); the
  * moon brightens and its path comes once the land is dark; the dusk then
  * deepens to 1 while the lights come up (plates/index.ts, LIGHTS).
@@ -179,11 +180,11 @@ export const DUSK_AT = {
   lastLightClouds: [0.26, 0.5],
   lastLightCirrus: [0.34, 0.6],
   water: [0.16, 0.8],
-  strand: [0.4, 0.52],
-  craft: [0.4, 0.54],
-  nearLand: [0.42, 0.55],
-  town: [0.45, 0.58],
-  farLand: [0.48, 0.62],
+  strand: [0.38, 0.54],
+  craft: [0.38, 0.56],
+  nearLand: [0.4, 0.58],
+  town: [0.43, 0.61],
+  farLand: [0.46, 0.65],
   sky: [0.14, 0.8],
   clouds: [0.55, 0.86],
   cirrus: [0.6, 0.92],

@@ -34,6 +34,7 @@ import {
   pointFace,
   shapeFace,
 } from "./face";
+import { hull, lamp, lightSeed, occlude, opening, union } from "./lit";
 import { edgeAt, northUp, shoreAt, smoothstep } from "./terrain";
 
 /**
@@ -306,9 +307,9 @@ function paintEdgeWorks(c: PlateCanvas, g: Face, mode: PaintMode): void {
   // toward the roads), the signal mast, the admiral's smaller copy;
   // Soult's and Decrès's huts thatched to the ground.
   bastions(c, g, mode);
-  pavilion(c, g, 205, 14, 32.5, 9.7, 7.3, mode);
+  pavilion(c, g, 205, 14, 32.5, 9.7, 7.3, mode, true);
   signalMast(c, g, 258, 16, mode);
-  pavilion(c, g, 305, 22, 22, 7, 5.5, mode);
+  pavilion(c, g, 305, 22, 22, 7, 5.5, mode, false);
   const huts: Hut[] = [];
   for (const [n, back, kind, l, w, ridge] of [
     [236, 70, 3, 9, 5, 8],
@@ -400,6 +401,7 @@ function pavilion(
   rotunda: number,
   width: number,
   mode: PaintMode,
+  lamps: boolean,
 ): void {
   const gr = browGround(g, n, back);
   const e0 = gr.e;
@@ -484,6 +486,59 @@ function pavilion(
       pal.map(([x, y]) => [x, y + 0.8] as Pt),
     );
     stroke(c, fence, 0.5, air(SHORE.wood, ahead), 0.7);
+    if (!c.lights) return;
+    // The lights at dusk (lit.ts), in paint order: the pavilion hides
+    // what lies behind it; then the windows of its body's side, the
+    // rotunda over them; the rotunda's windows; the lamps along the
+    // paling, in front of all of it.
+    occlude(c, hull([...mound, ...side, ...roof, ...drum, ...cone]));
+    const seed = (k: number) => lightSeed(e0, n, k);
+    const span = L - r * 0.5;
+    const count = Math.max(2, Math.round(span / (3.5 * BUILD)));
+    for (let k = 0; k < count; k++) {
+      const a = r * 0.5 + ((k + 0.5) * span) / count;
+      const hw = 0.5 * BUILD;
+      opening(
+        c,
+        "window",
+        [
+          P(a - hw, -half, 0.9 * BUILD),
+          P(a + hw, -half, 0.9 * BUILD),
+          P(a + hw, -half, 2.7 * BUILD),
+          P(a - hw, -half, 2.7 * BUILD),
+        ],
+        seed(k),
+      );
+    }
+    occlude(c, union([drum, cone]));
+    const ww = 0.5 * BUILD * (1000 / ahead);
+    for (let k = -1; k <= 2; k++) {
+      const x = cx + (rw * k) / 2.6 - rw * 0.12;
+      opening(
+        c,
+        "window",
+        [
+          [x - ww, cy + (topY - cy) * 0.35],
+          [x + ww, cy + (topY - cy) * 0.72],
+        ],
+        seed(20 + k),
+      );
+    }
+    if (lamps) {
+      // Constant: reflector lamps outside the lattice round it, four feet
+      // apart (BUILD times, as everything built is drawn), on posts.
+      const run = Math.hypot(52, 52);
+      const many = Math.round(run / (1.3 * BUILD));
+      for (let k = 0; k <= many; k++) {
+        const a = Math.acos(1 - (2 * k) / many);
+        const p = project(
+          e0 + Math.cos(a) * 26 + 6,
+          n + Math.sin(a - Math.PI / 2) * -26,
+          ground - 1.5 * VEX + Math.sin(a) * 1.5 * VEX,
+        );
+        lamp(c, p[0], p[1] + 1.05, 0.3, seed(40 + k));
+      }
+    }
     return;
   }
   for (const p of [mound, side, roof, drum, cone]) fill(c, poly(p), PAPER.low);

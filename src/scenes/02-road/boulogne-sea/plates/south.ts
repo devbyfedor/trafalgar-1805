@@ -1,8 +1,14 @@
 import type { Plate } from "../paint/plate";
-import { VEX } from "../scene";
+import { project, VEX } from "../scene";
 import { type Contour, campPlate } from "./shore/camp";
 import { dunesPlate } from "./shore/dunes";
-import { behind, browLine, escarpment, smoothstep } from "./shore/terrain";
+import {
+  behind,
+  browLine,
+  escarpment,
+  KITCHENS,
+  smoothstep,
+} from "./shore/terrain";
 
 /**
  * The painting's area south of the Liane: the beach and the dunes with
@@ -107,6 +113,12 @@ export function southPlates(): Plate[] {
       inkFar: 4,
       contour: southContour,
       count: TIERS.length,
+      // The kitchens' fires on the plateau behind the brow, behind all of
+      // this plate's ground as their smoke is: at dusk their glow over it.
+      fires: () =>
+        KITCHENS.filter((k) => k.north <= 0).map((k) =>
+          project(k.east, k.north, k.up),
+        ),
       // A post mill on the brow in a gap between the camp's blocks, its
       // foot behind the brow's own lip.
       mills: () => {

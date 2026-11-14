@@ -1,5 +1,6 @@
 import { createRng } from "../paint/kit";
 import type { Plate } from "../paint/plate";
+import { project } from "../scene";
 import { type Contour, campPlate } from "./shore/camp";
 import { cliffsPlate } from "./shore/cliffs";
 import {
@@ -162,6 +163,13 @@ export function northPlates(): Plate[] {
       count: FAR.length,
       // The plateau's shoulder falling to the harbour, against the sky.
       trees: [-460, -150],
+      // The kitchens' fires at the camp's back, behind all of this plate's
+      // ground as their smoke is (its canvas behind the plate): at dusk
+      // their glow over the skyline.
+      fires: () =>
+        KITCHENS.filter((k) => k.north > 0).map((k) =>
+          project(k.east, k.north, k.up),
+        ),
       // Post mills on the fields beyond the camp, each painted after the
       // tier behind it, so the ground in front hides its foot.
       mills: () =>

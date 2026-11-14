@@ -560,13 +560,21 @@ function landmarks(rng: () => number): Item[] {
 }
 
 /** Every item of the lower town, far to near (built on the first call after the rows). */
+let extraCache: Item[] | undefined;
+
+/** The landmarks and the smoking chimneys' houses (a job of their own). */
+export function lowerLandmarks(): Item[] {
+  extraCache ??= landmarks(createRng(5521));
+  return extraCache;
+}
+
 export function lowerItems(): Item[] {
   if (done) return done;
   while (lowerRow()) {
     /* rows */
   }
   const items = gen?.items ?? [];
-  const extra = landmarks(createRng(5521));
+  const extra = lowerLandmarks();
   // Clear the plots the landmarks stand on.
   const near = (b: Building, o: Building) =>
     Math.abs(b.x - o.x) < 5 &&

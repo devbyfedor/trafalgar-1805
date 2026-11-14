@@ -46,7 +46,7 @@ export interface Craft {
 /** The licence for the harbour's craft: heights at BUILD, lengths and beams a little less. */
 const LEN = 1.6;
 
-const SUN_AZ = 294;
+const SUN_AZ = 286.2;
 
 /** The river's line with arc lengths, and a point and direction at an arc length. */
 function riverAt(s: number): { e: number; n: number; te: number; tn: number } {
@@ -363,7 +363,7 @@ function hullPath(c: Craft): Path2D {
 export function paintCraft(c: PlateCanvas, list: readonly Craft[]): void {
   const { ctx } = c;
   for (const cr of list) {
-    const air = (hex: string) => aerial(hex, cr.distance * 1.25);
+    const air = (hex: string) => aerial(hex, cr.distance);
     // Rigging first (behind the masts), very fine.
     ctx.strokeStyle = rgba(air("#5b4c40"), 0.38);
     ctx.lineWidth = c.pen(0.45);
@@ -403,10 +403,10 @@ export function paintCraft(c: PlateCanvas, list: readonly Craft[]): void {
     ctx.lineWidth = c.pen(0.5);
     path(ctx, [sheer]);
     ctx.stroke();
-    // Masts: a warm brown line, its west face lit gold.
+    // Masts: dark tarred brown, its west face lit gold.
     const masts = cr.masts.map((m) => [m.foot, m.head]);
-    ctx.strokeStyle = air("#5f4b39");
-    ctx.lineWidth = c.pen(1);
+    ctx.strokeStyle = air("#4a3b2e");
+    ctx.lineWidth = c.pen(1.3);
     path(ctx, masts);
     if (cr.bowsprit) {
       ctx.moveTo(cr.bowsprit[0][0], cr.bowsprit[0][1]);
@@ -432,8 +432,8 @@ export function paintCraft(c: PlateCanvas, list: readonly Craft[]): void {
       yards.map((y) => [y.a, y.b]),
     );
     ctx.stroke();
-    ctx.strokeStyle = rgba(air("#ecd6a4"), 0.85);
-    ctx.lineWidth = c.pen(1.25);
+    ctx.strokeStyle = rgba(air("#f4dfae"), 0.92);
+    ctx.lineWidth = c.pen(1.6);
     path(
       ctx,
       yards.map((y) => {
@@ -468,6 +468,23 @@ export function paintCraft(c: PlateCanvas, list: readonly Craft[]): void {
       }),
     );
     ctx.stroke();
+    // A pennant hanging limp from the mainmast's head on one craft in six.
+    if (cr.seed % 6 === 0 && cr.masts.length) {
+      const m = cr.masts.reduce((p, q) => (q.head[1] > p.head[1] ? q : p));
+      const [hx, hy] = m.head;
+      const len = (hy - m.foot[1]) * 0.16;
+      ctx.strokeStyle = air(cr.seed % 12 === 0 ? "#b4584a" : "#c45f4c");
+      ctx.lineWidth = c.pen(1.1);
+      ctx.beginPath();
+      ctx.moveTo(hx, hy);
+      ctx.quadraticCurveTo(
+        hx + len * 0.25,
+        hy - len * 0.5,
+        hx + len * 0.1,
+        hy - len,
+      );
+      ctx.stroke();
+    }
   }
 }
 

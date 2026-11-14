@@ -37,6 +37,7 @@ import {
   type Item,
   itemDistance,
   lowerItems,
+  lowerLandmarks,
   lowerRow,
   SMOKE_SITES,
   type Spire,
@@ -60,6 +61,8 @@ import {
   paintWalls,
   UPPER_DEPTH,
   upper,
+  upperTrees,
+  upperWalls,
 } from "./town/upper";
 
 /**
@@ -519,6 +522,7 @@ function lowerPlate(id: string, which: "near" | "far"): Plate {
     const out: PlateJob[] = [];
     // The plan, a row per job (shared by both plates: the first to run lays it out).
     for (let k = 0; k < 22; k++) out.push(() => void lowerRow());
+    out.push(() => void lowerLandmarks());
     out.push(() => void items());
     for (let k = 0; k < 3; k++) out.push(() => lowerGroundPart(near, far, k));
     out.push(() => void streetSlots(near, far));
@@ -606,13 +610,15 @@ function paintChateau(c: PlateCanvas): void {
 function upperPlate(): Plate {
   const jobs = (mode: PlateMode): PlateJob[] => {
     const out: PlateJob[] = [
+      () => void upperWalls(),
+      () => void upperTrees(),
       () => void upper(),
       (c) => paintUpperGround(c),
       (c) => paintChateau(c),
     ];
     for (let r = 0; r < INTERIOR_ROWS; r += 3)
       out.push(() => interiorRows(r, r + 3));
-    const per = 30;
+    const per = 18;
     for (let i = 0; i < 480; i += per)
       out.push((c) => {
         const list = interiorHouses();

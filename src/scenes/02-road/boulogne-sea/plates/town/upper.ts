@@ -141,8 +141,12 @@ function towerAt(
   return { x, y0, y1, r: radius * BUILD * u, distance: ahead, crenel };
 }
 
-export function upper(): Upper {
-  if (cache) return cache;
+type Walls = Pick<Upper, "nw" | "sw" | "towers" | "gate">;
+let wallsCache: Walls | undefined;
+
+/** The walls' faces, towers and gate (the plan's first job). */
+export function upperWalls(): Walls {
+  if (wallsCache) return wallsCache;
   const nw = face(N, W);
   const sw = face(W, S);
   const towers: Tower[] = [];
@@ -168,6 +172,15 @@ export function upper(): Upper {
       towerAt(N, W, 0.818, 5.6, 2.2 * BUILD, true),
     ],
   };
+  wallsCache = { nw, sw, towers, gate };
+  return wallsCache;
+}
+
+let treesCache: TreeCrown[] | undefined;
+
+/** The trees on the ramparts' walk (the plan's second job). */
+export function upperTrees(): TreeCrown[] {
+  if (treesCache) return treesCache;
   // The double row of trees on the ramparts' walk: crowns of different
   // sizes, a few tall elms, gaps of one to three missing crowns.
   const rng = createRng(911);
@@ -210,6 +223,15 @@ export function upper(): Upper {
   row(W, S, 22);
   row(N, W, 9);
   row(W, S, 9);
+  trees.sort((p, q) => q.y - p.y);
+  treesCache = trees;
+  return trees;
+}
+
+export function upper(): Upper {
+  if (cache) return cache;
+  const { nw, sw, towers, gate } = upperWalls();
+  const trees = upperTrees();
   const te = (W[0] - N[0]) / Math.hypot(W[0] - N[0], W[1] - N[1]);
   const tn = (W[1] - N[1]) / Math.hypot(W[0] - N[0], W[1] - N[1]);
   // Inward, away from the north-west wall: left of N→W.
@@ -286,7 +308,6 @@ export function upper(): Upper {
   const left = groundSkyline(-80, nwFoot0 - 1, 3, 2250, 2750, 18);
   const right = groundSkyline(swFoot1 + 1, 196, 3, 2250, 2850, 18);
   const groundLine: Pt[] = [...left, ...nw.foot, ...sw.foot.slice(1), ...right];
-  trees.sort((a, b) => b.y - a.y);
   cache = {
     nw,
     sw,

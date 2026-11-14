@@ -326,7 +326,10 @@ function fieldPath(h: Hills, f: Field): Path2D {
   return p;
 }
 
-const ROW_CHUNK = 6;
+const ROW_CHUNK = 2;
+
+/** The ink's contour hatching in this many jobs. */
+const MODEL_PARTS = 6;
 
 /** Lays out the fields, hedges and copses of contour bands `from` to `to` (each band its own seed, so the jobs may share the work in any order). */
 function nearRows(from: number, to: number): void {
@@ -632,7 +635,7 @@ function engraveCrowns(
   ctx.stroke();
 }
 
-const HEDGE_CHUNK = 2500;
+const HEDGE_CHUNK = 1200;
 
 /** The skyline's y at x. */
 function ridgeAt(h: Hills, x: number): number {
@@ -661,10 +664,10 @@ function nearHedges(c: PlateCanvas, from: number, to: number): void {
   else engraveCrowns(c, list, 1);
 }
 
-function nearCopses(c: PlateCanvas): void {
+function nearCopses(c: PlateCanvas, from: number, to: number): void {
   const { ctx } = c;
   const h = nearBase();
-  for (const k0 of h.copses) {
+  for (const k0 of h.copses.slice(from, to)) {
     if (k0.y < 18) continue;
     const k = { ...k0, crowns: shown(h, k0.crowns) };
     if (!k.crowns.length) continue;
@@ -711,8 +714,8 @@ function nearCopses(c: PlateCanvas): void {
 }
 
 /** The near hills' modelling: the south-west flanks cooler, the summit band lighter in the haze, the feet in the evening's haze. */
-function nearModel(c: PlateCanvas, part: 0 | 1): void {
-  if (c.mode === "colour" && part === 1) return;
+function nearModel(c: PlateCanvas, part: number): void {
+  if (c.mode === "colour" && part > 0) return;
   const { ctx } = c;
   const h = nearBase();
   const p = facePath(h.ridge, NEAR_BOX[2]);
@@ -765,8 +768,9 @@ function nearModel(c: PlateCanvas, part: 0 | 1): void {
     // brightest; never an even ruling.
     const noise = field(93, 160, 2);
     const lines: Pt[][] = [];
-    const mid = Math.floor(h.contours.length / 2);
-    const [k0, k1] = part === 0 ? [1, mid] : [mid, h.contours.length];
+    const n = h.contours.length;
+    const k0 = Math.max(1, Math.floor((n * part) / MODEL_PARTS));
+    const k1 = Math.floor((n * (part + 1)) / MODEL_PARTS);
     for (let k = k0; k < k1; k++) {
       for (const half of [0, 0.5]) {
         if (half && k % 2) continue;
@@ -794,7 +798,7 @@ function nearModel(c: PlateCanvas, part: 0 | 1): void {
   }
   ctx.restore();
   // The skyline: a fine contour.
-  if (c.mode === "ink" && part === 0) return;
+  if (c.mode === "ink" && part < MODEL_PARTS - 1) return;
   if (c.mode === "ink")
     strokeLines(
       c,
@@ -815,13 +819,15 @@ function nearPlate(): Plate {
       out.push((c) => {
         if (i < nearBase().fields.length) nearFields(c, i, i + FIELD_CHUNK);
       });
-    out.push((c) => nearModel(c, 0));
-    out.push((c) => nearModel(c, 1));
+    for (let k = 0; k < MODEL_PARTS; k++) out.push((c) => nearModel(c, k));
     for (let i = 0; i < 40000; i += HEDGE_CHUNK)
       out.push((c) => {
         if (i < nearBase().hedges.length) nearHedges(c, i, i + HEDGE_CHUNK);
       });
-    out.push((c) => nearCopses(c));
+    for (let i = 0; i < 300; i += 30)
+      out.push((c) => {
+        if (i < nearBase().copses.length) nearCopses(c, i, i + 30);
+      });
     return out;
   };
   return { id: "hills", depth: NEAR_DEPTH, box: NEAR_BOX, group: "land", jobs };

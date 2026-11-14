@@ -1304,8 +1304,8 @@ export function inkRows(
 ): void {
   shadeGrid(cl, sf);
   const s = cl.spec;
-  const breaks = field(s.seed + 61, 18, 2);
-  const rng = createRng(s.seed + 62 + j0);
+  // Breaks in long runs, never a dash per grid cell.
+  const breaks = field(s.seed + 61, 34, 2);
   const span = Math.max(1, cl.top - cl.bottom);
   const soft = s.soft ?? 4;
   const spacing = Math.max(2.4, Math.min(4.5, s.height * 0.035)) / weight;
@@ -1341,12 +1341,13 @@ export function inkRows(
       // The lowest part is the underside's (inkUnder): no ruled band there.
       if (y < cl.baseAt(x) + 0.16 * s.height) return false;
       const dark = 1 - sf.v[o] + 0.1 * (1 - hz) - 0.25 * Math.max(0, lit);
-      return dark > 0.6 + 0.2 * breaks(x, y) && rng() > 0.1;
+      return dark > 0.6 + 0.2 * breaks(x, y);
     });
     contour(sf, F, lv, j0, j1, deep, (x, y, o) => {
       if (!inside(o) || !above(x, y)) return false;
+      if (y < cl.baseAt(x) + 0.16 * s.height) return false;
       const dark = 1 - sf.v[o];
-      return dark > 0.82 + 0.15 * breaks(x * 1.4, y) && rng() > 0.2;
+      return dark > 0.82 + 0.15 * breaks(x * 1.4, y);
     });
   }
   // The outline: firmer and nearly whole on the shaded side, a fine
@@ -1355,8 +1356,8 @@ export function inkRows(
     if (y < cl.baseAt(x) - soft) return false;
     const m = Math.hypot(sf.nx[o], sf.ny[o]) || 1;
     const face = (sf.nx[o] * LP[0] + sf.ny[o] * LP[1]) / m;
-    if (face < -0.2) return breaks(x * 0.8, y * 0.8) > -0.5 && rng() > 0.08;
-    return face < 0.55 && breaks(x * 0.6, y * 0.6) > 0.05 && rng() > 0.3;
+    if (face < -0.2) return breaks(x * 0.8, y * 0.8) > -0.6;
+    return face < 0.5 && breaks(x * 0.6, y * 0.6) > 0.1;
   });
   strokeInk(c, shade, 0.5 * weight, 0.5);
   strokeInk(c, deep, 0.45 * weight, 0.45);
@@ -1367,7 +1368,7 @@ export function inkRows(
 function inkUnder(cl: Cloud, c: PlateCanvas, weight: number): void {
   const s = cl.spec;
   if (!(s.under && s.under > 0)) return;
-  const rng = createRng(s.seed + 81);
+  const runs = field(s.seed + 81, 40, 2);
   const p = new Path2D();
   const n = Math.max(2, Math.round((s.under * s.height) / 4.5));
   for (let k = 0; k < n; k++) {
@@ -1377,7 +1378,7 @@ function inkUnder(cl: Cloud, c: PlateCanvas, weight: number): void {
     let on = false;
     for (let x = s.x0; x <= s.x1; x += 2.5) {
       const u = cl.underAt(x);
-      const keep = u > 2 && rng() > 0.12 + 0.6 * tt;
+      const keep = u > 2 && runs(x, k * 13) > -0.5 + 1.1 * tt;
       const y = cl.baseAt(x) - u * tt * 0.95 - 0.6;
       if (keep) {
         if (on) p.lineTo(x, y);

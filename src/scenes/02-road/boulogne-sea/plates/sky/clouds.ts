@@ -362,7 +362,7 @@ function bodyOf(v: Veil): Path2D[] {
     [len * 0.31, 0.25],
     [len * 0.11, 0.15],
   ]);
-  for (const k of [1.25, 0.9, 0.6, 0.32]) {
+  for (const k of [1.3, 1.08, 0.86, 0.66, 0.46, 0.28]) {
     const p = new Path2D();
     const side = (sgn: number) => {
       for (let i = 0; i <= n; i++) {
@@ -401,7 +401,7 @@ function cirrusPlate(): Plate {
   };
   const colourJob = (k: number) => (c: PlateCanvas) => {
     const { ctx } = c;
-    ctx.fillStyle = rgba("#f6d9cc", 0.035);
+    ctx.fillStyle = rgba("#f6d9cc", 0.024);
     for (const b of bodyOf(VEILS[k])) ctx.fill(b);
     for (const f of get()[k]) {
       ctx.fillStyle = rgba(mix("#f7dccb", "#fbe8d8", f.warm), f.alpha);
@@ -413,8 +413,8 @@ function cirrusPlate(): Plate {
     const rng = createRng(760 + k);
     const lines = new Path2D();
     // The veil reserved: the sky's lines broken along it.
-    ctx.fillStyle = rgba(PAPER.low, 0.45);
-    for (const b of bodyOf(VEILS[k]).slice(1)) ctx.fill(b);
+    ctx.fillStyle = rgba(PAPER.low, 0.32);
+    for (const b of bodyOf(VEILS[k]).slice(2)) ctx.fill(b);
     for (const f of get()[k]) {
       ctx.fillStyle = rgba(PAPER.low, Math.min(1, f.alpha * 2.4));
       ctx.fill(f.path);

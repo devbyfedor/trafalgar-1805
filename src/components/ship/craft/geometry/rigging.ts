@@ -377,14 +377,15 @@ export function buildRiggingArt(spec: CraftSpec, rig: RigLayout): RiggingArt {
     );
   }
 
-  // The cable: out of the hawse, down and forward into the water, sagging a little.
+  // The cable: out of the hawse, down and forward into the water, sagging
+  // under its weight, and ending at the water (a stretch drawn on below it
+  // read as a hook over the water).
   const a = spec.anchor;
   const H = a.hawse;
   const run = H[1] / Math.tan(deg(a.angle));
   const W: Vec = [H[0] + run * 1.08, 0];
-  const C: Vec = [(H[0] + W[0]) / 2 + run * 0.02, H[1] * 0.42];
-  const under: Vec = [W[0] + (W[0] - C[0]) * 0.45, -h.depthShown - 0.2];
-  const cablePts = [...quadPoints(H, C, W, 14), under];
+  const C: Vec = [(H[0] + W[0]) / 2 - run * 0.04, H[1] * 0.24];
+  const cablePts = quadPoints(H, C, W, 14);
   const cable = path().polygon(ribbon(cablePts, a.cable)).toString();
   const shadePts = cablePts.map(
     (p): Vec => [p[0] + a.cable * 0.14, p[1] - a.cable * 0.2],

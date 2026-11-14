@@ -408,18 +408,21 @@ export function paintWaterline(
   ctx.lineTo(x1 - 0.1, 0.01);
   ctx.stroke();
   const rng = forkRng(seed, "paint:waterline");
-  ctx.globalAlpha = hero ? 0.55 : 0.45;
   ctx.strokeStyle = WATER_LIGHT;
   ctx.lineWidth = dev(1);
-  ctx.beginPath();
+  // The lit edge in broken glints of their own length, brightness and
+  // height, with real gaps: an even dash read as stitching.
+  const top = hero ? 0.55 : 0.45;
   for (let x = x0 - 0.5; x < x1 + 0.6; ) {
-    const len = 0.3 + rng() * 1.5;
-    const y = dev(1.5) + rng() * dev(1.4);
+    const len = 0.15 + rng() * rng() * 1.6;
+    const y = dev(1.3) + rng() * rng() * dev(3);
+    ctx.globalAlpha = top * (0.35 + 0.65 * rng());
+    ctx.beginPath();
     ctx.moveTo(x, y);
-    ctx.lineTo(Math.min(x1 + 0.6, x + len), y);
-    x += len + 0.12 + rng() * 0.7;
+    ctx.lineTo(Math.min(x1 + 0.6, x + len), y + (rng() - 0.5) * dev(0.6));
+    ctx.stroke();
+    x += len + 0.25 + rng() * 1.6;
   }
-  ctx.stroke();
   if (!hero) return;
   // The stream curling at the stem: a few short lit crescents ahead of it.
   ctx.globalAlpha = 0.5;

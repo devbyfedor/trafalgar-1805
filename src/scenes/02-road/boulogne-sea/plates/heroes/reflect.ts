@@ -141,7 +141,9 @@ function wipeFacets(
     ctx.lineWidth = w;
     ctx.globalAlpha = alpha;
     ctx.beginPath();
-    let y = top + pxPerM * 0.35 + rng() * 2;
+    // The first wipes a little below the waterline, each sliver at its own
+    // height, so no row of them lines up into a stitched seam.
+    let y = top + pxPerM * 0.7 + rng() * 2;
     while (y < height) {
       const dm = (y - top) / pxPerM;
       const share = Math.min(0.5, 0.09 + 0.03 * dm);
@@ -149,8 +151,9 @@ function wipeFacets(
       while (x < width) {
         const run = 4 + rng() * (8 + dm * 3.2);
         if (rng() < share) {
-          ctx.moveTo(x, y);
-          ctx.lineTo(x + run, y);
+          const yy = y + (rng() - 0.5) * (1.6 + dm * 0.3);
+          ctx.moveTo(x, yy);
+          ctx.lineTo(x + run, yy);
         }
         x += run + 2 + rng() * 10;
       }

@@ -138,6 +138,56 @@ function parcelColour(rng: () => number, camp: boolean): string {
   return mix(SHORE.turf, SHORE.hedge, 0.2 + rng() * 0.2);
 }
 
+/** A number 0..1 from a key, the same every time. */
+export function hash01(k: number): number {
+  const x = Math.sin(k * 12.9898 + 78.233) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+/**
+ * The field a place lies in (metres east and north): fields in blocks and
+ * strips some 150 by 95 m, their boundaries askew to the contours and a
+ * little bent, so a field spans several tiers of the ground and its
+ * hedges run both along the slope and down it.
+ */
+export function fieldKey(e: number, n: number): number {
+  const u = (e * 0.92 + n * 0.39) / 150 + 0.35 * Math.sin(n / 97 + e / 211);
+  const v = (-e * 0.39 + n * 0.92) / 95 + 0.35 * Math.sin(e / 83 - n / 157);
+  return Math.floor(u) * 7919 + Math.floor(v) * 104729;
+}
+
+/** A field's colour: stubble gold, pasture green, fallow brown, rough grazing. */
+export function fieldBase(key: number): string {
+  const r = hash01(key);
+  const r2 = hash01(key + 17);
+  if (r < 0.3) return mix(SHORE.stubble, SHORE.fallow, r2 * 0.35);
+  if (r < 0.64) return mix(SHORE.pasture, SHORE.turf, r2 * 0.6);
+  if (r < 0.82) return mix(SHORE.fallow, SHORE.turfShade, r2 * 0.3);
+  return mix(SHORE.turf, SHORE.hedge, 0.15 + r2 * 0.2);
+}
+
+/** Adds a bush or a tree's crown: a lumpy rounded shape about `rx` by `ry`, its foot flattish. */
+export function addBush(
+  p: Path2D,
+  x: number,
+  y: number,
+  rx: number,
+  ry: number,
+  rng: () => number,
+): void {
+  const k = 9;
+  for (let j = 0; j <= k; j++) {
+    const a = Math.PI * (j / k);
+    const bump = 0.75 + rng() * 0.45;
+    const px = x + Math.cos(a) * rx * bump;
+    const py = y + Math.sin(a) * ry * bump;
+    if (j === 0) p.moveTo(px, py - ry * 0.3);
+    else p.lineTo(px, py);
+  }
+  p.lineTo(x - rx * 0.9, y - ry * 0.35);
+  p.closePath();
+}
+
 export interface CampPlateOptions {
   id: string;
   depth: number;
@@ -146,6 +196,8 @@ export interface CampPlateOptions {
   /** Tier `i`'s contour, far to near, built inside the first job that needs it; `count` of them. */
   contour: (i: number) => Contour;
   count: number;
+  /** Trees and hedgerows on the skyline and down the slope between these x (layer units): breaking a smooth shoulder against the sky. */
+  trees?: readonly [number, number];
   /**
    * Windmills standing on this ground: [east, north, metres up as drawn,
    * sails' turn, the tier after which it is painted (the ground nearer
@@ -200,20 +252,31 @@ export function campPlate(o: CampPlateOptions): Plate {
           const hedgeTops = new Path2D();
           const lanes = new Path2D();
           const furrows = new Path2D();
+          const trees = new Path2D();
+          const treeTops = new Path2D();
+          const farther = i > 0 ? tierAt(i - 1) : undefined;
+          const L = Math.min(k.pts.length, nearer.pts.length);
+          // Each sample's field (or -1 in the camp): the band's middle.
+          const keyAt = (t: Tier, u: Tier, j: number): number => {
+            const e = (t.world[j][0] + u.world[j][0]) / 2;
+            const n = (t.world[j][1] + u.world[j][1]) / 2;
+            return k.camp(e, n) > 0.5 ? -1 : fieldKey(e, n);
+          };
+          const keys: number[] = [];
+          for (let j = 0; j < L; j++) keys.push(keyAt(k, nearer, j));
           let a = 0;
-          while (a < k.pts.length - 1) {
-            const b = Math.min(
-              k.pts.length - 1,
-              a + 4 + Math.floor(rng() * 12),
-            );
+          while (a < L - 1) {
+            let b = a + 1;
+            const camp = keys[a] === -1;
+            const cap = camp ? 4 + Math.floor(rng() * 12) : 60;
+            while (b < L - 1 && keys[b] === keys[a] && b - a < cap) b++;
             const m = Math.floor((a + b) / 2);
-            const [e, n] = k.world[m];
-            const camp = k.camp(e, n) > 0.5;
             const top = k.pts.slice(a, b + 1);
             const low = nearer.pts.slice(a, b + 1);
             const parcel = band(top, low);
-            const lit = lightAt(m);
-            const base = parcelColour(rng, camp);
+            // The light in a few steps, so neighbouring tiers of one field share it.
+            const lit = Math.round(lightAt(m) * 4) / 4;
+            const base = camp ? parcelColour(rng, true) : fieldBase(keys[a]);
             // The ground turned from the low sun goes cool and dark; square to it, warm.
             const shade = mix(base, SHORE.turfShade, 0.7);
             const sunlit = mix(base, "#e2c47e", 0.18);
@@ -221,36 +284,65 @@ export function campPlate(o: CampPlateOptions): Plate {
               lit < 0.5
                 ? mix(shade, base, lit / 0.5)
                 : mix(base, sunlit, (lit - 0.5) / 0.5);
-            fill(c, parcel, air(col, d), 0.9);
-            if (!camp && rng() < 0.45) {
-              // Furrows or swathes inside a field, each field its own way.
-              const across = rng() < 0.5;
-              if (across) {
-                for (let j = 0; j < top.length; j += 1) {
+            fill(c, parcel, air(col, d));
+            if (!camp) {
+              // Furrows or swathes, each field its own way.
+              const way = Math.floor(hash01(keys[a] + 5) * 4);
+              if (way === 0) addLine(furrows, lerpLine(top, low, 0.5));
+              else if (way < 3)
+                for (let j = 0; j < top.length - (way === 2 ? 2 : 0); j++) {
+                  const q = low[j + (way === 2 ? 2 : 0)];
                   furrows.moveTo(top[j][0], top[j][1]);
-                  furrows.lineTo(low[j][0] + 0.6, low[j][1]);
+                  furrows.lineTo(q[0], q[1]);
                 }
-              } else addLine(furrows, lerpLine(top, low, 0.5));
-            }
-            if (!camp && rng() < 0.65) {
-              // A boundary hedge down the slope between two fields.
-              const p = top[top.length - 1];
-              const q = low[low.length - 1];
-              hedges.moveTo(p[0], p[1] + 0.3);
-              hedges.lineTo(q[0], q[1]);
-              hedgeTops.moveTo(p[0] - 0.3, p[1] + 0.5);
-              hedgeTops.lineTo(q[0] - 0.3, q[1] + 0.2);
-            }
-            if (!camp && rng() < 0.3) {
-              // A hedge along the field's upper side, its top lit.
-              const edge = lerpLine(top, low, 0.15);
-              addLine(hedges, edge);
-              addLine(
-                hedgeTops,
-                edge.map(([x, y]) => [x - 0.2, y + 0.4] as Pt),
-              );
-            }
-            if (camp && rng() < 0.3) addLine(lanes, [top[0], low[0]]);
+              // A hedge down the slope where this field meets the next.
+              if (b < L - 1 && keys[b] !== -1) {
+                const p = top[top.length - 1];
+                const q = low[low.length - 1];
+                hedges.moveTo(p[0], p[1] + 0.3);
+                hedges.lineTo(q[0], q[1]);
+                hedgeTops.moveTo(p[0] - 0.35, p[1] + 0.5);
+                hedgeTops.lineTo(q[0] - 0.35, q[1] + 0.2);
+                if (rng() < 0.12) {
+                  const r = 0.9 + rng() * 1.2;
+                  addBush(trees, p[0], p[1] + r * 0.4, r, r * 0.8, rng);
+                  addBush(
+                    treeTops,
+                    p[0] - r * 0.25,
+                    p[1] + r * 0.65,
+                    r * 0.55,
+                    r * 0.45,
+                    rng,
+                  );
+                }
+              }
+              // Now and then a hedge along its upper side where the field
+              // beyond is another (most such bounds show by the change of
+              // colour alone: hedges along every contour would rule the
+              // slope in stripes).
+              if (farther && rng() < 0.3) {
+                const run: Pt[] = [];
+                for (let j = a; j <= b; j++) {
+                  if (keyAt(farther, k, j) !== keys[a]) run.push(k.pts[j]);
+                  else if (run.length) {
+                    if (run.length > 1) addLine(hedges, run);
+                    if (run.length > 1)
+                      addLine(
+                        hedgeTops,
+                        run.map(([x, y]) => [x - 0.2, y + 0.4] as Pt),
+                      );
+                    run.length = 0;
+                  }
+                }
+                if (run.length > 1) {
+                  addLine(hedges, run);
+                  addLine(
+                    hedgeTops,
+                    run.map(([x, y]) => [x - 0.2, y + 0.4] as Pt),
+                  );
+                }
+              }
+            } else if (rng() < 0.3) addLine(lanes, [top[0], low[0]]);
             a = b;
           }
           stroke(
@@ -258,11 +350,13 @@ export function campPlate(o: CampPlateOptions): Plate {
             furrows,
             0.5,
             air(mix(SHORE.hedge, SHORE.turf, 0.4), d),
-            0.3,
+            0.28,
           );
           stroke(c, lanes, 1, air(SHORE.path, d), 0.55);
           stroke(c, hedges, 1.3, air(SHORE.hedge, d), 0.85);
           stroke(c, hedgeTops, 0.6, air(SHORE.hedgeLit, d), 0.6);
+          fill(c, trees, air(SHORE.hedge, d), 0.95);
+          fill(c, treeTops, air(SHORE.hedgeLit, d), 0.85);
           if (k.row !== undefined) {
             // The huts' gardens: a faint mottling between the rows.
             c.ctx.save();
@@ -351,6 +445,59 @@ export function campPlate(o: CampPlateOptions): Plate {
     };
   }
 
+  /** Trees along the skyline (its upper envelope) and in hedgerows down the tiers, between the given x. */
+  function treesJob(mode: PlateMode): PlateJob {
+    return (c: PlateCanvas) => {
+      const range = o.trees;
+      if (!range) return;
+      const [x0, x1] = range;
+      const rng = createRng(o.seed * 13 + 7);
+      const bins = Math.ceil(x1 - x0) + 1;
+      const env = new Array<number>(bins).fill(Number.NEGATIVE_INFINITY);
+      for (let i = 0; i < o.count; i++) {
+        for (const [x, y] of tierAt(i).pts) {
+          const b = Math.round(x - x0);
+          if (b >= 0 && b < bins && y > env[b]) env[b] = y;
+        }
+      }
+      const crowns = new Path2D();
+      const lit = new Path2D();
+      const d = tierAt(0).ahead;
+      const unit = 1000 / d;
+      const crown = (x: number, y: number, r: number) => {
+        addBush(crowns, x, y + r * 0.35, r, r * 0.85, rng);
+        addBush(lit, x - r * 0.25, y + r * 0.7, r * 0.55, r * 0.45, rng);
+      };
+      // On the skyline: trees standing alone and in short rows.
+      for (let x = x0 + rng() * 6; x < x1; x += 3 + rng() * 14) {
+        const b = Math.round(x - x0);
+        if (!Number.isFinite(env[b]) || rng() < 0.35) continue;
+        const n = rng() < 0.4 ? 2 + Math.floor(rng() * 4) : 1;
+        for (let k = 0; k < n; k++) {
+          const bx = Math.min(bins - 1, b + k * 2);
+          crown(x0 + bx, env[bx] - 0.3, (4 + rng() * 5) * unit * 2);
+        }
+      }
+      // Down the slope: hedgerows with a tree here and there along a few tiers.
+      for (let i = 1; i < o.count; i += 2) {
+        const t = tierAt(i);
+        if (rng() < 0.4) continue;
+        for (let j = 0; j < t.pts.length; j += 1) {
+          const [x, y] = t.pts[j];
+          if (x < x0 || x > x1 || rng() < 0.75) continue;
+          crown(x, y - 0.2, (2.5 + rng() * 4) * unit * 2);
+        }
+      }
+      if (mode === "colour") {
+        fill(c, crowns, air(mix(SHORE.hedge, "#4a5040", 0.4), d), 0.95);
+        fill(c, lit, air(SHORE.hedgeLit, d), 0.8);
+      } else {
+        fill(c, crowns, PAPER.low);
+        stroke(c, crowns, penFor(d, 1) * 0.6, INK.line, 0.7);
+      }
+    };
+  }
+
   function millJob(
     m: readonly [number, number, number, number, number],
     mode: PlateMode,
@@ -372,6 +519,7 @@ export function campPlate(o: CampPlateOptions): Plate {
         jobs.push(hutsJob(i, 0, mode), hutsJob(i, 1, mode));
         for (const m of mills) if (m[4] === i) jobs.push(millJob(m, mode));
       }
+      if (o.trees) jobs.push(treesJob(mode));
       return jobs;
     },
   };

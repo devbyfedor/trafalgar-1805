@@ -305,6 +305,7 @@ function paintEdgeWorks(c: PlateCanvas, g: Face, mode: PlateMode): void {
   // The Tour d'Odre's group: Napoleon's pavilion (its rotunda to the west,
   // toward the roads), the signal mast, the admiral's smaller copy;
   // Soult's and Decrès's huts thatched to the ground.
+  bastions(c, g, mode);
   pavilion(c, g, 205, 14, 32.5, 9.7, 7.3, mode);
   signalMast(c, g, 258, 16, mode);
   pavilion(c, g, 305, 22, 22, 7, 5.5, mode);
@@ -329,6 +330,58 @@ function paintEdgeWorks(c: PlateCanvas, g: Face, mode: PlateMode): void {
   }
   if (colourMode) paintHuts(c, huts);
   else engraveHuts(c, huts);
+}
+
+/**
+ * The ruined English bastions of 1544 round the Tour d'Odre's site, in
+ * which the pavilion stands (history-notes, "Napoleon's pavilion"):
+ * low stumps of red brick along an angular trace, broken, their faces
+ * toward the roads in the sun.
+ */
+function bastions(c: PlateCanvas, g: Face, mode: PlateMode): void {
+  const rng = createRng(397);
+  // The trace: a five-sided work round the site, metres north and back from the brow.
+  const trace: [number, number][] = [
+    [262, 8],
+    [228, 4],
+    [176, 10],
+    [160, 46],
+    [196, 78],
+    [250, 66],
+    [262, 8],
+  ];
+  const faces = new Path2D();
+  const tops = new Path2D();
+  let ahead = 1400;
+  for (let k = 0; k < trace.length - 1; k++) {
+    const [n0, b0] = trace[k];
+    const [n1, b1] = trace[k + 1];
+    const len = Math.hypot(n1 - n0, b1 - b0);
+    // A few stumps along each side, gaps where the brick has gone.
+    for (let t = rng() * 0.2; t < 1; t += (5 + rng() * 9) / len) {
+      if (rng() < 0.5) continue;
+      const t1 = Math.min(1, t + (3 + rng() * 7) / len);
+      const h = (0.6 + rng() * 1.2) * BUILD;
+      const pts: Pt[] = [];
+      const top: Pt[] = [];
+      for (const u of [t, t1]) {
+        const n = n0 + (n1 - n0) * u;
+        const gr = browGround(g, n, b0 + (b1 - b0) * u);
+        ahead = viewOf(gr.e, n)[0];
+        pts.push(project(gr.e, n, gr.h * VEX));
+        top.push(project(gr.e, n, gr.h * VEX + h * (0.7 + rng() * 0.3)));
+      }
+      addLine(faces, [pts[0], pts[1], top[1], top[0]], true);
+      addLine(tops, top);
+    }
+  }
+  if (mode === "colour") {
+    fill(c, faces, air("#8a6453", ahead));
+    stroke(c, tops, 0.6, air("#bf9a7e", ahead), 0.7);
+  } else {
+    fill(c, faces, PAPER.low);
+    stroke(c, faces, 0.55, INK.line, 0.8);
+  }
 }
 
 /**

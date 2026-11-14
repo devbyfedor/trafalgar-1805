@@ -717,7 +717,8 @@ export function paintWindmill(
 ): void {
   const { ctx } = c;
   if (mode === "colour") {
-    const wood = air(SHORE.wood, m.ahead);
+    // A crisp dark silhouette against the sky, its lit side to the left.
+    const wood = air(mix(SHORE.wood, "#2f2925", 0.45), m.ahead);
     const lit = air(SHORE.woodLit, m.ahead);
     const post = new Path2D();
     addLine(post, m.post);

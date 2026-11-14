@@ -108,8 +108,12 @@ export function southPlates(): Plate[] {
       // foot behind the brow's own lip.
       mills: () => {
         const line = behind(40);
-        let best = Math.floor(line.length * 0.62);
-        for (let i = Math.floor(line.length * 0.5); i < line.length * 0.75; i++)
+        let best = Math.floor(line.length * 0.64);
+        for (
+          let i = Math.floor(line.length * 0.61);
+          i < line.length * 0.68;
+          i++
+        )
           if (
             campShare(line[i][0], line[i][1]) <
             campShare(line[best][0], line[best][1])

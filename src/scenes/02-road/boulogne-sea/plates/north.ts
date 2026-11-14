@@ -160,6 +160,8 @@ export function northPlates(): Plate[] {
       seed: 451,
       contour: northContours(FAR),
       count: FAR.length,
+      // The plateau's shoulder falling to the harbour, against the sky.
+      trees: [-460, -150],
       // Post mills on the fields beyond the camp, each painted after the
       // tier behind it, so the ground in front hides its foot.
       mills: () =>

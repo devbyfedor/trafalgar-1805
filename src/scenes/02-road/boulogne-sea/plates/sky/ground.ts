@@ -108,51 +108,78 @@ export function groundInkJobs(): PlateJob[] {
   return [(c) => fillBox(c, PAPER.low)];
 }
 
-/** The engraved sky's strokes: the top of the sky only, ink only. */
-export const HATCH_BOX = [-892, 892, 226, 448] as const;
+/**
+ * The engraved sky's lines, ink only: the whole sky down to the haze over
+ * the land, where it thins out to bare paper.
+ */
+export const HATCH_BOX = [-892, 892, 40, 448] as const;
+
+/** The spacing of the sky's lines at a height: closest at the top, opening downward. */
+function spacingAt(y: number): number {
+  const t = Math.min(1, Math.max(0, (y - 40) / 400));
+  return 17 - 10.5 * t ** 0.7;
+}
 
 /**
- * A few fine broken strokes, sparse low down and a little closer toward
- * the top, each slightly bowed, their rows unevenly spaced and patchy, so
- * the sky stays open paper and never reads as ruling.
+ * The engraver's sky: long, fine horizontal lines, each tapered at both
+ * ends (a thin filled sliver, not a stroke of one weight), closest at the
+ * top and opening downward, broken at long irregular intervals; lower
+ * down only a light, wide-spaced tint, enough that the clouds' lit edges
+ * read as reserved paper (the cloud plates lay paper over these lines).
+ * Rows between `from` and `to` (layer units).
  */
 function hatchRows(c: PlateCanvas, seed: number, from: number, to: number) {
   const { ctx } = c;
   const rng = createRng(seed);
-  const patch = field(seed + 7, 300, 3);
-  const [x0, x1, yb, yt] = HATCH_BOX;
-  ctx.lineCap = "round";
-  ctx.lineWidth = c.pen(0.55);
-  ctx.strokeStyle = rgba(INK.hatch, 0.4);
+  const patch = field(seed + 7, 420, 2);
+  const wave = field(seed + 9, 900, 2);
+  const [x0, x1] = HATCH_BOX;
+  const w = c.pen(0.6);
+  ctx.fillStyle = rgba(INK.hatch, 0.42);
   ctx.beginPath();
   let y = from;
   while (y < to) {
-    const t = Math.min(1, Math.max(0, (y - yb) / (yt - yb)));
-    y += (8.5 - 4.5 * t) * (0.65 + rng() * 0.7);
-    let x = x0 - rng() * 60;
+    const t = Math.min(1, Math.max(0, (y - 40) / 400));
+    y += spacingAt(y) * (0.82 + 0.36 * rng());
+    let x = x0 - rng() * 200;
     while (x < x1) {
-      const len = 10 + rng() * (26 + 60 * t);
-      const gap = 6 + rng() * (70 - 46 * t);
-      const keep = 0.04 + 0.5 * t ** 1.5 + 0.28 * patch(x, y);
+      // Long lines low in the sky's tint, longer still high up.
+      const len = 90 + rng() * (180 + 520 * t);
+      const gap = 10 + rng() * (60 + 160 * (1 - t));
+      // Kept everywhere at the top; patchy lower down, where the tint
+      // thins out toward the horizon.
+      const keep = 0.2 + 0.7 * t + 0.3 * patch(x + len / 2, y);
       if (rng() < keep) {
-        const yy = y + (rng() - 0.5) * 1.4;
-        ctx.moveTo(x, yy);
-        ctx.quadraticCurveTo(
-          x + len * (0.4 + rng() * 0.2),
-          yy + (rng() - 0.5) * 1.2,
-          x + len,
-          yy + (rng() - 0.5) * 0.8,
-        );
+        const n = Math.max(6, Math.round(len / 14));
+        const yy = y + (rng() - 0.5) * 0.8;
+        const th = w * (0.55 + 0.45 * t) * (0.8 + 0.4 * rng());
+        const at = (k: number): [number, number, number] => {
+          const u = k / n;
+          const px = x + len * u;
+          const py = yy + 2.2 * wave(px, y);
+          return [px, py, th * Math.sin(Math.PI * u) ** 0.7];
+        };
+        let [px, py, h] = at(0);
+        ctx.moveTo(px, py);
+        for (let k = 1; k <= n; k++) {
+          [px, py, h] = at(k);
+          ctx.lineTo(px, py + h * 0.5);
+        }
+        for (let k = n; k >= 0; k--) {
+          [px, py, h] = at(k);
+          ctx.lineTo(px, py - h * 0.5);
+        }
+        ctx.closePath();
       }
       x += len + gap;
     }
   }
-  ctx.stroke();
+  ctx.fill();
 }
 
 export function hatchInkJobs(): PlateJob[] {
   const [, , yb, yt] = HATCH_BOX;
-  const parts = 3;
+  const parts = 4;
   const jobs: PlateJob[] = [];
   for (let i = 0; i < parts; i++) {
     const a = yb + ((yt - yb) * i) / parts;

@@ -1,20 +1,6 @@
 import { createRng, mix, rgba } from "../../paint/kit";
-import {
-  INK,
-  type Plate,
-  type PlateCanvas,
-  type PlateJob,
-} from "../../paint/plate";
-import {
-  type Cloud,
-  type CloudSpec,
-  cloudOf,
-  gridRows,
-  inkRows,
-  paintRows,
-  type Surface,
-  surfaceFor,
-} from "./cumulus";
+import { INK, type Plate } from "../../paint/plate";
+import { type CloudSpec, cloudJobs, newSlot } from "./cumulus";
 import { skyAt } from "./ground";
 
 /**
@@ -38,120 +24,34 @@ interface Group {
 
 const GROUPS: readonly Group[] = [
   {
-    // Over the cliffs to the north: a low group in the haze.
-    id: "cloud-north",
-    box: [-905, -330, 104, 262],
-    weight: 0.8,
-    specs: [
-      {
-        seed: 913,
-        x0: -905,
-        x1: -790,
-        base: 130,
-        tilt: 0.03,
-        height: 30,
-        towers: 2,
-        flat: 0.8,
-        haze: 0.42,
-        soft: 5,
-        fragments: 1,
-      },
-      {
-        seed: 911,
-        x0: -860,
-        x1: -575,
-        base: 142,
-        tilt: 0.04,
-        height: 82,
-        towers: 3,
-        haze: 0.32,
-        soft: 6,
-        fragments: 2,
-      },
-      {
-        seed: 912,
-        x0: -600,
-        x1: -390,
-        base: 152,
-        tilt: -0.03,
-        height: 50,
-        towers: 3,
-        flat: 0.9,
-        haze: 0.34,
-        soft: 5,
-        fragments: 2,
-      },
-    ],
-  },
-  {
-    // A bank of cumulus over the Outreau heights to the south-east:
-    // cells of it one behind another, the farther hazier.
+    // A cumulus congestus over the Outreau heights to the south-east,
+    // nearer than the heights' skyline suggests: its flat base about 12°
+    // up, high enough that the left camp's kitchen smoke rises under it
+    // against open sky, and the underside shows. One leading tower, three
+    // lower ones of different widths.
     id: "cloud-east",
-    box: [282, 892, 56, 282],
+    box: [296, 880, 178, 396],
     weight: 0.9,
     specs: [
       {
         seed: 924,
-        x0: 600,
-        x1: 910,
-        base: 86,
-        tilt: 0.02,
-        height: 124,
-        towers: 3,
-        haze: 0.36,
-        soft: 7,
-        fragments: 1,
-      },
-      {
-        seed: 925,
-        x0: 430,
-        x1: 640,
-        base: 94,
-        tilt: -0.01,
-        height: 96,
-        towers: 3,
-        haze: 0.32,
-        soft: 6,
-        fragments: 1,
-      },
-      {
-        seed: 921,
-        x0: 335,
-        x1: 610,
-        base: 82,
-        tilt: -0.02,
+        x0: 330,
+        x1: 840,
+        base: 220,
+        tilt: -0.018,
         height: 150,
-        towers: 3,
-        haze: 0.18,
-        soft: 7,
+        heads: [
+          [0.1, 0.07, 0.4],
+          [0.3, 0.12, 1],
+          [0.58, 0.085, 0.62],
+          [0.84, 0.09, 0.45],
+        ],
+        haze: 0.08,
+        soft: 5,
         fragments: 2,
-        taper: 0.4,
-      },
-      {
-        seed: 922,
-        x0: 600,
-        x1: 830,
-        base: 76,
-        tilt: 0.02,
-        height: 104,
-        towers: 3,
-        haze: 0.22,
-        soft: 7,
-        fragments: 2,
-        taper: 0.45,
-      },
-      {
-        seed: 923,
-        x0: 288,
-        x1: 380,
-        base: 98,
-        tilt: 0.05,
-        height: 34,
-        towers: 2,
-        flat: 0.85,
-        haze: 0.3,
-        soft: 4,
-        fragments: 1,
+        taper: 0.5,
+        under: 0.13,
+        rag: 0.035,
       },
     ],
   },
@@ -192,51 +92,6 @@ const GROUPS: readonly Group[] = [
         taper: 0.32,
       },
       {
-        seed: 933,
-        x0: 220,
-        x1: 400,
-        base: 226,
-        tilt: 0.02,
-        height: 24,
-        towers: 2,
-        flat: 0.62,
-        haze: 0.12,
-        soft: 4,
-        billow: 1.3,
-        fragments: 1,
-        taper: 0.32,
-      },
-      {
-        seed: 934,
-        x0: 470,
-        x1: 730,
-        base: 206,
-        tilt: -0.03,
-        height: 32,
-        towers: 3,
-        flat: 0.6,
-        haze: 0.14,
-        soft: 4,
-        billow: 1.3,
-        fragments: 1,
-        taper: 0.32,
-      },
-      {
-        seed: 935,
-        x0: 760,
-        x1: 892,
-        base: 240,
-        tilt: 0.02,
-        height: 26,
-        towers: 2,
-        flat: 0.62,
-        haze: 0.1,
-        soft: 4,
-        billow: 1.3,
-        fragments: 0,
-        taper: 0.32,
-      },
-      {
         seed: 936,
         x0: 30,
         x1: 215,
@@ -251,102 +106,21 @@ const GROUPS: readonly Group[] = [
         fragments: 0,
         taper: 0.32,
       },
-      {
-        seed: 937,
-        x0: 560,
-        x1: 770,
-        base: 280,
-        tilt: -0.02,
-        height: 24,
-        towers: 2,
-        flat: 0.62,
-        haze: 0.08,
-        soft: 4,
-        billow: 1.3,
-        fragments: 0,
-        taper: 0.32,
-      },
     ],
   },
 ];
 
-/** Device px per unit at the owner's laptop, for sizing jobs. */
-const K_EST = 1.48;
-/** Pixels a colour job shades, at most (about 3 ms). */
-const PX_PER_JOB = 36000;
-
-/** A cloud's painting state on the plate's canvas, made by its first job and dropped by its last. */
-interface Slot {
-  cloud: Cloud | null;
-  surface: Surface | null;
-  key: string;
-}
-
-function surfaceOf(slot: Slot, spec: CloudSpec, c: PlateCanvas): Surface {
-  slot.cloud ??= cloudOf(spec);
-  const t = c.ctx.getTransform();
-  const key = `${t.a},${t.d},${t.e},${t.f},${c.ctx.canvas.width}`;
-  if (!slot.surface || slot.key !== key) {
-    slot.surface = surfaceFor(slot.cloud, c);
-    slot.key = key;
-  }
-  return slot.surface;
-}
-
-/** Bands of the cloud's box (layer units, top down) for its jobs. */
-function bands(spec: CloudSpec, box: Group["box"]): number {
-  const w = Math.min(spec.x1, box[1]) - Math.max(spec.x0, box[0]) + 40;
-  const h = spec.height * 1.6 + 30;
-  return Math.max(1, Math.ceil((w * h * K_EST * K_EST) / PX_PER_JOB));
-}
-
-/** Canvas pixel rows of band b of n over the cloud's box. */
-function bandRows(sf: Surface, b: number, n: number): [number, number] {
-  const h = sf.ry1 - sf.ry0;
-  return [
-    sf.ry0 + Math.round((h * b) / n),
-    sf.ry0 + Math.round((h * (b + 1)) / n),
-  ];
-}
-
 function groupPlate(g: Group): Plate {
-  const slots: Slot[] = g.specs.map(() => ({
-    cloud: null,
-    surface: null,
-    key: "",
-  }));
+  const slots = g.specs.map(() => newSlot());
   return {
     id: g.id,
     depth: Number.POSITIVE_INFINITY,
     box: g.box,
     group: "sky",
-    jobs: (mode) => {
-      const jobs: PlateJob[] = [];
-      g.specs.forEach((spec, i) => {
-        const slot = slots[i];
-        const n = bands(spec, g.box);
-        for (let b = 0; b < n; b++) {
-          jobs.push((c) => {
-            const sf = surfaceOf(slot, spec, c);
-            const [r0, r1] = bandRows(sf, b, n);
-            paintRows(slot.cloud as Cloud, sf, c, r0, r1, mode === "ink");
-          });
-        }
-        if (mode === "ink") {
-          for (let b = 0; b < n; b++) {
-            jobs.push((c) => {
-              const sf = surfaceOf(slot, spec, c);
-              const [r0, r1] = bandRows(sf, b, n);
-              const [j0, j1] = gridRows(sf, r0, r1);
-              inkRows(slot.cloud as Cloud, sf, c, j0, j1, g.weight);
-              // The engraving is the last to use the surface.
-              if (b === n - 1) slot.surface = null;
-            });
-          }
-        }
-      });
-      return jobs;
-    },
+    jobs: (mode) =>
+      g.specs.flatMap((spec, i) =>
+        cloudJobs(spec, g.box, mode, g.weight, slots[i]),
+      ),
   };
 }
 

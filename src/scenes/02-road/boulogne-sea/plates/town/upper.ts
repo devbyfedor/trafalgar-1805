@@ -17,7 +17,9 @@ import {
   brokenLine,
   groundSkyline,
   inside,
+  lightBook,
   penAt,
+  Shapes,
   strokeLines,
   sunOn,
 } from "./kit";
@@ -539,6 +541,22 @@ function merlons(tw: Tower): [number, number, number, number][] {
   return out;
 }
 
+/** A round tower's silhouette as painted (its drum, its merlons), into an occluder of the lights behind it (paint/lights.ts). */
+function towerShape(s: Shapes, tw: Tower): Shapes {
+  const top = (x: number) => drumTop(tw, x);
+  const pts: Pt[] = [[tw.x - tw.r, tw.y0]];
+  for (let k = 0; k <= 10; k++) {
+    const x = tw.x - tw.r + (2 * tw.r * k) / 10;
+    pts.push([x, top(x)]);
+  }
+  pts.push([tw.x + tw.r, tw.y0]);
+  s.poly(pts);
+  if (tw.crenel)
+    for (const [x0, x1, y, mh] of merlons(tw))
+      s.rect(x0, y - 0.05, x1 - x0, mh);
+  return s;
+}
+
 /** A round tower in dark coursed stone: lit on its left, its courses curving with the drum, the street's dusk at its foot, a corbelled band and merlons on a crenellated top, else a plain parapet with its lit coping. */
 export function paintTower(c: PlateCanvas, tw: Tower, t: Tone): void {
   const { ctx } = c;
@@ -794,6 +812,17 @@ export function paintWalls(c: PlateCanvas): void {
   ctx.lineTo(gt.x + aw, gt.y0);
   ctx.closePath();
   ctx.fill();
+  // The ramparts hide the lights of the houses inside them below their
+  // walk (paint/lights.ts): the faces, the towers, the gate.
+  const book = lightBook(c);
+  if (book) {
+    const sh = new Shapes();
+    for (const f of [u.sw, u.nw]) sh.poly([...f.foot, ...[...f.top].reverse()]);
+    for (const tw of u.towers) towerShape(sh, tw);
+    sh.rect(gt.x - gt.r, gt.y0, gt.r * 2, gt.y1 - gt.y0);
+    for (const tw of gt.towers) towerShape(sh, tw);
+    book.occlude(sh);
+  }
 }
 
 export function engraveWalls(c: PlateCanvas): void {
@@ -916,6 +945,18 @@ export function paintBelfryStage(c: PlateCanvas): void {
     ctx.closePath();
     ctx.fill();
   }
+  // The turrets hide the lights behind them (paint/lights.ts).
+  const book = lightBook(c);
+  if (book) {
+    const sh = new Shapes();
+    for (const tw of s.turrets)
+      towerShape(sh, tw).poly([
+        [tw.x - tw.r * 1.15, tw.y1],
+        [tw.x + tw.r * 1.15, tw.y1],
+        [tw.x, tw.y1 + tw.r * 2.4],
+      ]);
+    book.occlude(sh);
+  }
 }
 
 export function engraveBelfryStage(c: PlateCanvas): void {
@@ -1011,6 +1052,24 @@ export function paintTrees(
       ctx.ellipse(cx, cy, rx * 0.4, ry * 0.36, 0, 0, Math.PI * 2);
     }
     ctx.fill();
+  }
+  // The crowns and their trunks hide the lights behind them (paint/lights.ts): the shade masses (the rest lie inside them).
+  const book = lightBook(c);
+  if (book) {
+    const sh = new Shapes();
+    const half = c.pen(0.4);
+    for (const tr of list) {
+      const x1 = tr.x + tr.rx * 0.05;
+      const y1 = tr.y + tr.ry * 0.7;
+      sh.poly([
+        [tr.x - half, tr.foot],
+        [tr.x + half, tr.foot],
+        [x1 + half, y1],
+        [x1 - half, y1],
+      ]);
+      for (const [x, y, rx, ry] of lobes(tr)) sh.ellipse(x, y, rx, ry);
+    }
+    book.occlude(sh);
   }
 }
 
@@ -1140,6 +1199,24 @@ export function paintBelfryTop(c: PlateCanvas): void {
     0.55,
   );
   telegraphLines(c, "colour");
+  // The octagon and the spire hide the lights behind them (paint/lights.ts).
+  const book = lightBook(c);
+  if (book) {
+    const sh = new Shapes().rect(
+      xs[0],
+      o.y0,
+      xs[3] - xs[0] + 0.04,
+      o.y1 - o.y0,
+    );
+    sh.rect(o.x - o.r * 1.08, o.y1 - 0.3, o.r * 2.16, 0.35);
+    const f = spireFacets();
+    sh.poly([
+      [f[0].base[0] - f[0].bell * 0.6, o.y1],
+      [f[2].base[1] + f[2].bell * 0.6, o.y1],
+      f[0].apex,
+    ]);
+    book.occlude(sh);
+  }
 }
 
 function telegraphParts(): { mast: Pt[]; reg: Pt[]; arms: Pt[][] } {

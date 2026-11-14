@@ -1,7 +1,18 @@
 import { createRng, mix, type Pt, rgba } from "../../paint/kit";
+import type { LightSite } from "../../paint/lights";
 import { INK, PAPER, type PlateCanvas } from "../../paint/plate";
 import { aerial, EYE_EN, EYE_H, project, viewOf } from "../../scene";
-import { clamp01, penAt, SUN_ALT, SUN_AZ, smooth } from "./kit";
+import {
+  clamp01,
+  inside,
+  lightBook,
+  penAt,
+  rectPts,
+  Shapes,
+  SUN_ALT,
+  SUN_AZ,
+  smooth,
+} from "./kit";
 
 /**
  * Buildings as real boxes with real roofs (brief, "Owner review", bug 8:
@@ -563,14 +574,67 @@ function band(a: Pt, b: Pt, down: number): Pt[] {
   return [a, b, [b[0], b[1] - down], [a[0], a[1] - down]];
 }
 
-/** Paints buildings (far to near) in the evening light. */
+/** A chimney's stack and cap, as painted. */
+function chimneyPts(k: Building["chimneys"][number]): Pt[][] {
+  return [
+    rectPts(k.x - k.w / 2, k.y0, k.w, k.y1 - k.y0),
+    rectPts(k.x - k.w * 0.55, k.y1 - 0.24, k.w * 1.1, 0.32),
+  ];
+}
+
+/** A building's silhouette as painted (its hull, its chimneys and dormers): what it hides of the lights behind it. */
+function silhouette(b: Building): Shapes {
+  const s = new Shapes().poly(b.hull);
+  for (const k of b.chimneys) for (const p of chimneyPts(k)) s.poly(p);
+  for (const d of b.dormers) s.poly(d.front).poly(d.roofL).poly(d.roofR);
+  return s;
+}
+
+/** Drops the sites a shape painted over them hides (their middle under it). */
+function cover(sites: LightSite[] | undefined, pts: readonly Pt[]): void {
+  if (!sites) return;
+  for (let i = sites.length - 1; i >= 0; i--) {
+    const s = sites[i];
+    if (inside(pts, s.x + s.w / 2, s.y + s.h / 2)) sites.splice(i, 1);
+  }
+}
+
+/** A light site on a painted opening (its box). */
+function opening(
+  kind: "window" | "door",
+  pts: readonly Pt[],
+  seed: number,
+): LightSite {
+  let x0 = Number.POSITIVE_INFINITY;
+  let y0 = Number.POSITIVE_INFINITY;
+  let x1 = Number.NEGATIVE_INFINITY;
+  let y1 = Number.NEGATIVE_INFINITY;
+  for (const [x, y] of pts) {
+    x0 = Math.min(x0, x);
+    y0 = Math.min(y0, y);
+    x1 = Math.max(x1, x);
+    y1 = Math.max(y1, y);
+  }
+  return { kind, x: x0, y: y0, w: x1 - x0, h: y1 - y0, seed };
+}
+
+/**
+ * Paints buildings (far to near) in the evening light. With a light sink
+ * (paint/lights.ts) it records, in paint order, each building's silhouette
+ * as an occluder of the lights behind it, then its windows, doors and
+ * dormer windows as sites, each where it is painted (less any its own
+ * door, dormers or chimneys paint over).
+ */
 export function paintBuildings(
   c: PlateCanvas,
   list: readonly Building[],
 ): void {
   const { ctx } = c;
+  const sink = lightBook(c);
   for (const b of list) {
     const rng = createRng(b.seed ^ 0x51ed);
+    const sites: LightSite[] | undefined = sink ? [] : undefined;
+    let seed = (b.seed % 1000003) * 1024;
     const air = (hex: string) => townAir(hex, b.distance);
     const dusk = air(DUSK);
     // A base under the faces, so their seams never show light.
@@ -583,6 +647,7 @@ export function paintBuildings(
       }
     ctx.fillStyle = air(darkest);
     fillPoly(ctx, b.hull);
+    sink?.occlude(silhouette(b));
     for (const f of b.faces) {
       const col = air(f.colour);
       if (f.kind !== "roof" && f.quad) {
@@ -703,6 +768,8 @@ export function paintBuildings(
           }
           ctx.fillRect(wx, wy, ww, wh);
           ctx.globalAlpha = 1;
+          sites?.push({ kind: "window", x: wx, y: wy, w: ww, h: wh, seed });
+          seed++;
         }
       }
       // The door or the shop at the foot of a lit front on the street.
@@ -716,18 +783,34 @@ export function paintBuildings(
           ww * 1.2,
           Math.min(sh * 0.62, wh * 1.6),
         );
+        if (sites) {
+          const door = rectPts(
+            p[0] - ww * 0.6,
+            p[1],
+            ww * 1.2,
+            Math.min(sh * 0.62, wh * 1.6),
+          );
+          cover(sites, door);
+          sites.push(opening("door", door, seed));
+        }
+        seed++;
       }
     }
     // Dormers: a small lit front with its window, two little slopes.
     for (const d of b.dormers) {
       ctx.fillStyle = air(d.wall);
       fillPoly(ctx, d.front);
+      cover(sites, d.front);
       ctx.fillStyle = air(WINDOW);
       fillPoly(ctx, d.window);
+      sites?.push(opening("window", d.window, seed));
+      seed++;
       ctx.fillStyle = air(d.roof);
       fillPoly(ctx, d.roofL);
       ctx.fillStyle = air(d.roofShade);
       fillPoly(ctx, d.roofR);
+      cover(sites, d.roofL);
+      cover(sites, d.roofR);
     }
     // Chimneys: stone or brick, a lit face and a shaded flank, a dark cap.
     for (const k of b.chimneys) {
@@ -737,7 +820,9 @@ export function paintBuildings(
       ctx.fillRect(k.x - k.w / 2 + k.w * 0.6, k.y0, k.w * 0.4, k.y1 - k.y0);
       ctx.fillStyle = air("#3a3134");
       ctx.fillRect(k.x - k.w * 0.55, k.y1 - 0.24, k.w * 1.1, 0.32);
+      if (sites) for (const p of chimneyPts(k)) cover(sites, p);
     }
+    if (sink && sites) for (const s of sites) sink.add(s);
   }
 }
 

@@ -140,7 +140,7 @@ export function buildRoadChoreography(
     one("[data-el=dateline]"),
     { opacity: 0 },
     { opacity: 1, ease: "sine.out", duration: 0.012 },
-    BEATS.boulogne[0] + 0.07,
+    BEATS.boulogne[0] + 0.058,
   );
 
   // Captions: in once the beat's camera has settled, out before the next.

@@ -129,7 +129,7 @@ export type ScrimRun =
  * scrim comes in.
  */
 export const DEEP_SCRIM: readonly ScrimRun[] = [
-  [0.145, 0.162, 0.178, 0.196, 0.7],
+  [0.135, 0.1485, 0.162, 0.177, 0.7],
   [0.226, 0.242, 0.268, 0.286, 0.7],
   // The whole Atlantic and the West Indies: looked at from the south, as
   // their names must read, South America lies under the card.

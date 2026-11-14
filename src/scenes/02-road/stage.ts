@@ -19,7 +19,7 @@ import {
   Tracks,
 } from "@/components/chart";
 import { type BenchResult, benchFrames } from "@/components/chart/engine/bench";
-import { worldX, worldY } from "@/components/chart/geo/mercator";
+import { mercatorScale, worldX, worldY } from "@/components/chart/geo/mercator";
 import type { ClashResult } from "@/components/chart/glyphs/clash";
 import { glyphPxAt } from "@/components/chart/glyphs/height";
 import { GlyphLayout } from "@/components/chart/glyphs/layout";
@@ -30,6 +30,7 @@ import {
 } from "@/components/chart/lettering/HeadLabels";
 import type { LabelState } from "@/components/chart/lettering/Lettering";
 import type { WaterLift } from "@/components/chart/terrain/liftProbe";
+import type { InterludePhase } from "../alive/interlude";
 import { CAPTIONS } from "./beats";
 import { CAMPS, FLOTILLA, FLOTILLA_TYPES } from "./boulogne";
 import { ROAD_FLIGHT } from "./camera";
@@ -37,6 +38,7 @@ import {
   FLOTILLA_GATE,
   fleetMarks,
   fleetNames,
+  type InterludeView,
   RoadDirector,
   roadHeads,
   squadronMarks,
@@ -49,8 +51,22 @@ import {
   GLYPH_TYPES,
 } from "./fleets";
 import { GAZETTEER } from "./gazetteer";
+import { interludeView } from "./interludeCamera";
+import { marksAt, SEA_EYE, type SeaPose } from "./interludes";
 import { legTracks, NELSON, VILLENEUVE } from "./routes";
 import { SOUNDING_ANGLES } from "./soundings";
+
+/** The soundings' ink (Soundings' own default strength). */
+const SOUNDING_INK = 0.75;
+
+/** The interlude's chart view (RoadStage.interlude), reused frame to frame. */
+const interludeAt: InterludeView & { u: number } = {
+  eye: new Vector3(),
+  target: new Vector3(),
+  fov: SEA_EYE.fov,
+  marks: 1,
+  u: 0,
+};
 
 /** smoothstep: 0 before a, 1 after b. */
 function rise(a: number, b: number, x: number): number {
@@ -76,15 +92,35 @@ export interface RoadStage {
     p: number,
     mode?: number,
   ): { fleets: Float32Array; squadrons: Float32Array };
-  /** Sets the chart for progress p and draws a frame (gsap.ticker time). */
-  draw(p: number, time: number): void;
+  /**
+   * Sets the chart for progress p and draws a frame (gsap.ticker time).
+   * With `view`, an interlude's dive or rise: the story at p, the camera
+   * and the marks as the view has them (RoadDirector.applyState).
+   */
+  draw(p: number, time: number, view?: InterludeView): void;
+  /**
+   * An interlude's camera at a point of it (interludeCamera.ts): the
+   * chart's view, its rig's u and how much of the chart's marks shows,
+   * with the painting's pose written into `pose`. One object, reused.
+   */
+  interlude(
+    phase: InterludePhase,
+    t: number,
+    pose: SeaPose,
+  ): InterludeView & { u: number };
   /**
    * Development: draws `frames` frames at p, each timed on the GPU and the
    * CPU (engine/bench.ts; scripts/dev/road-bench.mjs). The host holds its
    * own drawing meanwhile. With `alternate`, the chart's objects of that
    * name (Chart.showNamed) are drawn on even frames and hidden on odd ones.
+   * With `view`, an interlude's chart at that point (`interlude`).
    */
-  bench(frames: number, p: number, alternate?: string): Promise<BenchResult>;
+  bench(
+    frames: number,
+    p: number,
+    alternate?: string,
+    view?: InterludeView,
+  ): Promise<BenchResult>;
   /** Development: draws the scene at p and probes its water (Chart.probeWaterLift). */
   waterLift(p: number): WaterLift;
   /**
@@ -182,6 +218,13 @@ export interface RoadStage {
   /** Development: every change of a label's strength (RoadDirector.labelChanges). */
   labelChanges(): ReturnType<RoadDirector["labelChanges"]>;
   /**
+   * Development: how far the chart's coast lies from a point at sea along
+   * a heading (degrees from north), in ground km, up to `maxKm`; NaN if it
+   * finds none (the coast as the layout reads it, with the detail tile the
+   * last frame held). For matching a painting's shore to the chart's.
+   */
+  coastAlong(lon: number, lat: number, heading: number, maxKm?: number): number;
+  /**
    * Development: where a site on the sea level stands in the frame at p
    * (normalised device coordinates), how far from the eye (km), how steeply
    * the view meets the chart there (the sine of its elevation) and the
@@ -243,6 +286,10 @@ export async function createRoadStage(
   });
   let atlas: GlyphAtlas | null = null;
   let digits: DigitAtlas | null = null;
+  // The soundings, held back with the chart's other marks while an
+  // interlude's painting stands for the place (draw's `view.marks`).
+  let soundings: Soundings | null = null;
+  let soundingMarks = 1;
   try {
     const riverData = await loadRivers(chart.manifest, options.signal);
     const rivers = new Rivers(chart.field, riverData);
@@ -319,11 +366,12 @@ export async function createRoadStage(
         SOUNDING_ANGLES,
         options.signal,
       );
-      const soundings = new Soundings(
+      soundings = new Soundings(
         chart.field,
         soundingData.index,
         figures,
         digits,
+        { opacity: SOUNDING_INK },
       );
       chart.add(soundings, soundings.mesh);
     }
@@ -431,20 +479,37 @@ export async function createRoadStage(
           probe.read(chart.renderer, chart.camera, mode).values.slice();
         return { fleets: read(probes[0]), squadrons: read(probes[1]) };
       },
-      draw(p, time) {
+      draw(p, time, view) {
         sampled = Number.NaN;
-        director.apply(p);
+        director.apply(p, view);
+        const marks = view ? view.marks : 1;
+        if (soundings && marks !== soundingMarks) {
+          soundings.opacity = SOUNDING_INK * marks;
+          soundingMarks = marks;
+        }
         keepCard(p);
         chart.frame(time);
       },
-      async bench(frames, p, alternate) {
+      interlude(phase, t, pose) {
+        const u = interludeView(
+          phase,
+          t,
+          interludeAt.eye,
+          interludeAt.target,
+          pose,
+        );
+        interludeAt.u = u;
+        interludeAt.marks = marksAt(u);
+        return interludeAt;
+      },
+      async bench(frames, p, alternate, view) {
         sampled = Number.NaN;
         const gl = chart.renderer.getContext() as WebGL2RenderingContext;
         try {
           return await benchFrames(
             gl,
             (time) => {
-              director.apply(p);
+              director.apply(p, view);
               chart.frame(time);
             },
             frames,
@@ -468,6 +533,31 @@ export async function createRoadStage(
         const height = chart.renderer.domElement.clientHeight || 720;
         const pxPerRad = height / (2 * Math.tan((camera.fov * Math.PI) / 360));
         return { x: site.x, y: site.y, dist, sinElev, pxPerRad };
+      },
+      coastAlong(lon, lat, heading, maxKm = 20) {
+        const k = mercatorScale(lat);
+        const h = (heading * Math.PI) / 180;
+        const x0 = worldX(lon);
+        const y0 = worldY(lat);
+        const at = (km: number) =>
+          coast.distance(x0 + km * k * Math.sin(h), y0 + km * k * Math.cos(h));
+        if (at(0) <= 0) return 0;
+        const step = 0.005;
+        let a = 0;
+        for (let km = step; km <= maxKm; km += step) {
+          if (at(km) > 0) {
+            a = km;
+            continue;
+          }
+          let b = km;
+          for (let i = 0; i < 30; i++) {
+            const mid = (a + b) / 2;
+            if (at(mid) > 0) a = mid;
+            else b = mid;
+          }
+          return (a + b) / 2;
+        }
+        return Number.NaN;
       },
       waterLift(p) {
         sampled = Number.NaN;

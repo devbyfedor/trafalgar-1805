@@ -861,14 +861,18 @@ const CAMPS_WINDOW = [0.1, 0.12, 0.25, 0.262] as const;
 /**
  * Where the flotilla can show (p): only while the camera looks down on the
  * roads at least as steeply as a gate holds (the layout's GATE_TILT: the
- * eye's height over its distance 0.25 or more), from p 0.195 coming down to
- * 0.233 going up. Seen lower, a gate stays open (no label can stand for
+ * eye's height over its distance 0.25 or more), from p 0.175 coming down to
+ * 0.235, the camera still over the roads (it climbs away from there, and
+ * the view flattens fast as it moves off south-west). The craft come in
+ * over about 0.015 of p after the window opens (the layout eases them in)
+ * and show whole from about 0.194 to 0.228, about a screen of scroll (the
+ * owner's order of 13 November 2026; scripts/dev/flotilla-hold.mjs). Seen lower, a gate stays open (no label can stand for
  * ships there), and the lead could have shown alone. Coming down, the
  * window opens while the gate is still shut and the craft come in by the
  * gate; going up, the whole group fades with the window (the layout reads
  * the gate where its craft are laid out, so it stays open to the end).
  */
-const FLOTILLA_WINDOW = [0.195, 0.2, 0.226, 0.233] as const;
+const FLOTILLA_WINDOW = [0.175, 0.18, 0.229, 0.235] as const;
 
 /**
  * The flotilla's group: its prames first (the largest), then the rest in
@@ -886,6 +890,18 @@ function flotillaGroup(layer: Glyphs): FreeGroup {
     shown: 0,
     gate: FLOTILLA_GATE,
   };
+}
+
+/**
+ * An interlude's camera for the chart (RoadDirector.applyState): eye and
+ * target in world km, the vertical field of view in degrees, and how much
+ * of the chart's own marks of the place still show (0..1).
+ */
+export interface InterludeView {
+  eye: Vector3;
+  target: Vector3;
+  fov: number;
+  marks: number;
 }
 
 export interface RoadLayers {
@@ -1481,9 +1497,12 @@ export class RoadDirector {
     this.painted = el;
   }
 
-  /** Sets the chart's state for progress p; call before chart.frame. */
-  apply(p: number): void {
-    this.applyState(p);
+  /**
+   * Sets the chart's state for progress p; call before chart.frame. With
+   * `view`, an interlude's camera instead of the flight's (applyState).
+   */
+  apply(p: number, view?: InterludeView): void {
+    this.applyState(p, view);
     this.applyPainted(p);
   }
 
@@ -1491,15 +1510,21 @@ export class RoadDirector {
    * The chart's state for progress p (camera, light, ships, routes) and
    * the glyph layout's progress, without touching scene 1's painted
    * Victory: for baking the layout's tables ahead (stage.ts).
+   *
+   * With `view`, an interlude's dive or rise (scenes/alive/interlude.ts,
+   * interludes.ts): the story held at p, the camera where the interlude
+   * has it (the detail tile still the flight's at p), and the chart's own
+   * marks of the place shown only as much as `view.marks`.
    */
-  applyState(p: number): void {
+  applyState(p: number, view?: InterludeView): void {
     const { chart, rig } = this.layers;
-    chart.fly(rig, p);
+    if (view) chart.flyFrom(rig, p, view.eye, view.target, view.fov);
+    else chart.fly(rig, p);
     this.applyLight(p);
     const d = dayAt(p);
     this.applyFleets(p, d);
     this.applySquadrons(p, d);
-    this.applyBoulogne(p);
+    this.applyBoulogne(p, view ? view.marks : 1);
     this.applyTracks(p, d);
     this.applyHeads(p);
     this.layout?.setProgress(p);
@@ -1510,14 +1535,15 @@ export class RoadDirector {
    * them inside it is decided by the view (the camps' rows fade as they run
    * together, Camps.ts; the craft come in together where every one reads
    * one by one, behind the flotilla's gate), and outside it nothing of them
-   * is drawn or laid out.
+   * is drawn or laid out. `marks` (0..1) holds both back while an
+   * interlude's painting takes their place.
    */
-  private applyBoulogne(p: number): void {
+  private applyBoulogne(p: number, marks: number): void {
     const within = ([a, b, c, d]: readonly number[]) =>
       smooth(a, b, p) * (1 - smooth(c, d, p));
-    this.flotilla.shown = within(FLOTILLA_WINDOW);
+    this.flotilla.shown = within(FLOTILLA_WINDOW) * marks;
     const camps = within(CAMPS_WINDOW);
-    this.layers.camps.opacity = camps;
+    this.layers.camps.opacity = camps * marks;
     // Out of its window the layer isn't drawn at all; set only as it
     // crosses the window's ends, so a timing that hides it by name on
     // alternate frames (Chart.showNamed, road-bench.mjs AB=camps) can.

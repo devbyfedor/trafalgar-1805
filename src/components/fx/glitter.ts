@@ -15,6 +15,11 @@ export interface GlitterOptions {
   halfWidthTop: number;
   halfWidthBottom: number;
   maxDpr?: number;
+  /**
+   * A faint column of brighter water under the glints, the path's own
+   * sheen (Boulogne's moon path); none by default (scene 1's sun path).
+   */
+  sheen?: { color: string; alpha: number };
 }
 
 export class GlitterRenderer {
@@ -35,7 +40,11 @@ export class GlitterRenderer {
   constructor(canvas: HTMLCanvasElement, options: GlitterOptions) {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d", { alpha: true });
-    this.opts = { maxDpr: 1.5, ...options };
+    this.opts = {
+      maxDpr: 1.5,
+      sheen: undefined,
+      ...options,
+    } as Required<GlitterOptions>;
     const n = options.count;
     this.u = new Float32Array(n);
     this.v = new Float32Array(n);
@@ -79,9 +88,35 @@ export class GlitterRenderer {
     const { width, height, scale } = this;
     ctx.clearRect(0, 0, width, height);
     if (this.intensity <= 0.002) return;
-    ctx.fillStyle = this.opts.color;
     const cx = width / 2;
-    const { halfWidthTop, halfWidthBottom } = this.opts;
+    const { halfWidthTop, halfWidthBottom, sheen } = this.opts;
+    if (sheen) {
+      // A soft column, brightest at the far water and narrowest there,
+      // broken across by a slow ripple.
+      const rows = 24;
+      for (let r = 0; r < rows; r++) {
+        const v0 = r / rows;
+        const v1 = (r + 1) / rows;
+        const half =
+          (halfWidthTop + (halfWidthBottom - halfWidthTop) * v0 ** 0.85) *
+          width *
+          0.55;
+        const g = ctx.createLinearGradient(cx - half, 0, cx + half, 0);
+        const a =
+          sheen.alpha *
+          this.intensity *
+          (1 - v0 * 0.7) *
+          (0.75 + 0.25 * Math.sin(timeSeconds * 0.9 + r * 1.7));
+        g.addColorStop(0, `${sheen.color}00`);
+        g.addColorStop(0.5, sheen.color);
+        g.addColorStop(1, `${sheen.color}00`);
+        ctx.globalAlpha = Math.max(0, a);
+        ctx.fillStyle = g;
+        ctx.fillRect(cx - half, v0 * height, half * 2, (v1 - v0) * height);
+      }
+      ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = this.opts.color;
     const n = this.u.length;
     for (let i = 0; i < n; i++) {
       const s = Math.sin(timeSeconds * this.freq[i] + this.phase[i]);

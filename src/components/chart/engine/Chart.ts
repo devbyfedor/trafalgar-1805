@@ -356,7 +356,24 @@ export class Chart {
    */
   fly(rig: CameraRig, p: number): void {
     const fov = rig.evaluate(p, this.eye, this.target);
-    this.setView(this.eye, this.target, fov);
+    this.flyFrom(rig, p, this.eye, this.target, fov);
+  }
+
+  /**
+   * Points the camera off its flight (world km; `fov` vertical, degrees)
+   * while the field's detail layer keeps to the flight's plan at p: a
+   * scene's interlude (scenes/alive/interlude.ts), whose camera leaves a
+   * held point of the flight and comes back to it, finds the detail tile
+   * the flight holds there, as `fly` would.
+   */
+  flyFrom(
+    rig: CameraRig,
+    p: number,
+    eye: Vector3,
+    target: Vector3,
+    fov: number,
+  ): void {
+    this.setView(eye, target, fov);
     this.flight = rig;
     this.flightP = p;
     const plan = this.plans.get(rig);

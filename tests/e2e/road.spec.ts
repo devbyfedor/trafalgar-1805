@@ -1,12 +1,20 @@
 import { expect, type Page, test } from "@playwright/test";
 import sharp from "sharp";
 import {
+  BOULOGNE,
   collectErrors,
   collectRequests,
+  type InterludePoint,
+  interludeOf,
+  interludeScrollFor,
   open,
-  ROAD_PIN_LENGTH,
+  roadPin,
+  roadScrollFor,
+  scrollToInterlude,
   scrollToRoad,
+  scrollToY,
   settleFrames,
+  waitForRoad,
 } from "./helpers";
 
 /**
@@ -14,8 +22,14 @@ import {
  * console errors over a full scroll and back, same-origin requests only
  * (troika's glyph worker runs from a blob: URL, the page's own), the canvas
  * renders at its beats, and the pin releases into the scene 3 placeholder.
- * The reduced-motion stills and the phone's empty-handed fallback are in
- * reduced-motion.spec.ts and fallback.spec.ts.
+ * Boulogne's interlude (docs/scene-02-boulogne-brief.md): the pin's map
+ * holds the story at its p for the dive, the hold and the rise; the
+ * painting covers the chart through the hold with the text back over it;
+ * the text steps aside while the chart turns into the painting and back;
+ * the chart takes the story up again after it. The reduced-motion stills
+ * and the phone's empty-handed fallback are in reduced-motion.spec.ts and
+ * fallback.spec.ts; the page's width with classic scroll bars in
+ * overflow.spec.ts.
  *
  * Runs on the machine's GPU (Chromium's new headless mode, project
  * "road"): scene 2's frames in software take seconds each. Frame rates
@@ -24,6 +38,20 @@ import {
 
 /** Long enough for the 0.6 s scrub to settle. */
 const SCRUB_SETTLE_MS = 1600;
+
+/** Boulogne's interlude walked through: the dive, the hold and the rise. */
+const INTERLUDE_WALK: InterludePoint[] = [
+  { phase: "dive", t: 0.25 },
+  { phase: "dive", t: 0.5 },
+  { phase: "dive", t: 0.75 },
+  { phase: "dive", t: 1 },
+  { phase: "hold", t: 0.5 },
+  { phase: "hold", t: 1 },
+  { phase: "rise", t: 0.25 },
+  { phase: "rise", t: 0.5 },
+  { phase: "rise", t: 0.75 },
+  { phase: "rise", t: 1 },
+];
 
 async function openRoad(page: Page): Promise<void> {
   await open(page, "/?quality=0");
@@ -78,13 +106,25 @@ test.describe("scene 2", () => {
     page,
     baseURL,
   }) => {
-    test.setTimeout(300_000);
+    // Boulogne's painting, painted ahead in idle slices, may keep the
+    // interlude's walk waiting a while.
+    test.setTimeout(420_000);
     const errors = collectErrors(page);
     const requests = collectRequests(page);
     await openRoad(page);
 
-    // Every twentieth of the scene on the way down, every tenth back.
+    // Every twentieth of the scene on the way down, through Boulogne's
+    // interlude where the story stops for it, every tenth back.
+    const lude = interludeOf(await roadPin(page));
     for (let i = 0; i <= 20; i++) {
+      if (i > 0 && (i - 1) / 20 < lude.at && lude.at <= i / 20) {
+        // With the painting ready, as a reader who comes there gets it.
+        await waitForRoad(page, { baked: false, sea: true });
+        for (const point of INTERLUDE_WALK) {
+          await scrollToInterlude(page, point);
+          await settleFrames(page, 3);
+        }
+      }
       await scrollToRoad(page, i / 20);
       await settleFrames(page, 3);
     }
@@ -128,7 +168,7 @@ test.describe("scene 2", () => {
     // The Channel from high up, the whole Atlantic, the harbour of Cadiz
     // close up, and the last frame at dawn.
     const beats = [
-      { p: 0.165, sea: 0.06, paper: 0.25 },
+      { p: 0.151, sea: 0.06, paper: 0.25 },
       { p: 0.35, sea: 0.3, paper: 0.05 },
       { p: 0.735, sea: 0.4, paper: 0.02 },
       { p: 1, sea: 0.3, paper: 0 },
@@ -165,9 +205,11 @@ test.describe("scene 2", () => {
     expect((await road.boundingBox())?.y).toBeCloseTo(0, 0);
     await expect(next).not.toBeInViewport();
 
-    // A viewport height past the pin's end: scene 2 scrolls away and the
-    // placeholder comes up.
-    await scrollToRoad(page, 1 + 1.2 / ROAD_PIN_LENGTH);
+    // A viewport height and a bit past the pin's end (p 1, where the
+    // page's own map puts it, its interludes counted): scene 2 scrolls
+    // away and the placeholder comes up.
+    const vh = page.viewportSize()?.height ?? 720;
+    await scrollToY(page, (await roadScrollFor(page, 1)) + 1.2 * vh);
     await settleFrames(page, 4);
     expect((await road.boundingBox())?.y ?? 0).toBeLessThan(-10);
     await expect(next).toBeInViewport();
@@ -176,6 +218,127 @@ test.describe("scene 2", () => {
     await scrollToRoad(page, 0.9);
     await settleFrames(page, 4);
     expect((await road.boundingBox())?.y).toBeCloseTo(0, 0);
+    expect(errors).toEqual([]);
+  });
+
+  test("stops the story for Boulogne's interlude and takes it up again", async ({
+    page,
+  }) => {
+    test.setTimeout(360_000);
+    const errors = collectErrors(page);
+    await openRoad(page);
+    await waitForRoad(page, { baked: false, sea: true });
+    const pin = await roadPin(page);
+    const lude = interludeOf(pin, BOULOGNE);
+    const vh = page.viewportSize()?.height ?? 720;
+
+    // The map: p over the pin's base as before, the interlude's own
+    // screens inserted at its p, the pin as long as both.
+    expect(lude.from, "where the interlude begins, screens").toBeCloseTo(
+      lude.at * pin.base,
+      6,
+    );
+    expect(lude.to - lude.from, "its screens").toBeCloseTo(
+      lude.dive + lude.hold + lude.rise,
+      6,
+    );
+    expect(pin.length, "the pin's screens").toBeCloseTo(
+      pin.base + pin.interludes.reduce((sum, i) => sum + i.to - i.from, 0),
+      6,
+    );
+    const start = await roadScrollFor(page, 0);
+    const begins = start + lude.from * vh;
+    expect(await roadScrollFor(page, lude.at)).toBeCloseTo(begins, 1);
+    expect(await interludeScrollFor(page, { phase: "dive", t: 0 })).toBeCloseTo(
+      begins,
+      1,
+    );
+    expect(await interludeScrollFor(page, { phase: "rise", t: 1 })).toBeCloseTo(
+      start + lude.to * vh,
+      1,
+    );
+    // A hundredth of p past it lies a hundredth of the base past its end.
+    expect(await roadScrollFor(page, lude.at + 0.01)).toBeCloseTo(
+      start + (lude.to + 0.01 * pin.base) * vh,
+      1,
+    );
+    expect(await roadScrollFor(page, 1)).toBeCloseTo(
+      start + pin.length * vh,
+      1,
+    );
+
+    const road = page.locator("#road");
+    const sea = page.locator("#road [data-layer=sea]");
+    const text = page.locator("#road [data-layer=text]");
+    const scrim = page.locator("#road [data-el=scrim-chapter]");
+    const textShows = () =>
+      text.evaluate((el) => Number(getComputedStyle(el).opacity));
+    /** Scrolls to a point of the interlude, settles, and checks the pin holds. */
+    const visit = async (point: InterludePoint) => {
+      await scrollToInterlude(page, point);
+      await page.waitForTimeout(SCRUB_SETTLE_MS);
+      expect(
+        (await road.boundingBox())?.y,
+        `${point.phase}:${point.t}: pinned`,
+      ).toBeCloseTo(0, 0);
+    };
+
+    // The dive: the text steps aside while the chart turns into the
+    // painting (the engraving's paper is bright where both are dark).
+    let least = 1;
+    for (const t of [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]) {
+      await visit({ phase: "dive", t });
+      least = Math.min(least, await textShows());
+    }
+    expect(least, "the text's least opacity through the dive").toBeLessThan(
+      0.05,
+    );
+
+    // The hold: the painting covers the chart, the text is back over it,
+    // the chapter marker without its scrim.
+    for (const t of [0, 0.5, 1]) {
+      await visit({ phase: "hold", t });
+      const at = `hold:${t}`;
+      await expect(sea, `${at}: the painting`).toHaveCSS(
+        "visibility",
+        "visible",
+      );
+      expect(await textShows(), `${at}: the text`).toBeGreaterThan(0.99);
+      await expect(scrim, `${at}: the marker's scrim`).toHaveCSS(
+        "visibility",
+        "hidden",
+      );
+    }
+    const held = await sample(await road.screenshot());
+    expect(held.spread, "the hold: luminance spread").toBeGreaterThan(12);
+    expect(held.colours, "the hold: distinct colours").toBeGreaterThan(60);
+
+    // The rise: the text steps aside again while the painting turns back
+    // into the chart.
+    least = 1;
+    for (const t of [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]) {
+      await visit({ phase: "rise", t });
+      least = Math.min(least, await textShows());
+    }
+    expect(least, "the text's least opacity through the rise").toBeLessThan(
+      0.05,
+    );
+
+    // Past it the chart takes the story up again: the painting away, the
+    // text and the marker's scrim back, the chart drawn.
+    await scrollToRoad(page, lude.at + 0.02);
+    await page.waitForTimeout(SCRUB_SETTLE_MS);
+    expect((await road.boundingBox())?.y, "after: pinned").toBeCloseTo(0, 0);
+    await expect(sea, "after: the painting").toHaveCSS("visibility", "hidden");
+    expect(await textShows(), "after: the text").toBeGreaterThan(0.99);
+    await expect(scrim, "after: the marker's scrim").toHaveCSS(
+      "visibility",
+      "visible",
+    );
+    const after = await sample(await road.screenshot());
+    expect(after.spread, "after: luminance spread").toBeGreaterThan(12);
+    expect(after.colours, "after: distinct colours").toBeGreaterThan(60);
+    expect((await stats(page)).calls, "after: draw calls").toBeGreaterThan(3);
     expect(errors).toEqual([]);
   });
 });

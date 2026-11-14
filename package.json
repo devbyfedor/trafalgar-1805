@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1",
     "build": "next build",
+    "postbuild": "node scripts/dev/build-stamp.mjs",
     "preview": "serve out --listen tcp://127.0.0.1:4173 --no-clipboard --no-port-switching",
     "lint": "biome check",
     "lint:fix": "biome check --write",

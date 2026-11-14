@@ -20,6 +20,8 @@ A desktop-first, scroll-driven interactive story about the Battle of Trafalgar (
 - What the owner has approved keeps its direction: refine it, don't redo it. Scene 1 is approved; don't let it regress.
 - A deliberate stop requested by the owner overrides the instruction about how turns end. Bring the current step to a safe state, commit, update progress.md, report, and end the turn.
 
+- Before every measurement, make sure the server answers with the very build you mean to measure (session 22 measured an old build that still answered on its port). Before starting a server, `node scripts/dev/served.mjs --free <port>` must say the port is free; build with `npm run build` in the folder you measure (it stamps the build with its commit and changes); serve that folder's `out/` with the main tree's `node_modules/.bin/serve`, never `npx serve`; then `node scripts/dev/served.mjs <port> <folder>` must print OK (the same build, of the commit you expect, no source changed since). Run the check again after any rebuild or restart, and name the commit in the measurement's record.
+
 ## Fixed decisions
 
 - Desktop only. Phones and tablets get a single fallback screen.

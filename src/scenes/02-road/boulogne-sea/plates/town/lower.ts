@@ -37,9 +37,21 @@ export interface Tree {
   seed: number;
 }
 
+/** A spire on a church's tower or ridge: an octagonal broach spire of slate, seen as three facets. */
+export interface Spire {
+  /** The spire's foot (the tower's top, or the ridge), layer units. */
+  x: number;
+  y: number;
+  /** Half its width at the foot, and its height, layer units. */
+  r: number;
+  h: number;
+  distance: number;
+}
+
 export type Item =
   | { type: "house"; b: Building }
-  | { type: "tree"; t: Tree; distance: number };
+  | { type: "tree"; t: Tree; distance: number }
+  | { type: "spire"; s: Spire; distance: number };
 
 /** The smoke's chimneys (metres east, north): a house is built at each, its chimney smoking. */
 export const SMOKE_SITES: readonly Pt[] = [
@@ -126,21 +138,44 @@ function pick<T>(
   return table[table.length - 1][0];
 }
 
+/**
+ * The old town's fronts: mostly dark stone in 1805 (history-notes.md, "The
+ * lower town"), grey-brown and soot-grey, with a few pale fronts.
+ */
 const WALL_TABLE: readonly (readonly [Tone, number])[] = [
-  [WALLS.cream, 0.33],
+  [WALLS.stone, 0.42],
+  [WALLS.brown, 0.22],
+  [WALLS.grey, 0.1],
+  [WALLS.ochre, 0.08],
+  [WALLS.cream, 0.11],
+  [WALLS.white, 0.07],
+];
+
+/** The quay's row and the main streets: the new pale fronts of after 1800 (plaster and limewash) among the stone. */
+const PALE_TABLE: readonly (readonly [Tone, number])[] = [
+  [WALLS.cream, 0.3],
   [WALLS.white, 0.2],
-  [WALLS.ochre, 0.14],
-  [WALLS.stone, 0.22],
-  [WALLS.brown, 0.11],
+  [WALLS.ochre, 0.16],
+  [WALLS.stone, 0.24],
+  [WALLS.brown, 0.1],
 ];
 
 const ROOF_TABLE: readonly (readonly [Tone, number])[] = [
-  [ROOFS.tile, 0.47],
-  [ROOFS.tileDeep, 0.18],
-  [ROOFS.tileOld, 0.18],
-  [ROOFS.slate, 0.12],
+  [ROOFS.tile, 0.45],
+  [ROOFS.tileDeep, 0.2],
+  [ROOFS.tileOld, 0.2],
+  [ROOFS.slate, 0.1],
   [ROOFS.slateDark, 0.05],
 ];
+
+/** A blend of two materials. */
+function mixTone(a: Tone, b: Tone, k: number): Tone {
+  return {
+    lit: mix(a.lit, b.lit, k),
+    graze: mix(a.graze, b.graze, k),
+    shade: mix(a.shade, b.shade, k),
+  };
+}
 
 /** A material a little off its kind: no two houses quite alike. */
 function vary(rng: () => number, t: Tone, other: Tone): Tone {
@@ -154,6 +189,8 @@ function vary(rng: () => number, t: Tone, other: Tone): Tone {
 
 interface Gen {
   rng: () => number;
+  /** A second stream for the town's variety (big houses, storeys stepping), so the first keeps its layout. */
+  vary: () => number;
   garden: (x: number, y: number) => number;
   items: Item[];
   /** The next row's offset from the river, metres. */
@@ -180,11 +217,32 @@ function crossStreets(rng: () => number): number[] {
   return out;
 }
 
+/** The cross streets, river arc lengths (for the ground's dusk in them). */
+export function crossStreetArcs(): readonly number[] {
+  streets ??= crossStreets(createRng(91));
+  return streets;
+}
+
+/** The main streets up from the harbour (every third cross street): the new pale fronts line them. */
+function mainStreet(s: number): boolean {
+  const list = crossStreetArcs();
+  for (let i = 1; i < list.length; i += 3)
+    if (Math.abs(list[i] - s) < 24) return true;
+  return false;
+}
+
+/** A point of the river's frame offset `d` metres onto the town's bank, at arc length s. */
+export function streetPoint(s: number, d: number): Pt {
+  const f = riverAt().at(s);
+  return [f.e - f.tn * d, f.n + f.te * d];
+}
+
 /** Lays out the next row of the lower town (a few jobs' worth each). */
 export function lowerRow(): boolean {
   if (done) return false;
   gen ??= {
     rng: createRng(4127),
+    vary: createRng(8821),
     garden: field(77, 210, 2),
     items: [],
     d: 38,
@@ -209,7 +267,10 @@ export function lowerRow(): boolean {
     const b = offset(s + 2);
     // Row metres per river metre (the offset line stretches on a bend's outer side).
     const stretch = Math.max(0.25, Math.hypot(b.e - a.e, b.n - a.n) / 2);
-    const w = (quay ? 6.5 + rng() * 5.5 : 5 + rng() * 5.5) * BUILD;
+    // About one house in 25 a big hipped merchant's house.
+    const big = !quay && g.vary() < 0.04;
+    const w0 = (quay ? 6.5 + rng() * 5.5 : 5 + rng() * 5.5) * BUILD;
+    const w = big ? (14 + g.vary() * 6) * BUILD : w0;
     const span = w / stretch;
     while (street < streets.length && streets[street] < s) street++;
     const st = streets[street];
@@ -246,7 +307,11 @@ export function lowerRow(): boolean {
       } else
         items.push({
           type: "house",
-          b: house(rng, m.e, m.n, m.te, m.tn, w, quay),
+          b: house(rng, m.e, m.n, m.te, m.tn, w, quay, {
+            pale: quay || mainStreet(s + span / 2),
+            big,
+            step: g.vary() < 0.1 ? (g.vary() < 0.5 ? -1 : 1) : 0,
+          }),
         });
     }
     s += span + (rng() < 0.1 ? ((2 + rng() * 4) * BUILD) / stretch : 0);
@@ -264,16 +329,20 @@ function house(
   tn: number,
   w: number,
   quay: boolean,
+  o: { pale: boolean; big: boolean; step: number },
 ): Building {
   const high = townGround(e, n) > 30;
-  const storeys = quay
+  const base = quay
     ? 3 + (rng() < 0.35 ? 1 : 0)
     : rng() < (high ? 0.75 : 0.5)
       ? 2
       : 3;
+  // One house in ten a storey up or down from its neighbours; a big house three.
+  const storeys = o.big ? 3 : Math.max(2, Math.min(4, base + o.step));
   const roof = pick(rng, ROOF_TABLE);
   const slate = roof === ROOFS.slate || roof === ROOFS.slateDark;
-  const wall = pick(rng, WALL_TABLE);
+  const table = o.pale ? PALE_TABLE : WALL_TABLE;
+  const wall = pick(rng, table);
   const spec: Spec = {
     e,
     n,
@@ -281,12 +350,12 @@ function house(
     te,
     tn,
     w: w * 0.97,
-    d: (8 + rng() * 5) * BUILD,
+    d: (8 + rng() * 5) * BUILD * (o.big ? 1.4 : 1),
     h: (storeys * 3.1 + 0.6 + rng() * 0.8) * BUILD,
     pitch: slate ? 1 + rng() * 0.3 : 0.72 + rng() * 0.3,
-    ridge: rng() < 0.3 ? "across" : "along",
-    hip: rng() < 0.08,
-    wall: vary(rng, wall, pick(rng, WALL_TABLE)),
+    ridge: rng() < 0.3 && !o.big ? "across" : "along",
+    hip: rng() < 0.08 || o.big,
+    wall: vary(rng, wall, pick(rng, table)),
     roof: vary(rng, roof, pick(rng, ROOF_TABLE)),
     storeys,
     chimneys: rng() < 0.85 ? 1 + (rng() < 0.45 ? 1 : 0) : 0,
@@ -295,10 +364,22 @@ function house(
   return build(spec);
 }
 
+/** A spire item on a point (metres east, north; its foot `up` metres as drawn), `r` and `h` metres as drawn. */
+function spireAt(e: number, n: number, up: number, r: number, h: number): Item {
+  const [ahead] = viewOf(e, n);
+  const u = 1000 / ahead;
+  const [x, y] = project(e, n, up);
+  return {
+    type: "spire",
+    s: { x, y, r: r * u, h: h * u, distance: ahead - 1 },
+    distance: ahead - 1,
+  };
+}
+
 /** The town's landmarks and the smoking chimneys' houses. */
 function landmarks(rng: () => number): Item[] {
   const out: Item[] = [];
-  // Saint-Nicolas: its nave running east, the west front's gable to the roads; a low bell-cote, no tower.
+  // Saint-Nicolas: its nave (rebuilt in 1775) running east, the west front's gable to the roads, and the steeple of after 1688 at its west end: a square stone tower and a slate broach spire (history-notes.md, "Churches").
   const [se, sn] = PLACES.saintNicolas;
   const g = townGround(se, sn) * VEX;
   out.push({
@@ -316,34 +397,78 @@ function landmarks(rng: () => number): Item[] {
       ridge: "across",
       hip: false,
       wall: WALLS.stone,
-      roof: ROOFS.slate,
+      roof: ROOFS.slateDark,
       storeys: 2,
       chimneys: 0,
+      plain: true,
       seed: 7001,
     }),
   });
+  const tw = 6.5 * BUILD;
+  const th = 23 * BUILD;
+  const te0 = se - tw * 0.55;
   out.push({
     type: "house",
     b: build({
-      e: se + 7 * BUILD,
+      e: te0,
       n: sn,
-      ground: g + 13 * BUILD + 8.5 * 0.95 * BUILD - 4,
+      ground: g,
       te: 0,
       tn: -1,
-      w: 4.2 * BUILD,
-      d: 4.2 * BUILD,
-      h: 5.5 * BUILD,
-      pitch: 1.6,
-      ridge: "across",
+      w: tw,
+      d: tw,
+      h: th,
+      pitch: 0.2,
+      ridge: "along",
       hip: true,
-      wall: WALLS.stone,
+      wall: WALLS.grey,
       roof: ROOFS.slateDark,
       storeys: 1,
       chimneys: 0,
+      plain: true,
       seed: 7002,
     }),
   });
-  // The flotilla's store at the harbour's head: three storeys, about 76 m along the quay, hipped.
+  out.push(spireAt(te0 + tw / 2, sn, g + th, tw * 0.5, 12 * BUILD));
+  // A chapel's small spire on its ridge, left of the harbour's head (the 1804 views show two small spires in the lower town).
+  const [ce, cn] = [560, 40];
+  const cg = townGround(ce, cn) * VEX;
+  out.push({
+    type: "house",
+    b: build({
+      e: ce,
+      n: cn,
+      ground: cg,
+      te: 0.55,
+      tn: -0.835,
+      w: 9 * BUILD,
+      d: 22 * BUILD,
+      h: 9.5 * BUILD,
+      pitch: 1.05,
+      ridge: "across",
+      hip: false,
+      wall: WALLS.stone,
+      roof: ROOFS.slate,
+      storeys: 2,
+      chimneys: 0,
+      plain: true,
+      seed: 7004,
+    }),
+  });
+  {
+    // The flèche on the ridge, a third of the way back from the front.
+    const be = 0.835;
+    const bn = 0.55;
+    const fe = ce + be * 22 * BUILD * 0.3;
+    const fn = cn + bn * 22 * BUILD * 0.3;
+    out.push(
+      spireAt(fe, fn, cg + (9.5 + 4.5 * 1.05) * BUILD, 1.3 * BUILD, 8 * BUILD),
+    );
+  }
+  // The flotilla's store at the harbour's head (Bertrand: 234 x 33 French
+  // feet, two floors over the ground floor, built after 1770): stone, a
+  // tile roof broken into three spans with a step at the middle pavilion,
+  // dormers along it, tall chimneys.
   const [qe, qn] = [655, -330];
   const fr = riverAt();
   // The quay's direction there.
@@ -358,26 +483,38 @@ function landmarks(rng: () => number): Item[] {
     }
   }
   const q = fr.at(best);
-  out.push({
-    type: "house",
-    b: build({
-      e: qe,
-      n: qn,
-      ground: townGround(qe, qn) * VEX,
-      te: q.te,
-      tn: q.tn,
-      w: 76 * 1.5,
-      d: 13 * BUILD,
-      h: 11.5 * BUILD,
-      pitch: 0.7,
-      ridge: "along",
-      hip: true,
-      wall: WALLS.white,
-      roof: ROOFS.slate,
-      storeys: 3,
-      chimneys: 4,
-      seed: 7003,
-    }),
+  const L = 76 * 1.5;
+  const spans: [number, number, number, Tone, Tone][] = [
+    [-0.34, 0.32, 0, WALLS.stone, ROOFS.tileOld],
+    [0, 0.36, 1.6, mixTone(WALLS.stone, WALLS.ochre, 0.35), ROOFS.tile],
+    [0.34, 0.32, 0, WALLS.stone, ROOFS.tileOld],
+  ];
+  spans.forEach(([at, share, up, wall, roof], i) => {
+    const e = qe + q.te * L * at;
+    const n = qn + q.tn * L * at;
+    out.push({
+      type: "house",
+      b: build({
+        e,
+        n,
+        ground: townGround(qe, qn) * VEX,
+        te: q.te,
+        tn: q.tn,
+        w: L * share,
+        d: 13 * BUILD,
+        h: 11.5 * BUILD + up,
+        pitch: i === 1 ? 0.78 : 0.7,
+        ridge: "along",
+        hip: true,
+        wall,
+        roof,
+        storeys: 3,
+        chimneys: i === 1 ? 2 : 1,
+        chimneyLift: 4.2,
+        dormers: i === 1 ? 3 : 4,
+        seed: 7003 + i * 17,
+      }),
+    });
   });
   // The houses whose chimneys smoke (TOWN_SMOKE): each centred on its site, its one chimney on the ridge's middle.
   for (const [e, n] of SMOKE_SITES) {
@@ -435,14 +572,16 @@ export function lowerItems(): Item[] {
     Math.abs(b.x - o.x) < 5 &&
     Math.abs(b.y - o.y) < 4 &&
     Math.abs(b.distance - o.distance) < 40;
+  // Clear the landmarks' plots; no house standing up on the skyline at the
+  // cliff's foot (la Beurrière steps up under the cliff, not over it).
   const kept = items.filter(
     (it) =>
       it.type !== "house" ||
-      !extra.some((x) => x.type === "house" && near(it.b, x.b)),
+      (it.b.top < 66 &&
+        !extra.some((x) => x.type === "house" && near(it.b, x.b))),
   );
   const all = [...kept, ...extra];
-  const dist = (it: Item) =>
-    it.type === "house" ? it.b.distance : it.distance;
+  const dist = (it: Item) => itemDistance(it);
   all.sort((a, b) => dist(b) - dist(a));
   done = all;
   return done;

@@ -1,15 +1,15 @@
 import { createRng, mix, type Pt, rgba } from "../../paint/kit";
 import { INK, PAPER, type PlateCanvas } from "../../paint/plate";
 import { aerial, EYE_EN, EYE_H, project, viewOf } from "../../scene";
-import { clamp01, penAt, smooth } from "./kit";
+import { clamp01, penAt, SUN_ALT, SUN_AZ, smooth } from "./kit";
 
 /**
  * Buildings as real boxes with real roofs (brief, "Owner review", bug 8:
  * the town as separate houses with roofs, never cubes): each house is a
  * footprint on the map (metres east and north of the jetty heads) with
  * walls and a gable or hipped roof, projected through the painting's eye
- * (scene.ts project) and lit by the evening sun's true direction (about
- * 5° up at azimuth 294, behind the eye and a little to its left). So a
+ * (scene.ts project) and lit by the evening sun's true direction (7° up
+ * at azimuth 286, behind the eye and a little to its left). So a
  * front turned to the west glows gold, a side turned north takes the sun
  * at a graze, a face turned south is in the cool shade of the sky, a roof
  * slope gets what its pitch allows; and as the streets turn, the light
@@ -28,31 +28,39 @@ export interface Tone {
   shade: string;
 }
 
-/** Walls: a west face in the sun, a north face at a graze, a south face in shade. Golden lights, cool shade. */
+/**
+ * Walls: a west face in the sun, a north face at a graze, a south face in
+ * shade. The lower town was mostly dark stone in 1805, with some new pale
+ * fronts (history-notes.md, "The lower town"): the Boulonnais stone a
+ * weathered grey-brown, warm in the sun and cool in the shade; plaster
+ * and limewash a step paler.
+ */
 export const WALLS = {
-  cream: { lit: "#f2d7a2", graze: "#c9b497", shade: "#8d8c9b" },
-  white: { lit: "#f6e6c4", graze: "#cfc2aa", shade: "#9295a5" },
-  ochre: { lit: "#ebc386", graze: "#bea283", shade: "#8b8592" },
-  stone: { lit: "#d9bf95", graze: "#ab9f8d", shade: "#7e7e8f" },
-  brown: { lit: "#c9a982", graze: "#9b8b7a", shade: "#73707f" },
+  cream: { lit: "#e6c995", graze: "#b4a086", shade: "#76717e" },
+  white: { lit: "#eedcb7", graze: "#c0b39c", shade: "#80808f" },
+  ochre: { lit: "#d6ac76", graze: "#a68b70", shade: "#726b78" },
+  stone: { lit: "#b39472", graze: "#857565", shade: "#5a5560" },
+  brown: { lit: "#a07f62", graze: "#766658", shade: "#4f4a52" },
+  /** The old town's darkest fronts: grey stone of the coast, soot-stained. */
+  grey: { lit: "#9a8a76", graze: "#6f675f", shade: "#47454f" },
 } as const satisfies Record<string, Tone>;
 
-/** Roofs: red-brown tile and grey slate, golden in the sun, never red. */
+/** Roofs: red-brown tile (tile stays tile in shade: a deep red-brown) and grey slate; golden in the sun, never red. */
 export const ROOFS = {
-  tile: { lit: "#d69c6a", graze: "#a87e69", shade: "#77666d" },
-  tileDeep: { lit: "#c4875f", graze: "#957062", shade: "#6c5e68" },
-  tileOld: { lit: "#c9a47f", graze: "#9a8573", shade: "#706871" },
-  slate: { lit: "#aeacb0", graze: "#8a8d9c", shade: "#62677b" },
-  slateDark: { lit: "#9a9aa3", graze: "#7a7d8f", shade: "#585d71" },
+  tile: { lit: "#cb8d5d", graze: "#9b6b55", shade: "#6a5250" },
+  tileDeep: { lit: "#b77953", graze: "#8b5e4c", shade: "#5c4545" },
+  tileOld: { lit: "#b8926c", graze: "#8a715d", shade: "#5f504c" },
+  slate: { lit: "#9c9ca3", graze: "#73788a", shade: "#4c5164" },
+  slateDark: { lit: "#85868f", graze: "#61667a", shade: "#3f4457" },
 } as const satisfies Record<string, Tone>;
 
-export const WINDOW = "#4a4448";
+export const WINDOW = "#2c272c";
 export const GLINT = "#ffe6a8";
 
-/** The sun: azimuth 294, 5° up; a unit vector (east, north, up) toward it. */
+/** The sun at 18:33 on 10 August 1805: azimuth 286.2, 7° up (history-notes.md, "The painting's light"); a unit vector (east, north, up) toward it. */
 const SUN: readonly [number, number, number] = (() => {
-  const az = (294 * Math.PI) / 180;
-  const alt = (5 * Math.PI) / 180;
+  const az = (SUN_AZ * Math.PI) / 180;
+  const alt = (SUN_ALT * Math.PI) / 180;
   return [
     Math.sin(az) * Math.cos(alt),
     Math.cos(az) * Math.cos(alt),
@@ -105,8 +113,17 @@ export interface Spec {
   chimneys: number;
   /** One chimney at this share of the ridge (a smoking one: its top is known to the smoke). */
   chimneyAt?: number;
+  /** Chimneys' height over the ridge, metres as drawn (2.6-4.2 by default). */
+  chimneyLift?: number;
+  /** Dormers along the roof slope facing the eye (an eaves front only). */
+  dormers?: number;
+  /** No house windows: a tower's or a church's plain coursed stone. */
+  plain?: boolean;
   seed: number;
 }
+
+/** A dormer's size scale: metres as drawn per metre (the buildings' licence). */
+const BUILD_D = 2;
 
 /** A smoking chimney's height over its ridge, metres as drawn. */
 export const CHIMNEY_TOP = 3.4;
@@ -125,6 +142,20 @@ interface Face {
   bays?: number;
   /** Glint chance of its windows (its mirror of the sun toward the eye). */
   glint?: number;
+  /** The material's shade tone (for the eaves' cast shadow). */
+  shade?: string;
+}
+
+/** A dormer on a roof slope: its front (a small gabled wall) and its roof's two slopes, with the front's light. */
+interface Dormer {
+  front: Pt[];
+  roofL: Pt[];
+  roofR: Pt[];
+  f: number;
+  wall: string;
+  roof: string;
+  roofShade: string;
+  window: Pt[];
 }
 
 export interface Building {
@@ -134,6 +165,9 @@ export interface Building {
   /** Which of the hull's points stand on the ground (their edges are cuts, never stroked). */
   foot: boolean[];
   chimneys: { x: number; y0: number; y1: number; w: number }[];
+  dormers: Dormer[];
+  /** Plain coursed stone, no house windows. */
+  plain: boolean;
   distance: number;
   seed: number;
   /** For the plates' sorting and culling: the foot's middle, layer units. */
@@ -210,6 +244,7 @@ export function build(o: Spec): Building {
   const toEye = norm3([ve, vn, EYE_H - (z0 + z1) / 2]);
   const P = (p: Pt, z: number): Pt => project(p[0], p[1], z) as Pt;
   const faces: Face[] = [];
+  const dormers: Dormer[] = [];
   const all: Pt[] = [];
   const foot: boolean[] = [];
   const push = (p: Pt, isFoot: boolean) => {
@@ -252,8 +287,9 @@ export function build(o: Spec): Building {
       pts,
       f,
       colour: toneAt(o.wall, f),
+      shade: o.wall.shade,
       quad: [pa, pb, ta, tb],
-      storeys: o.storeys,
+      storeys: o.plain ? undefined : o.storeys,
       bays: Math.max(1, Math.round(span / 6.4)),
       glint: glintOf(ne, nn),
     });
@@ -346,6 +382,66 @@ export function build(o: Spec): Building {
     for (const p of [ef0, ef1, eb0, eb1]) push(P(p, ze), false);
     push(P(R0, zr), false);
     push(P(R1, zr), false);
+    if (o.dormers) {
+      // On the long slope that faces the eye: its eaves line A0-A1 and the way in, up the roof.
+      const front = -be * toEye[0] + -bn * toEye[1] > 0;
+      const [A0, A1] = front ? [F0, F1] : [B0, B1];
+      const ie = front ? be : -be;
+      const inn = front ? bn : -bn;
+      const nf: [number, number, number] = [-ie, -inn, 0];
+      const df = Math.max(0, dot3(nf, SUN));
+      const dw = 1.5 * BUILD_D;
+      const dh = 1.7 * BUILD_D;
+      const di = (o.d / 2) * 0.32;
+      const zb = z1 + di * o.pitch;
+      const zt = zb + dh;
+      const za = zt + dw * 0.45;
+      const sideLit = Math.max(0, SUN[0] * -o.te + SUN[1] * -o.tn) > 0.3;
+      for (let k = 0; k < o.dormers; k++) {
+        const t = (k + 0.5) / o.dormers;
+        const f0: Pt = [
+          A0[0] + (A1[0] - A0[0]) * t + ie * di,
+          A0[1] + (A1[1] - A0[1]) * t + inn * di,
+        ];
+        const side = (p: Pt, k2: number): Pt => [
+          p[0] + o.te * k2,
+          p[1] + o.tn * k2,
+        ];
+        const inward = (p: Pt, k2: number): Pt => [
+          p[0] + ie * k2,
+          p[1] + inn * k2,
+        ];
+        const L = side(f0, -dw / 2);
+        const R = side(f0, dw / 2);
+        const back = (zt - zb) / o.pitch;
+        const backA = (za - zb) / o.pitch;
+        dormers.push({
+          front: [P(L, zb), P(R, zb), P(R, zt), P(f0, za), P(L, zt)],
+          roofL: [
+            P(L, zt),
+            P(f0, za),
+            P(inward(f0, backA), za),
+            P(inward(L, back), zt),
+          ],
+          roofR: [
+            P(R, zt),
+            P(f0, za),
+            P(inward(f0, backA), za),
+            P(inward(R, back), zt),
+          ],
+          f: df,
+          wall: toneAt(o.wall, df),
+          roof: toneAt(o.roof, sideLit ? 0.8 : 0.5),
+          roofShade: toneAt(o.roof, sideLit ? 0.25 : 0.6),
+          window: [
+            P(side(f0, -dw * 0.22), zb + dh * 0.15),
+            P(side(f0, dw * 0.22), zb + dh * 0.15),
+            P(side(f0, dw * 0.22), zb + dh * 0.85),
+            P(side(f0, -dw * 0.22), zb + dh * 0.85),
+          ],
+        });
+      }
+    }
   } else {
     const rise = hw * o.pitch;
     const zr = z1 + rise;
@@ -416,9 +512,12 @@ export function build(o: Spec): Building {
       p = [a + be * o.d * t, b + bn * o.d * t];
     }
     const [x, y0] = project(p[0], p[1], ridgeMid[2] - 1.2);
-    const lift = o.chimneyAt !== undefined ? CHIMNEY_TOP : 2.6 + rng() * 1.6;
+    const lift =
+      o.chimneyAt !== undefined
+        ? CHIMNEY_TOP
+        : (o.chimneyLift ?? 1.8) + rng() * 1.4;
     const [, y1] = project(p[0], p[1], ridgeMid[2] + lift);
-    chimneys.push({ x, y0, y1, w: (1.5 + rng() * 0.8) * u });
+    chimneys.push({ x, y0, y1, w: (2 + rng() * 0.9) * u });
   }
   // Sort the faces so the roofs come after the walls they sit on.
   faces.sort(
@@ -432,6 +531,8 @@ export function build(o: Spec): Building {
     hull,
     foot: hullFoot,
     chimneys,
+    dormers,
+    plain: o.plain ?? false,
     distance: ahead,
     seed: o.seed,
     x: fx,
@@ -455,6 +556,13 @@ function lerp(a: Pt, b: Pt, t: number): Pt {
   return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
 }
 
+/** The street's dusk at the walls' feet and in the gaps between houses. */
+export const DUSK = "#4a4450";
+
+function band(a: Pt, b: Pt, down: number): Pt[] {
+  return [a, b, [b[0], b[1] - down], [a[0], a[1] - down]];
+}
+
 /** Paints buildings (far to near) in the evening light. */
 export function paintBuildings(
   c: PlateCanvas,
@@ -464,6 +572,7 @@ export function paintBuildings(
   for (const b of list) {
     const rng = createRng(b.seed ^ 0x51ed);
     const air = (hex: string) => townAir(hex, b.distance);
+    const dusk = air(DUSK);
     // A base under the faces, so their seams never show light.
     let darkest = b.faces[0]?.colour ?? "#888888";
     let low = 2;
@@ -477,26 +586,46 @@ export function paintBuildings(
     for (const f of b.faces) {
       const col = air(f.colour);
       if (f.kind !== "roof" && f.quad) {
-        // A wall: warmer under the eaves, a little darker at the foot (the street's dusk).
+        // A wall: the street's dusk deep at its foot, a third of the way up; a little warmer under the eaves.
         const [pa, , ta] = f.quad;
-        const g = ctx.createLinearGradient(0, pa[1], 0, ta[1]);
-        g.addColorStop(0, mix(col, air("#6f6a78"), 0.22));
-        g.addColorStop(0.3, col);
+        const top = f.kind === "gable" ? (f.pts[3]?.[1] ?? ta[1]) : ta[1];
+        const g = ctx.createLinearGradient(0, pa[1], 0, top);
+        const k = Math.max(0.12, (ta[1] - pa[1]) / Math.max(0.01, top - pa[1]));
+        g.addColorStop(0, mix(col, dusk, 0.5));
+        g.addColorStop(0.33 * k, col);
         g.addColorStop(1, mix(col, air("#fff0cf"), 0.06 * f.f));
         ctx.fillStyle = g;
       } else ctx.fillStyle = col;
       fillPoly(ctx, f.pts);
     }
-    // Roofs: courses of tile or slate, a darker eaves edge, a ridge catching the light.
+    // Plain stone (a tower, a church): courses, no windows.
+    if (b.plain)
+      for (const f of b.faces) {
+        if (!f.quad) continue;
+        const [pa, pb, ta, tb] = f.quad;
+        const h = ta[1] - pa[1];
+        const n = Math.min(14, Math.floor(h / 0.9));
+        ctx.strokeStyle = rgba(air(f.shade ?? DUSK), 0.22);
+        ctx.lineWidth = c.pen(0.45);
+        ctx.beginPath();
+        for (let k = 1; k < n; k++) {
+          const a = lerp(pa, ta, k / n);
+          const z = lerp(pb, tb, k / n);
+          ctx.moveTo(a[0], a[1]);
+          ctx.lineTo(z[0], z[1]);
+        }
+        ctx.stroke();
+      }
+    // Roofs: courses of tile or slate, a ridge catching the light.
     for (const f of b.faces) {
       if (f.kind !== "roof" || f.pts.length < 4) continue;
       const [e0, e1, r1, r0] = f.pts;
       const span = Math.hypot(r0[0] - e0[0], r0[1] - e0[1]);
-      if (span > 1.4) {
-        ctx.strokeStyle = rgba(air("#5b4b4a"), 0.16);
+      if (span > 1.2) {
+        ctx.strokeStyle = rgba(air("#4a3a3a"), 0.22);
         ctx.lineWidth = c.pen(0.5);
         ctx.beginPath();
-        const n = Math.min(4, Math.floor(span / 1.1));
+        const n = Math.min(5, Math.floor(span / 1));
         for (let k = 1; k <= n; k++) {
           const t = k / (n + 1);
           const a = lerp(e0, r0, t);
@@ -506,14 +635,8 @@ export function paintBuildings(
         }
         ctx.stroke();
       }
-      ctx.strokeStyle = rgba(air("#3f3539"), 0.38);
-      ctx.lineWidth = c.pen(0.7);
-      ctx.beginPath();
-      ctx.moveTo(e0[0], e0[1]);
-      ctx.lineTo(e1[0], e1[1]);
-      ctx.stroke();
       if (f.f > 0.3) {
-        ctx.strokeStyle = rgba(air("#ffe2b0"), 0.35 * f.f);
+        ctx.strokeStyle = rgba(air("#ffe2b0"), 0.4 * f.f);
         ctx.lineWidth = c.pen(0.6);
         ctx.beginPath();
         ctx.moveTo(r0[0], r0[1]);
@@ -521,7 +644,36 @@ export function paintBuildings(
         ctx.stroke();
       }
     }
-    // Windows by storeys and bays; a few blaze with the sun where the face mirrors it to the eye.
+    // The eaves' cast shadow: a crisp dark band under every eaves line on
+    // the wall below (what makes a house read at 2 km), inside the house.
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(b.hull[0][0], b.hull[0][1]);
+    for (const q of b.hull) ctx.lineTo(q[0], q[1]);
+    ctx.closePath();
+    ctx.clip();
+    for (const f of b.faces) {
+      if (f.kind !== "roof" || f.pts.length < 3) continue;
+      const [e0, e1] = f.pts;
+      if (Math.abs(e1[0] - e0[0]) < 0.2) continue;
+      ctx.fillStyle = rgba(dusk, 0.55);
+      fillPoly(ctx, band(e0, e1, 0.38));
+      ctx.fillStyle = rgba(dusk, 0.22);
+      fillPoly(ctx, band([e0[0], e0[1] - 0.38], [e1[0], e1[1] - 0.38], 0.3));
+    }
+    ctx.restore();
+    // The eaves' edge itself: a dark line.
+    ctx.strokeStyle = rgba(air("#2f282c"), 0.5);
+    ctx.lineWidth = c.pen(0.7);
+    ctx.beginPath();
+    for (const f of b.faces) {
+      if (f.kind !== "roof" || f.pts.length < 2) continue;
+      ctx.moveTo(f.pts[0][0], f.pts[0][1]);
+      ctx.lineTo(f.pts[1][0], f.pts[1][1]);
+    }
+    ctx.stroke();
+    // Windows by storeys and bays: dark dots on the stone; a few blaze with
+    // the sun where the face mirrors it to the eye.
     for (const f of b.faces) {
       if (!f.quad || !f.storeys || !f.bays) continue;
       const [pa, pb, ta] = f.quad;
@@ -532,6 +684,7 @@ export function paintBuildings(
       const ww = Math.max(0.32, (wpx / bays) * 0.36);
       const sh = hpx / f.storeys;
       const wh = Math.max(0.38, sh * 0.46);
+      const dark = air(mix(WINDOW, f.colour, 0.14));
       for (let i = 0; i < f.storeys; i++) {
         for (let j = 0; j < bays; j++) {
           if (rng() < 0.1) continue;
@@ -539,16 +692,14 @@ export function paintBuildings(
           const foot = lerp(pa, pb, t);
           const wx = foot[0] - ww / 2;
           const wy = foot[1] + sh * (i + 0.34);
-          const blaze = rng() < 0.04 + (f.glint ?? 0) * 0.75;
+          const blaze = rng() < 0.035 + (f.glint ?? 0) * 0.75;
           if (blaze && f.f > 0.3) {
             ctx.fillStyle = air(GLINT);
             ctx.globalAlpha = 0.95;
           } else {
-            const sky = rng() < 0.22 ? 0.45 : 0;
-            ctx.fillStyle = air(
-              mix(mix(WINDOW, f.colour, 0.3), "#b9b4b4", sky),
-            );
-            ctx.globalAlpha = 0.86;
+            const sky = rng() < 0.18 ? 0.3 : 0;
+            ctx.fillStyle = mix(dark, air("#9c98a2"), sky);
+            ctx.globalAlpha = 0.92;
           }
           ctx.fillRect(wx, wy, ww, wh);
           ctx.globalAlpha = 1;
@@ -558,7 +709,7 @@ export function paintBuildings(
       if (f.kind === "wall" && f.f > 0.5 && wpx > 4 && rng() < 0.6) {
         const t = 0.2 + rng() * 0.6;
         const p = lerp(pa, pb, t);
-        ctx.fillStyle = rgba(air(WINDOW), 0.75);
+        ctx.fillStyle = rgba(air(WINDOW), 0.85);
         ctx.fillRect(
           p[0] - ww * 0.6,
           p[1],
@@ -567,14 +718,25 @@ export function paintBuildings(
         );
       }
     }
-    // Chimneys.
+    // Dormers: a small lit front with its window, two little slopes.
+    for (const d of b.dormers) {
+      ctx.fillStyle = air(d.wall);
+      fillPoly(ctx, d.front);
+      ctx.fillStyle = air(WINDOW);
+      fillPoly(ctx, d.window);
+      ctx.fillStyle = air(d.roof);
+      fillPoly(ctx, d.roofL);
+      ctx.fillStyle = air(d.roofShade);
+      fillPoly(ctx, d.roofR);
+    }
+    // Chimneys: stone or brick, a lit face and a shaded flank, a dark cap.
     for (const k of b.chimneys) {
-      ctx.fillStyle = air("#d6b98e");
-      ctx.fillRect(k.x - k.w / 2, k.y0, k.w * 0.62, k.y1 - k.y0);
-      ctx.fillStyle = air("#857d84");
-      ctx.fillRect(k.x - k.w / 2 + k.w * 0.62, k.y0, k.w * 0.38, k.y1 - k.y0);
-      ctx.fillStyle = air("#4e4547");
-      ctx.fillRect(k.x - k.w * 0.55, k.y1 - 0.22, k.w * 1.1, 0.3);
+      ctx.fillStyle = air("#b8916b");
+      ctx.fillRect(k.x - k.w / 2, k.y0, k.w * 0.6, k.y1 - k.y0);
+      ctx.fillStyle = air("#5d5257");
+      ctx.fillRect(k.x - k.w / 2 + k.w * 0.6, k.y0, k.w * 0.4, k.y1 - k.y0);
+      ctx.fillStyle = air("#3a3134");
+      ctx.fillRect(k.x - k.w * 0.55, k.y1 - 0.24, k.w * 1.1, 0.32);
     }
   }
 }
@@ -584,7 +746,9 @@ export function paintBuildings(
 /**
  * Engraves buildings (far to near): paper over what is behind, hatching
  * by each face's light along its form, the windows as small marks, then
- * the contours as open strokes.
+ * the contours as open strokes: a house whose front is in the sun keeps
+ * only its roof's line and its shaded side, as an engraver leaves a lit
+ * passage open; the far plate's pen a little finer.
  */
 export function engraveBuildings(
   c: PlateCanvas,
@@ -592,7 +756,7 @@ export function engraveBuildings(
 ): void {
   const { ctx } = c;
   for (const b of list) {
-    const pen = penAt(b.distance);
+    const pen = penAt(b.distance) * (b.distance > 1960 ? 0.8 : 1);
     const rng = createRng(b.seed ^ 0x2b7);
     ctx.fillStyle = PAPER.low;
     fillPoly(ctx, b.hull);
@@ -601,7 +765,9 @@ export function engraveBuildings(
     const lines = (into: number[][], a: Pt, z: Pt) => {
       into.push([a[0], a[1], z[0], z[1]]);
     };
+    let litFront = false;
     for (const f of b.faces) {
+      if (f.kind !== "roof" && f.f > 0.7) litFront = true;
       // Spacing in device px by the face's light: open on a lit face, close in shade.
       const tone = 1 - f.f;
       if (f.kind === "roof") {
@@ -654,6 +820,12 @@ export function engraveBuildings(
         }
       }
     }
+    // The eaves' shadow: one close stroke under each eaves line.
+    for (const f of b.faces) {
+      if (f.kind !== "roof" || f.pts.length < 2) continue;
+      const [e0, e1] = f.pts;
+      lines(dark, [e0[0], e0[1] - 0.25], [e1[0], e1[1] - 0.25]);
+    }
     const stroke = (
       set: number[][],
       px: number,
@@ -694,12 +866,28 @@ export function engraveBuildings(
           );
         }
     }
-    // The contours: the silhouette's edges except those along the ground, and the creases between faces.
+    for (const d of b.dormers) {
+      ctx.fillStyle = PAPER.low;
+      fillPoly(ctx, d.front);
+      ctx.fillStyle = rgba(INK.line, 0.8);
+      fillPoly(ctx, d.window);
+    }
+    // The contours: the silhouette's edges except those along the ground,
+    // and the creases between faces; a lit house keeps only its roof's
+    // line and its shaded side.
     ctx.beginPath();
     const n = b.hull.length;
+    let cx = 0;
+    for (const q of b.hull) cx += q[0] / n;
     for (let i = 0; i < n; i++) {
       const j = (i + 1) % n;
       if (b.foot[i] && b.foot[j]) continue;
+      if (
+        litFront &&
+        (b.foot[i] || b.foot[j]) &&
+        (b.hull[i][0] + b.hull[j][0]) / 2 < cx
+      )
+        continue;
       ctx.moveTo(b.hull[i][0], b.hull[i][1]);
       ctx.lineTo(b.hull[j][0], b.hull[j][1]);
     }
@@ -708,7 +896,7 @@ export function engraveBuildings(
         // The eaves.
         ctx.moveTo(f.pts[0][0], f.pts[0][1]);
         ctx.lineTo(f.pts[1][0], f.pts[1][1]);
-      } else if (f.quad) {
+      } else if (f.quad && (!litFront || f.f < 0.45)) {
         // The upright corners.
         const [pa, pb, ta, tb] = f.quad;
         ctx.moveTo(pa[0], pa[1]);
@@ -716,6 +904,11 @@ export function engraveBuildings(
         ctx.moveTo(pb[0], pb[1]);
         ctx.lineTo(tb[0], tb[1]);
       }
+    }
+    for (const d of b.dormers) {
+      ctx.moveTo(d.front[4][0], d.front[4][1]);
+      ctx.lineTo(d.front[3][0], d.front[3][1]);
+      ctx.lineTo(d.front[2][0], d.front[2][1]);
     }
     ctx.strokeStyle = rgba(INK.line, 0.92);
     ctx.lineWidth = c.pen(pen * 0.8);

@@ -35,6 +35,8 @@ export function skyPlates(): Plate[] {
       box: HATCH_BOX,
       group: "sky",
       jobs: (mode) => (mode === "ink" ? hatchInkJobs() : []),
+      // Ink only: no colour raster worth the name.
+      resolution: { colour: 0.02 },
     },
     moonPlate(),
     ...cloudPlates(),

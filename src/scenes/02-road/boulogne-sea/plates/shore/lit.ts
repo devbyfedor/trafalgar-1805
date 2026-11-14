@@ -88,6 +88,7 @@ export function opening(
   kind: LightKind,
   corners: readonly Pt[],
   seed: number,
+  lit?: number,
 ): void {
   if (!c.lights) return;
   let x0 = Number.POSITIVE_INFINITY;
@@ -100,7 +101,15 @@ export function opening(
     x1 = Math.max(x1, x);
     y1 = Math.max(y1, y);
   }
-  c.lights.add({ kind, x: x0, y: y0, w: x1 - x0, h: y1 - y0, seed });
+  c.lights.add({
+    kind,
+    x: x0,
+    y: y0,
+    w: x1 - x0,
+    h: y1 - y0,
+    seed,
+    ...(lit === undefined ? {} : { lit }),
+  });
 }
 
 /** Records a lamp, its flame at `x`, `y` and `size` across (layer units). */

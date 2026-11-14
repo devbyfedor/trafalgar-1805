@@ -21,7 +21,11 @@ import type { Plate, PlateCanvas, PlateJob } from "./plate";
 
 export type LightKind = "window" | "door" | "fire" | "lamp";
 
-/** A light, layer units: a window's or door's opening (x, y its bottom left), a fire's or lamp's centre (w its glow's radius). */
+/**
+ * A light, layer units: a window's, door's or lamp's box (x, y its bottom
+ * left, w, h its size; a lamp is centred on it), a fire's centre (w its
+ * glow's radius).
+ */
 export interface LightSite {
   kind: LightKind;
   x: number;
@@ -30,6 +34,8 @@ export interface LightSite {
   h: number;
   /** For the bank and whether it is lit at all. */
   seed: number;
+  /** The share of such sites lit, where it differs from its kind's (`LIT`). */
+  lit?: number;
 }
 
 type Event = { site: LightSite } | { occluder: Path2D };
@@ -110,7 +116,7 @@ function paintSite(c: PlateCanvas, s: LightSite, rng: () => number): void {
   const r = Math.max(w, h) * (s.kind === "lamp" ? 2.6 : 2) + c.pen(2.2);
   const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
   const warm = s.kind === "lamp" ? "#ffd27e" : "#ffb860";
-  g.addColorStop(0, rgba(warm, s.kind === "lamp" ? 0.42 : 0.3));
+  g.addColorStop(0, rgba(warm, 0.3));
   g.addColorStop(1, rgba(warm, 0));
   ctx.fillStyle = g;
   ctx.fillRect(cx - r, cy - r, 2 * r, 2 * r);
@@ -118,7 +124,7 @@ function paintSite(c: PlateCanvas, s: LightSite, rng: () => number): void {
   const tone = rng();
   ctx.fillStyle =
     s.kind === "lamp"
-      ? "#fff0c4"
+      ? "#ffe2a4"
       : tone < 0.3
         ? "#ffd99a"
         : tone < 0.75
@@ -140,13 +146,16 @@ function lightsJob(source: string, bank: number, banks: number): PlateJob {
     const rng = createRng(4711 + bank);
     for (const e of lightSink(source).events) {
       if ("occluder" in e) {
+        // Opaque, whatever the last light left as the fill: a gradient's
+        // alpha would cut only part of the way.
         ctx.globalCompositeOperation = "destination-out";
+        ctx.fillStyle = "#000";
         ctx.fill(e.occluder);
         ctx.globalCompositeOperation = "source-over";
         continue;
       }
       const s = e.site;
-      if (hash01(s.seed) >= LIT[s.kind]) continue;
+      if (hash01(s.seed) >= (s.lit ?? LIT[s.kind])) continue;
       const mine =
         s.kind === "fire"
           ? bank === -1

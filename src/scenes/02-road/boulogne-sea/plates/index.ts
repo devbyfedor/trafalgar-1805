@@ -42,12 +42,13 @@ export function buildPlates(): Plate[] {
  * Each area's painter records its sites in its colour pass.
  */
 const LIGHTS: Readonly<Record<string, LightsSpec>> = {
+  // The right camp's kitchens are all in its far plate, behind its ground,
+  // as their smoke is.
   "north-camp-near": {
     banks: [
       [0.48, 0.7],
       [0.58, 0.82],
     ],
-    fires: [0.4, 0.66],
   },
   "north-camp-far": {
     banks: [

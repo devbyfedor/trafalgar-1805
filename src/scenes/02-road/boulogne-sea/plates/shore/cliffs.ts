@@ -493,6 +493,10 @@ function pavilion(
     // paling, in front of all of it.
     occlude(c, hull([...mound, ...side, ...roof, ...drum, ...cone]));
     const seed = (k: number) => lightSeed(e0, n, k);
+    // The Emperor was at Boulogne from 3 August 1805: his pavilion's
+    // windows lit more than a hut's (a licence: whether he worked there
+    // in the evening is not recorded).
+    const litShare = lamps ? 0.7 : undefined;
     const span = L - r * 0.5;
     const count = Math.max(2, Math.round(span / (3.5 * BUILD)));
     for (let k = 0; k < count; k++) {
@@ -508,6 +512,7 @@ function pavilion(
           P(a - hw, -half, 2.7 * BUILD),
         ],
         seed(k),
+        litShare,
       );
     }
     occlude(c, union([drum, cone]));
@@ -522,6 +527,7 @@ function pavilion(
           [x + ww, cy + (topY - cy) * 0.72],
         ],
         seed(20 + k),
+        litShare,
       );
     }
     if (lamps) {

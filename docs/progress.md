@@ -28,8 +28,8 @@ Then the report by the brief's rules, with exact commands to see it on the previ
 
 **Plan and state:**
 - [x] Step 0: the brief's status and log; this plan; the contrast rule in `decisions.md`; the deferred item.
-- [ ] Step 1: the chaloupe's ensign on a stern staff; checked on a production build (the moon whole at hold 1).
-- [ ] Step 2: the flotilla check's points (`flotilla-check.md`, items 10–13; backlog "Scene 2, stage B"): what fits the approved craft done, the rest as questions.
+- [x] Step 1: the chaloupe's ensign on a stern staff (`abba647`; the prame's too). Checked on the production build of `abba647` (served on 4173, `served.mjs` OK; `.claude/s29/flag/prod-abba647/`): at hold 1 the moon stands whole right of the main topmast, clear of the gaff; the ensign hangs from its staff at the taffrail, the eased boom in front of it.
+- [x] Step 2: the flotilla check's points (`a7f6685`; decisions.md, session 29): rows every 80 m (was 52); the craft and the moored rows follow one westerly swell (8.8 s, running in to the shore; rows rise together; the water's strips now rise in turn away from the eye); the prame's rig by Steel's rule (main truck about 34 m); the bateau's side 0.35 m lower (0.9–1.25 m). Kept: the line's depth (the recorded licence; moving it would wreck the composition). **A question for the owner:** the chaloupe's masts 24–25 m by Steel's rule (changes the approved craft). Checked on the production build of `a7f6685` (4173, `served.mjs` OK; `.claude/s29/flotilla/prod-a7f6685/`): hold 0, 0.5, 1 and dive 0.9 by eye.
 - [ ] Step 3: the dusk through the hold (and the hold's length if needed; the other beats compared frame for frame after a remap).
 - [ ] Step 4: the British sail: decided from the history notes and the composition.
 - [ ] Step 5: the quick checks: the hold's frame budget, scene 1's regression.

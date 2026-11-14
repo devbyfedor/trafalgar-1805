@@ -22,6 +22,106 @@ interface Group {
   specs: CloudSpec[];
 }
 
+/** A stratocumulus cell's common traits. */
+function cell(
+  seed: number,
+  x0: number,
+  x1: number,
+  base: number,
+  height: number,
+  o: Partial<CloudSpec> = {},
+): CloudSpec {
+  const rng = createRng(seed);
+  return {
+    seed,
+    x0,
+    x1,
+    base,
+    tilt: (rng() - 0.5) * 0.03,
+    height,
+    heads: Array.from({ length: 2 + Math.floor(rng() * 3) }, () => [
+      0.12 + 0.76 * rng(),
+      0.08 + 0.14 * rng(),
+      0.5 + 0.5 * rng(),
+    ]),
+    flat: 0.6,
+    floor: 0.5,
+    taper: 0.3,
+    haze: 0.1,
+    soft: 3,
+    billow: 1.6,
+    lumps: 0.15,
+    fragments: 1,
+    under: 0.14,
+    rag: 0.07,
+    crisp: 0.45,
+    lost: 6,
+    ...o,
+  };
+}
+
+/**
+ * The far strand: long flat pieces of stratocumulus with small heads, as
+ * scene 1's strands are, broken by short gaps; lower, thinner and hazier
+ * toward the far end (right), short of the moon.
+ */
+function strand(): CloudSpec[] {
+  const rng = createRng(977);
+  const out: CloudSpec[] = [];
+  let x = -338;
+  while (x < 112) {
+    const t = (x + 338) / 450;
+    const sc = 1 - 0.55 * t;
+    const q = rng();
+    const len = Math.min(118 - x, (22 + 150 * q * q) * sc);
+    if (len < 10) break;
+    // Now and then a thin wisp instead of a piece with heads.
+    const wisp = rng() < 0.25;
+    const y = 182 - 30 * t + (rng() - 0.5) * 7;
+    out.push(
+      cell(
+        990 + out.length * 13,
+        x,
+        x + len,
+        y,
+        (wisp ? 3 + 2 * rng() : 7 + 7 * rng()) * sc,
+        {
+          flat: 0.5,
+          floor: wisp ? 0.7 : 0.42,
+          haze: 0.3 + 0.24 * t + (wisp ? 0.1 : 0),
+          soft: 1.8,
+          under: wisp ? 0 : 0.12,
+          fragments: rng() < 0.5 ? 1 : 0,
+          rag: 0.1,
+          billow: 1.3,
+          crisp: 0.5,
+          lost: wisp ? 2 : 3,
+        },
+      ),
+    );
+    // A second, smaller piece a little above, overlapping, now and then.
+    if (!wisp && len > 40 * sc && rng() < 0.35) {
+      const l2 = len * (0.3 + 0.3 * rng());
+      const x2 = x + len * (0.2 + 0.4 * rng());
+      out.push(
+        cell(1500 + out.length * 11, x2, x2 + l2, y + 5 * sc, 6 * sc, {
+          flat: 0.5,
+          floor: 0.5,
+          haze: 0.36 + 0.24 * t,
+          soft: 1.6,
+          under: 0,
+          fragments: 0,
+          crisp: 0.5,
+          lost: 2.5,
+        }),
+      );
+    }
+    const gap = rng() < 0.2 ? 30 + 40 * rng() : 4 + 20 * rng();
+    x += len + gap * sc * (1 - 0.6 * t);
+  }
+  return out;
+}
+
 const GROUPS: readonly Group[] = [
   {
     // A cumulus congestus over the Outreau heights to the south-east,
@@ -52,60 +152,26 @@ const GROUPS: readonly Group[] = [
         taper: 0.5,
         under: 0.13,
         rag: 0.035,
+        lost: 3,
       },
     ],
   },
   {
-    // Stratocumulus higher up, in loose patches, flatter.
-    id: "cloud-rows",
-    box: [-330, 892, 166, 326],
-    weight: 0.7,
+    // Stratocumulus at one height, in perspective: a few large cells
+    // high in the sky (nearer, nearly overhead), their undersides showing
+    // as cool shelves under a warm lip, with open sky between them; and
+    // far off, low over the cliffs and the harbour mouth, a strand of
+    // small flat crowded cells deep in the haze, leading toward the town.
+    // The sky round the moon and over the town stays open.
+    id: "cloud-band",
+    box: [-372, 296, 132, 372],
+    weight: 0.75,
     specs: [
-      {
-        seed: 931,
-        x0: -290,
-        x1: -130,
-        base: 212,
-        tilt: 0.03,
-        height: 24,
-        towers: 3,
-        flat: 0.62,
-        haze: 0.16,
-        soft: 4,
-        billow: 1.3,
-        fragments: 1,
-        taper: 0.32,
-      },
-      {
-        seed: 932,
-        x0: -70,
-        x1: 150,
-        base: 196,
-        tilt: -0.02,
-        height: 28,
-        towers: 3,
-        flat: 0.6,
-        haze: 0.16,
-        soft: 4,
-        billow: 1.3,
-        fragments: 1,
-        taper: 0.32,
-      },
-      {
-        seed: 936,
-        x0: 30,
-        x1: 215,
-        base: 266,
-        tilt: 0.01,
-        height: 22,
-        towers: 2,
-        flat: 0.62,
-        haze: 0.1,
-        soft: 4,
-        billow: 1.3,
-        fragments: 0,
-        taper: 0.32,
-      },
+      ...strand(),
+      cell(1101, -300, -40, 300, 46, { under: 0.16 }),
+      cell(1104, -95, 60, 322, 26, { under: 0.12, haze: 0.05, floor: 0.35 }),
+      cell(1102, 70, 196, 262, 30, { under: 0.12, haze: 0.12 }),
+      cell(1103, 214, 262, 244, 13, { under: 0.1, haze: 0.18, lost: 4 }),
     ],
   },
 ];

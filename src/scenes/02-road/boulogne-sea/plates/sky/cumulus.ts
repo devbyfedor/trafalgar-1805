@@ -64,10 +64,16 @@ export interface CloudSpec {
   fragments?: number;
   /** How the ends taper (smaller: blunter; 0.55 by default). */
   taper?: number;
+  /** The top's height between the heads, a share of `height` (0.16 by default). */
+  floor?: number;
   /** The underside seen from below: its depth as a share of `height` (0: none). */
   under?: number;
   /** The base's unevenness, as a share of `height` (0.05 by default). */
   rag?: number;
+  /** How much the lumps show in the light: crevices and their own light (1 by default; soft billows below). */
+  crisp?: number;
+  /** Lost edges: how far inside the outline it may fade where the cloud thins, units (0: crisp all round). */
+  lost?: number;
 }
 
 interface Lobe {
@@ -176,7 +182,11 @@ function lobesOf(s: CloudSpec): {
     for (const k of heads)
       m = Math.max(m, k.h * Math.exp(-(((t - k.c) / k.w) ** 2)));
     const end = Math.max(0, Math.sin(Math.PI * t)) ** taper;
-    return Math.max(0, Math.min(1, (0.16 + 0.84 * m + topWob(t * w)) * end));
+    const floor = s.floor ?? 0.16;
+    return Math.max(
+      0,
+      Math.min(1, (floor + (1 - floor) * m + topWob(t * w)) * end),
+    );
   };
   const rag = s.rag ?? 0.05;
   const baseWob = wobble(s.seed + 3, [
@@ -374,8 +384,8 @@ export function cloudOf(s: CloudSpec, forms: Forms = lobesOf(s)): Cloud {
   const arr = () => new Float64Array(n);
   const under = s.under ?? 0;
   const uWob = wobble(s.seed + 17, [
-    [(s.x1 - s.x0) * 0.29, 0.22],
-    [(s.x1 - s.x0) * 0.083, 0.12],
+    [(s.x1 - s.x0) * 0.43, 0.16],
+    [(s.x1 - s.x0) * 0.17, 0.07],
   ]);
   const underAt = (x: number) =>
     under <= 0 || x <= s.x0 || x >= s.x1
@@ -530,6 +540,8 @@ export interface Surface {
   cb: Float32Array;
   v: Float32Array;
   hs: Float32Array;
+  /** How lost the outline is here, 0..1 (by the mass's side and a slow field). */
+  lo: Float32Array;
   /** Grid rows sampled, rows shaded, and whether the shading is done. */
   rows: number;
   shadedRows: number;
@@ -575,6 +587,7 @@ export function surfaceFor(cl: Cloud, c: PlateCanvas): Surface {
     cb: f32(),
     v: f32(),
     hs: f32(),
+    lo: f32(),
     rows: 0,
     shadedRows: 0,
     shaded: false,
@@ -713,8 +726,8 @@ const WARM_HALF = rgb("#e6ad8c");
 /** The lip where the base's front edge turns toward the eye. */
 const LIP = rgb("#ffd9a6");
 /** The underside: near the lip, and at its far edge (before the haze). */
-const UNDER_NEAR = rgb("#9d8fa6");
-const UNDER_FAR = rgb("#b9a6b2");
+const UNDER_NEAR = rgb("#94889f");
+const UNDER_FAR = rgb("#ae9fae");
 const RIM = rgb("#fff3e0");
 /** The light of the clear sky overhead on faces turned up: cool, pinkish. */
 const SKYLIGHT = rgb("#d9cfe3");
@@ -776,8 +789,11 @@ function shadeRows(cl: Cloud, sf: Surface, upTo: number): void {
   const dv = G / sf.d;
   const span = Math.max(1, cl.top - cl.bottom);
   const cavK = 1 / Math.max(1.5, s.height * 0.05);
+  const crisp = s.crisp ?? 1;
   // A slow wander of the value shapes' borders, as a brush leaves them.
   const wander = field(s.seed + 91, Math.max(24, s.height * 0.4), 2);
+  const lostOn = (s.lost ?? 0) > 0;
+  const lostF = field(s.seed + 101, 26, 2);
   const end = Math.min(gh, upTo);
   for (let j = sf.shadedRows; j < end; j++) {
     const y = (sf.py0 + j * G - sf.f) / sf.d;
@@ -799,18 +815,25 @@ function shadeRows(cl: Cloud, sf: Surface, upTo: number): void {
       const by = -gy / m;
       const bz = 1 / m;
       const lamB = bx * LB[0] + by * LB[1] + bz * LB[2];
+      if (lostOn) {
+        const mb = Math.hypot(bx, by);
+        const facing = mb > 0.05 ? (bx * LP[0] + by * LP[1]) / mb : 0;
+        sf.lo[o] =
+          Math.max(0, Math.min(1, 0.4 - 0.8 * facing + 0.5 * lostF(x, y))) *
+          smooth(0.8, 0.4, hz);
+      }
       const lamF = nx[o] * L[0] + ny[o] * L[1] + nz[o] * L[2];
       // The lumps' own light: near the top's silhouette and on the upper
       // left, faint elsewhere.
       const edge = 1 - smooth(1.5, 9, E[o]);
       const upLeft = smooth(-0.3, 0.6, bx * LP[0] + by * LP[1]);
-      const wf = 0.08 + 0.45 * edge * upLeft * smooth(0.25, 0.7, hz);
+      const wf = (0.08 + 0.45 * edge * upLeft * smooth(0.25, 0.7, hz)) * crisp;
       const lam = lamB + (lamF - lamB) * wf;
       const cav = Math.max(0, Math.min(1, (hc[o] - H[o]) * cavK));
       // The light's value: soft, from the half-tone to the full light.
       // In a few broad steps with short soft transitions, as a painter
       // lays the light, the half-tone and the shade as shapes.
-      const raw = lam - 0.32 * cav + 0.07 * wander(x, y);
+      const raw = lam - 0.32 * crisp * cav + 0.07 * wander(x, y);
       const vL = 0.25 * smooth(0.5, 0.6, raw) + 0.75 * smooth(0.74, 0.84, raw);
       const vS =
         0.35 * smooth(0.12, 0.22, raw) + 0.65 * smooth(0.36, 0.46, raw);
@@ -983,24 +1006,29 @@ function cover(
   body: number,
   kk: number,
   soft: number,
+  ew: number,
 ): void {
   let af: number;
   let au = 0;
+  // The outline: crisp (anti-aliased to a pixel) or lost over `ew` units
+  // inside it, where the cloud thins.
+  const edge =
+    ew * kk <= 1
+      ? Math.max(0, Math.min(1, E * kk + 0.5))
+      : smooth(-0.5 / kk, ew, E);
   if (under > 0) {
     // The face runs down to its own lower outline; the underside fills
     // below and behind it, its far edge soft.
-    af = Math.max(0, Math.min(1, E * kk + 0.5));
+    af = edge;
     const bottom = base - under;
     if (y < base + soft && y > bottom - soft) {
       au =
         body *
-        Math.max(0, Math.min(1, (y - bottom) / (0.6 * soft + 0.15 * under))) *
+        Math.max(0, Math.min(1, (y - bottom) / (0.45 * soft + 0.1 * under))) *
         Math.max(0, Math.min(1, (base + soft - y) * kk * 0.5));
     }
   } else {
-    af =
-      Math.max(0, Math.min(1, E * kk + 0.5)) *
-      Math.max(0, Math.min(1, (y - base) / soft + 0.35));
+    af = edge * Math.max(0, Math.min(1, (y - base) / soft + 0.35));
   }
   COVER[0] = af;
   COVER[1] = au;
@@ -1035,6 +1063,7 @@ export function paintRows(
   const pr = rgb(PAPER.low);
   const gw = sf.gw;
   const { E: GE, cr: CR, cg: CG, cb: CB, nx: GX, ny: GY } = sf;
+  const lostMax = s.lost ?? 0;
   // The lip's strength along the base, per column.
   const lipW1 = wobble(s.seed + 71, [
     [47, 0.5],
@@ -1073,7 +1102,20 @@ export function paintRows(
         (under <= 0 || y > base + soft || y < base - under - soft)
       )
         continue;
-      cover(E, y, base, under, cols.body[i], kk, soft);
+      // Lost and found edges: crisp where the light catches the outline
+      // (the top, the upper left), lost where the cloud thins (the lower
+      // and right sides, here and there by a slow field).
+      let ew = 0;
+      if (lostMax > 0 && E < lostMax && E > -FRINGE) {
+        const LO = sf.lo;
+        const lost =
+          LO[go] * (1 - tx) * (1 - ty) +
+          LO[go + 1] * tx * (1 - ty) +
+          LO[go + gw] * (1 - tx) * ty +
+          LO[go + gw + 1] * tx * ty;
+        ew = lostMax * lost * lost;
+      }
+      cover(E, y, base, under, cols.body[i], kk, soft, ew);
       const af = COVER[0];
       const au = COVER[1];
       const o = row + i * 4;
@@ -1114,9 +1156,15 @@ export function paintRows(
         CB[go + gw + 1] * w11;
       if (E > -FRINGE && E < Math.max(rimW, lipW) + 1) {
         const nxp =
-          (GX[go] + GX[go + 1] + GX[go + gw] + GX[go + gw + 1]) * 0.25;
+          GX[go] * w00 +
+          GX[go + 1] * w10 +
+          GX[go + gw] * w01 +
+          GX[go + gw + 1] * w11;
         const nyp =
-          (GY[go] + GY[go + 1] + GY[go + gw] + GY[go + gw + 1]) * 0.25;
+          GY[go] * w00 +
+          GY[go + 1] * w10 +
+          GY[go + gw] * w01 +
+          GY[go + gw + 1] * w11;
         const m = Math.hypot(nxp, nyp) || 1;
         const face = (nxp * LP[0] + nyp * LP[1]) / m;
         // A crisp lit rim on the outline's upper left.

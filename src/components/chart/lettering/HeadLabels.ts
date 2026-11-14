@@ -1,6 +1,7 @@
 import { type Object3D, Vector3 } from "three";
 import type { BatchedText, Text } from "troika-three-text";
 import type { ChartLayer, FrameInfo } from "../engine/Chart";
+import type { GlyphDrawn } from "../glyphs/Glyphs";
 import type { CoastField } from "../terrain/coast";
 import type { TerrainField } from "../terrain/field";
 import { FONT_FILES, fontUrl } from "./fonts";
@@ -101,6 +102,15 @@ const SCREEN_GAPS_EM = [3.7, 5.2, 6.7];
  * coast lies beyond its fleet and the open sea, darkest, toward the eye,
  * which the chart's own sides need not point to when the view is turned.
  */
+/**
+ * The places measured on screen stand only by a fleet in the frame: they
+ * reach far from it, and for a fleet off the frame they would bring its
+ * label in over whatever lies between (CSS px outside the frame over which
+ * they go).
+ */
+const SCREEN_GAPS_OUT_PX = 24;
+/** The places toward the eye: centred under the fleet, or reaching right or left of it. */
+const TOWARD_REACHES: readonly (-1 | 0 | 1)[] = [0, 1, -1];
 /** The least a gap on the chart shrinks to on screen that a screen gap makes up for. */
 const FORESHORTEN_MIN = 0.1;
 /** Between the name and its strength, ems (a word space of the italic). */
@@ -128,6 +138,14 @@ const CLEAR_RISE_PX = 6;
 const GROUND_SAMPLES = 6;
 /** A label on the land stands this far inland, CSS px (in as it rises). */
 const LAND_CLEAR_PX: readonly [number, number] = [4, 10];
+/**
+ * A ship's glyph as a label keeps clear of it: as wide as this share of its
+ * height either side of its foot, and a little below the foot (its wake's
+ * start); only where it shows at SHIP_MIN or more.
+ */
+const SHIP_HALF_WIDTH = 0.6;
+const SHIP_BELOW = 0.15;
+const SHIP_MIN = 0.05;
 /** The edge of the frame a label keeps clear of, CSS px. */
 const EDGE_PX = 10;
 /**
@@ -165,7 +183,7 @@ interface Slot {
    */
   own: boolean;
   side: HeadSlot | "toward";
-  /** Toward the eye: which of SCREEN_GAPS_EM (Head.toward). */
+  /** Toward the eye: which of its places (Head.toward: 3 per SCREEN_GAPS_EM, by TOWARD_REACHES). */
   towardIndex: number;
   /** Above or below: centred on the fleet (0), reaching east of it (1) or west (-1). */
   reach: -1 | 0 | 1;
@@ -230,6 +248,8 @@ interface Head {
    */
   fx: number;
   fy: number;
+  /** This frame: how far its head stands in the frame (1 in, 0 SCREEN_GAPS_OUT_PX or more out). */
+  inFrame: number;
   /** This frame: the middles of its places toward the eye (world km, x and y pairs; NaN where the view finds no sea). */
   toward: Float64Array;
   trail: Float64Array;
@@ -275,6 +295,13 @@ export class HeadLabels implements ChartLayer {
   /** A place's corners and middle on the chart (world km, x and y pairs), reused. */
   private readonly readAt = new Float64Array(2 * READ_POINTS);
   private blocks: ((id: string, out: Float64Array) => number) | null = null;
+  /** The glyph layers whose ships every label keeps clear of (setGlyphs). */
+  private glyphs: readonly GlyphDrawn[] = [];
+  /** This frame's ships on screen: a quad and how firmly it holds each (ships), and their boxes (x0, y0, x1, y1). */
+  private ships: Float64Array[] = [];
+  private shipWeight = new Float64Array(0);
+  private shipBox = new Float64Array(0);
+  private shipCount = 0;
   private anchors: ((id: string, out: Float64Array) => number) | null = null;
   private handover: ((id: string) => number) | null = null;
   private readonly anchor = new Float64Array(8);
@@ -329,9 +356,9 @@ export class HeadLabels implements ChartLayer {
         onScreen = false,
       ) => {
         const reaches: readonly (-1 | 0 | 1)[] =
-          side === "above" || side === "below" ? [0, 1, -1] : [0];
-        const towardIndex =
-          side === "toward" ? SCREEN_GAPS_EM.indexOf(gap) : -1;
+          side === "above" || side === "below" || side === "toward"
+            ? [0, 1, -1]
+            : [0];
         for (const reach of reaches)
           slots.push({
             own,
@@ -339,7 +366,11 @@ export class HeadLabels implements ChartLayer {
             reach,
             gap,
             onScreen,
-            towardIndex,
+            towardIndex:
+              side === "toward"
+                ? 3 * SCREEN_GAPS_EM.indexOf(gap) +
+                  TOWARD_REACHES.indexOf(reach)
+                : -1,
             quad: new Float64Array(8).fill(Number.NaN),
             weight: 0,
             why: new Float64Array(8),
@@ -369,7 +400,8 @@ export class HeadLabels implements ChartLayer {
         aw: 0,
         fx: 1,
         fy: 1,
-        toward: new Float64Array(2 * SCREEN_GAPS_EM.length).fill(Number.NaN),
+        inFrame: 0,
+        toward: new Float64Array(6 * SCREEN_GAPS_EM.length).fill(Number.NaN),
         trail: new Float64Array(2 * TRAIL_POINTS),
         trailCount: 0,
         lines: Array.from({ length: TRAIL_POINTS }, () => new Float64Array(8)),
@@ -422,6 +454,20 @@ export class HeadLabels implements ChartLayer {
    */
   setBlocks(blocks: ((id: string, out: Float64Array) => number) | null): void {
     this.blocks = blocks;
+  }
+
+  /**
+   * The ships every label keeps clear of, whosever they are: the glyph
+   * layers' ships as drawn this frame (Glyphs.drawn; their layout runs
+   * before the labels update).
+   */
+  setGlyphs(layers: readonly GlyphDrawn[]): void {
+    this.glyphs = layers;
+    let n = 0;
+    for (const d of layers) n += d.alpha.length;
+    this.ships = Array.from({ length: n }, () => new Float64Array(8));
+    this.shipWeight = new Float64Array(n);
+    this.shipBox = new Float64Array(4 * n);
   }
 
   /**
@@ -508,6 +554,7 @@ export class HeadLabels implements ChartLayer {
       h.lineCount = 0;
       if (this.sized && h.presence > 0.001) this.lineQuads(h, frame);
     }
+    this.shipQuads(frame);
     for (const h of this.heads) {
       const dist = Math.hypot(h.x - eye.x, h.y - eye.y, eye.z);
       // Lying on the chart, it fades as the chart does toward the horizon,
@@ -715,6 +762,7 @@ export class HeadLabels implements ChartLayer {
     const q = this.probe;
     h.fx = 1;
     h.fy = 1;
+    h.inFrame = 0;
     h.toward.fill(Number.NaN);
     if (
       !this.corner(q, 0, frame, h.x, h.y) ||
@@ -724,17 +772,24 @@ export class HeadLabels implements ChartLayer {
       return;
     h.fx = Math.hypot(q[2] - q[0], q[3] - q[1]) / emPx;
     h.fy = Math.hypot(q[4] - q[0], q[5] - q[1]) / emPx;
+    const W = frame.width / frame.dpr;
+    const H = frame.height / frame.dpr;
+    const out = Math.max(-q[0], q[0] - W, -q[1], q[1] - H);
+    h.inFrame = 1 - smooth(0, SCREEN_GAPS_OUT_PX, out);
     // The places toward the eye: down the screen from the head by each
-    // gap and half the label's height, back onto the sea's plane.
+    // gap and half the label's height, centred under it or reaching right
+    // or left of it as above and below do, back onto the sea's plane.
     const half = 0.5 * (h.top - h.bottom) * emPx;
+    const shift = 0.5 * this.width(h) * emPx * h.fx + 0.6 * emPx;
     for (let i = 0; i < SCREEN_GAPS_EM.length; i++)
-      this.onSea(
-        frame,
-        q[0],
-        q[1] + SCREEN_GAPS_EM[i] * emPx + half,
-        h.toward,
-        i,
-      );
+      for (let r = 0; r < 3; r++)
+        this.onSea(
+          frame,
+          q[0] + TOWARD_REACHES[r] * shift,
+          q[1] + SCREEN_GAPS_EM[i] * emPx + half,
+          h.toward,
+          3 * i + r,
+        );
   }
 
   /** The point on the sea's plane under a point on screen (CSS px), into out[2i..]: NaN where the view finds none. */
@@ -874,7 +929,7 @@ export class HeadLabels implements ChartLayer {
         y - (H - EDGE_PX),
       );
     }
-    why[1] = 1 - smooth(0, 6, out);
+    why[1] = (1 - smooth(0, 6, out)) * (s.onScreen ? h.inFrame : 1);
     why[2] = this.ground(s, ox, w, y0, y1, frame);
     // Clear of the lettering before it: the names and the caption's card.
     for (const screen of this.keepClear)
@@ -892,6 +947,31 @@ export class HeadLabels implements ChartLayer {
       for (let i = 0; i < other.lineCount; i++)
         why[5] *= clearOf(q, other.lines[i], other === h ? 1 : other.presence);
     if (blockWeight > 0) why[6] = clearOf(q, this.block, blockWeight);
+    // Every ship drawn, the near ones only (clearOf is 1 beyond YIELD_PX).
+    if (this.shipCount > 0) {
+      let qx0 = q[0];
+      let qx1 = q[0];
+      let qy0 = q[1];
+      let qy1 = q[1];
+      for (let i = 1; i < 4; i++) {
+        qx0 = Math.min(qx0, q[i * 2]);
+        qx1 = Math.max(qx1, q[i * 2]);
+        qy0 = Math.min(qy0, q[i * 2 + 1]);
+        qy1 = Math.max(qy1, q[i * 2 + 1]);
+      }
+      const m = YIELD_PX[1];
+      const b = this.shipBox;
+      for (let j = 0; j < this.shipCount; j++) {
+        if (
+          b[4 * j] > qx1 + m ||
+          b[4 * j + 2] < qx0 - m ||
+          b[4 * j + 1] > qy1 + m ||
+          b[4 * j + 3] < qy0 - m
+        )
+          continue;
+        why[6] *= clearOf(q, this.ships[j], this.shipWeight[j]);
+      }
+    }
     let room = 1;
     // why[7] (how well its ink reads there) is inside why[2].
     for (let i = 1; i < 7; i++) room *= why[i];
@@ -1039,6 +1119,42 @@ export class HeadLabels implements ChartLayer {
     const land = landClean * landRead;
     s.why[7] = sea >= land ? seaRead : landRead;
     return Math.max(sea, land);
+  }
+
+  /** This frame's ships on screen (setGlyphs), the ones that show. */
+  private shipQuads(frame: FrameInfo): void {
+    let n = 0;
+    const dpr = frame.dpr;
+    const pt = this.probe;
+    for (const d of this.glyphs) {
+      for (let i = 0; i < d.alpha.length; i++) {
+        const a = d.alpha[i];
+        if (!(a >= SHIP_MIN) || !(d.height[i] > 0)) continue;
+        if (!this.corner(pt, 0, frame, d.x[i], d.y[i])) continue;
+        const h = d.height[i] / dpr;
+        const x0 = pt[0] - SHIP_HALF_WIDTH * h;
+        const x1 = pt[0] + SHIP_HALF_WIDTH * h;
+        const y0 = pt[1] - h;
+        const y1 = pt[1] + SHIP_BELOW * h;
+        const q = this.ships[n];
+        q[0] = x0;
+        q[1] = y1;
+        q[2] = x1;
+        q[3] = y1;
+        q[4] = x1;
+        q[5] = y0;
+        q[6] = x0;
+        q[7] = y0;
+        const b = this.shipBox;
+        b[4 * n] = x0;
+        b[4 * n + 1] = y0;
+        b[4 * n + 2] = x1;
+        b[4 * n + 3] = y1;
+        this.shipWeight[n] = Math.min(1, a);
+        n++;
+      }
+    }
+    this.shipCount = n;
   }
 
   /**

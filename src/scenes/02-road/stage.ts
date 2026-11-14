@@ -404,6 +404,8 @@ export async function createRoadStage(
     director.setLayout(layout);
     chart.add(layout);
     heads.setCoast(coast);
+    // Every label keeps clear of every ship drawn, whosever she is.
+    heads.setGlyphs([fleets.drawn, squadrons.drawn]);
     heads.setBlocks((id, out) => {
       const formation = director.formationOf(id);
       return formation ? layout.blockOf(formation, out) : 0;

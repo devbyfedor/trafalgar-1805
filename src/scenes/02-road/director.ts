@@ -37,6 +37,7 @@ import {
   VICTORY_AT_DAWN,
   withFleet,
 } from "./fleets";
+import { ARMY_MARCH } from "./march";
 import { type ShipState, shipAt } from "./movements";
 import type { DatedWaypoint, Leg } from "./routes";
 import {
@@ -374,6 +375,19 @@ function meetingShare(
 ): number {
   return smooth(m[0], m[1], p) * (1 - smooth(m[2], m[3], p));
 }
+
+/**
+ * The army's march (march.ts) shows from just before the morning of 28
+ * August, when the first divisions leave Boulogne (beat 3's end: the
+ * camera looks over France as it turns south), and draws on by the story's
+ * clock through beat 4, out of the frame, to Ulm on the afternoon of 20
+ * October (p about 0.837), before the night's cut-away (beat 5, 0.855 to
+ * 0.915) comes to it; it is put away as the camera turns back to the
+ * fleets closing.
+ */
+const MARCH_SHOWN: readonly [number, number, number, number] = [
+  0.612, 0.618, 0.93, 0.95,
+];
 
 /** Fades a layer in and out over a range of p. */
 function fade(
@@ -989,6 +1003,8 @@ export class RoadDirector {
     anchorage: 0,
   };
   private readonly clocks: LegClock[];
+  /** The army's march (march.ts). */
+  private readonly march: Track;
   private readonly squads: Squad[];
   /** Squadrons meeting, and the p over which they come into lines and part. */
   private readonly meetings: {
@@ -1067,6 +1083,7 @@ export class RoadDirector {
       ids.forEach((id, n) => {
         if (SEA_JOINS.has(id) && n + 1 < ids.length) seaStarts.add(ids[n + 1]);
       });
+    this.march = layers.tracks.track(ARMY_MARCH.id);
     this.clocks = layers.legs.map((leg) =>
       legClock(
         leg,
@@ -2004,6 +2021,14 @@ export class RoadDirector {
         c.headWeight *
         (c.owner >= 0 ? 1 - this.squadShownNow[c.owner] : 1);
     }
+    // The army's march, by the story's clock: strong all the way (no
+    // squadron sails it), its arrowhead on the head from the first step.
+    const march = this.march;
+    const marching = fade(p, MARCH_SHOWN);
+    march.headKm = marching > 0 ? march.kmAtDay(d) : -1e9;
+    march.opacity = marching;
+    march.emphasis = 1;
+    march.arrow = march.headKm > 0 ? marching : 0;
   }
 
   /**

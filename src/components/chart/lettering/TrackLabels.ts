@@ -2,6 +2,7 @@ import type { Object3D } from "three";
 import { Vector3 } from "three";
 import type { BatchedText, Text } from "troika-three-text";
 import type { FrameInfo } from "../engine/Chart";
+import { landInk } from "../light/states";
 import type { TerrainField } from "../terrain/field";
 import { FONT_FILES, fontUrl } from "./fonts";
 import { MARK_HALF_EM, MARK_RING_EM, Marks } from "./marks";
@@ -219,7 +220,8 @@ export class TrackLabels {
     const u = this.uniforms;
     u.uExag.value = frame.exaggeration;
     u.uLodK.value = frame.lodK;
-    this.inkDark.copy(frame.light.ink);
+    // On the land, the march's dates read at night too (landInk).
+    landInk(frame.light, this.inkDark);
     this.inkPale.copy(frame.light.inkPale);
     this.rings.commit();
   }

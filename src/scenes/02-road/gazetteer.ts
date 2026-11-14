@@ -622,6 +622,8 @@ export const GAZETTEER: readonly Label[] = [
     mark: "town",
     side: "left",
   },
+  // The march's line (march.ts) runs through these towns: each name stands
+  // on the side the road leaves clear, and the march's dates on another.
   {
     text: "Spire",
     role: "place",
@@ -629,6 +631,9 @@ export const GAZETTEER: readonly Label[] = [
     lat: 49.317,
     size: 9,
     mark: "town",
+    // West, across the Rhine: the road crosses south-east of the town and
+    // turns back south-east, and its date stands north of the crossing.
+    side: "left",
   },
   {
     text: "Heilbronn",
@@ -637,6 +642,8 @@ export const GAZETTEER: readonly Label[] = [
     lat: 49.142,
     size: 9,
     mark: "town",
+    // The road runs through it from west to east.
+    side: "above",
   },
   {
     text: "Nordlingen",
@@ -645,6 +652,8 @@ export const GAZETTEER: readonly Label[] = [
     lat: 48.851,
     size: 9.5,
     mark: "town",
+    // The road runs through it from west to east, a little north of south.
+    side: "below",
   },
   {
     text: "Donawerth",
@@ -653,7 +662,10 @@ export const GAZETTEER: readonly Label[] = [
     lat: 48.718,
     size: 9.5,
     mark: "town",
-    side: "below",
+    // East: the road comes in from the west and turns back south-west up
+    // the river, and its date stands north-east, between the name and the
+    // Danube's.
+    side: "right",
   },
   {
     text: "Augsburg",
@@ -683,10 +695,12 @@ export const GAZETTEER: readonly Label[] = [
   {
     text: "Danube",
     role: "water",
-    // East of Donawerth, on the reach toward Neuburg, where the river runs
-    // nearly east: between Ulm and Donawerth it lay over Donawerth's name.
-    lon: 11.22,
-    lat: 48.745,
+    // East of Donawerth, on the reach from Neuburg toward Ingolstadt, where
+    // the river runs nearly east: between Ulm and Donawerth it lay over
+    // Donawerth's name, and nearer it lay over that name set east of its
+    // town, clear of the march's road (march.ts).
+    lon: 11.62,
+    lat: 48.79,
     size: 9.4,
     angle: 4,
   },

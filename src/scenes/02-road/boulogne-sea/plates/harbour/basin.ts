@@ -239,12 +239,15 @@ function craftAt(
   }
   const stays: Pt[][] = [];
   // Forestay to the stem (or the bowsprit's end); stays between the mastheads.
-  const bowTip = type.bowsprit ? P(L * 0.62, 0, side + side * 0.9) : P(L * 0.5, 0, side + 0.6);
+  const bowTip = type.bowsprit
+    ? P(L * 0.62, 0, side + side * 0.9)
+    : P(L * 0.5, 0, side + 0.6);
   if (heads.length) stays.push([masts[0].hounds, bowTip]);
   for (let i = 1; i < masts.length; i++)
     stays.push([masts[i].head, masts[i - 1].hounds]);
   // The stern's backstays to the last mast's head.
-  if (masts.length) stays.push([masts[masts.length - 1].head, P(-L * 0.5, s * 0.5, side)]);
+  if (masts.length)
+    stays.push([masts[masts.length - 1].head, P(-L * 0.5, s * 0.5, side)]);
   return {
     hull: { bottom, sheer, wale },
     lit,
@@ -284,11 +287,22 @@ export function basinTiers(count: number): boolean {
       // Bow up or down the harbour; a small heel on the mud.
       const dir = rng() < 0.5 ? 1 : -1;
       const heel = (rng() - 0.5) * 4;
-      out.push(craftAt(e, n, st.te * dir, st.tn * dir, type, heel, Math.floor(rng() * 1e9)));
+      out.push(
+        craftAt(
+          e,
+          n,
+          st.te * dir,
+          st.tn * dir,
+          type,
+          heel,
+          Math.floor(rng() * 1e9),
+        ),
+      );
       off -= type.beam * LEN * (1.05 + rng() * 0.15);
     }
     // The next tier: a hull's length on, and a gap now and then.
-    g.s += longest * (1.02 + rng() * 0.12) + (rng() < 0.3 ? 10 + rng() * 25 : 0);
+    g.s +=
+      longest * (1.02 + rng() * 0.12) + (rng() < 0.3 ? 10 + rng() * 25 : 0);
   }
   return true;
 }
@@ -303,7 +317,9 @@ function ring(rng: () => number): Craft[] {
     const type = pickType(rng);
     const de = -Math.cos(a);
     const dn = -Math.sin(a);
-    out.push(craftAt(e, n, de, dn, type, (rng() - 0.5) * 4, Math.floor(rng() * 1e9)));
+    out.push(
+      craftAt(e, n, de, dn, type, (rng() - 0.5) * 4, Math.floor(rng() * 1e9)),
+    );
   }
   return out;
 }
@@ -321,7 +337,10 @@ export function basinCraft(): Craft[] {
 
 // ------------------------------------------------------------- drawing
 
-function path(ctx: CanvasRenderingContext2D, lines: readonly (readonly Pt[])[]): void {
+function path(
+  ctx: CanvasRenderingContext2D,
+  lines: readonly (readonly Pt[])[],
+): void {
   ctx.beginPath();
   for (const l of lines) {
     ctx.moveTo(l[0][0], l[0][1]);
@@ -334,7 +353,8 @@ function hullPath(c: Craft): Path2D {
   const { bottom, sheer } = c.hull;
   p.moveTo(bottom[0][0], bottom[0][1]);
   for (const q of bottom) p.lineTo(q[0], q[1]);
-  for (let i = sheer.length - 1; i >= 0; i--) p.lineTo(sheer[i][0], sheer[i][1]);
+  for (let i = sheer.length - 1; i >= 0; i--)
+    p.lineTo(sheer[i][0], sheer[i][1]);
   p.closePath();
   return p;
 }
@@ -372,7 +392,10 @@ export function paintCraft(c: PlateCanvas, list: readonly Craft[]): void {
     }
     ctx.closePath();
     ctx.fill();
-    ctx.strokeStyle = rgba(air(mix("#a07a4e", "#f0cf8e", cr.lit)), 0.55 + 0.4 * cr.lit);
+    ctx.strokeStyle = rgba(
+      air(mix("#a07a4e", "#f0cf8e", cr.lit)),
+      0.55 + 0.4 * cr.lit,
+    );
     ctx.lineWidth = c.pen(0.7);
     path(ctx, [wale]);
     ctx.stroke();
@@ -415,8 +438,14 @@ export function paintCraft(c: PlateCanvas, list: readonly Craft[]): void {
       ctx,
       yards.map((y) => {
         const k = (1 - y.roll) / 2;
-        const a: Pt = [y.a[0] + (y.b[0] - y.a[0]) * k, y.a[1] + (y.b[1] - y.a[1]) * k + 0.18];
-        const b: Pt = [y.b[0] - (y.b[0] - y.a[0]) * k, y.b[1] - (y.b[1] - y.a[1]) * k + 0.18];
+        const a: Pt = [
+          y.a[0] + (y.b[0] - y.a[0]) * k,
+          y.a[1] + (y.b[1] - y.a[1]) * k + 0.18,
+        ];
+        const b: Pt = [
+          y.b[0] - (y.b[0] - y.a[0]) * k,
+          y.b[1] - (y.b[1] - y.a[1]) * k + 0.18,
+        ];
         return [a, b];
       }),
     );
@@ -427,8 +456,14 @@ export function paintCraft(c: PlateCanvas, list: readonly Craft[]): void {
       ctx,
       yards.map((y) => {
         const k = (1 - y.roll) / 2 + 0.05;
-        const a: Pt = [y.a[0] + (y.b[0] - y.a[0]) * k, y.a[1] + (y.b[1] - y.a[1]) * k - 0.1];
-        const b: Pt = [y.b[0] - (y.b[0] - y.a[0]) * k, y.b[1] - (y.b[1] - y.a[1]) * k - 0.1];
+        const a: Pt = [
+          y.a[0] + (y.b[0] - y.a[0]) * k,
+          y.a[1] + (y.b[1] - y.a[1]) * k - 0.1,
+        ];
+        const b: Pt = [
+          y.b[0] - (y.b[0] - y.a[0]) * k,
+          y.b[1] - (y.b[1] - y.a[1]) * k - 0.1,
+        ];
         return [a, b];
       }),
     );
@@ -437,7 +472,11 @@ export function paintCraft(c: PlateCanvas, list: readonly Craft[]): void {
 }
 
 /** Engraves craft far to near: paper hulls with planking strokes denser below, fine masts and yards, rolls of canvas as small double strokes, rigging hairlines. */
-export function engraveCraft(c: PlateCanvas, list: readonly Craft[], pen: number): void {
+export function engraveCraft(
+  c: PlateCanvas,
+  list: readonly Craft[],
+  pen: number,
+): void {
   const { ctx } = c;
   for (const cr of list) {
     ctx.strokeStyle = rgba(INK.hatch, 0.35);
@@ -475,7 +514,10 @@ export function engraveCraft(c: PlateCanvas, list: readonly Craft[], pen: number
     ctx.stroke();
     ctx.strokeStyle = rgba(INK.line, 0.85);
     ctx.lineWidth = c.pen(pen * 0.6);
-    path(ctx, cr.masts.map((m) => [m.foot, m.head]));
+    path(
+      ctx,
+      cr.masts.map((m) => [m.foot, m.head]),
+    );
     if (cr.bowsprit) {
       ctx.moveTo(cr.bowsprit[0][0], cr.bowsprit[0][1]);
       ctx.lineTo(cr.bowsprit[1][0], cr.bowsprit[1][1]);
@@ -495,8 +537,14 @@ export function engraveCraft(c: PlateCanvas, list: readonly Craft[], pen: number
       ctx,
       yards.flatMap((y) => {
         const k = (1 - y.roll) / 2;
-        const a: Pt = [y.a[0] + (y.b[0] - y.a[0]) * k, y.a[1] + (y.b[1] - y.a[1]) * k];
-        const b: Pt = [y.b[0] - (y.b[0] - y.a[0]) * k, y.b[1] - (y.b[1] - y.a[1]) * k];
+        const a: Pt = [
+          y.a[0] + (y.b[0] - y.a[0]) * k,
+          y.a[1] + (y.b[1] - y.a[1]) * k,
+        ];
+        const b: Pt = [
+          y.b[0] - (y.b[0] - y.a[0]) * k,
+          y.b[1] - (y.b[1] - y.a[1]) * k,
+        ];
         return [
           [
             [a[0], a[1] + 0.35],

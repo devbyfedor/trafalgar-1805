@@ -8,7 +8,12 @@ import {
   type PlateJob,
 } from "../paint/plate";
 import { aerial, BUILD, viewOf } from "../scene";
-import { basinCraft, basinTiers, engraveCraft, paintCraft } from "./harbour/basin";
+import {
+  basinCraft,
+  basinTiers,
+  engraveCraft,
+  paintCraft,
+} from "./harbour/basin";
 import {
   type Box,
   brokenLine,
@@ -44,6 +49,33 @@ function proj(e: number, n: number, up: number): Pt {
 // ----------------------------------------------------------- the basin
 
 const BASIN_DEPTH = 1600;
+
+/** Points along the river, every `step` metres, with the direction there. */
+function alongRiver(
+  from: number,
+  to: number,
+  step: number,
+): { e: number; n: number; dx: number; dn: number }[] {
+  const out: { e: number; n: number; dx: number; dn: number }[] = [];
+  let s = 0;
+  for (let i = 0; i < RIVER.length - 1; i++) {
+    const [ax, ay] = RIVER[i];
+    const [bx, by] = RIVER[i + 1];
+    const len = Math.hypot(bx - ax, by - ay);
+    for (let t = 0; t < len; t += step) {
+      const at = s + t;
+      if (at >= from && at <= to)
+        out.push({
+          e: ax + ((bx - ax) * t) / len,
+          n: ay + ((by - ay) * t) / len,
+          dx: (bx - ax) / len,
+          dn: (by - ay) / len,
+        });
+    }
+    s += len;
+  }
+  return out;
+}
 const BASIN_BOX: Box = [-240, 300, -14, 48];
 
 function basinFloor(c: PlateCanvas): void {

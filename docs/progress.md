@@ -2,6 +2,29 @@
 
 Live checklist. A later session picks up from here. The briefs are `docs/scene-01-brief.md` and `docs/scene-02-brief.md`; decisions and deviations are in `docs/decisions.md`.
 
+## Session 32 (14 November 2026): the Cádiz labels, the march to Ulm, the history section
+
+**Where we are:** in progress (see the plan below).
+
+**The owner's order** (complete; it ends "Конец сообщения"). His answers to session 31's questions: (1) the army's march to Ulm is built, this session, with the Cádiz labels (the same work on routes and labels), styled as the other routes: dashed, drawn by dates; (2) each item goes into `main` right after all its checks; he looks at `main` on the preview and anything he dislikes is fixed on top of `main`; (3) the night signals of 20–21 October (blue lights, rockets, guns) are built with the relay, in its sessions (the same chain, at night). **His answers to the questions planned for later** (record them here): the smoke at Finisterre goes only through the part of the pause when the firing really went on; the chain's four ships of the line are shown apart from the fleet (they stood apart, as repeating ships). **The readability rule accepted:** a label is readable at opacity 0.5 or more (`decisions.md`, session 32). Order of work:
+1. The Cádiz labels: continue `wip/s23-gulf-labels` by its plan and findings; "Villeneuve, 33 sail" holds 4.5:1 while readable.
+2. The army's march to Ulm.
+3. In parallel from the start, a helper on the history section from `s23-history`: an independent review and the merge (the Boulogne roads part is covered by "Boulogne from the sea": not to be duplicated).
+4. Checks on the production build, the build checked with `served.mjs`: clash and jerks, `contrast.mjs`, the frame budget, scene 1's regression, look-diff where nothing changed, `npm run check`.
+5. Everything into `main`; the plan below updated (the history section of session 37 closed here).
+6. The report by the usual rules, with the commands to look at `main` on the preview; then stop.
+Never `npm run screenshots`. Commit after each step; keep this file current.
+
+**Plan and state:**
+- [x] Step 0: oriented (clean `main` at `e43e191`; the plan below; the brief; `wip/s23-gulf-labels` `e6ae1fd`; `s23-history` `74c29e3`).
+- [x] The history helper started first: `main` merged into `s23-history` in its worktree (`1a1378d`, clean); workflow `s32-history` (run `wf_d648dc56-574`, docs only, in `.claude/worktrees/s23-history`): the march's research (`docs/research/scene-02/session-32/army-march.md`), edits A (Boulogne reconciled with "Boulogne from the sea", no duplication), B (the twenty craft's convention), C (the signals, smoke and lanterns as built: none yet, the owner's answers), D (the march), four independent reviews (campaign facts, autumn facts, code, rules and duplication), the fix, the merge into `history-notes.md` as "Scene 2: the road to Trafalgar" (the strengths section folded in), an independent no-loss check. **No timing while it runs.**
+- [ ] Step 1: the Cádiz labels, on branch `s32-gulf-labels` (from `main`, `wip/s23-gulf-labels` merged in: `6fd6135`).
+- [ ] Step 2: the army's march to Ulm.
+- [ ] Step 3: the history merged (after the workflow; the code's citations fixed by me).
+- [ ] Step 4: the checks.
+- [ ] Step 5: into `main`; the plan updated.
+- [ ] Step 6: the report.
+
 ## Session 31 (14 November 2026): Boulogne's brief closed, the merge into main, the clean-up, the plan for the rest of scene 2
 
 **Where we stopped (the planned end: the report sent).** On `main`; all committed and clean. The Boulogne brief closed ("Stage B — approved by owner, merged to main"); `s24-boulogne-sea` merged (`cecb2d2`). `npm run check` on `main`: 37 of 37 on the quiet machine (a first run beside a workflow failed the hold's 8 ms by 0.2 with no late frame; recorded). The clean-up done: 13 worktrees and 15 branches wholly in `main` removed by the junction rule. Nothing runs: no helper, no server (4173 and 4174 free). **Next:** the owner's answers to the three questions below, then session 32: the Cádiz labels (the plan below).

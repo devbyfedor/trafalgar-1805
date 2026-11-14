@@ -118,7 +118,10 @@ export class SmokeRenderer {
         const rx = r * (1 + age * 0.9);
         const ry = r * (1 - age * 0.3);
         const alpha =
-          p.strength * this.intensity * Math.min(1, age * 10) * (1 - age) ** 1.4;
+          p.strength *
+          this.intensity *
+          Math.min(1, age * 10) *
+          (1 - age) ** 1.4;
         if (alpha < 0.004) continue;
         ctx.globalAlpha = alpha;
         ctx.drawImage(

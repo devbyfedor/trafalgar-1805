@@ -178,7 +178,7 @@ function controller(root: HTMLElement): SeaViewHandle & { dispose(): void } {
   // Wood smoke, front-lit by the low sun behind the eye: a warm light grey,
   // lighter than the blue sky above and a little darker than the pale sky
   // low down, so it reads against both without a dirty, sooty column.
-  const smokeColour = mixHex(PALETTE.cloud.shade, "#7d6f66", 0.4);
+  const smokeColour = mixHex(PALETTE.cloud.shade, "#7d6f66", 0.5);
   const smokes = SMOKE.flatMap((g) => {
     const canvas = root.querySelector<HTMLCanvasElement>(
       `canvas[data-smoke="${g.id}"]`,

@@ -118,7 +118,7 @@ export class SmokeRenderer {
         const rx = r * (1 + age * 0.9);
         const ry = r * (1 - age * 0.3);
         const alpha =
-          p.strength * this.intensity * Math.min(1, age * 4) * (1 - age) ** 1.4;
+          p.strength * this.intensity * Math.min(1, age * 10) * (1 - age) ** 1.4;
         if (alpha < 0.004) continue;
         ctx.globalAlpha = alpha;
         ctx.drawImage(
@@ -218,16 +218,16 @@ export function smokeGroups(
 ): SmokeGroup[] {
   const north = plumesOf(
     kitchens.filter((k) => k.north > 0),
-    { metres: 110, lean: -0.42, strength: 0.55, seed: 11 },
+    { metres: 110, lean: -0.42, strength: 0.62, seed: 11 },
   );
   const south = plumesOf(
     kitchens.filter((k) => k.north <= 0),
-    { metres: 90, lean: -0.42, strength: 0.6, seed: 23 },
+    { metres: 90, lean: -0.42, strength: 0.66, seed: 23 },
   );
   const town = plumesOf(chimneys, {
     metres: 38,
     lean: -0.36,
-    strength: 0.45,
+    strength: 0.5,
     seed: 37,
   });
   return [

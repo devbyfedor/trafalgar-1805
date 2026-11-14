@@ -1,6 +1,8 @@
 import { createRng, mix, type Pt, rgba } from "../../paint/kit";
 import { INK, PAPER, type PlateCanvas } from "../../paint/plate";
-import { aerial, BUILD, EYE_EN, project, viewOf } from "../../scene";
+import { aerial, BUILD, EYE_EN, EYE_H, project, viewOf } from "../../scene";
+import { HAZE, hazeOf } from "../heroes/common";
+import { engraveCloth, paintCloth, staffFlag } from "../heroes/flags";
 
 /**
  * The shore painter's drawing kit: paths, broken strokes, contour-following
@@ -47,8 +49,8 @@ export const SHORE = {
   thatchOld: "#a3927a",
   thatchShade: "#7a6a59",
   thatchOldShade: "#67605f",
-  wallLit: "#e4cfa9",
-  wallWhite: "#efe6d2",
+  wallLit: "#c9ad86",
+  wallWhite: "#e6dccb",
   wallShade: "#8f8790",
   wallWhiteShade: "#a9a6b0",
   hutFoot: "#4e4a4c",
@@ -287,7 +289,9 @@ export function hutShape(h: Hut): HutShape {
   const s = ae * te + an * tn > 0 ? 1 : -1;
   const P = (a: number, b: number, up: number): Pt =>
     project(h.e + ae * a + be * b, h.n + an * a + bn * b, h.g + up);
-  const o = 0.35 * BUILD;
+  // The thatch's overhang: heavy, so the gable reads as a clay wall under
+  // a hood of straw, not a pale triangle (a tent, which the brief forbids).
+  const o = 0.55 * BUILD;
   const ahead = viewOf(h.e, h.n)[0];
   const unit = 1000 / ahead;
   const gableLight = sunOn(s * ae, s * an, 0);
@@ -456,11 +460,12 @@ export function paintHuts(c: PlateCanvas, huts: readonly Hut[]): void {
     ctx.globalAlpha = 1;
     ctx.fillStyle = air(wallOf(h, s.gableLight), d);
     ctx.fill(poly(s.gable));
-    // The eaves' shadow across the gable's top.
+    // The eaves' shadow across the gable's top: a dark band at the walls'
+    // height that breaks the triangle into wall and roof.
     const g = s.gable;
-    const shadowDrop = 0.25 * BUILD * s.unit;
+    const shadowDrop = 0.32 * BUILD * s.unit;
     ctx.fillStyle = air(SHORE.wallShade, d);
-    ctx.globalAlpha = 0.3;
+    ctx.globalAlpha = 0.55;
     ctx.fill(
       poly([
         g[4],
@@ -476,7 +481,7 @@ export function paintHuts(c: PlateCanvas, huts: readonly Hut[]): void {
       ctx.fillStyle = air(SHORE.hutDoor, d);
       ctx.fill(poly(s.door));
     }
-    ctx.fillStyle = air(thatchOf(h, s.gableLight * 0.85), d);
+    ctx.fillStyle = air(thatchOf(h, s.gableLight * 0.62), d);
     ctx.fill(poly(s.rake));
     const ridge = new Path2D();
     ridge.moveTo(s.ridge[0][0], s.ridge[0][1]);
@@ -815,6 +820,12 @@ export function flag(
   return { staff: [[x, y], top], panes };
 }
 
+/**
+ * A flag on its staff: the staff, and the tricolour as cloth in the one
+ * wind of the whole painting (heroes/flags.ts, staffFlag: hanging heavily,
+ * its fly lifted away and leaning toward the wind's vanishing point, as the
+ * craft's flags do), its hoist `f`'s size; `f.panes` only measure it.
+ */
 export function paintFlag(
   c: PlateCanvas,
   f: ReturnType<typeof flag>,
@@ -824,33 +835,23 @@ export function paintFlag(
   const st = new Path2D();
   st.moveTo(f.staff[0][0], f.staff[0][1]);
   st.lineTo(f.staff[1][0], f.staff[1][1]);
+  const [tx, ty] = f.staff[1];
+  const hoist = ((f.panes[0][0][1] - f.panes[0][3][1]) * ahead) / 1000;
+  const shape = staffFlag(
+    ahead,
+    (tx * ahead) / 1000,
+    (ty * ahead) / 1000 + EYE_H,
+    hoist * 1.5,
+    hoist,
+    Math.round(Math.abs(tx * 37 + ty * 11)),
+  );
   if (mode === "colour") {
     stroke(c, st, 0.8, air(SHORE.wood, ahead), 1);
-    const cols = [SHORE.blue, SHORE.white, SHORE.red];
-    f.panes.forEach((p, i) => {
-      c.ctx.fillStyle = air(cols[i], ahead);
-      c.ctx.fill(poly(p));
-    });
+    paintCloth(c, shape, hazeOf(ahead), HAZE);
     return;
   }
   stroke(c, st, 0.7, INK.line, 0.9);
-  const o = new Path2D();
-  for (const p of f.panes) {
-    c.ctx.fillStyle = PAPER.low;
-    c.ctx.fill(poly(p));
-  }
-  const all = f.panes;
-  addLine(o, [all[0][0], all[2][1], all[2][2], all[0][3]]);
-  stroke(c, o, 0.6, INK.line, 0.85);
-  const h = new Path2D();
-  addTicks(h, [all[0][3]], 0, 0);
-  const p0 = all[0];
-  for (let i = 1; i < 3; i++) {
-    const t = i / 3;
-    h.moveTo(p0[3][0] + (p0[2][0] - p0[3][0]) * t, p0[3][1]);
-    h.lineTo(p0[0][0] + (p0[1][0] - p0[0][0]) * t, p0[0][1]);
-  }
-  stroke(c, h, 0.45, INK.hatch, 0.8);
+  engraveCloth(c, shape, 0.7);
 }
 
 /** The pen for a contour at `ahead` metres: about 1.4 device px near, 0.6 far. */

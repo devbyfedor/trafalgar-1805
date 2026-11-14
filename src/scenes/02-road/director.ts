@@ -818,9 +818,14 @@ function readableChanges(
     }
   // The figure it comes in with: the last before it reads, or before the
   // first kept change if that comes too soon after.
+  // A change skipped as it comes in, with none lettered after, is the
+  // figure it comes in with too: else it would show, all its time in the
+  // story, a figure true only while it faded in.
+  const lettered = keep.includes(true);
   let start = first;
   for (let k = 0; k < p.length; k++) {
-    if (p[k] >= readFrom && !(keep[k] && p[k] - readFrom < READ_P)) {
+    const near = p[k] - readFrom < READ_P;
+    if (p[k] >= readFrom && !(near && (keep[k] || !lettered))) {
       if (keep[k]) break;
       continue;
     }

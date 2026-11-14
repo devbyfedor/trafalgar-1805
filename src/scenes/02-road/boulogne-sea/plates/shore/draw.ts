@@ -502,7 +502,11 @@ export function paintHuts(c: PlateCanvas, huts: readonly Hut[]): void {
  * behind; the gable's outline and the thatch's, two or three strokes down
  * the thatch on the eye's side, the shaded wall hatched.
  */
-export function engraveHuts(c: PlateCanvas, huts: readonly Hut[]): void {
+export function engraveHuts(
+  c: PlateCanvas,
+  huts: readonly Hut[],
+  farBelow = 2.2,
+): void {
   const shapes = huts
     .map((h) => ({ h, s: hutShape(h) }))
     .sort((a, b) => b.s.ahead - a.s.ahead);
@@ -537,20 +541,22 @@ export function engraveHuts(c: PlateCanvas, huts: readonly Hut[]): void {
     ctx.fill(poly(s.rake));
     ctx.fill(poly(s.gable));
     const r = s.roof;
-    if (s.unit * h.w < 2.2) {
-      // A far hut: its ridge and a stroke down its shaded side, no
-      // outline (a row of outlined gables would read as a zigzag).
-      const far = new Path2D();
-      far.moveTo(s.ridge[0][0], s.ridge[0][1]);
-      far.lineTo(s.ridge[1][0], s.ridge[1][1]);
-      stroke(c, far, px * 0.7, INK.line, 0.85);
-      const sh = new Path2D();
-      sh.moveTo(r[0][0], r[0][1]);
-      sh.lineTo(r[1][0], r[1][1]);
+    if (s.unit * h.w < farBelow) {
+      // A far hut: one stroke down its gable's shaded edge, its length its
+      // own, and some huts left to the paper. (The eave and the gable's
+      // edge met at every roof's apex, and row after row of those read as
+      // a zigzag ornament along the brow.)
+      const pick = ((Math.floor(h.e * 13 + h.n * 7) % 7) + 7) % 7;
+      if (pick < 2) continue;
       const g = s.gable;
-      sh.moveTo(g[1][0], g[1][1]);
-      sh.lineTo(g[2][0], g[2][1]);
-      stroke(c, sh, px * 0.5, INK.hatch, 0.7);
+      const t = 0.45 + pick * 0.08;
+      const sh = new Path2D();
+      sh.moveTo(g[3][0], g[3][1]);
+      sh.lineTo(
+        g[3][0] + (g[2][0] - g[3][0]) * t,
+        g[3][1] + (g[2][1] - g[3][1]) * t,
+      );
+      stroke(c, sh, px * 0.6, INK.line, 0.75);
       continue;
     }
     const line = new Path2D();

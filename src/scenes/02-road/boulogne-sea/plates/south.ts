@@ -102,6 +102,9 @@ export function southPlates(): Plate[] {
       depth: 2000,
       box: [-20, 905, 0, 98],
       seed: 501,
+      // The left camp is one line along the brow against the sky: its huts
+      // engraved as single strokes, never a row of outlined gables.
+      inkFar: 4,
       contour: southContour,
       count: TIERS.length,
       // A post mill on the brow in a gap between the camp's blocks, its

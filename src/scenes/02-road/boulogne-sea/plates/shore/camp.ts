@@ -204,6 +204,12 @@ export interface CampPlateOptions {
    * than it hides its foot)].
    */
   mills?: () => (readonly [number, number, number, number, number])[];
+  /**
+   * In the engraving, huts smaller than this (half-width in layer units)
+   * are drawn as one stroke, not outlined (engraveHuts): a single line of
+   * huts on a skyline, outlined, reads as a zigzag ornament.
+   */
+  inkFar?: number;
 }
 
 export function campPlate(o: CampPlateOptions): Plate {
@@ -432,7 +438,7 @@ export function campPlate(o: CampPlateOptions): Plate {
       const mid = Math.ceil(all.length / 2);
       const huts = part === 0 ? all.slice(0, mid) : all.slice(mid);
       if (mode === "colour") paintHuts(c, huts);
-      else engraveHuts(c, huts);
+      else engraveHuts(c, huts, o.inkFar);
     };
   }
 

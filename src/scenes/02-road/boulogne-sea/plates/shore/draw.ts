@@ -24,15 +24,16 @@ export const SHORE = {
   block: "#d2b083",
   beach: "#e3cb9b",
   beachLow: "#c9b591",
-  turf: "#a3a05c",
-  turfLit: "#c8bb69",
-  turfShade: "#7f8466",
-  stubble: "#dcc07a",
-  pasture: "#aeae66",
-  fallow: "#c5a678",
-  path: "#e0c996",
-  hedge: "#7d7b52",
-  garden: "#93a160",
+  turf: "#949650",
+  turfLit: "#b4ad5c",
+  turfShade: "#6c7358",
+  stubble: "#d2b46a",
+  pasture: "#9aa05a",
+  fallow: "#b49272",
+  path: "#cbb589",
+  hedge: "#5d6045",
+  hedgeLit: "#8a8d55",
+  garden: "#7e9150",
   earth: "#b4825a",
   earthLit: "#cf9a66",
   gabion: "#8c6f50",
@@ -42,11 +43,16 @@ export const SHORE = {
   slate: "#8e909b",
   wood: "#5d5048",
   woodLit: "#8f7558",
-  thatchNew: "#e8c47e",
-  thatchOld: "#a99272",
-  wallLit: "#c4a57a",
-  wallWhite: "#ede3cf",
-  wallShade: "#8e8590",
+  thatchNew: "#d9b674",
+  thatchOld: "#a3927a",
+  thatchShade: "#7a6a59",
+  thatchOldShade: "#67605f",
+  wallLit: "#e4cfa9",
+  wallWhite: "#efe6d2",
+  wallShade: "#8f8790",
+  wallWhiteShade: "#a9a6b0",
+  hutFoot: "#4e4a4c",
+  hutDoor: "#4a4140",
   marram: "#9da36d",
   dune: "#e2cc98",
   duneShade: "#b9ab92",
@@ -211,7 +217,7 @@ export interface Hut {
   n: number;
   /** The ground under it, metres as drawn. */
   g: number;
-  /** Half-length along the row, half-width across, wall and ridge heights: metres as drawn (BUILD). */
+  /** Half-length along its axis, half-width across, wall and ridge heights: metres as drawn (BUILD). */
   l: number;
   w: number;
   wall: number;
@@ -225,24 +231,47 @@ export interface Hut {
   axis?: readonly [number, number];
 }
 
+/**
+ * A hut's faces toward the eye, layer units, and how square each stands
+ * to the low sun (0 in the sky's shade, 1 full in the sun): the gable end
+ * turned toward the eye, the long wall and the roof's slope on the eye's
+ * side, the thatch's cut end framing the gable.
+ */
 export interface HutShape {
-  front: Pt[];
+  gable: Pt[];
+  gableLight: number;
+  side: Pt[];
+  sideLight: number;
   roof: Pt[];
-  end: Pt[];
-  endLit: boolean;
-  eave: [Pt, Pt];
+  roofLight: number;
+  /** The thatch's end over the gable (a chevron), lit as the gable. */
+  rake: Pt[];
   ridge: [Pt, Pt];
+  /** Where the walls meet the ground, toward the eye. */
+  foot: Pt[];
+  door: Pt[] | null;
   chimney: Pt[] | null;
+  /** A cone thatched to the ground: no walls. */
+  cone: boolean;
   ahead: number;
+  /** Layer units per drawn metre at its distance. */
+  unit: number;
 }
 
-/** The low sun's direction over the ground, [east, north]: azimuth 294. */
-const SUN: readonly [number, number] = [
-  Math.sin((294 * Math.PI) / 180),
-  Math.cos((294 * Math.PI) / 180),
+/** The low sun: azimuth 294, 7° up. Its direction [east, north, up]. */
+const SUN_ALT = (7 * Math.PI) / 180;
+const SUN: readonly [number, number, number] = [
+  Math.sin((294 * Math.PI) / 180) * Math.cos(SUN_ALT),
+  Math.cos((294 * Math.PI) / 180) * Math.cos(SUN_ALT),
+  Math.sin(SUN_ALT),
 ];
 
-/** A hut's faces in layer units: its front toward the eye, its roof's slope on that side, and the end turned toward the eye. */
+/** How square a face of normal [east, north, up] (unit) stands to the sun, 0..1. */
+export function sunOn(ne: number, nn: number, nu: number): number {
+  return Math.max(0, ne * SUN[0] + nn * SUN[1] + nu * SUN[2]);
+}
+
+/** A hut's faces toward the eye, lit by the low sun. */
 export function hutShape(h: Hut): HutShape {
   const [ae, an] = h.axis ?? [0, 1];
   const te = EYE_EN[0] - h.e;
@@ -256,50 +285,88 @@ export function hutShape(h: Hut): HutShape {
   }
   // The end turned toward the eye: +1 the end at +l.
   const s = ae * te + an * tn > 0 ? 1 : -1;
-  const endLit = s * (ae * SUN[0] + an * SUN[1]) > 0.15;
   const P = (a: number, b: number, up: number): Pt =>
     project(h.e + ae * a + be * b, h.n + an * a + bn * b, h.g + up);
   const o = 0.35 * BUILD;
   const ahead = viewOf(h.e, h.n)[0];
+  const unit = 1000 / ahead;
+  const gableLight = sunOn(s * ae, s * an, 0);
+  const sideLight = sunOn(be, bn, 0);
   if (h.kind === 3 && h.l === 0) {
-    // A cone thatched to the ground.
-    const base0 = P(h.w, 0, 0);
-    const base1 = P(-h.w, 0, 0);
+    // A cone thatched to the ground: its lit and shaded halves.
+    const base0 = P(0, h.w, 0);
+    const base1 = P(0, -h.w, 0);
+    const toward = P(h.w * 0.7 * s, h.w * 0.7, 0);
     const apex = P(0, 0, h.ridge);
-    const mid = P(0, h.w, 0);
     return {
-      front: [],
-      roof: [base0, mid, base1, apex],
-      end: [P(s * h.w, 0, 0), P(s * h.w * 0.6, -h.w * 0.7, 0), apex],
-      endLit,
-      eave: [base0, base1],
+      gable: [toward, base1, apex],
+      gableLight,
+      side: [base0, toward, apex],
+      sideLight,
+      roof: [],
+      roofLight: 0,
+      rake: [],
       ridge: [apex, apex],
+      foot: [base0, toward, base1],
+      door: null,
       chimney: null,
+      cone: true,
       ahead,
+      unit,
     };
   }
   const wall = h.kind === 3 ? 0.2 : h.wall;
-  const front: Pt[] = [
-    P(h.l, h.w, 0),
-    P(-h.l, h.w, 0),
-    P(-h.l, h.w, wall),
-    P(h.l, h.w, wall),
-  ];
   const lo = h.kind === 3 ? 0 : wall - 0.15 * BUILD;
+  const run = h.w + o;
+  const pitch = Math.atan2(h.ridge - lo, run);
+  const roofLight = sunOn(
+    be * Math.sin(pitch),
+    bn * Math.sin(pitch),
+    Math.cos(pitch),
+  );
+  const near = s * h.l;
+  const far = -s * h.l;
+  const side: Pt[] = [
+    P(near, h.w, 0),
+    P(far, h.w, 0),
+    P(far, h.w, wall),
+    P(near, h.w, wall),
+  ];
   const roof: Pt[] = [
-    P(h.l + o, h.w + o, lo),
-    P(-h.l - o, h.w + o, lo),
-    P(-h.l - o * 0.6, 0, h.ridge),
-    P(h.l + o * 0.6, 0, h.ridge),
+    P(near + s * o, run, lo),
+    P(far - s * o, run, lo),
+    P(far - s * o * 0.6, 0, h.ridge),
+    P(near + s * o * 0.6, 0, h.ridge),
   ];
-  const endA = s * h.l;
-  const end: Pt[] = [
-    P(endA, h.w, 0),
-    P(endA, -h.w, 0),
-    P(endA, -h.w, wall),
-    P(endA + s * o * 0.6, 0, h.ridge),
-    P(endA, h.w, wall),
+  const gable: Pt[] = [
+    P(near, h.w, 0),
+    P(near, -h.w, 0),
+    P(near, -h.w, wall),
+    P(near, 0, h.ridge - 0.3 * BUILD),
+    P(near, h.w, wall),
   ];
+  // The thatch's cut end: its outer edge (with the overhang) and its inner (the gable's top).
+  const rake: Pt[] = [
+    P(near + s * o, run, lo),
+    P(near + s * o * 0.6, 0, h.ridge),
+    P(near + s * o, -run, lo),
+    P(near, -h.w, wall),
+    P(near, 0, h.ridge - 0.3 * BUILD),
+    P(near, h.w, wall),
+  ];
+  let door: Pt[] | null = null;
+  if (h.kind !== 3 && h.w * unit > 3.2) {
+    const dw = 0.45 * BUILD;
+    const dh = Math.min(wall + 0.6 * BUILD, h.ridge * 0.6);
+    const pick = (((Math.floor(h.e * 7 + h.n * 3) % 3) + 3) % 3) - 1;
+    const off = h.w * 0.3 * pick;
+    door = [
+      P(near, off - dw, 0),
+      P(near, off + dw, 0),
+      P(near, off + dw, dh),
+      P(near, off - dw, dh),
+    ];
+  }
   let chimney: Pt[] | null = null;
   if (h.kind === 2) {
     const ca = -s * h.l * 0.4;
@@ -307,23 +374,49 @@ export function hutShape(h: Hut): HutShape {
     chimney = [
       P(ca - cw, cw, h.ridge - 0.6),
       P(ca + cw, cw, h.ridge - 0.6),
-      P(ca + cw, cw, h.ridge + 1.6 * BUILD),
-      P(ca - cw, cw, h.ridge + 1.6 * BUILD),
+      P(ca + cw, cw, h.ridge + 1.4 * BUILD),
+      P(ca - cw, cw, h.ridge + 1.4 * BUILD),
     ];
   }
   return {
-    front,
+    gable,
+    gableLight,
+    side,
+    sideLight,
     roof,
-    end,
-    endLit,
-    eave: [roof[0], roof[1]],
+    roofLight,
+    rake,
     ridge: [roof[3], roof[2]],
+    foot: [P(far, h.w, 0), P(near, h.w, 0), P(near, -h.w, 0)],
+    door,
     chimney,
+    cone: false,
     ahead,
+    unit,
   };
 }
 
-/** Paints huts in colour, far ones first: lit fronts and thatch, the shaded or lit end, the eaves' shadow. */
+/** Thatch in the sun and in the sky's shade, by its age. */
+function thatchOf(h: Hut, light: number): string {
+  const lit = mix(SHORE.thatchNew, SHORE.thatchOld, h.age);
+  const shade = mix(SHORE.thatchShade, SHORE.thatchOldShade, h.age);
+  return mix(shade, lit, Math.min(1, light * 1.25) ** 0.8);
+}
+
+/** Daub or limewash in the sun and in the sky's shade. */
+function wallOf(h: Hut, light: number): string {
+  const white = h.white || h.kind === 1;
+  const lit = white ? SHORE.wallWhite : SHORE.wallLit;
+  const shade = white ? SHORE.wallWhiteShade : SHORE.wallShade;
+  return mix(shade, lit, Math.min(1, light * 1.1) ** 0.85);
+}
+
+/**
+ * Paints huts in colour, far ones first: the long wall and the thatch on
+ * the eye's side, the gable end over them, framed by the thatch's cut
+ * end; a door, the ridge catching the sun, a dark line where the half-sunk
+ * walls meet the ground.
+ */
 export function paintHuts(c: PlateCanvas, huts: readonly Hut[]): void {
   const shapes = huts
     .map((h) => ({ h, s: hutShape(h) }))
@@ -332,53 +425,78 @@ export function paintHuts(c: PlateCanvas, huts: readonly Hut[]): void {
   ctx.lineJoin = "round";
   for (const { h, s } of shapes) {
     const d = s.ahead;
-    const thatch = mix(SHORE.thatchNew, SHORE.thatchOld, h.age);
-    const wallCol = h.white || h.kind === 1 ? SHORE.wallWhite : SHORE.wallLit;
-    // The end: in cool shade for the north camp (its south ends), lit a
-    // little less than the fronts for the south camp (north ends).
-    const endCol = s.endLit
-      ? mix(wallCol, SHORE.wallShade, 0.3)
-      : mix(wallCol, SHORE.wallShade, 0.78);
-    ctx.fillStyle = air(endCol, d);
-    ctx.fill(poly(s.end));
-    if (s.front.length) {
-      ctx.fillStyle = air(wallCol, d);
-      ctx.fill(poly(s.front));
+    if (s.cone) {
+      ctx.fillStyle = air(thatchOf(h, s.sideLight * 0.8), d);
+      ctx.fill(poly(s.side));
+      ctx.fillStyle = air(thatchOf(h, s.gableLight), d);
+      ctx.fill(poly(s.gable));
+      const foot = new Path2D();
+      addLine(foot, s.foot);
+      stroke(c, foot, 0.7, air(SHORE.hutFoot, d), 0.7);
+      continue;
     }
-    ctx.fillStyle = air(thatch, d);
+    ctx.fillStyle = air(wallOf(h, s.sideLight), d);
+    ctx.fill(poly(s.side));
+    ctx.fillStyle = air(thatchOf(h, s.roofLight), d);
     ctx.fill(poly(s.roof));
-    // The thatch's lower course, a touch darker, and the eaves' shadow.
+    // The thatch's lower course, a touch darker, where it hangs over the wall.
     const r = s.roof;
-    const k = 0.32;
-    const midL: Pt = [
+    const k = 0.3;
+    const midN: Pt = [
       r[0][0] + (r[3][0] - r[0][0]) * k,
       r[0][1] + (r[3][1] - r[0][1]) * k,
     ];
-    const midR: Pt = [
+    const midF: Pt = [
       r[1][0] + (r[2][0] - r[1][0]) * k,
       r[1][1] + (r[2][1] - r[1][1]) * k,
     ];
-    ctx.fillStyle = air(mix(thatch, SHORE.thatchOld, 0.45), d);
-    ctx.globalAlpha = 0.55;
-    ctx.fill(poly([r[0], r[1], midR, midL]));
+    ctx.fillStyle = air(thatchOf(h, s.roofLight * 0.6), d);
+    ctx.globalAlpha = 0.6;
+    ctx.fill(poly([r[0], r[1], midF, midN]));
     ctx.globalAlpha = 1;
-    // The roof's end, edge-on toward the eye: the gable's barge in shade.
-    const eaveShadow = new Path2D();
-    eaveShadow.moveTo(s.eave[0][0], s.eave[0][1]);
-    eaveShadow.lineTo(s.eave[1][0], s.eave[1][1]);
-    stroke(c, eaveShadow, 0.7, air(SHORE.shadeDeep, d), 0.55);
+    ctx.fillStyle = air(wallOf(h, s.gableLight), d);
+    ctx.fill(poly(s.gable));
+    // The eaves' shadow across the gable's top.
+    const g = s.gable;
+    const shadowDrop = 0.25 * BUILD * s.unit;
+    ctx.fillStyle = air(SHORE.wallShade, d);
+    ctx.globalAlpha = 0.3;
+    ctx.fill(
+      poly([
+        g[4],
+        g[3],
+        g[2],
+        [g[2][0], g[2][1] - shadowDrop],
+        [g[3][0], g[3][1] - shadowDrop * 1.4],
+        [g[4][0], g[4][1] - shadowDrop],
+      ]),
+    );
+    ctx.globalAlpha = 1;
+    if (s.door) {
+      ctx.fillStyle = air(SHORE.hutDoor, d);
+      ctx.fill(poly(s.door));
+    }
+    ctx.fillStyle = air(thatchOf(h, s.gableLight * 0.85), d);
+    ctx.fill(poly(s.rake));
     const ridge = new Path2D();
     ridge.moveTo(s.ridge[0][0], s.ridge[0][1]);
     ridge.lineTo(s.ridge[1][0], s.ridge[1][1]);
-    stroke(c, ridge, 0.6, air(mix(thatch, "#fff3d6", 0.4), d), 0.7);
+    stroke(c, ridge, 0.7, air(mix(thatchOf(h, 1), "#fff0cc", 0.35), d), 0.8);
     if (s.chimney) {
-      ctx.fillStyle = air(mix(SHORE.earth, SHORE.shade, 0.3), d);
+      ctx.fillStyle = air(mix(SHORE.earth, SHORE.shade, 0.45), d);
       ctx.fill(poly(s.chimney));
     }
+    const foot = new Path2D();
+    addLine(foot, s.foot);
+    stroke(c, foot, 0.8, air(SHORE.hutFoot, d), 0.75);
   }
 }
 
-/** Engraves huts: paper-backed, the roof's contour and eaves, the shaded end hatched. */
+/**
+ * Engraves huts: paper-backed, so a nearer row hides the feet of the one
+ * behind; the gable's outline and the thatch's, two or three strokes down
+ * the thatch on the eye's side, the shaded wall hatched.
+ */
 export function engraveHuts(c: PlateCanvas, huts: readonly Hut[]): void {
   const shapes = huts
     .map((h) => ({ h, s: hutShape(h) }))
@@ -386,103 +504,150 @@ export function engraveHuts(c: PlateCanvas, huts: readonly Hut[]): void {
   const { ctx } = c;
   for (const { s } of shapes) {
     const d = s.ahead;
-    const px = Math.max(0.5, Math.min(1.4, 2000 / d));
+    const px = Math.max(0.5, Math.min(1.2, 1700 / d));
     ctx.fillStyle = PAPER.low;
-    ctx.fill(poly(s.end));
-    if (s.front.length) ctx.fill(poly(s.front));
+    if (s.cone) {
+      ctx.fill(poly([...s.foot, s.gable[2]]));
+      ctx.fill(poly(s.side));
+      ctx.fill(poly(s.gable));
+      const line = new Path2D();
+      addLine(line, [s.foot[0], s.gable[2], s.foot[2]]);
+      stroke(c, line, px * 0.8, INK.line, 0.9);
+      const hh = new Path2D();
+      for (let i = 1; i <= 3; i++) {
+        const t = i / 4;
+        const a = s.foot[0];
+        const z = s.foot[1];
+        hh.moveTo(a[0] + (z[0] - a[0]) * t, a[1] + (z[1] - a[1]) * t);
+        hh.lineTo(
+          s.gable[2][0] + (a[0] - s.gable[2][0]) * 0.25,
+          s.gable[2][1] + (a[1] - s.gable[2][1]) * 0.25,
+        );
+      }
+      stroke(c, hh, px * 0.5, INK.hatch, 0.75);
+      continue;
+    }
+    ctx.fill(poly(s.side));
     ctx.fill(poly(s.roof));
+    ctx.fill(poly(s.rake));
+    ctx.fill(poly(s.gable));
     const line = new Path2D();
     const r = s.roof;
-    // The roof's true contours: up its end, along the ridge, down; the eaves.
-    line.moveTo(r[0][0], r[0][1]);
-    line.lineTo(r[3][0], r[3][1]);
-    line.lineTo(r[2][0], r[2][1]);
-    line.lineTo(r[1][0], r[1][1]);
-    line.lineTo(r[0][0], r[0][1]);
+    const k = s.rake;
+    // The thatch's outline: its cut end over the gable, the ridge, the far eave.
+    addLine(line, [k[2], k[1], k[0], r[1], r[2], r[3]]);
+    // The gable's walls down to the ground.
+    addLine(line, [s.gable[2], s.gable[1], s.gable[0], s.gable[4]]);
     if (s.chimney) addLine(line, s.chimney, true);
-    stroke(c, line, px * 0.8, INK.line, 0.9);
-    const e = s.end;
+    stroke(c, line, px * 0.75, INK.line, 0.9);
     const hatchP = new Path2D();
-    // A cone's end is a triangle: no end wall to hatch.
-    const strokes = e.length < 5 ? 0 : s.endLit ? 1 : 3;
-    for (let i = 1; i <= strokes; i++) {
-      const t = i / (strokes + 1);
-      const x = e[0][0] + (e[1][0] - e[0][0]) * t;
-      const y0 = e[0][1] + (e[1][1] - e[0][1]) * t;
-      const y1 = e[4][1] + (e[2][1] - e[4][1]) * t;
-      hatchP.moveTo(x, y0);
-      hatchP.lineTo(x, y1);
-    }
-    // A few strokes down the thatch.
+    // Strokes down the thatch, ridge to eave.
     for (let i = 1; i <= 3; i++) {
       const t = i / 4;
       const a: Pt = [
-        r[0][0] + (r[1][0] - r[0][0]) * t,
-        r[0][1] + (r[1][1] - r[0][1]) * t,
-      ];
-      const b: Pt = [
         r[3][0] + (r[2][0] - r[3][0]) * t,
         r[3][1] + (r[2][1] - r[3][1]) * t,
       ];
+      const b: Pt = [
+        r[0][0] + (r[1][0] - r[0][0]) * t,
+        r[0][1] + (r[1][1] - r[0][1]) * t,
+      ];
       hatchP.moveTo(a[0] + (b[0] - a[0]) * 0.15, a[1] + (b[1] - a[1]) * 0.15);
-      hatchP.lineTo(a[0] + (b[0] - a[0]) * 0.7, a[1] + (b[1] - a[1]) * 0.7);
+      hatchP.lineTo(a[0] + (b[0] - a[0]) * 0.85, a[1] + (b[1] - a[1]) * 0.85);
     }
-    stroke(c, hatchP, px * 0.55, INK.hatch, 0.75);
+    // The shaded long wall: a few short strokes down it.
+    if (s.sideLight < 0.5) {
+      const w = s.side;
+      for (let i = 1; i <= 2; i++) {
+        const t = i / 3;
+        const top: Pt = [
+          w[3][0] + (w[2][0] - w[3][0]) * t,
+          w[3][1] + (w[2][1] - w[3][1]) * t,
+        ];
+        const bot: Pt = [
+          w[0][0] + (w[1][0] - w[0][0]) * t,
+          w[0][1] + (w[1][1] - w[0][1]) * t,
+        ];
+        hatchP.moveTo(top[0], top[1]);
+        hatchP.lineTo(bot[0], bot[1]);
+      }
+    }
+    // One stroke on the gable's shaded side when it is turned from the sun.
+    if (s.gableLight < 0.6) {
+      const g = s.gable;
+      hatchP.moveTo(g[2][0] + (g[0][0] - g[2][0]) * 0.2, g[2][1]);
+      hatchP.lineTo(g[1][0] + (g[0][0] - g[1][0]) * 0.2, g[1][1]);
+    }
+    stroke(c, hatchP, px * 0.5, INK.hatch, 0.75);
   }
 }
 
 /**
- * Lays huts along a row of the ground: `at(t)` gives the ground's point
- * (east, north, drawn metres) at `t` metres along the row; huts about 12 m
- * long as drawn (6 m true), short gaps, a cross street every battalion.
+ * Lays huts along a row of the ground, gable-on to the row as the camps
+ * stood (each gable to the street): `at(t)` gives the ground's point
+ * (east, north, drawn metres) at `t` metres along the row. Huts in
+ * battalion blocks of `block`, a cross street between blocks; `kind(t)`
+ * says what stands at `t` (null: nothing, the camp's end or a gap).
  */
 export function rowHuts(
   rng: Rng,
   length: number,
   at: (t: number) => readonly [number, number, number],
-  kind: 0 | 1 | 2,
+  kind: (t: number) => 0 | 1 | 2 | null,
   opts: {
     gap?: number;
     street?: number;
     block?: number;
-    keep?: (t: number) => number;
+    /** The share kept inside a block (the odd hut missing). */
+    keep?: number;
   } = {},
 ): Hut[] {
   const huts: Hut[] = [];
   const gap = opts.gap ?? 4;
-  const street = opts.street ?? 22;
-  const block = opts.block ?? 9;
-  let t = rng() * 10;
+  const street = opts.street ?? 30;
+  const block = opts.block ?? 10;
+  let t = rng() * street;
   let inBlock = Math.floor(rng() * block);
+  let blockSize = block - 2 + Math.floor(rng() * 5);
   while (t < length) {
-    const big = kind === 1 ? 1.35 : 1;
-    const l = (2.6 + rng() * 0.9) * BUILD * big;
-    const mid = t + l;
+    const k0 = kind(t);
+    const big = k0 === 1 ? 1.25 : k0 === 2 ? 1.15 : 1;
+    const w = (1.9 + rng() * 0.35) * BUILD * big;
+    const mid = t + w;
     if (mid > length) break;
-    const [e, n, g] = at(mid);
-    const [e0, n0] = at(Math.max(0, mid - l));
-    const [e1, n1] = at(Math.min(length, mid + l));
-    const al = Math.hypot(e1 - e0, n1 - n0) || 1;
-    if (!opts.keep || rng() < opts.keep(mid)) {
+    const k = kind(mid);
+    if (k !== null && rng() < (opts.keep ?? 0.94)) {
+      const [e, n, g] = at(mid);
+      const [e0, n0] = at(Math.max(0, mid - w));
+      const [e1, n1] = at(Math.min(length, mid + w));
+      const al = Math.hypot(e1 - e0, n1 - n0) || 1;
+      const te = (e1 - e0) / al;
+      const tn = (n1 - n0) / al;
+      // A small turn off square, hut by hut.
+      const turn = (rng() - 0.5) * 0.12;
+      const ae = -tn + te * turn;
+      const an = te + tn * turn;
+      const an2 = Math.hypot(ae, an) || 1;
       huts.push({
         e,
         n,
-        g: g - 0.5 * BUILD,
-        l,
-        w: (1.8 + rng() * 0.4) * BUILD * big,
-        wall: (kind === 1 ? 1.6 : 0.6 + rng() * 0.25) * BUILD,
-        ridge: (kind === 1 ? 3.6 : 2.6 + rng() * 0.5) * BUILD,
-        kind,
-        age: Math.min(1, Math.max(0, 0.72 + (rng() - 0.5) * 0.6)),
-        white: kind === 1 || rng() < 0.12,
-        axis: [(e1 - e0) / al, (n1 - n0) / al],
+        g: g - 0.45 * BUILD,
+        l: (k === 1 ? 4 : 3 + rng() * 0.8) * BUILD,
+        w: k === 1 ? w * 1.05 : w,
+        wall: (k === 1 ? 1.7 : 1.15 + rng() * 0.25) * BUILD,
+        ridge: (k === 1 ? 3.7 : 2.9 + rng() * 0.4) * BUILD,
+        kind: k,
+        age: Math.min(1, Math.max(0, 0.65 + (rng() - 0.5) * 0.7)),
+        white: k === 1,
+        axis: [ae / an2, an / an2],
       });
     }
-    t += 2 * l + gap * (0.7 + rng() * 0.6);
+    t += 2 * w + gap * (0.75 + rng() * 0.5);
     inBlock++;
-    if (inBlock >= block) {
+    if (inBlock >= blockSize) {
       inBlock = 0;
-      t += street * (0.8 + rng() * 0.5);
+      blockSize = block - 2 + Math.floor(rng() * 5);
+      t += street * (0.85 + rng() * 0.3);
     }
   }
   return huts;

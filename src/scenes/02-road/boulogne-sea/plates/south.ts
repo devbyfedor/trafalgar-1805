@@ -1,15 +1,16 @@
-import { OUTREAU } from "../geo";
 import type { Plate } from "../paint/plate";
 import { VEX } from "../scene";
 import { type Contour, campPlate } from "./shore/camp";
 import { dunesPlate } from "./shore/dunes";
-import { browLine, escarpment, smoothstep } from "./shore/terrain";
+import { behind, browLine, escarpment, smoothstep } from "./shore/terrain";
 
 /**
  * The painting's area south of the Liane: the beach and the dunes with
  * marram, Châtillon's hill with its battery, and the Outreau heights with
- * the left camp along their brow, sitting on the skyline; the plateau's
- * top hidden behind its own edge (plates/shore/).
+ * the left camp along their brow: one line of huts gable-on just behind
+ * the convex brow, their feet sunk behind it, and a second line's roofs
+ * barely showing; the plateau's top hidden behind its own edge
+ * (history-notes, "What the roads see"; plates/shore/).
  */
 
 /** The sun's direction over the ground, [east, north]: azimuth 294. */
@@ -18,27 +19,16 @@ const SUN: readonly [number, number] = [
   Math.cos((294 * Math.PI) / 180),
 ];
 
-/** The left camp along the brow, from above the harbour south-west. */
+/**
+ * The left camp along the brow, from above the harbour south-west: thin
+ * where the brow falls toward the Liane, gaps between its battalions'
+ * blocks of lines.
+ */
 function campShare(_e: number, n: number): number {
-  return smoothstep(-640, -780, n) * (1 - smoothstep(-2300, -2500, n));
-}
-
-/** A line behind the brow (on the plateau), `dist` metres back, rising to the plateau's height. */
-function behind(dist: number): [number, number, number][] {
-  const brow = browLine();
-  const out: [number, number, number][] = [];
-  for (let i = 0; i < brow.length; i++) {
-    const a = brow[Math.max(0, i - 1)];
-    const b = brow[Math.min(brow.length - 1, i + 1)];
-    const len = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
-    const te = (b[0] - a[0]) / len;
-    const tn = (b[1] - a[1]) / len;
-    // Back from the slope: the plateau's side (east-south-east).
-    const [e, n, h] = brow[i];
-    const rise = (OUTREAU.plateau - OUTREAU.brow) * smoothstep(0, 280, dist);
-    out.push([e - tn * dist, n + te * dist, h + rise]);
-  }
-  return out;
+  const ends = smoothstep(-700, -900, n) * (1 - smoothstep(-2250, -2450, n));
+  // Gaps between the blocks: a few hundred metres of camp, then fields.
+  const blocks = Math.sin((n + 140) / 105) + 0.55 * Math.sin((n - 60) / 47);
+  return ends * smoothstep(-0.75, -0.2, blocks);
 }
 
 /** How square a contour's ground faces the low sun, sample by sample (the escarpment falls to the north-west). */
@@ -62,19 +52,17 @@ interface Spec {
   back?: number;
   /** The share of the way down the escarpment. */
   f?: number;
-  row?: 0 | 1 | 2;
+  row?: 0 | 1;
 }
 
 /** Far to near: the plateau behind the brow with the camp's rows, the brow, the escarpment down to the flats. */
 const TIERS: readonly Spec[] = [
   { back: 340 },
-  { back: 270 },
-  { back: 200, row: 1 },
-  { back: 140, row: 0 },
-  { back: 85, row: 0 },
-  { back: 30, row: 0 },
+  { back: 200 },
+  { back: 78, row: 0 },
+  { back: 24, row: 0 },
   { f: 0 },
-  { f: 0.05, row: 0 },
+  { f: 0.05 },
   { f: 0.12 },
   { f: 0.22 },
   { f: 0.34 },
@@ -89,8 +77,11 @@ function southContours(): Contour[] {
   return TIERS.map((t) => {
     const line =
       t.back !== undefined ? behind(t.back) : escarpment(brow, t.f ?? 0);
+    // The brow a little convex: its lip stands over the ground just
+    // behind it, so the huts there sink behind it to their eaves.
+    const lip = t.f === 0 ? 0.8 : t.f === 0.05 ? 0.3 : 0;
     const world = line.map(
-      ([e, n, h]) => [e, n, h * VEX] as [number, number, number],
+      ([e, n, h]) => [e, n, h * VEX + lip] as [number, number, number],
     );
     return {
       world,
@@ -110,10 +101,19 @@ export function southPlates(): Plate[] {
       seed: 501,
       contours: southContours,
       count: TIERS.length,
+      // A post mill on the brow in a gap between the camp's blocks, its
+      // foot behind the brow's own lip.
       mills: () => {
-        const line = behind(150);
-        const p = line[Math.floor(line.length * 0.62)];
-        return [[p[0], p[1], p[2] * VEX - 1, 0.6]];
+        const line = behind(40);
+        let best = Math.floor(line.length * 0.62);
+        for (let i = Math.floor(line.length * 0.5); i < line.length * 0.75; i++)
+          if (
+            campShare(line[i][0], line[i][1]) <
+            campShare(line[best][0], line[best][1])
+          )
+            best = i;
+        const p = line[best];
+        return [[p[0], p[1], p[2] * VEX - 0.6, 0.6, 2]];
       },
     }),
     dunesPlate({ id: "south-dunes", depth: 1450, box: [-100, 905, -8, 78] }),

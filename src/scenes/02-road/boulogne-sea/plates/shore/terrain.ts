@@ -1,6 +1,6 @@
 import { CLIFF_EDGE, NORTH_RISE, OUTREAU, SHORE_HIGH } from "../../geo";
 import { type Pt, wobble } from "../../paint/kit";
-import { project, VEX, viewOf } from "../../scene";
+import { EYE_H, project, VEX, viewOf } from "../../scene";
 
 /**
  * The ground of the shore painter's area (the cliffs and the right camp
@@ -11,12 +11,20 @@ import { project, VEX, viewOf } from "../../scene";
  * RISE. From the boat 1.1 km out and 6 m up, the plateau north of the
  * harbour, rising only 37 m over 2 km inland (geo.ts NORTH_RISE), stays
  * wholly hidden behind its own 55 m cliff edge, and so would the right
- * camp. The period views from the roads show the camp's rows climbing in
- * tiers up the seaward slope to the crest (camps.md (b)): the plateau's
- * rise above its cliff edge is drawn RISE times on top of VEX, so the
- * tiers stand one above the other as those views draw them.
+ * camp but for its huts' roofs. The plateau's rise above its cliff edge
+ * is drawn RISE times on top of VEX, so the camp shows as the history
+ * has it (history-notes, "What the roads see"): a thin, dense band of
+ * gables and roofs over the cliff, the rows overlapping, the first half
+ * kilometre of the camp behind the Tour d'Odre and about a kilometre
+ * toward La Crèche, fields beyond to the skyline. Lewis's tiers of 1804
+ * are about ten times too tall; RISE 4 drew them so (session 26).
  */
-export const RISE = 4;
+export const RISE = 3;
+
+/** How far inland the right camp reaches at `n` metres north (history-notes: 0.5 km at the Tour d'Odre, about 1 km toward La Crèche). */
+export function campDepth(n: number): number {
+  return 520 + 480 * smoothstep(380, 1500, n);
+}
 
 export function smoothstep(a: number, b: number, x: number): number {
   const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
@@ -208,20 +216,110 @@ export const CHATILLON: readonly (readonly [number, number, number])[] = [
   [130, -1230, 12],
 ];
 
+/** A line behind Outreau's brow (on the plateau), `dist` metres back, rising to the plateau's height: [east, north, true height]. */
+export function behind(dist: number): [number, number, number][] {
+  const brow = browLine();
+  const out: [number, number, number][] = [];
+  for (let i = 0; i < brow.length; i++) {
+    const a = brow[Math.max(0, i - 1)];
+    const b = brow[Math.min(brow.length - 1, i + 1)];
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+    const te = (b[0] - a[0]) / len;
+    const tn = (b[1] - a[1]) / len;
+    // Back from the slope: the plateau's side (east-south-east).
+    const [e, n, h] = brow[i];
+    const rise = (OUTREAU.plateau - OUTREAU.brow) * smoothstep(0, 280, dist);
+    out.push([e - tn * dist, n + te * dist, h + rise]);
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------- light
+
+const SUN_E = Math.sin((294 * Math.PI) / 180) * Math.cos((7 * Math.PI) / 180);
+const SUN_N = Math.cos((294 * Math.PI) / 180) * Math.cos((7 * Math.PI) / 180);
+const SUN_U = Math.sin((7 * Math.PI) / 180);
+
+/**
+ * How lit the north ground is at `n`, `d`, 0 (the sky's shade) to 1: its
+ * slope as drawn against the low sun. Level ground takes 0.55; the seaward
+ * slope rising inland, square to the sun, more; the shoulder falling south
+ * to the harbour, turned from it, less.
+ */
+export function northLight(n: number, d: number): number {
+  const s = 24;
+  const ge = (northUp(n, d + s) - northUp(n, Math.max(0, d - s))) / (2 * s);
+  const gn = (northUp(n + s, d) - northUp(n - s, d)) / (2 * s);
+  const dot = (-ge * SUN_E - gn * SUN_N + SUN_U) / Math.hypot(ge, gn, 1);
+  return Math.min(1, Math.max(0, 0.55 + (dot - SUN_U) * 3.2));
+}
+
 // ---------------------------------------------------------------- smoke
+
+/** The painted north ground's highest point at layer x: the skyline the right camp's plates draw (contours 0..2000 m inland). */
+function northSkyline(x: number): number {
+  let top = Number.NEGATIVE_INFINITY;
+  for (let d = 0; d <= 2000; d += 50) {
+    let lo = 20;
+    let hi = 3600;
+    // x falls as n grows (the ground runs off to the left).
+    for (let k = 0; k < 22; k++) {
+      const m = (lo + hi) / 2;
+      const [e] = edgeAt(m);
+      if (project(e + d, m, northUp(m, d))[0] > x) lo = m;
+      else hi = m;
+    }
+    const n = (lo + hi) / 2;
+    const [e] = edgeAt(n);
+    top = Math.max(top, project(e + d, n, northUp(n, d))[1]);
+  }
+  return top;
+}
+
+/** The painted Outreau heights' highest point at layer x (the brow and the plateau's lines behind it). */
+function southSkyline(x: number): number {
+  let top = Number.NEGATIVE_INFINITY;
+  for (const dist of [0, 25, 75, 200, 340]) {
+    const line = dist === 0 ? browLine() : behind(dist);
+    for (let i = 0; i < line.length - 1; i++) {
+      const a = landPt(line[i]);
+      const b = landPt(line[i + 1]);
+      if ((a[0] - x) * (b[0] - x) > 0 || a[0] === b[0]) continue;
+      const t = (x - a[0]) / (b[0] - a[0]);
+      top = Math.max(top, a[1] + (b[1] - a[1]) * t);
+    }
+  }
+  return top;
+}
+
+/** Metres up (as drawn) that put a place at `east`, `north` this many units under `y` on the painting. */
+function upFor(east: number, north: number, y: number): number {
+  const [ahead] = viewOf(east, north);
+  return EYE_H + (y * ahead) / 1000;
+}
 
 /**
  * The camps' kitchen fires (metres east and north of the jetty heads, and
- * up as drawn with VEX and RISE), at the back, landward edge of each camp,
- * where their smoke can rise into view: the right camp's behind its crest,
- * the left camp's behind Outreau's brow. For the smoke canvas.
+ * up as drawn), at the back, landward edge of each camp, where their smoke
+ * rises into view: the right camp's just beyond its last rows, the left
+ * camp's on the plateau behind Outreau's brow. Each fire's height is set
+ * so that it projects under the painted skyline in front of it by about
+ * the height its plume takes to thicken (smoke.ts: a puff fades in over
+ * the first tenth of its climb): the land hides the fire and the plume's
+ * thin foot, and the smoke rises from behind the crest. For the smoke
+ * canvas.
  */
 export const KITCHENS: readonly { east: number; north: number; up: number }[] =
   [
-    ...[620, 900, 1180, 1460, 1760, 2080, 2400, 2750].map((n, i) => {
-      const d = 1560 + (i % 3) * 70;
+    ...[470, 640, 830, 1040, 1280, 1560, 1880].map((n, i) => {
+      const d = campDepth(n) + 30 + (i % 3) * 25;
       const [e] = edgeAt(n);
-      return { east: e + d, north: n, up: northUp(n, d) + 6 };
+      const x = project(e + d, n, northUp(n, d))[0];
+      return {
+        east: e + d,
+        north: n,
+        up: upFor(e + d, n, northSkyline(x) - 9),
+      };
     }),
     ...(
       [
@@ -231,9 +329,8 @@ export const KITCHENS: readonly { east: number; north: number; up: number }[] =
         [380, -1520],
         [170, -1840],
       ] as const
-    ).map(([east, north]) => ({
-      east,
-      north,
-      up: OUTREAU.plateau * VEX + 6,
-    })),
+    ).map(([east, north]) => {
+      const x = project(east, north, OUTREAU.plateau * VEX)[0];
+      return { east, north, up: upFor(east, north, southSkyline(x) - 7) };
+    }),
   ];

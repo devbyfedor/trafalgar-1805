@@ -106,8 +106,16 @@ export const SEA_HOLD: SeaPose = {
  * How far the camera drifts along the anchored line through the hold,
  * metres to the right (south, toward the heights over the Liane): the
  * nearest craft slide past the shore and the town (brief, "Motion").
+ * 11.5, not the 14 of session 24 (the owner's small items, session 28): at
+ * 14 the near chaloupe's ensign, at her gaff's peak, slid over the moon in
+ * the hold's last tenth (it touches the disc from about 13), and her
+ * jib-boom's reflection slid under the caption (from about 12, studio
+ * frames in .claude/s28/small/); at 11.5 the hold ends with the moon clear
+ * between her mainmast and her ensign, and the reflection a little short of
+ * the caption's lines. The hold's first frame is unchanged; the parallax
+ * through it is 18 % smaller.
  */
-export const SEA_DRIFT = 14;
+export const SEA_DRIFT = 11.5;
 
 /** The hold's drift at its progress t (0..1), eased at both ends. */
 export function driftAt(t: number): number {

@@ -1,6 +1,7 @@
 import { type Object3D, Vector3 } from "three";
 import type { BatchedText, Text } from "troika-three-text";
 import type { ChartLayer, FrameInfo } from "../engine/Chart";
+import type { LightBlend } from "../light/states";
 import type { CoastField } from "../terrain/coast";
 import type { TerrainField } from "../terrain/field";
 import { FONT_FILES, fontUrl } from "./fonts";
@@ -76,6 +77,14 @@ const EM_MIN_PX = 12;
 const EM_MAX_PX = 19;
 /** From the fleet to a place's nearest edge, ems: close by, and farther out. */
 const GAPS_EM = [0.7, 2.2, 3.7];
+/**
+ * Farther still, tried last and only about a fleet's head (a meeting line's
+ * label keeps to the places by its own ships): by a harbour every nearer
+ * place can lie on the waterlines or across the coast, and the fleet at
+ * anchor would show neither its label nor its ships (the owner's rule of
+ * 12 November 2026: a fleet in the frame shows one or the other).
+ */
+const FAR_GAPS_EM = [5.2, 6.7];
 /** Between the name and its strength, ems (a word space of the italic). */
 const SPACE_EM = 0.27;
 /** Half the width of the line a label keeps clear of, CSS px. */
@@ -97,11 +106,26 @@ const LAND_CLEAR_PX: readonly [number, number] = [4, 10];
 /** The edge of the frame a label keeps clear of, CSS px. */
 const EDGE_PX = 10;
 /**
- * Toward the horizon the haze brightens the sea under a label past what its
- * ink can read against: it is gone by this share of the haze's visibility
- * (in from the first), where the ground's luminance passes about 0.15.
+ * Toward the horizon the haze lightens the ground under a label toward the
+ * colour of the air, and a label's ink reads against it only so far. Each
+ * place is judged by the haze where it stands (its distance over the haze's
+ * visibility) and by its ink against its ground as the light of the frame
+ * colours them (shaders/common.ts, hazeColorFor; terrain/shaders.ts,
+ * hazeAmount): it is gone where that falls under HAZE_CONTRAST, in from
+ * HAZE_FADE before. On the sea, in the pale ink, never before HAZE_CLEAR's
+ * end, measured in the daylight views (where the hazed sea's luminance
+ * passes about 0.15), so those keep their places; at dusk and at night the
+ * hazed sea stays dark and the pale ink reads far into the haze. On the
+ * land, in the dark ink, the haze over the paper only helps by day, and at
+ * night the dark ink on the dark paper never reads, so no label stands on
+ * the land then. The label as a whole fades with the haze as the names do.
  */
 const HAZE_CLEAR: readonly [number, number] = [0.42, 0.55];
+const HAZE_FADE = HAZE_CLEAR[1] - HAZE_CLEAR[0];
+const HAZE_CONTRAST = 4.7;
+/** How far into the haze a place is tested (its share of the visibility), and in how many steps. */
+const HAZE_END_MAX = 1.6;
+const HAZE_STEPS = 64;
 /**
  * The ink on the sea: the chart's pale ink lightened toward the page's, so
  * the label reads over the whole sea, the brighter haze toward the horizon
@@ -170,6 +194,12 @@ interface Head {
   lines: Float64Array[];
   lineCount: number;
   presence: number;
+  /**
+   * How far into the haze a place of it reads this frame, its share of the
+   * haze's visibility: on the sea, and on the land (hazeEnd).
+   */
+  seaEnd: number;
+  landEnd: number;
   /** How much each strength shows (its share of the label). */
   counts: Float64Array;
   /** The typeset name's ink to its right edge, and each strength's, ems. */
@@ -256,12 +286,12 @@ export class HeadLabels implements ChartLayer {
             gap,
             quad: new Float64Array(8).fill(Number.NaN),
             weight: 0,
-            why: new Float64Array(7),
+            why: new Float64Array(8),
           });
       };
       for (const side of spec.slots)
         for (const gap of GAPS_EM) add(true, side, gap);
-      for (const gap of GAPS_EM)
+      for (const gap of [...GAPS_EM, ...FAR_GAPS_EM])
         for (const side of spec.slots) add(false, side, gap);
       const head: Head = {
         spec,

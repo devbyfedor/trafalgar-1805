@@ -561,3 +561,8 @@ Then: 13 May 1 p.m. Martinique 7 leagues W (true ~14°35′N 60°30′W, est.); 
 5. The position where Villeneuve turned south on 15 August: Reille's 40 leagues versus Villeneuve's 80 leagues WNW of Finisterre, and Desbrière's staff map further north still.
 6. The exact longitudes of the Toulon–Cádiz leg on 4–8 April (only latitudes are in the *Atlas*'s log); a Spanish or French account of the passage of Cape de Gata would pin 8 April.
 7. Whether Corbett's daily ticks on Faden's chart are noon positions in civil or log time; the four log fixes checked fit civil dates.
+
+## Corrections noted in session 32
+
+- Section 6: "17 sailed together" is wrong. Of 18 nominally together, 14 crossed in company (the 12 French with the Argonauta, and the América from the 12th); the Firme, Terrible and España crossed on their own and the San Rafael came in on 16 May (`a-h1ac.md`, GLYPH-crossing; the history draft, "Fourteen crossed together").
+- Barbados, 4 June: Desbrière (p. 39) too prints 4.50 p.m. for the anchoring in Carlisle Bay; the "4:30 p.m." given for him here was an OCR misreading.

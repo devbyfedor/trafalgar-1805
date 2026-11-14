@@ -502,7 +502,7 @@ export function engraveHuts(c: PlateCanvas, huts: readonly Hut[]): void {
     .map((h) => ({ h, s: hutShape(h) }))
     .sort((a, b) => b.s.ahead - a.s.ahead);
   const { ctx } = c;
-  for (const { s } of shapes) {
+  for (const { h, s } of shapes) {
     const d = s.ahead;
     const px = Math.max(0.5, Math.min(1.2, 1700 / d));
     ctx.fillStyle = PAPER.low;
@@ -531,8 +531,24 @@ export function engraveHuts(c: PlateCanvas, huts: readonly Hut[]): void {
     ctx.fill(poly(s.roof));
     ctx.fill(poly(s.rake));
     ctx.fill(poly(s.gable));
-    const line = new Path2D();
     const r = s.roof;
+    if (s.unit * h.w < 2.2) {
+      // A far hut: its ridge and a stroke down its shaded side, no
+      // outline (a row of outlined gables would read as a zigzag).
+      const far = new Path2D();
+      far.moveTo(s.ridge[0][0], s.ridge[0][1]);
+      far.lineTo(s.ridge[1][0], s.ridge[1][1]);
+      stroke(c, far, px * 0.7, INK.line, 0.85);
+      const sh = new Path2D();
+      sh.moveTo(r[0][0], r[0][1]);
+      sh.lineTo(r[1][0], r[1][1]);
+      const g = s.gable;
+      sh.moveTo(g[1][0], g[1][1]);
+      sh.lineTo(g[2][0], g[2][1]);
+      stroke(c, sh, px * 0.5, INK.hatch, 0.7);
+      continue;
+    }
+    const line = new Path2D();
     const k = s.rake;
     // The thatch's outline: its cut end over the gable, the ridge, the far eave.
     addLine(line, [k[2], k[1], k[0], r[1], r[2], r[3]]);

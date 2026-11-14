@@ -183,6 +183,10 @@ export function dunesPlate(o: {
   const bottom = o.box[2];
 
   const colour: PlateJob[] = [
+    // The geometry first, a job of its own.
+    () => {
+      get();
+    },
     // Châtillon: its rounded crest, the west face in fields down to the dunes.
     (c) => {
       const g = get();
@@ -292,10 +296,11 @@ export function dunesPlate(o: {
     },
     (c) => battery(c, get(), "colour"),
     // The dunes in two ranks: lit seaward faces, cool saddles, blowouts of bare sand, marram in clumps.
-    (c) => {
+    ...[0, 1].map((r) => (c: PlateCanvas) => {
       const g = get();
-      const rng = createRng(611);
-      g.ranks.forEach((crest, r) => {
+      const rng = createRng(611 + r * 7);
+      const crest = g.ranks[r];
+      {
         const region = under(crest, bottom);
         fill(
           c,
@@ -372,8 +377,8 @@ export function dunesPlate(o: {
           air(mix(SHORE.marram, "#f2e3a6", 0.55), AHEAD),
           0.85,
         );
-      });
-    },
+      }
+    }),
     // The beach above the high-water line, and the wrack along it.
     (c) => {
       const g = get();
@@ -428,11 +433,12 @@ export function dunesPlate(o: {
             if (fieldKey((ea + eb) / 2, (na + nb) / 2) !== key) {
               const p = top[j];
               const q = low[j];
-              for (let t = 0.15; t < 1; t += 0.3) {
+              // A hedge: a ragged stroke from tier to tier, a little bumpy.
+              hedges.moveTo(p[0], p[1]);
+              for (let t = 0.33; t < 1.01; t += 0.33) {
                 const x = p[0] + (q[0] - p[0]) * t;
                 const y = p[1] + (q[1] - p[1]) * t;
-                hedges.moveTo(x - 0.45, y);
-                hedges.quadraticCurveTo(x, y + 0.7, x + 0.45, y);
+                hedges.lineTo(x + (rng() - 0.5) * 0.5, y + rng() * 0.35);
               }
             }
           }

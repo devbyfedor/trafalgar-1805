@@ -206,24 +206,6 @@ export interface CampPlateOptions {
   mills?: () => (readonly [number, number, number, number, number])[];
 }
 
-/** Adds a hedge along a line: a row of small loops, lit on top (ink: the engraver's hedge). */
-function addHedgeLoops(p: Path2D, pts: readonly Pt[], r: number): void {
-  for (let i = 0; i < pts.length - 1; i++) {
-    const [x0, y0] = pts[i];
-    const [x1, y1] = pts[i + 1];
-    const len = Math.hypot(x1 - x0, y1 - y0);
-    const n = Math.max(1, Math.round(len / (r * 2.2)));
-    for (let k = 0; k < n; k++) {
-      const t = (k + 0.5) / n;
-      const x = x0 + (x1 - x0) * t;
-      const y = y0 + (y1 - y0) * t;
-      p.moveTo(x - r, y);
-      p.quadraticCurveTo(x - r, y + r * 1.3, x, y + r * 1.1);
-      p.quadraticCurveTo(x + r, y + r * 1.3, x + r, y);
-    }
-  }
-}
-
 export function campPlate(o: CampPlateOptions): Plate {
   const tiers: (Tier | undefined)[] = [];
   const rows: (Hut[] | undefined)[] = [];
@@ -387,37 +369,46 @@ export function campPlate(o: CampPlateOptions): Plate {
         const fall = new Path2D();
         const furrow = new Path2D();
         const hedges = new Path2D();
-        let a = 0;
-        while (a < k.pts.length - 1) {
-          const b = Math.min(k.pts.length - 1, a + 4 + Math.floor(rng() * 12));
-          const m = Math.floor((a + b) / 2);
-          const [e, n] = k.world[m];
-          const camp = k.camp(e, n) > 0.5;
-          const lit = lightAt(m);
-          for (let j = a; j < b; j++) {
-            const p = k.pts[j];
-            const q = nearer.pts[j];
-            const dark = (0.62 - lit) * 1.6 + tone(p[0], p[1]) * 0.35;
-            if (dark > 0.15 && rng() < dark) {
-              const t1 = 0.55 + rng() * 0.45;
-              fall.moveTo(p[0], p[1]);
-              fall.lineTo(p[0] + (q[0] - p[0]) * t1, p[1] + (q[1] - p[1]) * t1);
+        const L = Math.min(k.pts.length, nearer.pts.length);
+        const keyAt = (j: number): number => {
+          const e = (k.world[j][0] + nearer.world[j][0]) / 2;
+          const n = (k.world[j][1] + nearer.world[j][1]) / 2;
+          return k.camp(e, n) > 0.5 ? -1 : fieldKey(e, n);
+        };
+        let prev = keyAt(0);
+        for (let j = 0; j < L - 1; j++) {
+          const p = k.pts[j];
+          const q = nearer.pts[j];
+          const key = keyAt(j);
+          const lit = Math.round(lightAt(j) * 4) / 4;
+          const dark = (0.62 - lit) * 1.6 + tone(p[0], p[1]) * 0.35;
+          if (dark > 0.15 && rng() < dark) {
+            const t1 = 0.55 + rng() * 0.45;
+            fall.moveTo(p[0], p[1]);
+            fall.lineTo(p[0] + (q[0] - p[0]) * t1, p[1] + (q[1] - p[1]) * t1);
+          }
+          if (key !== -1) {
+            // Furrows in some fields, each its own way.
+            const way = Math.floor(hash01(key + 5) * 5);
+            if (way === 0 && j % 2 === 0) {
+              furrow.moveTo(p[0], p[1] - 0.2);
+              furrow.lineTo(q[0], q[1] + 0.2);
+            } else if (way === 1 && j % 3 === 0) {
+              const r = nearer.pts[Math.min(L - 1, j + 2)];
+              furrow.moveTo(p[0], p[1] - 0.2);
+              furrow.lineTo(r[0], r[1] + 0.2);
+            }
+            // A hedge where this field meets the last: a ragged stroke down the slope.
+            if (prev !== key && prev !== -1) {
+              hedges.moveTo(p[0], p[1]);
+              hedges.lineTo(
+                (p[0] + q[0]) / 2 + (rng() - 0.5) * 0.5,
+                (p[1] + q[1]) / 2 + rng() * 0.3,
+              );
+              hedges.lineTo(q[0], q[1]);
             }
           }
-          if (!camp && rng() < 0.4) {
-            const t = 0.35 + rng() * 0.3;
-            addBroken(
-              furrow,
-              lerpLine(k.pts.slice(a, b + 1), nearer.pts.slice(a, b + 1), t),
-              3,
-              2,
-              rng,
-              () => 0.7,
-            );
-          }
-          if (!camp && rng() < 0.5)
-            addHedgeLoops(hedges, [k.pts[b], nearer.pts[b]], 0.45);
-          a = b;
+          prev = key;
         }
         stroke(c, fall, px * 0.45, INK.hatch, 0.6);
         stroke(c, furrow, px * 0.4, INK.hatch, 0.45);

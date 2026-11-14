@@ -283,7 +283,12 @@ export function lowerRow(): boolean {
     const m = offset(s + span / 2);
     if (allowed(m.e, m.n)) {
       const gl = g.garden(m.e, m.n);
-      const gardenChance = 0.05 + 0.18 * Math.max(0, gl) + (d > 300 ? 0.1 : 0);
+      // La Beurrière steps up under the north cliff with gardens and walls between its houses.
+      const gardenChance =
+        0.05 +
+        0.18 * Math.max(0, gl) +
+        (d > 300 ? 0.1 : 0) +
+        (m.n > 95 ? 0.22 : 0);
       if (rng() < gardenChance) {
         if (rng() < 0.75) {
           const [ahead] = viewOf(m.e, m.n);

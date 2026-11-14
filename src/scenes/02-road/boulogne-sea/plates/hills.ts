@@ -370,7 +370,7 @@ function nearRows(from: number, to: number): void {
         row,
         kind,
         colour,
-        fall: rng() < 0.55,
+        fall: rng() < 0.7,
         seed: Math.floor(rng() * 1e6),
       };
       h.fields.push(f);
@@ -516,7 +516,8 @@ function nearFields(c: PlateCanvas, from: number, to: number): void {
       const corn =
         f.kind === "stubble" || f.kind === "wheat" || f.kind === "oats";
       const colour = ploughed ? dark : corn ? light : dark;
-      const alpha = ploughed ? 0.42 : corn ? 0.38 : 0.2;
+      // Rows along the contours softer than furrows down the fall line (never a ruled page).
+      const alpha = (ploughed ? 0.42 : corn ? 0.38 : 0.2) * (f.fall ? 1 : 0.6);
       ctx.beginPath();
       if (f.fall) {
         const n = Math.min(60, Math.floor(wide / c.pen(1.9)));
@@ -527,7 +528,7 @@ function nearFields(c: PlateCanvas, from: number, to: number): void {
           ctx.lineTo(b[0], b[1]);
         }
       } else {
-        const n = Math.min(14, Math.floor(height / c.pen(1.9)));
+        const n = Math.min(10, Math.floor(height / c.pen(2.6)));
         for (let i = 1; i < n; i++) {
           for (let k = 0; k <= 6; k++) {
             const [x, y] = fieldPoint(h, f, k / 6, i / n);

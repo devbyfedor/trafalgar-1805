@@ -81,9 +81,21 @@ function mirrorAt(x: number, rng: () => number): string {
   return rng() < 0.6 ? "#eedab4" : "#e2c9a2";
 }
 
-/** The Liane's channel across the strand: centre and half-width at share u. */
+/**
+ * The Liane's channel across the strand: centre and half-width at share u.
+ * It leaves the harbour's mouth between the jetty heads (x -172 and -109)
+ * narrow, then meanders out across the strand, widening as it spreads.
+ */
 function channel(u: number): [number, number] {
-  return [-140 + 3 * Math.sin(u * 4) - 2 * u, 11 + 19 * u];
+  // One bend between the jetty heads, then a full S below the far and near
+  // plates' seam (shares 0.35 to 0.72), so the near plate's channel meets
+  // the far plate's at the seam both at the hold and as the colour comes
+  // in on the dive (the seam then lies near share 0.72 of the far plate).
+  const mouth = u < 0.35 ? 4 * Math.sin((Math.PI * u) / 0.35) : 0;
+  const s = 6 * Math.sin((2 * Math.PI * (u - 0.35)) / 0.37);
+  const cx = -140 - 3 * u + mouth + (u > 0.35 ? s : 0);
+  const hw = 8 + 15 * u ** 1.2 + 1.2 * u * Math.sin(u * 19 + 1.3);
+  return [cx, hw];
 }
 
 const CHANNEL_U0 = 0.02;
@@ -315,16 +327,18 @@ function paintMoonStreak(c: PlateCanvas, ua: number, ub: number) {
 }
 
 /** The Liane's channel from the harbour's mouth out across the strand. */
-function channelPath(ua: number, ub: number): Path2D {
+function channelPath(ua: number, ub: number, widen = 0): Path2D {
   const p = new Path2D();
-  const n = 24;
+  const n = 40;
   const left: [number, number][] = [];
   const right: [number, number][] = [];
   for (let i = 0; i <= n; i++) {
     const u = ua + ((ub - ua) * i) / n;
     const [cx, hw] = channel(u);
-    left.push([cx - hw, at(cx - hw, u)]);
-    right.push([cx + hw, at(cx + hw, u)]);
+    const w = hw + widen * bankWidth(u, -1);
+    const e = hw + widen * bankWidth(u, 1);
+    left.push([cx - w, at(cx - w, u)]);
+    right.push([cx + e, at(cx + e, u)]);
   }
   p.moveTo(left[0][0], left[0][1]);
   for (const [x, y] of left) p.lineTo(x, y);
@@ -334,68 +348,278 @@ function channelPath(ua: number, ub: number): Path2D {
   return p;
 }
 
+/** The mud of a bank beside the channel, layer units across, uneven (side -1: north, 1: south). */
+function bankWidth(u: number, side: -1 | 1): number {
+  const k = side < 0 ? 0 : 2.1;
+  return (
+    (1.4 + 3.2 * u) *
+    (0.75 + 0.3 * Math.sin(u * 23 + k) + 0.2 * Math.sin(u * 51 + k * 1.7))
+  );
+}
+
+/** Side runnels draining into the channel across the wet sand: start share, side, length (shares), seed. */
+const RUNNELS: readonly (readonly [number, -1 | 1, number, number])[] = [
+  [0.3, 1, 0.16, 1],
+  [0.46, -1, 0.2, 2],
+  [0.62, 1, 0.14, 3],
+  [0.78, -1, 0.12, 4],
+];
+
+/** A runnel's centre line: off the bank, curving away down the strand. */
+function runnel(
+  u0: number,
+  side: -1 | 1,
+  len: number,
+  seed: number,
+): [number, number, number][] {
+  const out: [number, number, number][] = [];
+  const n = 16;
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    const u = u0 + len * t;
+    const [cx, hw] = channel(u0);
+    const x =
+      cx + side * (hw + 2 + 26 * t ** 0.8 + 4 * Math.sin(seed * 1.3 + t * 5));
+    out.push([x, u, (1 - t) * (0.6 + 0.5 * u0)]);
+  }
+  return out;
+}
+
+/**
+ * The channel as water at low tide: a ribbon mirroring the cool eastern
+ * sky, darker than the sunlit sand round it (that difference says "water"),
+ * between banks of dark wet mud; broken glints along it, and the masts in
+ * the basin and the jetties' piles above it mirrored as broken verticals.
+ * It meanders, narrow at the mouth between the jetty heads, with side
+ * runnels draining the strand into it.
+ */
 function paintChannel(c: PlateCanvas, ua: number, ub: number) {
   const { ctx } = c;
-  const top = at(-140, ua);
-  const bot = at(-140, ub);
-  const g = ctx.createLinearGradient(0, top, 0, bot);
-  g.addColorStop(0, "#e4d1b3");
-  g.addColorStop(1, "#dac6ab");
+  const rng = createRng(911);
+  // The banks: wet mud, darkest at the water's lip.
+  ctx.fillStyle = rgba("#8f7a63", 0.42);
+  ctx.fill(channelPath(ua, ub, 1));
+  ctx.fillStyle = rgba("#6f604f", 0.4);
+  ctx.fill(channelPath(ua, ub, 0.32));
+  // The runnels: thin threads of water with their muddy lips.
+  for (const [u0, side, len, seed] of RUNNELS) {
+    if (u0 + len < ua || u0 > ub) continue;
+    const pts = runnel(u0, side, len, seed);
+    for (const [w, col, a] of [
+      [1.8, "#8f7a63", 0.35],
+      [0.9, "#a7a4b2", 0.75],
+    ] as const) {
+      const p = new Path2D();
+      const top: [number, number][] = [];
+      const bot: [number, number][] = [];
+      for (const [x, u, th] of pts) {
+        if (u < ua || u > ub) continue;
+        const y = at(x, u);
+        top.push([x, y + w * th]);
+        bot.push([x, y - w * th]);
+      }
+      if (top.length < 2) continue;
+      p.moveTo(top[0][0], top[0][1]);
+      for (const [x, y] of top) p.lineTo(x, y);
+      for (let i = bot.length - 1; i >= 0; i--) p.lineTo(bot[i][0], bot[i][1]);
+      p.closePath();
+      ctx.fillStyle = rgba(col, a);
+      ctx.fill(p);
+    }
+  }
+  // The water.
+  const x0 = channel(ua)[0];
+  const g = ctx.createLinearGradient(0, at(x0, ua), 0, at(x0, ub));
+  g.addColorStop(0, "#b8b0be");
+  g.addColorStop(0.5, "#aaa7b8");
+  g.addColorStop(1, "#9ca2b4");
   ctx.fillStyle = g;
   ctx.fill(channelPath(ua, ub));
   ctx.save();
   ctx.clip(channelPath(ua, ub));
-  const rng = createRng(911);
-  for (let i = 0; i < 18; i++) {
-    const u = ua + (ub - ua) * rng();
+  // A paler lane down the middle where it lies glassy, mirroring the low sky.
+  const lane = new Path2D();
+  const n = 40;
+  for (let i = 0; i <= n; i++) {
+    const u = ua + ((ub - ua) * i) / n;
     const [cx, hw] = channel(u);
-    softBlob(
-      c,
-      cx + (rng() - 0.5) * hw,
-      at(cx, u),
-      1.5 + rng() * 3,
-      3 + rng() * 4,
-      rng() < 0.6 ? "#f6e7c9" : "#c6b5a6",
-      0.4,
-    );
+    const x = cx + hw * 0.18 * Math.sin(u * 9);
+    const y = at(x, u);
+    if (i === 0) lane.moveTo(x - hw * 0.35, y);
+    else lane.lineTo(x - hw * 0.35, y);
   }
-  ctx.restore();
-  // The banks: thin darker lips.
+  for (let i = n; i >= 0; i--) {
+    const u = ua + ((ub - ua) * i) / n;
+    const [cx, hw] = channel(u);
+    const x = cx + hw * 0.18 * Math.sin(u * 9);
+    lane.lineTo(x + hw * 0.3, at(x, u));
+  }
+  lane.closePath();
+  ctx.fillStyle = rgba("#cbc5cf", 0.4);
+  ctx.fill(lane);
+  // The masts in the basin and the jetties' piles, mirrored: broken
+  // verticals in a few groups, each a handful of masts close together.
   ctx.beginPath();
-  for (const side of [-1, 1]) {
-    for (let i = 0; i <= 24; i++) {
-      const u = ua + ((ub - ua) * i) / 24;
-      const [cx, hw] = channel(u);
-      const x = cx + side * hw;
-      if (i === 0) ctx.moveTo(x, at(x, u));
-      else ctx.lineTo(x, at(x, u));
+  for (let g = 0; g < 9; g++) {
+    const u = ua + (ub - ua) * (0.08 + 0.84 * rng());
+    const [cx, hw] = channel(u);
+    const gx = cx + (rng() - 0.5) * 1.3 * hw;
+    const n = 2 + Math.floor(rng() * 4);
+    for (let i = 0; i < n; i++) {
+      const x = gx + (rng() - 0.5) * 0.5 * hw;
+      let y = at(x, u) + (rng() - 0.5) * 0.6;
+      const h = (1.5 + 3.5 * rng()) * (0.5 + 0.8 * u);
+      const pieces = 2 + Math.floor(rng() * 2);
+      for (let k = 0; k < pieces; k++) {
+        const l = (h / pieces) * (0.6 + 0.5 * rng());
+        ctx.moveTo(x + (rng() - 0.5) * 0.3, y);
+        ctx.lineTo(x + (rng() - 0.5) * 0.3, y - l);
+        y -= l + (h / pieces) * (0.25 + 0.3 * rng());
+      }
     }
   }
-  ctx.lineWidth = c.pen(0.8);
-  ctx.strokeStyle = rgba("#a08a70", 0.22);
+  ctx.lineWidth = c.pen(1);
+  ctx.strokeStyle = rgba("#4f4640", 0.3);
   ctx.stroke();
+  // Glints: short bright broken strokes across it.
+  ctx.beginPath();
+  for (let i = 0; i < 26; i++) {
+    const u = ua + (ub - ua) * rng();
+    const [cx, hw] = channel(u);
+    const x = cx + (rng() - 0.5) * 1.6 * hw;
+    const y = at(x, u) + (rng() - 0.5) * 0.3;
+    const l = (1.2 + 3.5 * rng()) * (0.5 + u);
+    ctx.moveTo(x - l / 2, y);
+    ctx.lineTo(x + l / 2, y + (rng() - 0.5) * 0.15);
+  }
+  ctx.lineWidth = c.pen(1);
+  ctx.strokeStyle = rgba("#f2ece8", 0.7);
+  ctx.stroke();
+  ctx.restore();
 }
 
-/** The drift line under the high-water shore: weed and wrack, broken. */
+/** The channel in the engraving: paper, a few short wavelet strokes, the banks firm broken lines with the mud hatched beside them. */
+function inkChannel(c: PlateCanvas, ua: number, ub: number) {
+  const { ctx } = c;
+  const rng = createRng(1911);
+  const u0 = Math.max(CHANNEL_U0, ua);
+  ctx.fillStyle = PAPER.low;
+  ctx.fill(channelPath(u0, ub));
+  // The banks: a firm line on the water's edge, broken now and then.
+  ctx.beginPath();
+  for (const side of [-1, 1] as const) {
+    let on = false;
+    const n = 60;
+    for (let i = 0; i <= n; i++) {
+      const u = u0 + ((ub - u0) * i) / n;
+      const [cx, hw] = channel(u);
+      const x = cx + side * hw;
+      const keep = rng() > 0.08;
+      if (keep && on) ctx.lineTo(x, at(x, u));
+      else if (keep) ctx.moveTo(x, at(x, u));
+      on = keep;
+    }
+  }
+  ctx.lineWidth = c.pen(0.9);
+  ctx.strokeStyle = rgba(INK.line, 0.7);
+  ctx.stroke();
+  // The mud: short strokes along the strand beside each bank.
+  ctx.beginPath();
+  for (let i = 0; i < 90; i++) {
+    const u = u0 + (ub - u0) * rng();
+    const side = rng() < 0.5 ? -1 : 1;
+    const [cx, hw] = channel(u);
+    const x = cx + side * (hw + bankWidth(u, side) * rng());
+    const l = 1 + 2.5 * rng();
+    ctx.moveTo(x - l / 2, at(x, u));
+    ctx.lineTo(x + l / 2, at(x + l / 2, u));
+  }
+  ctx.lineWidth = c.pen(0.6);
+  ctx.strokeStyle = rgba(INK.hatch, 0.55);
+  ctx.stroke();
+  // The water: a few short wavelet strokes and the verticals of the masts mirrored.
+  ctx.save();
+  ctx.clip(channelPath(u0, ub));
+  ctx.beginPath();
+  for (let i = 0; i < 40; i++) {
+    const u = u0 + (ub - u0) * rng();
+    const [cx, hw] = channel(u);
+    const x = cx + (rng() - 0.5) * 1.6 * hw;
+    const y = at(x, u);
+    const l = (1.5 + 3 * rng()) * (0.5 + u);
+    ctx.moveTo(x - l / 2, y);
+    ctx.quadraticCurveTo(x, y - 0.35, x + l / 2, y);
+  }
+  for (let i = 0; i < 24; i++) {
+    const u = u0 + (ub - u0) * rng() ** 1.3;
+    const [cx, hw] = channel(u);
+    const x = cx + (rng() - 0.5) * 1.6 * hw;
+    const y = at(x, u);
+    const h = (0.8 + 2 * rng()) * (0.4 + 0.9 * u);
+    ctx.moveTo(x, y);
+    ctx.lineTo(x, y - h);
+  }
+  ctx.lineWidth = c.pen(0.6);
+  ctx.strokeStyle = rgba(INK.hatch, 0.6);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/**
+ * The drift line under the high-water shore: weed and wrack left by the
+ * last tide, in irregular clumps gathered in groups along a wandering
+ * line, with long bare gaps between the groups; never an even row.
+ */
 function paintDriftLine(c: PlateCanvas, ink: boolean) {
   const { ctx } = c;
   const [x0] = c.box;
   const rng = createRng(301);
-  ctx.beginPath();
-  let x = x0;
+  const [cx, hw] = channel(0.09);
+  // Where along it the wrack lies thick, thin or not at all.
+  const lie = (x: number) =>
+    0.5 * Math.sin(x * 0.013 + 1.1) +
+    0.3 * Math.sin(x * 0.031 + 0.4) +
+    0.2 * Math.sin(x * 0.071 + 2.6);
+  const heavy = new Path2D();
+  const light = new Path2D();
+  let x = x0 + rng() * 20;
   while (x < RIGHT) {
-    const len = ink ? 1 + rng() * 3 : 4 + rng() * 20;
-    const [cx, hw] = channel(0.09);
-    if (Math.abs(x - cx) > hw + 4 && rng() > 0.15) {
-      const u = 0.085 + 0.012 * Math.sin(x * 0.05);
-      ctx.moveTo(x, at(x, u));
-      ctx.lineTo(x + len, at(x + len, u + (rng() - 0.5) * 0.01));
+    const g = lie(x);
+    if (g < -0.15 || Math.abs(x - cx) < hw + 6) {
+      x += 6 + rng() * 26;
+      continue;
     }
-    x += len + (ink ? 1.5 + rng() * 3 : 1 + rng() * 6);
+    // A group: a few clumps close together, the line wandering a little.
+    const n = 2 + Math.floor(rng() * (3 + 5 * Math.max(0, g)));
+    for (let k = 0; k < n && x < RIGHT; k++) {
+      const u =
+        0.085 +
+        0.014 * Math.sin(x * 0.021) +
+        0.006 * Math.sin(x * 0.17) +
+        (rng() - 0.5) * 0.012;
+      const len = (ink ? 0.8 : 1.2) + rng() * (ink ? 3.2 : 5) * (0.6 + g);
+      const th = (0.18 + 0.3 * rng() * (0.6 + g)) * (ink ? 0.8 : 1);
+      const y = at(x, u);
+      const p = rng() < 0.35 + 0.4 * g ? heavy : light;
+      p.moveTo(x, y);
+      p.quadraticCurveTo(x + len / 2, y + th, x + len, y + (rng() - 0.5) * 0.2);
+      p.quadraticCurveTo(x + len / 2, y - th * 0.6, x, y);
+      p.closePath();
+      x += len + 0.4 + rng() * 2.4;
+    }
+    x += 8 + rng() * 40;
   }
-  ctx.lineWidth = c.pen(ink ? 0.6 : 0.8);
-  ctx.strokeStyle = ink ? rgba(INK.hatch, 0.7) : rgba("#8e7a62", 0.5);
-  ctx.stroke();
+  if (ink) {
+    ctx.fillStyle = rgba(INK.line, 0.62);
+    ctx.fill(heavy);
+    ctx.fillStyle = rgba(INK.hatch, 0.5);
+    ctx.fill(light);
+  } else {
+    ctx.fillStyle = rgba("#6f604c", 0.5);
+    ctx.fill(heavy);
+    ctx.fillStyle = rgba("#8e7a62", 0.38);
+    ctx.fill(light);
+  }
 }
 
 // ------------------------------------------------------------------ ink
@@ -408,42 +632,86 @@ function inkPaper(c: PlateCanvas, top: (x: number) => number, bottom: number) {
 }
 
 /**
- * Sparse broken strokes along the strand between shares ua and ub: rows
- * following the shore, unevenly spaced and patchy, the shine (pools, the
- * channel, the moon's streak) left as paper.
+ * The strand in the engraving, between shares ua and ub: sand is dotted
+ * and flicked, never ruled like the water. A light stipple on the dry
+ * upper beach; on the wet sand fewer dots, short flicks along the shore
+ * and clusters of ripple marks; the sheen of the wet sand (long lanes),
+ * the pools and the moon's streak left as bare paper.
  */
 function inkStrand(c: PlateCanvas, seed: number, ua: number, ub: number) {
   const { ctx } = c;
   const rng = createRng(seed);
-  const patch = field(seed + 3, 140, 3);
+  const sheen = field(seed + 3, 160, 3);
   const [x0] = c.box;
   const ps = pools(seed - 4000, ua, ub, x0);
+  const bare = (x: number, u: number, y: number) => {
+    const [cx, hw] = channel(u);
+    return (
+      Math.abs(x - MOON.x) < 6 ||
+      (u > CHANNEL_U0 && Math.abs(x - cx) < hw + bankWidth(u, 1) + 1) ||
+      inPool(ps, x, y) ||
+      (u > 0.14 && sheen(x * 0.35, u * 260) > 0.35)
+    );
+  };
+  // Stipple: dots, closer on the dry sand and in the wet sand's darker patches.
+  const dots = new Path2D();
+  // The strand's area on the plate, layer units squared: the marks' counts follow it.
+  const area = (RIGHT - x0) * Math.abs(at(0, ua) - at(0, ub));
+  const nDots = Math.round(area * 0.09);
+  for (let i = 0; i < nDots; i++) {
+    const u = ua + (ub - ua) * rng();
+    const x = x0 + (RIGHT - x0) * rng();
+    const y = at(x, u) + (rng() - 0.5) * 0.4;
+    const keep = u < 0.12 ? 0.75 : 0.32 + 0.3 * sheen(x * 0.9, u * 400);
+    if (rng() > keep || bare(x, u, y)) continue;
+    const r = c.pen(0.35 + 0.35 * rng());
+    dots.moveTo(x + r, y);
+    dots.arc(x, y, r, 0, Math.PI * 2);
+  }
+  ctx.fillStyle = rgba(INK.hatch, 0.5);
+  ctx.fill(dots);
+  // Flicks along the shore on the wet sand.
   ctx.beginPath();
-  let u = ua + 0.01;
-  while (u < ub) {
-    u += (0.035 + rng() * 0.03) * (1.2 - 0.5 * u);
+  for (let i = 0; i < area * 0.012; i++) {
+    const u = Math.max(0.13, ua) + (ub - Math.max(0.13, ua)) * rng();
     if (u >= ub) break;
-    let x = x0 - rng() * 20;
-    while (x < RIGHT) {
-      const len = 3 + rng() * 12;
-      const gap = 3 + rng() * 16;
-      const y = at(x, u);
-      const [cx, hw] = channel(u);
-      const shine =
-        Math.abs(x - MOON.x) < 8 ||
-        (u > CHANNEL_U0 && Math.abs(x + len / 2 - cx) < hw + 3) ||
-        inPool(ps, x, y);
-      if (!shine && rng() < 0.35 + 0.35 * patch(x, u * 100)) {
-        ctx.moveTo(x, y);
-        ctx.lineTo(x + len, at(x + len, u) + (rng() - 0.5) * 0.25);
-      }
-      x += len + gap;
+    const x = x0 + (RIGHT - x0) * rng();
+    const y = at(x, u);
+    if (bare(x, u, y)) continue;
+    const l = 0.8 + 2.4 * rng();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + l, at(x + l, u) + (rng() - 0.5) * 0.2);
+  }
+  ctx.lineWidth = c.pen(0.5);
+  ctx.strokeStyle = rgba(INK.hatch, 0.45);
+  ctx.stroke();
+  // Ripple marks: small clusters of short wavy strokes, one above another.
+  ctx.beginPath();
+  for (let i = 0; i < area * 0.004; i++) {
+    const u = Math.max(0.14, ua) + (ub - Math.max(0.14, ua)) * rng();
+    if (u >= ub) break;
+    const cx = x0 + (RIGHT - x0) * rng();
+    if (bare(cx, u, at(cx, u))) continue;
+    const n = 2 + Math.floor(rng() * 4);
+    const l = 2 + 4 * rng();
+    for (let k = 0; k < n; k++) {
+      const x = cx + (rng() - 0.5) * 1.5;
+      const y = at(x, u) - k * (0.5 + 0.35 * u);
+      ctx.moveTo(x, y);
+      ctx.bezierCurveTo(
+        x + l / 3,
+        y + 0.25,
+        x + (2 * l) / 3,
+        y - 0.25,
+        x + l,
+        y,
+      );
     }
   }
-  ctx.lineWidth = c.pen(0.55);
-  ctx.strokeStyle = rgba(INK.hatch, 0.55);
+  ctx.lineWidth = c.pen(0.5);
+  ctx.strokeStyle = rgba(INK.hatch, 0.42);
   ctx.stroke();
-  // The pools' lower lips and the channel's banks, fine.
+  // The pools' lower lips, fine.
   ctx.beginPath();
   for (const p of ps) {
     ctx.moveTo(p.x - p.w * 0.7, p.y - p.h * 0.5);
@@ -453,19 +721,6 @@ function inkStrand(c: PlateCanvas, seed: number, ua: number, ub: number) {
       p.x + p.w * 0.7,
       p.y - p.h * 0.5,
     );
-  }
-  for (const side of [-1, 1]) {
-    let on = false;
-    for (let i = 0; i <= 30; i++) {
-      const uu =
-        Math.max(CHANNEL_U0, ua) + ((ub - Math.max(CHANNEL_U0, ua)) * i) / 30;
-      const [cx, hw] = channel(uu);
-      const x = cx + side * hw;
-      const keep = rng() > 0.45;
-      if (keep && on) ctx.lineTo(x, at(x, uu));
-      else if (keep) ctx.moveTo(x, at(x, uu));
-      on = keep;
-    }
   }
   ctx.lineWidth = c.pen(0.55);
   ctx.strokeStyle = rgba(INK.hatch, 0.6);
@@ -600,22 +855,45 @@ function inkEdge(c: PlateCanvas, seed: number, bottom: number) {
   const rng = createRng(seed);
   const patch = field(seed + 5, 90, 3);
   const [x0, x1] = c.box;
-  // The low-water edge: a fine broken line.
-  ctx.beginPath();
-  let x = x0;
-  while (x < x1) {
-    const len = 5 + rng() * 24;
-    const skip = rng() < 0.2;
-    if (!skip) ctx.moveTo(x, lowWaterY(x));
-    for (let k = 1; k <= 4; k++) {
-      const xx = x + (len * k) / 4;
-      if (!skip) ctx.lineTo(xx, lowWaterY(xx) + (rng() - 0.5) * 0.2);
+  // The low-water edge: one firm line, swelling and thinning along the
+  // shore's lobes, with a few irregular breaks where the swash runs up.
+  const weight = (x: number) =>
+    0.55 + 0.3 * Math.sin(x * 0.019 + 0.7) + 0.15 * Math.sin(x * 0.053 + 2.1);
+  const breaks: [number, number][] = [];
+  for (let b = x0 + 20 + rng() * 80; b < x1; b += 70 + rng() * 210)
+    breaks.push([b, b + 2 + rng() * 7]);
+  const edge = new Path2D();
+  const step = 2;
+  let open = false;
+  let run: [number, number][] = [];
+  const close = () => {
+    if (run.length > 1) {
+      edge.moveTo(run[0][0], run[0][1]);
+      for (const [x, y] of run) edge.lineTo(x, y);
+      for (let i = run.length - 1; i >= 0; i--) {
+        const [x, y] = run[i];
+        edge.lineTo(x, y - c.pen(0.5 + 0.9 * weight(x)));
+      }
+      edge.closePath();
     }
-    x += len + (rng() < 0.15 ? 25 + rng() * 80 : 2 + rng() * 12);
+    run = [];
+  };
+  for (let x = x0; x <= x1; x += step) {
+    const gap = breaks.some(([a, b]) => x > a && x < b);
+    if (gap) {
+      if (open) close();
+      open = false;
+      continue;
+    }
+    open = true;
+    // The shore's small lobes and tongues of sand.
+    const lobe =
+      0.3 * Math.sin(x * 0.043 + 1.2) + 0.18 * Math.sin(x * 0.117 + 0.3);
+    run.push([x, lowWaterY(x) + 0.1 + Math.max(-0.2, lobe)]);
   }
-  ctx.lineWidth = c.pen(0.75);
-  ctx.strokeStyle = rgba(INK.line, 0.75);
-  ctx.stroke();
+  close();
+  ctx.fillStyle = rgba(INK.line, 0.8);
+  ctx.fill(edge);
   // The shore's reflection: broken verticals just off the edge, more under the cliffs.
   ctx.beginPath();
   for (let i = 0; i < 230; i++) {
@@ -733,9 +1011,11 @@ function farStrand(): Plate {
           ]
         : [
             (c) => inkPaper(c, (x) => strandY(x, 0), y0),
+            on(farY, (c) => inkStrand(c, 1301, 0, FAR_END)),
+            on(farY, (c) => inkStrand(c, 1302, 0.47, 0.72)),
+            on(farY, (c) => inkStrand(c, 1303, 0.72, 0.98)),
             on(farY, (c) => {
-              inkStrand(c, 1301, 0.1, FAR_U);
-              inkStrand(c, 1302, 0.47, 0.98);
+              inkChannel(c, CHANNEL_U0, 1);
               paintDriftLine(c, true);
             }),
           ],
@@ -793,7 +1073,10 @@ function nearStrand(): Plate {
           ]
         : [
             (c) => inkPaper(c, seam, y0),
-            (c) => inkStrand(c, 1701, NEAR_U, 0.97),
+            (c) => {
+              inkStrand(c, 1701, NEAR_U, 0.97);
+              inkChannel(c, SEAM_U, 1);
+            },
             (c) => inkEdge(c, 1801, y0),
           ],
   };

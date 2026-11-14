@@ -752,8 +752,11 @@ function paintBattery(c: PlateCanvas): void {
       ]);
     strokeLines(c, courses, 0.4, stone.shade, 0.35);
     ctx.restore();
-    // The upper tier's timber parapet: weathered planks, lit on its top, the embrasures cut into it.
-    ctx.fillStyle = mix(timber.lit, stone.graze, 0.35);
+    // The upper tier's timber parapet: tarred planks weathered brown (a dark band over the lit stone), lit on its top, the embrasures cut into it.
+    const pg = ctx.createLinearGradient(0, y1, 0, y2);
+    pg.addColorStop(0, mix(tar, timber.shade, 0.5));
+    pg.addColorStop(1, mix(timber.graze, timber.shade, 0.35));
+    ctx.fillStyle = pg;
     ctx.fill(parapet);
     ctx.save();
     ctx.clip(parapet);
@@ -763,7 +766,14 @@ function paintBattery(c: PlateCanvas): void {
         [L, y],
         [R, y],
       ]);
-    strokeLines(c, planks, 0.4, timber.shade, 0.4);
+    strokeLines(c, planks, 0.4, tar, 0.5);
+    strokeLines(
+      c,
+      planks.map((l) => l.map(([px, py]) => [px, py + 0.12] as Pt)),
+      0.35,
+      timber.graze,
+      0.35,
+    );
     ctx.restore();
     strokeLines(
       c,

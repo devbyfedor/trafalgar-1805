@@ -20,7 +20,7 @@ import {
 
 /**
  * Flag signals at the mastheads of ship glyphs (docs/history-notes.md,
- * "Scene 2", "How the chart shows the signals", by day): a hoist of two or
+ * "Scene 2: the road to Trafalgar", "How the chart shows the signals", by day): a hoist of two or
  * three small flags, hand-tinted as the plates were (red, white, blue,
  * yellow, muted), Popham's telegraph flag (red and white, diagonally), or
  * the distant signal's dark shapes (a flag, a ball, a pendant). Each flag

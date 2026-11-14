@@ -96,7 +96,8 @@ function byDistance(
 
 /**
  * The water facing east with the sun behind it (docs/history-notes.md,
- * "The painting's light is that of 18:33"): the sea ahead mirrors the cool
+ * "Boulogne from the sea", "The evening and its light": "The hold opens in
+ * the light of 18:33", "The eastern sky after sunset"): the sea ahead mirrors the cool
  * eastern sky, and the sun's warmth reaches it only far off, from the lit
  * shore and the strand. Far off, where the eye meets it at a grazing
  * angle, it is nearly a mirror of the low sky (pale pearl, warm only at

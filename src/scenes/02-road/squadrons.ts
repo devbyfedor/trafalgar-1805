@@ -2,8 +2,8 @@ import { day } from "./dates";
 
 /**
  * The squadrons that sail at the routes' drawing heads in beats 2 and 3,
- * with their size at each stage (docs/history-notes.md, "Scene 2", "Fleet
- * sizes at each stage"). Each is drawn as a symbol at the head of its track,
+ * with their size at each stage (docs/history-notes.md, "Scene 2: the road to Trafalgar",
+ * "Fleet sizes at each stage"). Each is drawn as a symbol at the head of its track,
  * a block of glyphs laid out on screen with the others (glyphs/layout.ts),
  * so its size reads at any zoom.
  */
@@ -223,7 +223,8 @@ export const SQUADRONS: readonly SquadronSpec[] = [
     id: "nelson",
     side: "british",
     // On to Spithead in August; in September from St Helens back to the
-    // fleet off Cádiz (history notes, "Nelson's passage").
+    // fleet off Cádiz (history notes, "Scene 2: the road to Trafalgar", "Fleet sizes at
+    // each stage": "Nelson's passage, 14 to 28 September").
     shown: [day(4, 3, 5), day(9, 28, 18)],
     stages: stagesOf(
       [

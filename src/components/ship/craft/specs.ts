@@ -3,8 +3,9 @@ import type { CraftPaint, CraftSpec, CraftType } from "./types";
 /**
  * The four gun craft of the invasion flotilla at Boulogne, August 1805, at
  * anchor in the roads. The designs of 1803 (Desbrière, Projets III, p. 90
- * and its plates; James III, pp. 216–217; docs/history-notes.md, "Scene 2",
- * and docs/research/scene-02/boulogne-sea/flotilla.md):
+ * and its plates; James III, pp. 216–217; docs/history-notes.md, "Scene 2:
+ * Boulogne from the sea (beat 1)", "The flotilla in the roads and in the
+ * harbour", and docs/research/scene-02/boulogne-sea/flotilla.md):
  *
  * - the prame: 110 × 25 × 8 French feet (about 36 × 8 × 2.6 m), three
  *   masts, ship-rigged ("gréement de corvette"), twelve 24-pounders;

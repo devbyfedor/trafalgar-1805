@@ -9,8 +9,10 @@ import { createRng, jitter } from "@/lib/random";
 /**
  * Boulogne in the summer of 1805 (beat 1): the army's hutted camps along
  * the coast and the invasion flotilla in the roads. Sources and doubts:
- * docs/history-notes.md, "Scene 2" ("Boulogne and the invasion army",
- * "Positions on the chart"); the conventions: docs/decisions.md, "Boulogne:
+ * docs/history-notes.md, "Scene 2: the road to Trafalgar" ("Boulogne and the
+ * invasion army", "Positions on the chart") and "Scene 2: Boulogne from the
+ * sea (beat 1)" ("The camps", "The flotilla in the roads and in the
+ * harbour"); the conventions: docs/decisions.md, "Boulogne:
  * the camps and the flotilla".
  */
 
@@ -60,8 +62,9 @@ interface CampPlan {
  * two camps; Davout's 33,000; Ney's 27,000; the grenadiers fewer), not
  * their counts of huts, which no source gives for 1805. Where on each
  * plateau the rows stood is not documented: the sites are on the heights
- * the sources name, Outreau's and the extent toward Terlincthun after an
- * uncited modern account (history notes, "Boulogne").
+ * the sources name, Outreau's and the extent toward Terlincthun as the
+ * history notes set them out ("Boulogne from the sea", "The camps", "Where
+ * they stood").
  */
 const CAMP_PLANS: readonly CampPlan[] = [
   {

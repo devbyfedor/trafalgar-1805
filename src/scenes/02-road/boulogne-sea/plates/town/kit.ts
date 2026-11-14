@@ -10,7 +10,8 @@ import { aerial, EYE_EN, EYE_H, VEX, viewOf } from "../../scene";
  * the way back from the view to the map, the colours of the town's walls
  * and roofs, and the engraver's strokes these plates share.
  *
- * The light (history-notes.md, "The painting's light is that of 18:33"):
+ * The light (history-notes.md, "Boulogne from the sea", "The evening and
+ * its light": "The hold opens in the light of 18:33"):
  * the sun 7° up at azimuth 286.2, 8° left of straight behind the eye. A
  * face turned west is lit gold
  * and square-on; a face turned north takes it at a graze; a face turned

@@ -2,7 +2,7 @@ import type { Label } from "@/components/chart/lettering/Lettering";
 
 /**
  * The names on the chart, in the forms of 1805 (docs/history-notes.md,
- * "Scene 2", names). Sizes are em heights on the chart in world km: each
+ * "Scene 2: the road to Trafalgar", "The names on the chart"). Sizes are em heights on the chart in world km: each
  * name is about 12 CSS px at the farthest view of the flight where it
  * matters, and towns, capes and islands stop growing close up at their
  * cap (lettering/Lettering.ts). A town has a mark on its site (lon, lat)

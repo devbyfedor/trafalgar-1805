@@ -12,7 +12,7 @@ import { skyAt } from "./ground";
  * surface, its outline scalloped.
  *
  * The light is that of 18:33 on 10 August 1805: the sun 7° up and 8° left
- * of straight behind the eye (history-notes, "The painting's light"), so
+ * of straight behind the eye (history-notes, "Boulogne from the sea", "The evening and its light"), so
  * a cloud in front is lit square-on and nearly without shadow. The forms
  * are modelled by the big masses, not by every lump: the light is read
  * from the surface smoothed at the masses' scale, so a tower turns softly

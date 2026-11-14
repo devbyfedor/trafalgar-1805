@@ -1,10 +1,10 @@
 import { type Object3D, Vector3 } from "three";
 import type { BatchedText, Text } from "troika-three-text";
 import type { ChartLayer, FrameInfo } from "../engine/Chart";
-import type { LightBlend } from "../light/states";
 import type { CoastField } from "../terrain/coast";
 import type { TerrainField } from "../terrain/field";
 import { FONT_FILES, fontUrl } from "./fonts";
+import { ChartGround, contrast, luminance, type Rgb } from "./ground";
 import { quadsApart, type ScreenText, YIELD_PX } from "./Lettering";
 import {
   chartText,
@@ -106,26 +106,24 @@ const LAND_CLEAR_PX: readonly [number, number] = [4, 10];
 /** The edge of the frame a label keeps clear of, CSS px. */
 const EDGE_PX = 10;
 /**
- * Toward the horizon the haze lightens the ground under a label toward the
- * colour of the air, and a label's ink reads against it only so far. Each
- * place is judged by the haze where it stands (its distance over the haze's
- * visibility) and by its ink against its ground as the light of the frame
- * colours them (shaders/common.ts, hazeColorFor; terrain/shaders.ts,
- * hazeAmount): it is gone where that falls under HAZE_CONTRAST, in from
- * HAZE_FADE before. On the sea, in the pale ink, never before HAZE_CLEAR's
- * end, measured in the daylight views (where the hazed sea's luminance
- * passes about 0.15), so those keep their places; at dusk and at night the
- * hazed sea stays dark and the pale ink reads far into the haze. On the
- * land, in the dark ink, the haze over the paper only helps by day, and at
+ * A place's ink must read against its ground (ground.ts: the chart's colour
+ * there, as the frame draws it) at this contrast or more: the owner's 4.5:1
+ * for a readable label (opacity 0.5 or more; decisions.md, sessions 29 and
+ * 32), with a margin for what the ground model leaves out. A place's room
+ * comes in across the band, so it is half there at its middle. Toward the
+ * horizon the haze lightens the ground toward the colour of the air, and at
+ * dawn the sun's road and the glow brighten the sea under it: each place is
+ * judged by its own ground, not by its fleet's distance, so by day a place
+ * nearer the eye can stand where a farther one can't, at dusk and night the
+ * hazed sea stays dark and the pale ink reads far into the haze, and at
  * night the dark ink on the dark paper never reads, so no label stands on
- * the land then. The label as a whole fades with the haze as the names do.
+ * the land then.
  */
-const HAZE_CLEAR: readonly [number, number] = [0.42, 0.55];
-const HAZE_FADE = HAZE_CLEAR[1] - HAZE_CLEAR[0];
-const HAZE_CONTRAST = 4.7;
-/** How far into the haze a place is tested (its share of the visibility), and in how many steps. */
-const HAZE_END_MAX = 1.6;
-const HAZE_STEPS = 64;
+const READ_CONTRAST: readonly [number, number] = [4.6, 5.0];
+/** Where the ground is read about a place: its corners and its middle. */
+const READ_POINTS = 5;
+/** The step of the coast's gradient, km (inside a texel: the field is bilinear). */
+const GRADIENT_KM = 0.05;
 /**
  * The ink on the sea: the chart's pale ink lightened toward the page's, so
  * the label reads over the whole sea, the brighter haze toward the horizon
@@ -152,7 +150,8 @@ interface Slot {
   weight: number;
   /**
    * Development: this frame's room and what made it (the frame's edge, the
-   * ground, the names and card, the labels before it, its line, its ships).
+   * ground, the names and card, the labels before it, its line, its ships,
+   * and how well its ink reads on the ground, which the ground includes).
    */
   why: Float64Array;
 }
@@ -194,12 +193,6 @@ interface Head {
   lines: Float64Array[];
   lineCount: number;
   presence: number;
-  /**
-   * How far into the haze a place of it reads this frame, its share of the
-   * haze's visibility: on the sea, and on the land (hazeEnd).
-   */
-  seaEnd: number;
-  landEnd: number;
   /** How much each strength shows (its share of the label). */
   counts: Float64Array;
   /** The typeset name's ink to its right edge, and each strength's, ems. */
@@ -229,6 +222,13 @@ export class HeadLabels implements ChartLayer {
   private readonly one = new Vector3(1, 1, 1);
   private keepClear: readonly ScreenText[] = [];
   private coast: CoastField | null = null;
+  private groundModel: ChartGround | null = null;
+  /** The inks' luminance this frame (pale on the sea, dark on the land). */
+  private inkPaleL = 1;
+  private inkDarkL = 0;
+  private readonly rgb: Rgb = [0, 0, 0];
+  /** A place's corners and middle on the chart (world km, x and y pairs), reused. */
+  private readonly readAt = new Float64Array(2 * READ_POINTS);
   private blocks: ((id: string, out: Float64Array) => number) | null = null;
   private anchors: ((id: string, out: Float64Array) => number) | null = null;
   private handover: ((id: string) => number) | null = null;
@@ -342,6 +342,7 @@ export class HeadLabels implements ChartLayer {
   /** The chart's coast on the CPU: where the sea is clean and the land is. */
   setCoast(coast: CoastField | null): void {
     this.coast = coast;
+    this.groundModel = coast ? new ChartGround(coast) : null;
   }
 
   /**
@@ -425,6 +426,8 @@ export class HeadLabels implements ChartLayer {
       .multiplyScalar(LIFT_PALE)
       .min(this.one);
     this.inkDark.copy(frame.light.ink);
+    this.inkPaleL = luminance([this.inkPale.x, this.inkPale.y, this.inkPale.z]);
+    this.inkDarkL = luminance([this.inkDark.x, this.inkDark.y, this.inkDark.z]);
     const eye = frame.eye;
     const cssPerRadian = frame.pxPerRadian / frame.dpr;
     const cssH = frame.height / frame.dpr;
@@ -439,15 +442,17 @@ export class HeadLabels implements ChartLayer {
     for (const h of this.heads) {
       const dist = Math.hypot(h.x - eye.x, h.y - eye.y, eye.z);
       // Lying on the chart, it fades as the chart does toward the horizon,
-      // and with the haze, as the names do.
+      // and with the haze, as the names do; each place by its own ground
+      // (room). As it gives way to its ships it fades by that or by the
+      // tilt, whichever is the less, not by both at once: where the view
+      // rises off the ships or comes down to them, the label and the ships
+      // together never dip to half.
       const tilt = smooth(0.1, 0.25, eye.z / dist);
       const hx = dist / frame.hazeVisibility;
       const seen =
         h.presence *
-        (this.handover ? 1 - this.handover(h.spec.id) : 1) *
-        tilt *
-        Math.exp(-hx * hx) *
-        (1 - smooth(HAZE_CLEAR[0], HAZE_CLEAR[1], hx));
+        Math.min(tilt, this.handover ? 1 - this.handover(h.spec.id) : 1) *
+        Math.exp(-hx * hx);
       h.emPx = emPx;
       for (const s of h.slots) s.weight = 0;
       if (!this.sized || seen <= 0.001) {
@@ -458,7 +463,6 @@ export class HeadLabels implements ChartLayer {
         continue;
       }
       const em = (emPx * dist) / cssPerRadian;
-      const kmPx = dist / cssPerRadian;
       const blockWeight = this.blocks ? this.blocks(h.spec.id, this.block) : 0;
       h.aw = this.anchors ? this.anchors(h.spec.id, this.anchor) : 0;
       if (h.aw > 0.001) h.own.set(this.anchor);
@@ -480,7 +484,7 @@ export class HeadLabels implements ChartLayer {
             s.quad[0] = Number.NaN;
             continue;
           }
-          const room = this.room(s, h, em, kmPx, frame, blockWeight);
+          const room = this.room(s, h, em, frame, blockWeight);
           s.weight = room * ownLeft * aw;
           ownLeft *= 1 - room;
         } else {
@@ -489,7 +493,7 @@ export class HeadLabels implements ChartLayer {
             left = 1 - aw * (1 - ownLeft);
           }
           if (left <= 0.001) break;
-          const room = this.room(s, h, em, kmPx, frame, blockWeight);
+          const room = this.room(s, h, em, frame, blockWeight);
           s.weight = room * left;
           left *= 1 - room;
         }
@@ -668,7 +672,6 @@ export class HeadLabels implements ChartLayer {
     s: Slot,
     h: Head,
     em: number,
-    kmPx: number,
     frame: FrameInfo,
     blockWeight: number,
   ): number {
@@ -707,7 +710,7 @@ export class HeadLabels implements ChartLayer {
       );
     }
     why[1] = 1 - smooth(0, 6, out);
-    why[2] = this.ground(ox, w, 0.5 * (y0 + y1), y1 - y0, kmPx);
+    why[2] = this.ground(s, ox, w, y0, y1, frame);
     // Clear of the lettering before it: the names and the caption's card.
     for (const screen of this.keepClear)
       for (let j = 0; j < screen.count; j++) {
@@ -725,6 +728,7 @@ export class HeadLabels implements ChartLayer {
         why[5] *= clearOf(q, other.lines[i], other === h ? 1 : other.presence);
     if (blockWeight > 0) why[6] = clearOf(q, this.block, blockWeight);
     let room = 1;
+    // why[7] (how well its ink reads there) is inside why[2].
     for (let i = 1; i < 7; i++) room *= why[i];
     why[0] = room;
     // Decisively: a place has room or hasn't, but for a narrow band where it
@@ -734,36 +738,114 @@ export class HeadLabels implements ChartLayer {
   }
 
   /**
-   * How clean the ground under a label is (0..1): the sea beyond the inner
-   * waterlines, or the land well inland. The coast's distance (world km) is
-   * read at points along the label's middle line, each standing for its
-   * share of the box (less its reach, the half diagonal of that share; the
-   * distance is 1-Lipschitz), so a long label lying along a coast is judged
-   * by how near it comes, not by its whole length.
+   * How clean the ground under a label is, and how well its ink reads on it
+   * (0..1): the sea beyond the inner waterlines, or the land well inland,
+   * where the ink holds READ_CONTRAST against the chart's colour there. The
+   * coast's distance (world km) is read at points along the label's middle
+   * line, each standing for its share of the box (less its reach, the half
+   * diagonal of that share; the distance is 1-Lipschitz), so a long label
+   * lying along a coast is judged by how near it comes, not by its whole
+   * length; and it is measured on screen as the shader's waterlines are,
+   * across the coast: the chart's km per pixel along the distance's
+   * gradient, from the label's own outline on screen, so where the view
+   * meets the chart at a slant the waterlines' band, foreshortened, reaches
+   * farther out on the chart than it would face on. Its ink is read against
+   * the brightest of the sea (or the darkest of the land) at the label's
+   * corners and middle. Slot.why[7] holds the read share of the ground that
+   * wins.
    */
   private ground(
+    s: Slot,
     x0: number,
     w: number,
-    y: number,
-    h: number,
-    kmPx: number,
+    y0: number,
+    y1: number,
+    frame: FrameInfo,
   ): number {
     const coast = this.coast;
-    if (!coast) return 1;
+    const model = this.groundModel;
+    s.why[7] = 1;
+    if (!coast || !model) return 1;
+    // The outline's change on screen per km east (a) and north (b), CSS px.
+    const q = s.quad;
+    const h = y1 - y0;
+    const ax = (q[2] - q[0] + q[4] - q[6]) / (2 * w);
+    const ay = (q[3] - q[1] + q[5] - q[7]) / (2 * w);
+    const bx = (q[6] - q[0] + q[4] - q[2]) / (2 * h);
+    const by = (q[7] - q[1] + q[5] - q[3]) / (2 * h);
+    const det = ax * by - ay * bx;
+    if (!(Math.abs(det) > 1e-12)) return 0;
+    const y = 0.5 * (y0 + y1);
     const step = w / GROUND_SAMPLES;
     const reach = 0.5 * Math.hypot(step, h);
     let near = Number.POSITIVE_INFINITY;
     let inland = Number.POSITIVE_INFINITY;
     for (let i = 0; i < GROUND_SAMPLES; i++) {
-      const d = coast.distance(x0 + (i + 0.5) * step, y);
-      near = Math.min(near, (d - reach) / kmPx);
-      inland = Math.min(inland, (-d - reach) / kmPx);
+      const x = x0 + (i + 0.5) * step;
+      const d = coast.distance(x, y);
+      let gx = (coast.distance(x + GRADIENT_KM, y) - d) / GRADIENT_KM;
+      let gy = (coast.distance(x, y + GRADIENT_KM) - d) / GRADIENT_KM;
+      const gl = Math.hypot(gx, gy);
+      if (gl < 1e-6) {
+        gx = 0;
+        gy = 1;
+      } else {
+        gx /= gl;
+        gy /= gl;
+      }
+      // The distance's gradient on screen, km per CSS px (the inverse
+      // transpose of the outline's map applied to the gradient on the chart).
+      const kmPerPx =
+        Math.hypot(by * gx - ay * gy, ax * gy - bx * gx) / Math.abs(det);
+      near = Math.min(near, (d - reach) / kmPerPx);
+      inland = Math.min(inland, (-d - reach) / kmPerPx);
     }
     const clear = SEA_CLEAR_SHARE * WATERLINE_REACH_PX;
-    return Math.max(
-      smooth(clear, clear + CLEAR_RISE_PX, near),
-      smooth(LAND_CLEAR_PX[0], LAND_CLEAR_PX[1], inland),
-    );
+    const seaClean = smooth(clear, clear + CLEAR_RISE_PX, near);
+    const landClean = smooth(LAND_CLEAR_PX[0], LAND_CLEAR_PX[1], inland);
+    if (seaClean <= 0.001 && landClean <= 0.001) return 0;
+    const at = this.readAt;
+    at[0] = x0;
+    at[1] = y0;
+    at[2] = x0 + w;
+    at[3] = y0;
+    at[4] = x0 + w;
+    at[5] = y1;
+    at[6] = x0;
+    at[7] = y1;
+    at[8] = x0 + 0.5 * w;
+    at[9] = y;
+    const c = this.rgb;
+    let seaRead = 0;
+    if (seaClean > 0.001) {
+      let bright = 0;
+      for (let i = 0; i < READ_POINTS; i++) {
+        model.sea(at[2 * i], at[2 * i + 1], frame, near, WATERLINE_REACH_PX, c);
+        bright = Math.max(bright, luminance(c));
+      }
+      seaRead = smooth(
+        READ_CONTRAST[0],
+        READ_CONTRAST[1],
+        contrast(this.inkPaleL, bright),
+      );
+    }
+    let landRead = 0;
+    if (landClean > 0.001) {
+      let dark = 1;
+      for (let i = 0; i < READ_POINTS; i++) {
+        model.land(at[2 * i], at[2 * i + 1], frame, c);
+        dark = Math.min(dark, luminance(c));
+      }
+      landRead = smooth(
+        READ_CONTRAST[0],
+        READ_CONTRAST[1],
+        contrast(this.inkDarkL, dark),
+      );
+    }
+    const sea = seaClean * seaRead;
+    const land = landClean * landRead;
+    s.why[7] = sea >= land ? seaRead : landRead;
+    return Math.max(sea, land);
   }
 
   /**

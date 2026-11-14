@@ -224,12 +224,15 @@ export function Scene02Road() {
           // The text steps aside while the chart turns into the painting
           // and back (interludes.ts, textAt); over the painting the
           // chapter marker reads without its scrim (the painting's sky is
-          // dark enough there), so the scrim is hidden while it covers.
-          // `u` is the interlude rig's, or null outside an interlude (and
-          // before the painting is ready).
+          // dark enough there), so the scrim is hidden while it covers,
+          // and so is the card's deeper one (none at the interlude's p in
+          // the chart's own run; at full strength over the stills, which
+          // would darken the view from the sea's still). `u` is the
+          // interlude rig's, or null outside an interlude (and before the
+          // painting is ready).
           const textLayer = el.querySelector<HTMLElement>("[data-layer=text]");
-          const chapterScrim = el.querySelector<HTMLElement>(
-            "[data-el=scrim-chapter]",
+          const coverScrims = el.querySelectorAll<HTMLElement>(
+            "[data-el=scrim-chapter], [data-el=scrim-deep]",
           );
           let textShown = 1;
           let scrimHidden = false;
@@ -240,8 +243,9 @@ export function Scene02Road() {
               textShown = text;
             }
             const hideScrim = u !== null && coveredAt(u);
-            if (hideScrim !== scrimHidden && chapterScrim) {
-              chapterScrim.style.visibility = hideScrim ? "hidden" : "";
+            if (hideScrim !== scrimHidden) {
+              for (const scrim of coverScrims)
+                scrim.style.visibility = hideScrim ? "hidden" : "";
               scrimHidden = hideScrim;
             }
           };

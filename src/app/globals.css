@@ -171,3 +171,19 @@
     min-height: 100%;
   }
 }
+
+/*
+ * Scene 2 as its stills (no WebGL, or the context lost for good;
+ * layers/RoadStills.tsx): the scrims' curves are tuned to the live chart
+ * under the text at each p, but a still is one frame of its beat, often
+ * brighter under the card or the chapter marker than the chart at that p
+ * (session 30: the date line 2.1:1, the chase's caption 2.8:1, the
+ * chapter marker 2.0:1 over the stills). There the soft scrims stand at
+ * full strength: the card's deeper one and the chapter marker's (still
+ * hidden while Boulogne's view from the sea covers, as over the painting).
+ */
+#road[data-mode="stills"] [data-el="scrim-deep"],
+#road[data-mode="stills"] [data-el="scrim-chapter"] {
+  /* biome-ignore lint/complexity/noImportantStyles: over the timeline's inline opacity */
+  opacity: 1 !important;
+}

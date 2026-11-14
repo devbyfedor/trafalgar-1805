@@ -268,7 +268,8 @@ export function phaseAt(pin, screens) {
 export function scrollForPoint(tab, point) {
   return tab.evaluate(
     ([pt, scene1, scene2]) => {
-      const road = window.__road;
+      // window.__roadScroll: the same map where the chart can't run.
+      const road = window.__road ?? window.__roadScroll;
       if (pt.kind === "interlude") {
         if (!road?.scrollForInterlude)
           throw new Error(

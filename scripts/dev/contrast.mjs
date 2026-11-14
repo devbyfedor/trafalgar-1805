@@ -39,6 +39,10 @@
 // the chapter marker, each fleet's label) and how many rows fall below
 // 4.5:1. Needs a server, as road.mjs does: BASE (http://127.0.0.1:3000),
 // W, H, S; JSON=<file> writes the rows; SHOTS=<dir> keeps the frames.
+// NOWEBGL=1 measures the scene as it shows where WebGL is unavailable
+// (Chromium without its 3D APIs): its stills under the text, Boulogne's
+// view from the sea through the interlude (layers/RoadStills.tsx); no
+// fleets' labels there.
 import { writeFile } from "node:fs/promises";
 import { chromium } from "@playwright/test";
 import sharp from "sharp";
@@ -74,18 +78,41 @@ const luminance = (r, g, b) =>
   0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
 const contrast = (a, b) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
 
-const browser = await chromium.launch({ channel: "chromium" });
+const noWebGL = process.env.NOWEBGL === "1";
+const browser = await chromium.launch({
+  channel: "chromium",
+  ...(noWebGL ? { args: ["--disable-3d-apis"] } : {}),
+});
 const context = await browser.newContext({
   viewport: { width, height },
   deviceScaleFactor: scale,
 });
 const page = await context.newPage();
 await page.goto(`${base}/?quality=0`);
-await waitForRoad(page, {
-  sea: points.some(inInterlude),
-  timeout: points.some(inInterlude) ? 240_000 : 120_000,
-});
-const pin = await roadPin(page);
+let pin;
+if (noWebGL) {
+  // The chart fails and the stills take its place; every still loaded.
+  await page.waitForSelector("#road [data-still=boulogne]", {
+    state: "attached",
+    timeout: 60_000,
+  });
+  await page.waitForFunction(
+    () =>
+      [...document.querySelectorAll("#road img")].every(
+        (img) => img.complete && img.naturalWidth > 0,
+      ),
+    null,
+    { timeout: 60_000 },
+  );
+  // No window.__road: the one interlude's p (interludes.ts, BOULOGNE_AT).
+  pin = { base: 30, interludes: [{ id: "boulogne", at: 0.21 }] };
+} else {
+  await waitForRoad(page, {
+    sea: points.some(inInterlude),
+    timeout: points.some(inInterlude) ? 240_000 : 120_000,
+  });
+  pin = await roadPin(page);
+}
 
 /** Switches the style that makes the text transparent for a shot. */
 const hideText = (on) =>
@@ -160,7 +187,7 @@ for (const point of points) {
     .toBuffer({ resolveWithObject: true });
   // The fleets' labels in the frame shot, and the frame again without them.
   const heads = (
-    await page.evaluate(() => window.__road.routeLabels?.() ?? [])
+    await page.evaluate(() => window.__road?.routeLabels?.() ?? [])
   ).filter((h) => h.opacity >= HIDDEN);
   let under = null;
   if (heads.length) {

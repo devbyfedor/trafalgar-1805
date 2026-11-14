@@ -574,6 +574,7 @@ export function Scene02Road() {
         ref={root}
         id="road"
         data-scene="road"
+        data-mode={mode}
         aria-labelledby="road-title"
         className="relative h-screen w-full overflow-hidden bg-deep-sea motion-reduce:hidden"
       >

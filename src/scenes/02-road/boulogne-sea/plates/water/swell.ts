@@ -931,7 +931,7 @@ function swellPlate(i: number): Plate {
   const rng = createRng(4200 + i);
   const seconds = 8 + rng() * 2.5;
   // Jobs are listed before the rows exist; each picks its chunk when it runs.
-  const parts = 16;
+  const parts = i < 3 ? 28 : 16;
   return {
     id: `swell-${i}`,
     depth: s.depth,

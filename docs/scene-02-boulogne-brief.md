@@ -8,7 +8,7 @@ This brief covers one change inside scene 2: the Boulogne close view in beat 1. 
 
 Keep this section current. Change only the status line and append to the log. Never rewrite past log entries.
 
-Status: **Stage A — approved by owner**
+Status: **Stage B — in progress**
 
 Allowed values, in order:
 - Stage A — in progress
@@ -32,6 +32,7 @@ Log:
 - 2026-11-14 — the owner approved the painting (its level must not drop) and kept the chapter title's scrim over the chart at Boulogne as it is.
 - 2026-11-14 — session 28: stage A complete, awaiting owner review. The small items (the hold's drift 11.5 m: the moon clear of the chaloupe's ensign, her jib-boom's reflection clear of the caption); `s25-tools` merged; on production builds checked with `served.mjs` on the idle laptop: the frame budget on the dive, hold and rise (two faults found and fixed: the smoke's draws, a reflection job waiting on the GPU; the hold judged by its frames, decision recorded), the preparation without long tasks, every other beat identical to the reference frames, contrast at the four sizes (the captions and the interlude at 4.5:1 or more), scene 1's regression and `npm run check` whole passing; the flotilla check complete; the stage's screenshots in `docs/screenshots/scene-02/boulogne-sea/stage-a/`. See `docs/progress.md`, session 28.
 - 2026-11-14 — the owner looked at stage A on the production preview and approved it (his message opening session 29). Nothing goes into `main` yet.
+- 2026-11-14 — session 29: stage B in progress. The owner split it over two sessions: this one the look only (the dusk through the hold, the flotilla check's points, the chaloupe's ensign on a staff at the stern); the next the stills (reduced motion, no WebGL), the full checks at the four sizes and the history section. See `docs/progress.md`, session 29.
 
 ## Owner review, 13 November
 

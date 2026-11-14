@@ -2,6 +2,40 @@
 
 Live checklist. A later session picks up from here. The briefs are `docs/scene-01-brief.md` and `docs/scene-02-brief.md`; decisions and deviations are in `docs/decisions.md`.
 
+## Session 29 (14 November 2026): Boulogne from the sea, stage B, part one: the look
+
+**Where we are:** started. On `s24-boulogne-sea` (main untouched at `d7ed575`). The brief's status: **"Stage B — in progress"** (stage A approved by the owner at this session's start).
+
+**The owner's order** (complete; it ends "Конец сообщения"). He looked at stage A on the preview and approved it: status "Stage A — approved by owner", then "Stage B — in progress"; nothing into main yet. **Stage B is split over two sessions:**
+- **This session (29): the look only:** the dusk through the hold, the flotilla, the flag.
+- **The next session (30):** the stills (reduced motion and no WebGL: a static frame of the view), the full checks at the four sizes (frame budget, contrast, scene 1's regression, every other beat frame for frame, `npm run check`), and the history section finished.
+
+His answers to session 28's questions:
+1. **The Gulf's head labels** are fixed later, with the deferred work on the Cádiz labels (`wip/s23-gulf-labels`). "Villeneuve, 33 sail" must hold 4.5:1 while it is readable; frames where a label fades out are the exception (a fading label is not read). Rule in `decisions.md` (session 29); the item in the deferred plan below.
+2. **The hold's new check is accepted:** frames on time and the whole main thread under 8 ms. The painting's layers are not cut for the 5 ms. He judges smoothness himself with `?debug`.
+3. **The chaloupe's ensign moves to a staff at the stern**, as flown at anchor. The moon must stay whole at the hold's end.
+
+His order of work this session:
+1. The flag (answer 3).
+2. The flotilla: fix the discrepancies the flotilla check found. A fix that contradicts the approved look of the craft in `craft-vs-victory.png` is not made but put to him as a question.
+3. The dusk through the hold, by the brief: the scroll takes the evening from golden light to dusk. The light cools and dims, fires and windows come up in the camps, the moon brightens, its path appears on the water. All smooth, no steps. If the hold is too short for the change of light, lengthen it. The other beats do not change: after the remap, compare them frame for frame.
+4. A British sail on the horizon only if the history notes justify it and the composition shows open sea; otherwise not, and say why.
+5. The painting's level does not drop. Every change checked by eye on a screenshot of the production build. Quick checks on the laptop: the hold's frame budget and scene 1's regression.
+6. Screenshots of the hold from golden light to dusk in `docs/screenshots/scene-02/boulogne-sea/stage-b/`.
+Then the report by the brief's rules, with exact commands to see it on the preview, and stop. The deferred plan's branches untouched; never `npm run screenshots`; commit after every step; keep this file current.
+
+**Deferred plan (waits for this work; its branches untouched):** session 23's stage B plan (session 24's list below): the Cádiz/Gulf labels on `wip/s23-gulf-labels`, **now with the fleets' head labels' contrast: "Villeneuve, 33 sail" (and every head label) at 4.5:1 or more wherever it is readable; frames where it fades out are exempt (decisions.md, session 29)**; branch 2 (smoke, night lights, signals); the signal relay in beat 4; the history section on `s23-history`; the last session's stills, final check and README.
+
+**Plan and state:**
+- [x] Step 0: the brief's status and log; this plan; the contrast rule in `decisions.md`; the deferred item.
+- [ ] Step 1: the chaloupe's ensign on a stern staff; checked on a production build (the moon whole at hold 1).
+- [ ] Step 2: the flotilla check's points (`flotilla-check.md`, items 10–13; backlog "Scene 2, stage B"): what fits the approved craft done, the rest as questions.
+- [ ] Step 3: the dusk through the hold (and the hold's length if needed; the other beats compared frame for frame after a remap).
+- [ ] Step 4: the British sail: decided from the history notes and the composition.
+- [ ] Step 5: the quick checks: the hold's frame budget, scene 1's regression.
+- [ ] Step 6: the screenshots golden to dusk in `docs/screenshots/scene-02/boulogne-sea/stage-b/`.
+- [ ] The report; the status stays "Stage B — in progress" (stage B ends next session).
+
 ## Session 28 (14 November 2026, night): Boulogne from the sea, stage A's end: the small items and every check
 
 **Where we stopped (the planned end: stage A complete, the report sent).** On `s24-boulogne-sea` (main untouched at `d7ed575`); all committed; lint (the two old infos in `hscroll.mjs`), typecheck and `npm run check` pass. The brief's status: **"Stage A — complete, awaiting owner review"**. Nothing runs: no helper, my server on 4173 stopped at the end, no project port listens; no merge into main, no rebase, lock or stash. Other branches untouched this session (`s25-tools` merged into this branch; `s24-boulogne-history` not touched: the flotilla check was written here).

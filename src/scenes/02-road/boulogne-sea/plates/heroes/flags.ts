@@ -316,6 +316,29 @@ export function clothShape(
   return shape;
 }
 
+/**
+ * A tricolour on a staff ashore, on a battery or on the fort, in the same
+ * one wind as the craft's flags (hanging heavily, its fly lifted away and
+ * leaning toward the wind's vanishing point): its cloth from the staff's
+ * head, `ahead` and `right` metres from the eye and `up` metres above the
+ * water as drawn (with the licences on heights, as the land's plates draw
+ * their staffs); `fly` and `hoist` as drawn too. Paint it with paintCloth,
+ * engrave it with engraveCloth.
+ */
+export function staffFlag(
+  ahead: number,
+  right: number,
+  up: number,
+  fly: number,
+  hoist: number,
+  seed: number,
+): ClothShape {
+  return clothShape(
+    { ahead, right, midX: 0, bowLeft: false },
+    { kind: "ensign", anchor: [0, up], fly, hoist, seed },
+  );
+}
+
 /** The bunting's colours (flags.ts's), as cloth in white light. */
 const BUNTING = ["#24366a", "#e6e0d2", "#b8312a"] as const;
 

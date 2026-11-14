@@ -5,6 +5,7 @@ import { aerial, EYE_EN, EYE_H, project, viewOf } from "../../scene";
 import {
   clamp01,
   inside,
+  lightBook,
   penAt,
   rectPts,
   Shapes,
@@ -582,11 +583,11 @@ function chimneyPts(k: Building["chimneys"][number]): Pt[][] {
 }
 
 /** A building's silhouette as painted (its hull, its chimneys and dormers): what it hides of the lights behind it. */
-function silhouette(b: Building): Path2D {
+function silhouette(b: Building): Shapes {
   const s = new Shapes().poly(b.hull);
   for (const k of b.chimneys) for (const p of chimneyPts(k)) s.poly(p);
   for (const d of b.dormers) s.poly(d.front).poly(d.roofL).poly(d.roofR);
-  return s.path;
+  return s;
 }
 
 /** Drops the sites a shape painted over them hides (their middle under it). */
@@ -629,7 +630,7 @@ export function paintBuildings(
   list: readonly Building[],
 ): void {
   const { ctx } = c;
-  const sink = c.lights;
+  const sink = lightBook(c);
   for (const b of list) {
     const rng = createRng(b.seed ^ 0x51ed);
     const sites: LightSite[] | undefined = sink ? [] : undefined;

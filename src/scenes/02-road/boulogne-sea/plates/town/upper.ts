@@ -17,6 +17,7 @@ import {
   brokenLine,
   groundSkyline,
   inside,
+  lightBook,
   penAt,
   Shapes,
   strokeLines,
@@ -813,13 +814,14 @@ export function paintWalls(c: PlateCanvas): void {
   ctx.fill();
   // The ramparts hide the lights of the houses inside them below their
   // walk (paint/lights.ts): the faces, the towers, the gate.
-  if (c.lights) {
+  const book = lightBook(c);
+  if (book) {
     const sh = new Shapes();
     for (const f of [u.sw, u.nw]) sh.poly([...f.foot, ...[...f.top].reverse()]);
     for (const tw of u.towers) towerShape(sh, tw);
     sh.rect(gt.x - gt.r, gt.y0, gt.r * 2, gt.y1 - gt.y0);
     for (const tw of gt.towers) towerShape(sh, tw);
-    c.lights.occlude(sh.path);
+    book.occlude(sh);
   }
 }
 
@@ -944,7 +946,8 @@ export function paintBelfryStage(c: PlateCanvas): void {
     ctx.fill();
   }
   // The turrets hide the lights behind them (paint/lights.ts).
-  if (c.lights) {
+  const book = lightBook(c);
+  if (book) {
     const sh = new Shapes();
     for (const tw of s.turrets)
       towerShape(sh, tw).poly([
@@ -952,7 +955,7 @@ export function paintBelfryStage(c: PlateCanvas): void {
         [tw.x + tw.r * 1.15, tw.y1],
         [tw.x, tw.y1 + tw.r * 2.4],
       ]);
-    c.lights.occlude(sh.path);
+    book.occlude(sh);
   }
 }
 
@@ -1051,7 +1054,8 @@ export function paintTrees(
     ctx.fill();
   }
   // The crowns and their trunks hide the lights behind them (paint/lights.ts): the shade masses (the rest lie inside them).
-  if (c.lights) {
+  const book = lightBook(c);
+  if (book) {
     const sh = new Shapes();
     const half = c.pen(0.4);
     for (const tr of list) {
@@ -1065,7 +1069,7 @@ export function paintTrees(
       ]);
       for (const [x, y, rx, ry] of lobes(tr)) sh.ellipse(x, y, rx, ry);
     }
-    c.lights.occlude(sh.path);
+    book.occlude(sh);
   }
 }
 
@@ -1196,7 +1200,8 @@ export function paintBelfryTop(c: PlateCanvas): void {
   );
   telegraphLines(c, "colour");
   // The octagon and the spire hide the lights behind them (paint/lights.ts).
-  if (c.lights) {
+  const book = lightBook(c);
+  if (book) {
     const sh = new Shapes().rect(
       xs[0],
       o.y0,
@@ -1210,7 +1215,7 @@ export function paintBelfryTop(c: PlateCanvas): void {
       [f[2].base[1] + f[2].bell * 0.6, o.y1],
       f[0].apex,
     ]);
-    c.lights.occlude(sh.path);
+    book.occlude(sh);
   }
 }
 

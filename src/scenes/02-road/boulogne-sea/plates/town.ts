@@ -26,10 +26,13 @@ import {
   fadeEdges,
   fadeOccluder,
   groundSkyline,
+  lightBook,
   MAT,
   penAt,
   riverSide,
+  SETTLE_JOBS,
   Shapes,
+  settleLights,
   strokeLines,
   tones,
   townGround,
@@ -366,7 +369,7 @@ function paintSpire(c: PlateCanvas, s: Spire): void {
   );
   // It hides the lights behind it (paint/lights.ts).
   const f = spireFacets(s);
-  c.lights?.occlude(new Shapes().poly([f[0][0], f[2][1], f[0][2]]).path);
+  lightBook(c)?.occlude(new Shapes().poly([f[0][0], f[2][1], f[0][2]]));
 }
 
 function engraveSpire(c: PlateCanvas, s: Spire): void {
@@ -451,7 +454,8 @@ function paintTree(c: PlateCanvas, t: Tree): void {
     ctx.fill();
   }
   // It hides the lights behind it (paint/lights.ts): the trunk and the dark masses (the rest lie inside them).
-  if (c.lights) {
+  const book = lightBook(c);
+  if (book) {
     const sh = new Shapes().rect(
       t.x - t.rx * 0.07,
       t.y,
@@ -459,7 +463,7 @@ function paintTree(c: PlateCanvas, t: Tree): void {
       t.ry * 0.9,
     );
     for (const [x, y, rx, ry] of lobes) sh.ellipse(x, y, rx, ry);
-    c.lights.occlude(sh.path);
+    book.occlude(sh);
   }
 }
 
@@ -558,6 +562,9 @@ function lowerPlate(id: string, which: "near" | "far"): Plate {
       fadeEdges(c, box, 28, 4);
       fadeOccluder(c, box, 28, 4);
     });
+    // The lights recorded on the way handed to the lights plates (paint/lights.ts).
+    for (let k = 0; k < SETTLE_JOBS; k++)
+      out.push((c) => settleLights(c, k, SETTLE_JOBS));
     return out;
   };
   return { id, depth, box, group: "land", jobs };
@@ -668,6 +675,9 @@ function upperPlate(): Plate {
       fadeEdges(c, UPPER_BOX, 14, 0);
       fadeOccluder(c, UPPER_BOX, 14, 0);
     });
+    // The lights recorded on the way handed to the lights plates (paint/lights.ts).
+    for (let k = 0; k < SETTLE_JOBS; k++)
+      out.push((c) => settleLights(c, k, SETTLE_JOBS));
     return out;
   };
   return {

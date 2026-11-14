@@ -1,5 +1,6 @@
 import { RAMPARTS, TOWN_GROUND } from "../../geo";
 import { createRng, type Pt, rgba } from "../../paint/kit";
+import type { LightSink, LightSite } from "../../paint/lights";
 import type { PlateCanvas } from "../../paint/plate";
 import { aerial, EYE_EN, EYE_H, VEX, viewOf } from "../../scene";
 
@@ -317,24 +318,45 @@ export function brokenLine(
 
 // ------------------------------------------------------------- lights
 
+/** x0, y0, x1, y1, layer units. */
+type Bounds = [number, number, number, number];
+
+type Part =
+  | { pts: readonly Pt[]; b: Bounds }
+  | { ell: readonly [number, number, number, number]; b: Bounds };
+
 /**
- * Shapes gathered into one occluder for a light sink (paint/lights.ts):
- * each polygon turned anticlockwise in layer units, the ellipses the same
- * way, so the parts of one path add up under the nonzero rule and never
- * leave a hole where two overlap.
+ * Shapes gathered into one occluder of the lights behind them
+ * (paint/lights.ts): each polygon turned anticlockwise in layer units, the
+ * ellipses the same way, so the parts of one path add up under the
+ * nonzero rule and never leave a hole where two overlap. It keeps its
+ * parts, so the town's book can tell what it hides.
  */
 export class Shapes {
   readonly path = new Path2D();
+  readonly parts: Part[] = [];
   poly(pts: readonly Pt[]): this {
     if (pts.length < 3) return this;
     let area = 0;
-    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++)
+    const b: Bounds = [
+      Number.POSITIVE_INFINITY,
+      Number.POSITIVE_INFINITY,
+      Number.NEGATIVE_INFINITY,
+      Number.NEGATIVE_INFINITY,
+    ];
+    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
       area += pts[j][0] * pts[i][1] - pts[i][0] * pts[j][1];
+      b[0] = Math.min(b[0], pts[i][0]);
+      b[1] = Math.min(b[1], pts[i][1]);
+      b[2] = Math.max(b[2], pts[i][0]);
+      b[3] = Math.max(b[3], pts[i][1]);
+    }
     const list = area < 0 ? [...pts].reverse() : pts;
     this.path.moveTo(list[0][0], list[0][1]);
     for (let i = 1; i < list.length; i++)
       this.path.lineTo(list[i][0], list[i][1]);
     this.path.closePath();
+    this.parts.push({ pts, b });
     return this;
   }
   rect(x: number, y: number, w: number, h: number): this {
@@ -344,8 +366,21 @@ export class Shapes {
     this.path.moveTo(x + rx, y);
     this.path.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
     this.path.closePath();
+    this.parts.push({
+      ell: [x, y, rx, ry],
+      b: [x - rx, y - ry, x + rx, y + ry],
+    });
     return this;
   }
+}
+
+function partHas(p: Part, x: number, y: number): boolean {
+  if (x < p.b[0] || x > p.b[2] || y < p.b[1] || y > p.b[3]) return false;
+  if ("pts" in p) return inside(p.pts, x, y);
+  const [cx, cy, rx, ry] = p.ell;
+  const u = (x - cx) / rx;
+  const v = (y - cy) / ry;
+  return u * u + v * v <= 1;
 }
 
 /** A rectangle's corners (x, y its bottom left). */
@@ -358,6 +393,173 @@ export function rectPts(x: number, y: number, w: number, h: number): Pt[] {
   ];
 }
 
+/** The book's cells, layer units. */
+const CELL = 4;
+
+/** Entries by the cells their bounds cover. */
+class Grid<T> {
+  private readonly cells = new Map<number, T[]>();
+  private key(i: number, j: number): number {
+    return i * 100003 + j;
+  }
+  put(b: Bounds, v: T): void {
+    for (let i = Math.floor(b[0] / CELL); i <= Math.floor(b[2] / CELL); i++)
+      for (let j = Math.floor(b[1] / CELL); j <= Math.floor(b[3] / CELL); j++) {
+        const k = this.key(i, j);
+        const list = this.cells.get(k);
+        if (list) list.push(v);
+        else this.cells.set(k, [v]);
+      }
+  }
+  at(x: number, y: number): readonly T[] {
+    return (
+      this.cells.get(this.key(Math.floor(x / CELL), Math.floor(y / CELL))) ?? []
+    );
+  }
+  some(b: Bounds, test: (v: T) => boolean): boolean {
+    for (let i = Math.floor(b[0] / CELL); i <= Math.floor(b[2] / CELL); i++)
+      for (let j = Math.floor(b[1] / CELL); j <= Math.floor(b[3] / CELL); j++)
+        for (const v of this.cells.get(this.key(i, j)) ?? [])
+          if (test(v)) return true;
+    return false;
+  }
+}
+
+type BookEvent = { site: LightSite } | { shape: Shapes };
+
+type Entry = { at: number; part: Part };
+
+/**
+ * A town plate's lights through its colour pass (paint/lights.ts), handed
+ * to its sink in paint order at the pass's end (`settleLights`), less the
+ * sites that end up wholly hidden and the occluders that then hide
+ * nothing left. A lit window behind a nearer house is cut out of the
+ * lights' raster, but its glow, wider than the window, would still show
+ * round the house's edge, a light with no window; and in the town most
+ * windows are behind a nearer roof, or the ramparts.
+ */
+export class LightBook {
+  readonly events: BookEvent[] = [];
+  private occ?: Grid<Entry>;
+  private sites: number[] = [];
+  private gone?: Uint8Array;
+  add(site: LightSite): void {
+    this.events.push({ site });
+  }
+  occlude(shape: Shapes): void {
+    if (shape.parts.length) this.events.push({ shape });
+  }
+  /**
+   * Step `k` of `n` (the pass's last jobs): the first indexes the
+   * occluders; each finds which of its share of the sites are wholly
+   * hidden (the core's middle and corners, a little in, each under a later
+   * occluder); the last writes what shows into the sink. `pen` sizes a
+   * light's glow as paint/lights.ts paints it (the core at least 1.3
+   * device px, the glow out to 2.6 times the core and 2.2 px more), here
+   * half as wide again.
+   */
+  settle(
+    k: number,
+    n: number,
+    sink: LightSink,
+    pen: (px: number) => number,
+  ): void {
+    const ev = this.events;
+    if (k === 0 || !this.occ || !this.gone) {
+      const occ = new Grid<Entry>();
+      this.sites = [];
+      for (let at = 0; at < ev.length; at++) {
+        const e = ev[at];
+        if ("shape" in e)
+          for (const part of e.shape.parts) occ.put(part.b, { at, part });
+        else this.sites.push(at);
+      }
+      this.occ = occ;
+      this.gone = new Uint8Array(ev.length);
+    }
+    const occ = this.occ;
+    const gone = this.gone;
+    const min = pen(1.3);
+    const covered = (x: number, y: number, at: number): boolean => {
+      for (const o of occ.at(x, y))
+        if (o.at > at && partHas(o.part, x, y)) return true;
+      return false;
+    };
+    const list = this.sites;
+    const to =
+      k === n - 1 ? list.length : Math.floor((list.length * (k + 1)) / n);
+    for (let i = Math.floor((list.length * k) / n); i < to; i++) {
+      const at = list[i];
+      const s = (ev[at] as { site: LightSite }).site;
+      const w = Math.max(min, s.w) * 0.35;
+      const h = Math.max(min, s.h) * 0.35;
+      const cx = s.x + s.w / 2;
+      const cy = s.y + s.h / 2;
+      if (
+        covered(cx, cy, at) &&
+        covered(cx - w, cy - h, at) &&
+        covered(cx + w, cy - h, at) &&
+        covered(cx + w, cy + h, at) &&
+        covered(cx - w, cy + h, at)
+      )
+        gone[at] = 1;
+    }
+    if (k < n - 1) return;
+    // The glows written so far: an occluder that touches none hides nothing.
+    const glows = new Grid<Bounds>();
+    for (let at = 0; at < ev.length; at++) {
+      const e = ev[at];
+      if ("site" in e) {
+        if (gone[at]) continue;
+        const s = e.site;
+        const r =
+          (Math.max(min, s.w, s.h) * 2.6 + pen(2.2)) * 1.5 +
+          Math.max(s.w, s.h) / 2;
+        const cx = s.x + s.w / 2;
+        const cy = s.y + s.h / 2;
+        const b: Bounds = [cx - r, cy - r, cx + r, cy + r];
+        glows.put(b, b);
+        sink.add(s);
+        continue;
+      }
+      let touches = false;
+      for (const p of e.shape.parts) {
+        const a = p.b;
+        touches = glows.some(
+          a,
+          (b) => a[0] <= b[2] && b[0] <= a[2] && a[1] <= b[3] && b[1] <= a[3],
+        );
+        if (touches) break;
+      }
+      if (touches) sink.occlude(e.shape.path);
+    }
+  }
+}
+
+const BOOKS = new WeakMap<PlateCanvas, LightBook>();
+
+/** The book of a colour pass that records lights (none in any other pass). */
+export function lightBook(c: PlateCanvas): LightBook | undefined {
+  if (!c.lights) return undefined;
+  let b = BOOKS.get(c);
+  if (!b) {
+    b = new LightBook();
+    BOOKS.set(c, b);
+  }
+  return b;
+}
+
+/** How many jobs a town plate's colour pass ends with to settle its lights. */
+export const SETTLE_JOBS = 4;
+
+/** Step `k` of `n` handing a town plate's lights to its sink (LightBook.settle): the colour pass's last jobs, in turn. */
+export function settleLights(c: PlateCanvas, k: number, n: number): void {
+  const b = BOOKS.get(c);
+  if (!b || !c.lights) return;
+  if (k === n - 1) BOOKS.delete(c);
+  b.settle(k, n, c.lights, c.pen);
+}
+
 /**
  * What `fadeEdges` takes below half its alpha, as an occluder: a light
  * there would float on a painting that has faded out (paint/lights.ts).
@@ -368,7 +570,8 @@ export function fadeOccluder(
   side: number,
   foot: number,
 ): void {
-  if (!c.lights) return;
+  const book = lightBook(c);
+  if (!book) return;
   const [x0, x1, y0, y1] = box;
   const s = new Shapes();
   if (side > 0) {
@@ -377,5 +580,5 @@ export function fadeOccluder(
     s.rect(x1 - half, y0 - 1, half + 1, y1 - y0 + 2);
   }
   if (foot > 0) s.rect(x0 - 1, y0 - 1, x1 - x0 + 2, foot / 2 + 1);
-  c.lights.occlude(s.path);
+  book.occlude(s);
 }

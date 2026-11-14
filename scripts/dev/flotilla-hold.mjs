@@ -3,24 +3,43 @@
 // how many of its craft are on screen fully drawn (opacity 0.98 or more),
 // the least opacity and height among them, the eye's height and how steeply
 // it looks down on the flotilla's lead (height over distance; a gate holds
-// from 0.25, glyphs/layout.ts GATE_TILT); then the
-// stretch of p where every craft shows whole, in p and in screens of scroll
-// (scene 2's pin is 30 screens). Development only.
+// from 0.25, glyphs/layout.ts GATE_TILT); then the stretch of p where
+// every craft shows whole, in p, in screens of the story's own scroll (the
+// pin's `base`, 30 screens to the unit of p) and in screens of the page's
+// scroll (by the page's own map, window.__road.scrollFor: Boulogne's
+// interlude stops the story at p 0.21 for its own screens, where the
+// chart's marks give way to the painting). Development only.
 //   node scripts/dev/flotilla-hold.mjs [from] [to] [step]
-// Default 0.17 to 0.25 by 0.0025. Environment: BASE (default
-// http://127.0.0.1:3000), W, H, S.
+//   node scripts/dev/flotilla-hold.mjs 0.19..0.23:0.001
+// Default 0.17 to 0.25 by 0.0025. Bare numbers keep their old meaning;
+// anything else is the road tools' point syntax (road-scroll.mjs), p
+// only: the probes draw the flight's own frame at p. Environment: BASE
+// (default http://127.0.0.1:3000), W, H, S.
 import { chromium } from "@playwright/test";
+import {
+  inInterlude,
+  pointsFromArgs,
+  roadPin,
+  waitForRoad,
+} from "./road-scroll.mjs";
 
 const base = process.env.BASE ?? "http://127.0.0.1:3000";
-const from = Number(process.argv[2] ?? 0.17);
-const to = Number(process.argv[3] ?? 0.25);
-const step = Number(process.argv[4] ?? 0.0025);
+const points = pointsFromArgs(process.argv.slice(2), {
+  order: ["from", "to", "step"],
+  defaults: { from: 0.17, to: 0.25, step: 0.0025 },
+  pStep: 0.0025,
+});
+if (points.some(inInterlude)) {
+  console.log(
+    "flotilla-hold: p only (the probes draw the flight's frame at p, not an interlude's)",
+  );
+  process.exit(1);
+}
 const width = Number(process.env.W ?? 1280);
 const height = Number(process.env.H ?? 720);
 const scale = Number(process.env.S ?? 1.5);
 /** The flotilla's layer in motion() (stage.ts: fleets 0, squadrons 1). */
 const LAYER = 2;
-const PIN_SCREENS = 30;
 /** The flotilla's lead (its first prame, boulogne.ts) in the chart's world km (geo/mercator.ts). */
 const R = 6378.137;
 const merc = (lon, lat) => [
@@ -36,20 +55,16 @@ const page = await browser.newPage({
   deviceScaleFactor: scale,
 });
 await page.goto(`${base}/?quality=0`);
-await page.waitForFunction(
-  () => window.__road?.ready && window.__road.baked,
-  null,
-  { timeout: 180_000 },
-);
+await waitForRoad(page, { timeout: 180_000 });
+const pin = await roadPin(page);
 const count = (await page.evaluate(() => window.__road.glyphNames()))[LAYER]
   .length;
 const W = width * scale;
 const H = height * scale;
 let whole = null;
 let longest = null;
-const steps = Math.round((to - from) / step);
-for (let s = 0; s <= steps; s++) {
-  const p = Math.round((from + s * step) * 1e6) / 1e6;
+for (const point of points) {
+  const p = point.p;
   const row = await page.evaluate(
     ([p, layer]) => {
       const g = window.__road.gates(p);
@@ -81,9 +96,23 @@ for (let s = 0; s <= steps; s++) {
   );
 }
 if (longest) {
-  const span = longest[1] - longest[0];
+  const [a, b] = longest;
+  const span = b - a;
+  // The page's scroll between them, by its own map (the old pin's on a
+  // build without it).
+  const [ya, yb, vh] = await page.evaluate(
+    ([a, b, base]) => {
+      const at = (p) =>
+        window.__road.scrollFor
+          ? window.__road.scrollFor(p)
+          : p * base * window.innerHeight;
+      return [at(a), at(b), window.innerHeight];
+    },
+    [a, b, pin.base],
+  );
+  const across = pin.interludes.filter((i) => a <= i.at && i.at < b);
   console.log(
-    `whole from p ${longest[0]} to ${longest[1]}: ${span.toFixed(4)} of p, ${(span * PIN_SCREENS).toFixed(2)} screens (sampled every ${step})`,
+    `whole from p ${a} to ${b}: ${span.toFixed(4)} of p, ${(span * pin.base).toFixed(2)} screens of the story's scroll, ${((yb - ya) / vh).toFixed(2)} of the page's${across.length ? ` (with ${across.map((i) => `${i.id}'s ${(i.to - i.from).toFixed(1)}, where the painting stands for the chart`).join(", ")})` : ""} (sampled every ${points.length > 1 ? (points[1].p - points[0].p).toFixed(4) : "-"})`,
   );
 } else console.log("never whole");
 await browser.close();

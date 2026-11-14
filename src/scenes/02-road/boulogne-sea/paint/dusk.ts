@@ -43,15 +43,36 @@ const WATER: DuskGrade = {
 /** The strand's wet sand: a mirror of the sky's rose and the dark land. */
 const STRAND: DuskGrade = { keep: 0.5, tint: "#4e4b68", mix: 0.42 };
 /** The craft: dark hulls, the furled canvas cool grey, the flags dulled. */
-const CRAFT: DuskGrade = { keep: 0.48, tint: "#26263a", mix: 0.38 };
+const CRAFT: DuskGrade = {
+  hue: { colour: "#56567c", amount: 0.4 },
+  keep: 0.48,
+  tint: "#26263a",
+  mix: 0.38,
+};
 /** The near land (the shore, the camps, the harbour): lit by the western sky. */
-const NEAR_LAND: DuskGrade = { keep: 0.4, tint: "#3a3656", mix: 0.44 };
+const NEAR_LAND: DuskGrade = {
+  hue: { colour: "#5a5a8c", amount: 0.5 },
+  keep: 0.44,
+  tint: "#3a3656",
+  mix: 0.32,
+};
 /** The town on its hill: farther, a little paler and bluer. */
-const TOWN: DuskGrade = { keep: 0.42, tint: "#46446a", mix: 0.5 };
+const TOWN: DuskGrade = {
+  hue: { colour: "#5c5c8e", amount: 0.5 },
+  keep: 0.46,
+  tint: "#46446a",
+  mix: 0.36,
+};
 /** The far hills: nearly the sky's own colour low down. */
-const FAR_LAND: DuskGrade = { keep: 0.48, tint: "#5a5880", mix: 0.56 };
+const FAR_LAND: DuskGrade = {
+  hue: { colour: "#62628f", amount: 0.55 },
+  keep: 0.52,
+  tint: "#5a5880",
+  mix: 0.46,
+};
 /** The clouds: no sun on them; the high ones keep some rose longest. */
 const CLOUD: DuskGrade = {
+  hue: { colour: "#86789c", amount: 0.45 },
   keep: 0.6,
   tint: [
     [120, "#6c6886"],
@@ -110,6 +131,20 @@ export function gradeJob(grade: DuskGrade): (c: PlateCanvas) => void {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.drawImage(src, 0, 0, ctx.canvas.width, ctx.canvas.height);
     ctx.restore();
+    if (grade.hue) {
+      // The blend paints where the plate is empty too: the colour
+      // raster's own alpha cut back in after it.
+      ctx.globalCompositeOperation = "color";
+      ctx.globalAlpha = grade.hue.amount;
+      ctx.fillStyle = grade.hue.colour;
+      ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "destination-in";
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.drawImage(src, 0, 0, ctx.canvas.width, ctx.canvas.height);
+      ctx.restore();
+    }
     ctx.globalCompositeOperation = "source-atop";
     if (grade.keep < 1) {
       ctx.globalAlpha = 1 - grade.keep;

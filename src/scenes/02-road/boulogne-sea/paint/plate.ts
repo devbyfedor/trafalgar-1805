@@ -139,6 +139,14 @@ export interface DuskGrade {
   keep: number;
   tint: string | readonly (readonly [number, string])[];
   mix: number;
+  /**
+   * First, before the dimming: `amount` of the way to `colour`'s hue and
+   * saturation, each pixel keeping its lightness (the "color" blend): the
+   * sun's warm local colour gone to the dusk's cool, the painting's
+   * values and drawing kept. Without it the dimmed warm and the cool tint
+   * mix to a brown grey.
+   */
+  hue?: { colour: string; amount: number };
 }
 
 /** Paint-order keys (Plate.order): every reflection over all the water, every craft over every reflection. */

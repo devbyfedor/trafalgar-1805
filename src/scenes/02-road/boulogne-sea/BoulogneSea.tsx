@@ -502,7 +502,11 @@ function controller(root: HTMLElement): SeaViewHandle & { dispose(): void } {
       for (const s of smokes) s.renderer.draw(time);
       // The moon's path: drawn only while it shows.
       if (glade && gladeCanvas) {
-        const g = share.water * duskShare(DUSK_AT.glade, evening);
+        // Gone early in the rise: it lies at the moon's depression,
+        // whatever the eye's height, while the sea's far edge climbs the
+        // frame as the eye rises, so it would soon lie on the strand.
+        const leaving = at?.phase === "rise" ? 1 - smooth(0, 0.12, at.t) : 1;
+        const g = share.water * leaving * duskShare(DUSK_AT.glade, evening);
         gladeOpacity = setOpacity(
           gladeCanvas,
           Math.max(FLOOR, g),

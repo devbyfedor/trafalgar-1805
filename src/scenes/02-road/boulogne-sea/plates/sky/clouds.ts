@@ -1,7 +1,6 @@
-import { createRng, mix, rgba } from "../../paint/kit";
-import { INK, type Plate } from "../../paint/plate";
+import { createRng, mix, rgba, wobble } from "../../paint/kit";
+import { INK, PAPER, type Plate, type PlateCanvas } from "../../paint/plate";
 import { type CloudSpec, cloudJobs, newSlot } from "./cumulus";
-import { skyAt } from "./ground";
 
 /**
  * Broken cloud in the east on a fine August evening, lit from behind the
@@ -190,126 +189,256 @@ function groupPlate(g: Group): Plate {
   };
 }
 
-// ------------------------------------------------------------------ streaks
+// ------------------------------------------------------------------ cirrus
 
-interface Streak {
+/** A veil of cirrus: its spine's start and end, its width across, its fibres. */
+interface Veil {
   x0: number;
+  y0: number;
   x1: number;
-  y: number;
+  y1: number;
+  /** The spine's bow, units (up +). */
   bow: number;
-  thick: number;
+  width: number;
+  fibres: number;
+  /** How many fibres end in a hook at the spine's start (mares' tails). */
+  hooks: number;
+  seed: number;
 }
 
-/** Thin high streaks (cirrus) catching the pink of the low sun. */
-function streaks(seed: number): Streak[] {
-  const rng = createRng(seed);
-  const out: Streak[] = [];
-  const rows = [
-    { x0: -140, x1: 420, y: 352 },
-    { x0: 160, x1: 892, y: 318 },
-    { x0: 380, x1: 892, y: 388 },
-    { x0: -60, x1: 260, y: 404 },
-    { x0: 520, x1: 892, y: 430 },
+/**
+ * The veils' spines run toward one far point a little under the horizon,
+ * off to the right: high bands seen in perspective, so they fan a little
+ * rather than lie parallel. One group over the right half, a small one
+ * left of centre; none near the chapter title.
+ */
+const VP = [4200, -80] as const;
+
+function veil(
+  x0: number,
+  y0: number,
+  len: number,
+  o: Partial<Veil> & { seed: number },
+): Veil {
+  const dx = VP[0] - x0;
+  const dy = VP[1] - y0;
+  const m = Math.hypot(dx, dy);
+  return {
+    x0,
+    y0,
+    x1: x0 + (dx / m) * len,
+    y1: y0 + (dy / m) * len,
+    bow: 4,
+    width: 18,
+    fibres: 36,
+    hooks: 4,
+    ...o,
+  };
+}
+
+const VEILS: readonly Veil[] = [
+  veil(0, 437, 440, { seed: 701, width: 26, fibres: 52, bow: 6, hooks: 6 }),
+  veil(330, 392, 470, { seed: 702, width: 16, fibres: 34, bow: -4 }),
+  veil(600, 442, 330, { seed: 703, width: 20, fibres: 30, bow: 3, hooks: 5 }),
+  veil(-236, 384, 220, { seed: 704, width: 11, fibres: 20, bow: 3, hooks: 2 }),
+];
+
+interface Fibre {
+  path: Path2D;
+  /** Its spine, for the engraving's stroke. */
+  pts: [number, number][];
+  alpha: number;
+  warm: number;
+}
+
+/**
+ * A veil's fibres: fine tapered threads along the spine, spread across it
+ * (most near the middle), of different lengths and strengths, frayed at
+ * the far end and, for a few, hooked up at the near one; each with its
+ * own slight wave.
+ */
+function fibresOf(v: Veil): Fibre[] {
+  const rng = createRng(v.seed);
+  const out: Fibre[] = [];
+  const len = Math.hypot(v.x1 - v.x0, v.y1 - v.y0);
+  const ux = (v.x1 - v.x0) / len;
+  const uy = (v.y1 - v.y0) / len;
+  // Across the spine (up and to the side).
+  const nx = -uy;
+  const ny = ux;
+  // A gently bowed spine with a slow S in it.
+  const s2 = (rng() - 0.5) * v.bow * 1.2;
+  const spine = (t: number): [number, number] => [
+    v.x0 + (v.x1 - v.x0) * t,
+    v.y0 +
+      (v.y1 - v.y0) * t +
+      v.bow * Math.sin(Math.PI * t) +
+      s2 * Math.sin(2 * Math.PI * t),
   ];
-  for (const row of rows) {
-    const n = 3 + Math.floor(rng() * 3);
-    for (let i = 0; i < n; i++) {
-      const len = (row.x1 - row.x0) * (0.25 + 0.35 * rng());
-      const x0 = row.x0 + rng() * (row.x1 - row.x0 - len);
-      out.push({
-        x0,
-        x1: x0 + len,
-        y: row.y + (rng() - 0.5) * 16,
-        bow: (rng() - 0.3) * 6,
-        thick: 1.2 + rng() * 2.6,
-      });
+  for (let i = 0; i < v.fibres; i++) {
+    const g = (rng() + rng() + rng()) / 3 - 0.5;
+    const off = g * 2 * v.width;
+    const q = rng();
+    const t0 = rng() * 0.55;
+    const t1 = Math.min(1, t0 + 0.15 + 0.75 * q * q + 0.1 * rng());
+    const hook = i < v.hooks;
+    const th = 0.5 + 1.6 * rng() * (1 - Math.abs(g));
+    const wave = rng() * Math.PI * 2;
+    const waveK = 3 + 5 * rng();
+    const spread = (rng() - 0.5) * 1.4;
+    const n = Math.max(8, Math.round(((t1 - t0) * len) / 9));
+    const pts: [number, number][] = [];
+    for (let k = 0; k <= n; k++) {
+      const t = t0 + ((t1 - t0) * k) / n;
+      const [sx, sy] = spine(t);
+      // Fibres spread a little toward the far end, frayed.
+      const o =
+        off * (1 + Math.abs(spread) * (t - t0)) +
+        spread * 6 * (t - t0) +
+        2.2 * Math.sin(wave + t * waveK);
+      pts.push([sx + nx * o, sy + ny * o]);
     }
+    let head = 0;
+    if (hook) {
+      // The mares' tail: the near end, its head, curls up a little.
+      const r = 4 + 6 * rng();
+      const [hx, hy] = pts[0];
+      const turn = 0.9 + 0.6 * rng();
+      for (let k = 1; k <= 5; k++) {
+        const a = (turn * k) / 5;
+        pts.unshift([
+          hx - ux * r * Math.sin(a) + nx * r * (1 - Math.cos(a)),
+          hy - uy * r * Math.sin(a) + ny * r * (1 - Math.cos(a)),
+        ]);
+      }
+      head = 5;
+    }
+    // A thin sliver tapering to nothing at both ends; a hooked fibre is
+    // thickest at its head, a comma.
+    const m = pts.length - 1;
+    const width = (k: number) => {
+      const u = k / m;
+      const body =
+        Math.sin(Math.PI * Math.min(1, u * 1.25)) ** 0.6 * (1 - 0.5 * u);
+      if (!head) return th * body;
+      const hu = Math.max(0, 1 - Math.abs(k - head) / (head + 2));
+      return th * Math.max(body, 1.8 * Math.sin((Math.PI * hu) / 2));
+    };
+    const p = new Path2D();
+    p.moveTo(pts[0][0], pts[0][1]);
+    for (let k = 1; k <= m; k++)
+      p.lineTo(
+        pts[k][0] + nx * width(k) * 0.5,
+        pts[k][1] + ny * width(k) * 0.5,
+      );
+    for (let k = m; k >= 0; k--)
+      p.lineTo(
+        pts[k][0] - nx * width(k) * 0.5,
+        pts[k][1] - ny * width(k) * 0.5,
+      );
+    p.closePath();
+    out.push({
+      path: p,
+      pts,
+      alpha: (0.13 + 0.24 * rng()) * (1 - 0.6 * Math.abs(g)),
+      warm: rng(),
+    });
   }
   return out;
 }
 
-function streakPath(s: Streak, scale = 1, lift = 0): Path2D {
-  const p = new Path2D();
-  const n = 24;
-  const pts: [number, number][] = [];
-  for (let i = 0; i <= n; i++) {
-    const t = i / n;
-    const x = s.x0 + (s.x1 - s.x0) * t;
-    const mid = s.y + lift + s.bow * Math.sin(Math.PI * t);
-    pts.push([x, mid]);
+/**
+ * The veil's body: a faint luminous band along the spine, under the
+ * fibres, laid as a few stacked tapering bands of falling width, so its
+ * edges are soft without any blur.
+ */
+function bodyOf(v: Veil): Path2D[] {
+  const out: Path2D[] = [];
+  const n = 40;
+  const len = Math.hypot(v.x1 - v.x0, v.y1 - v.y0);
+  const nx = -(v.y1 - v.y0) / len;
+  const ny = (v.x1 - v.x0) / len;
+  const wob = wobble(v.seed + 5, [
+    [len * 0.31, 0.25],
+    [len * 0.11, 0.15],
+  ]);
+  for (const k of [1.25, 0.9, 0.6, 0.32]) {
+    const p = new Path2D();
+    const side = (sgn: number) => {
+      for (let i = 0; i <= n; i++) {
+        const t = sgn > 0 ? i / n : 1 - i / n;
+        const x = v.x0 + (v.x1 - v.x0) * t;
+        const y = v.y0 + (v.y1 - v.y0) * t + v.bow * Math.sin(Math.PI * t);
+        const w =
+          v.width * k * Math.sin(Math.PI * t) ** 0.7 * (1 + wob(t * len));
+        const px = x + nx * w * sgn;
+        const py = y + ny * w * sgn;
+        if (i === 0 && sgn > 0) p.moveTo(px, py);
+        else p.lineTo(px, py);
+      }
+    };
+    side(1);
+    side(-1);
+    p.closePath();
+    out.push(p);
   }
-  const th = (t: number) =>
-    s.thick *
-    scale *
-    Math.sin(Math.PI * t) ** 0.7 *
-    (0.8 + 0.2 * Math.sin(t * 9));
-  p.moveTo(pts[0][0], pts[0][1]);
-  for (let i = 1; i <= n; i++)
-    p.lineTo(pts[i][0], pts[i][1] + th(i / n) * 0.35);
-  for (let i = n; i >= 0; i--)
-    p.lineTo(pts[i][0], pts[i][1] - th(i / n) * 0.65);
-  p.closePath();
-  return p;
+  return out;
 }
 
-const STREAK_BOX = [-200, 892, 296, 448] as const;
+const CIRRUS_BOX = [-262, 892, 318, 448] as const;
 
-function streakPlate(): Plate {
-  let list: Streak[] | null = null;
-  const get = (): Streak[] => {
-    list ??= streaks(651);
+/**
+ * Cirrus high in the east, catching the cleanest of the low sun's light:
+ * warm and light, not greyed toward the sky. In the engraving, the same
+ * fibres reserved as paper over the sky's lines, a few drawn as fine
+ * strokes: they give the engraved sky its direction.
+ */
+function cirrusPlate(): Plate {
+  let list: Fibre[][] | null = null;
+  const get = (): Fibre[][] => {
+    list ??= VEILS.map(fibresOf);
     return list;
+  };
+  const colourJob = (k: number) => (c: PlateCanvas) => {
+    const { ctx } = c;
+    ctx.fillStyle = rgba("#f6d9cc", 0.035);
+    for (const b of bodyOf(VEILS[k])) ctx.fill(b);
+    for (const f of get()[k]) {
+      ctx.fillStyle = rgba(mix("#f7dccb", "#fbe8d8", f.warm), f.alpha);
+      ctx.fill(f.path);
+    }
+  };
+  const inkJob = (k: number) => (c: PlateCanvas) => {
+    const { ctx } = c;
+    const rng = createRng(760 + k);
+    const lines = new Path2D();
+    // The veil reserved: the sky's lines broken along it.
+    ctx.fillStyle = rgba(PAPER.low, 0.45);
+    for (const b of bodyOf(VEILS[k]).slice(1)) ctx.fill(b);
+    for (const f of get()[k]) {
+      ctx.fillStyle = rgba(PAPER.low, Math.min(1, f.alpha * 2.4));
+      ctx.fill(f.path);
+      if (rng() < 0.35) {
+        lines.moveTo(f.pts[0][0], f.pts[0][1]);
+        for (const [x, y] of f.pts.slice(1)) lines.lineTo(x, y);
+      }
+    }
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = c.pen(0.45);
+    ctx.strokeStyle = rgba(INK.hatch, 0.32);
+    ctx.stroke(lines);
   };
   return {
     id: "cloud-high",
     depth: Number.POSITIVE_INFINITY,
-    box: STREAK_BOX,
+    box: CIRRUS_BOX,
     group: "sky",
     jobs: (mode) =>
-      mode === "colour"
-        ? [
-            (c) => {
-              const { ctx } = c;
-              for (const s of get()) {
-                const sky = skyAt(s.y);
-                ctx.fillStyle = rgba(mix("#f0c7b4", sky, 0.3), 0.42);
-                ctx.fill(streakPath(s));
-                ctx.fillStyle = rgba(mix("#fbe3cc", sky, 0.2), 0.4);
-                ctx.fill(streakPath(s, 0.45, -0.3));
-              }
-            },
-          ]
-        : [
-            (c) => {
-              const { ctx } = c;
-              const rng = createRng(652);
-              ctx.beginPath();
-              for (const s of get()) {
-                for (let k = 0; k < 2; k++) {
-                  const off = (k - 0.5) * s.thick * 0.5;
-                  let on = false;
-                  for (let i = 0; i <= 30; i++) {
-                    const t = i / 30;
-                    const x = s.x0 + (s.x1 - s.x0) * t;
-                    const y = s.y + off + s.bow * Math.sin(Math.PI * t);
-                    const keep = t > 0.06 && t < 0.94 && rng() > 0.2;
-                    if (keep) {
-                      if (on) ctx.lineTo(x, y);
-                      else ctx.moveTo(x, y);
-                    }
-                    on = keep;
-                  }
-                }
-              }
-              ctx.lineCap = "round";
-              ctx.lineWidth = c.pen(0.5);
-              ctx.strokeStyle = rgba(INK.hatch, 0.45);
-              ctx.stroke();
-            },
-          ],
+      VEILS.map((_, k) => (mode === "colour" ? colourJob(k) : inkJob(k))),
   };
 }
 
 export function cloudPlates(): Plate[] {
-  return [streakPlate(), ...GROUPS.map(groupPlate)];
+  return [cirrusPlate(), ...GROUPS.map(groupPlate)];
 }

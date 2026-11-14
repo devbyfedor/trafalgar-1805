@@ -50,22 +50,26 @@ import {
 
 const RIGHT = 892;
 
-/** The far strand's band (shares of the strand) and the near strand's. */
-const FAR_U = 0.33;
+/** The near strand's wet marks start a little below its top (the far plate's art shows above it). */
 const NEAR_U = 0.37;
 /** Where the near plate's top runs (under the far plate's art, same tones). */
 const SEAM_U = 0.35;
 
-/** The strand's tone from the high-water shore (0) to the low-water edge (1). */
+/**
+ * The strand's tone from the high-water shore (0) to the low-water edge
+ * (1): the dry upper beach warm and sunlit, then, past the drift line, the
+ * wet sand darker and a little cooler (wet sand is darker than dry), its
+ * light coming from what it mirrors (paintWet).
+ */
 const SAND: readonly (readonly [number, string])[] = [
-  [0, "#ead4aa"],
-  [0.06, "#e5cda3"],
-  [0.1, "#d2b893"],
-  [0.16, "#d6bb96"],
-  [0.3, "#dec49e"],
-  [0.55, "#e4cba4"],
-  [0.8, "#e9d1ab"],
-  [1, "#eed8b2"],
+  [0, "#ecd6ab"],
+  [0.05, "#e8d0a5"],
+  [0.09, "#dcc39c"],
+  [0.13, "#cdb291"],
+  [0.3, "#c5aa8b"],
+  [0.6, "#bda287"],
+  [0.85, "#b69d86"],
+  [1, "#b9a28c"],
 ];
 
 function sandAt(u: number): string {
@@ -78,14 +82,34 @@ function sandAt(u: number): string {
   return SAND[SAND.length - 1][1];
 }
 
-/** What the wet sand mirrors above it at x: the lit cliffs, the town, the dunes. */
-function mirrorAt(x: number, rng: () => number): string {
-  if (x < -340) return rng() < 0.7 ? "#e8bd7f" : "#d9b07a";
-  if (x < 320) {
-    const r = rng();
-    return r < 0.45 ? "#e6c596" : r < 0.75 ? "#f0dcb7" : "#bba48c";
+/**
+ * What the wet sand mirrors at x (layer units at the land's depth), `v`
+ * of the way up the land's lowest band (0: its foot, 1: some 17 units up;
+ * the mirror turns it over, so the foot lies at the strand's top): the
+ * talus and the lit beds of the cliffs with their grey bands; the slope
+ * down to the harbour; the dark piles and masts at the harbour's mouth;
+ * the quays, then the lit walls and tile roofs of the lower town; the
+ * dunes, then the green slopes of Outreau.
+ */
+function landMirror(x: number, v: number, r: number): string {
+  if (x < -236) {
+    if (v < 0.25) return r < 0.6 ? "#a8927a" : "#8f7e6c";
+    return r < 0.45 ? "#dbb47c" : r < 0.75 ? "#cbb69b" : "#b0a497";
   }
-  return rng() < 0.6 ? "#eedab4" : "#e2c9a2";
+  if (x < -165) return r < 0.5 ? "#b5a36c" : "#cfb380";
+  if (x < -100) return r < 0.7 ? "#5a4f45" : "#7d6c5a";
+  if (x < 195) {
+    if (v < 0.2) return r < 0.6 ? "#6e6152" : "#8b7a66";
+    return r < 0.4 ? "#e3c897" : r < 0.7 ? "#c48f69" : "#9a8f95";
+  }
+  if (v < 0.35) return r < 0.6 ? "#e2cba1" : "#d4bd92";
+  return r < 0.6 ? "#b2a76f" : "#9f9a72";
+}
+
+/** Where the wet strand glows brightest: in front of the town, its lit walls mirrored (the harbour mouth is the picture's centre). */
+function glowAt(x: number): number {
+  const t = (x - 40) / 170;
+  return Math.exp(-t * t);
 }
 
 /**
@@ -226,33 +250,110 @@ function lens(p: Pool): Path2D {
   return path;
 }
 
-/** The wet sand's mirror: soft vertical smears of the lit shore, wet patches, pools, runnels, ripple marks. */
+/**
+ * The wet sand, a dull mirror (between shares ua and ub):
+ * - "sheen": long lanes of the low lilac-rose sky's gloss, and in front of
+ *   the town the warm glow of its lit walls mirrored;
+ * - "mirror": the land turned over in it, as vertical streaks with crisp
+ *   sides in the land's own colours, broken across by the ripples;
+ * - "marks": darker wet patches, pools glinting with the sky, runnels,
+ *   ripple marks.
+ */
 function paintWet(
   c: PlateCanvas,
   seed: number,
   ua: number,
   ub: number,
-  part: "smears" | "marks",
+  part: "sheen" | "mirror" | "marks",
 ) {
   const { ctx } = c;
   const rng = createRng(seed);
   const [x0] = c.box;
-  const span = (x: number) => at(x, ua) - at(x, ub);
-  // Smears of the shore's reflection.
-  for (let i = 0; i < (part === "smears" ? 130 : 0); i++) {
-    const x = x0 + rng() * (RIGHT - x0);
-    const u = ua + (ub - ua) * (0.2 + 0.6 * rng());
-    softBlob(
-      c,
-      x,
-      at(x, u),
-      1.5 + rng() * 3.5,
-      span(x) * (0.3 + rng() * 0.4),
-      mirrorAt(x, rng),
-      0.16 + rng() * 0.18,
-    );
+  const band = (u0: number, u1: number, a: number, b: number) => {
+    const p = new Path2D();
+    const n = Math.max(4, Math.ceil((b - a) / 6));
+    for (let i = 0; i <= n; i++) {
+      const xx = a + ((b - a) * i) / n;
+      if (i === 0) p.moveTo(xx, at(xx, u0));
+      else p.lineTo(xx, at(xx, u0));
+    }
+    for (let i = n; i >= 0; i--) {
+      const xx = a + ((b - a) * i) / n;
+      p.lineTo(xx, at(xx, u1));
+    }
+    p.closePath();
+    return p;
+  };
+  if (part === "sheen") {
+    // Lanes of the sky's gloss: long, thin, crisp on their far side.
+    for (let i = 0; i < 70; i++) {
+      const u = ua + (ub - ua) * rng();
+      const du = (0.01 + 0.035 * rng()) * (ub - ua) * 3;
+      const a = x0 + (RIGHT - x0) * rng() - 60;
+      const len = 60 + 260 * rng();
+      ctx.fillStyle = rgba(
+        rng() < 0.7 ? "#d9c3c6" : "#e2d0c8",
+        0.18 + 0.2 * rng(),
+      );
+      ctx.fill(band(u, Math.min(ub, u + du), a, a + len));
+    }
+    // The glow in front of the town: its lit walls mirrored, the
+    // brightest light on the land (the picture's centre).
+    for (let i = 0; i < 70; i++) {
+      const x = -260 + 520 * rng();
+      const g = glowAt(x);
+      if (rng() > g) continue;
+      const u = ua + (ub - ua) * rng();
+      const du = (0.02 + 0.05 * rng()) * (ub - ua) * 2;
+      const len = 30 + 120 * rng();
+      ctx.fillStyle = rgba(rng() < 0.6 ? "#f6e3c4" : "#f0d4b1", 0.3 + 0.32 * g);
+      ctx.fill(band(u, Math.min(ub, u + du), x - len / 2, x + len / 2));
+    }
+    return;
   }
-  if (part === "smears") return;
+  if (part === "mirror") {
+    // The land turned over: streaks down from where its foot is mirrored,
+    // each a column of the land's colour, crisp at its sides, broken
+    // across where the sand's ripples catch the sky.
+    // Batched by colour and strength: one fill per bucket.
+    const buckets = new Map<string, Path2D>();
+    const n = Math.round(((RIGHT - x0) / 1800) * 1300);
+    for (let i = 0; i < n; i++) {
+      const x = x0 + (RIGHT - x0) * rng();
+      const harbour = x > -165 && x < -100;
+      const w = harbour ? 0.5 + 0.6 * rng() : 0.7 + 2.8 * rng() ** 1.5;
+      const u0 = ua + (ub - ua) * rng() * 0.75;
+      const u1 = Math.min(ub, u0 + (ub - ua) * (0.3 + 0.5 * rng()));
+      const v = Math.min(1, Math.max(0, (u0 - 0.12) / 0.88));
+      const col = landMirror(x, v, rng());
+      const wet = 0.6 + 0.4 * Math.min(1, (u0 - 0.1) / 0.5);
+      const a = Math.round((0.3 + 0.25 * rng()) * wet * 10) / 10;
+      const key = `${col}|${a}`;
+      let p = buckets.get(key);
+      if (!p) {
+        p = new Path2D();
+        buckets.set(key, p);
+      }
+      // In one or two pieces, the ripples breaking it across.
+      const pieces = 1 + Math.floor(rng() * 2);
+      let s = u0;
+      const step = (u1 - u0) / pieces;
+      for (let k = 0; k < pieces; k++) {
+        const e = s + step * (0.7 + 0.28 * rng());
+        const top = at(x, s);
+        const bot = at(x, e);
+        p.rect(x - w / 2, bot, w, top - bot);
+        s += step;
+      }
+    }
+    for (const [key, p] of buckets) {
+      const [col, a] = key.split("|");
+      ctx.fillStyle = rgba(col, Number(a));
+      ctx.fill(p);
+    }
+    return;
+  }
+  const span = (x: number) => at(x, ua) - at(x, ub);
   // Darker wet patches.
   for (let i = 0; i < 40; i++) {
     const x = x0 + rng() * (RIGHT - x0);
@@ -263,15 +364,15 @@ function paintWet(
       at(x, u),
       20 + rng() * 60,
       0.8 + rng() * 1.6,
-      "#bfa385",
-      0.18,
+      "#a88f75",
+      0.16,
     );
   }
   // Pools glinting with the sky, a darker lip under each.
   const ps = pools(seed + 1, ua, ub, x0);
   for (const p of ps) {
-    const sky = p.x > -60 && p.x < 360 ? "#d7cbd0" : "#f2e1bf";
-    ctx.fillStyle = rgba(sky, 0.85);
+    const sky = rng() < 0.6 ? "#ddd0d4" : "#eadbcf";
+    ctx.fillStyle = rgba(sky, 0.8);
     ctx.fill(lens(p));
   }
   ctx.beginPath();
@@ -285,7 +386,7 @@ function paintWet(
     );
   }
   ctx.lineWidth = c.pen(0.7);
-  ctx.strokeStyle = rgba("#a08668", 0.4);
+  ctx.strokeStyle = rgba("#8f7860", 0.4);
   ctx.stroke();
   // Runnels: long bright threads along the strand.
   ctx.beginPath();
@@ -301,8 +402,8 @@ function paintWet(
       else ctx.lineTo(x, at(x, uu));
     }
   }
-  ctx.lineWidth = c.pen(1);
-  ctx.strokeStyle = rgba("#f6e8cb", 0.55);
+  ctx.lineWidth = c.pen(0.9);
+  ctx.strokeStyle = rgba("#eee0cc", 0.45);
   ctx.stroke();
   // Ripple marks in clusters.
   ctx.beginPath();
@@ -318,19 +419,35 @@ function paintWet(
     }
   }
   ctx.lineWidth = c.pen(0.6);
-  ctx.strokeStyle = rgba("#ae9576", 0.32);
+  ctx.strokeStyle = rgba("#9c8468", 0.3);
   ctx.stroke();
 }
 
-/** The moon's soft streak in the wet sand under its place. */
+/**
+ * The moon's streak in the wet sand under its place: a broken column of
+ * small dabs, hardly brighter than the sky it lies in (docs/history-
+ * notes.md: the moon is just up, in the haze, with the sun still up).
+ */
 function paintMoonStreak(c: PlateCanvas, ua: number, ub: number) {
   const { ctx } = c;
+  const rng = createRng(4401 + Math.round(ua * 100));
   const x = MOON.x;
-  const top = at(x, ua);
-  const bot = at(x, ub);
-  softBlob(c, x, (top + bot) / 2, 4.5, (top - bot) * 0.55, "#fbeed4", 0.5);
-  ctx.fillStyle = rgba("#fff4df", 0.3);
-  ctx.fillRect(x - 0.7, bot, 1.4, top - bot);
+  ctx.beginPath();
+  let u = ua + 0.02 * rng();
+  while (u < ub) {
+    const du = (0.015 + 0.04 * rng()) * (ub - ua);
+    if (rng() < 0.7) {
+      const y = at(x, u);
+      const l = (0.8 + 2.6 * rng()) * (0.6 + 0.6 * u);
+      const off = (rng() - 0.5) * 1.6;
+      ctx.moveTo(x + off - l / 2, y);
+      ctx.lineTo(x + off + l / 2, y);
+    }
+    u += du;
+  }
+  ctx.lineWidth = c.pen(0.9);
+  ctx.strokeStyle = rgba("#efe4da", 0.28);
+  ctx.stroke();
 }
 
 /** The Liane's channel from the harbour's mouth out across the strand. */
@@ -671,9 +788,9 @@ function inkStrand(c: PlateCanvas, seed: number, ua: number, ub: number) {
     const y = at(x, u) + (rng() - 0.5) * 0.4;
     const keep = u < 0.12 ? 0.75 : 0.32 + 0.3 * sheen(x * 0.9, u * 400);
     if (rng() > keep || bare(x, u, y)) continue;
-    const r = c.pen(0.35 + 0.35 * rng());
-    dots.moveTo(x + r, y);
-    dots.arc(x, y, r, 0, Math.PI * 2);
+    // A dot: a tiny square is as round as an arc at this size, and cheaper.
+    const r = c.pen(0.4 + 0.4 * rng());
+    dots.rect(x - r, y - r, 2 * r, 2 * r);
   }
   ctx.fillStyle = rgba(INK.hatch, 0.5);
   ctx.fill(dots);
@@ -776,7 +893,7 @@ function paintEdgeLight(c: PlateCanvas, seed: number) {
   for (let i = 0; i < 300; i++) {
     const x = x0 + rng() * (RIGHT - x0);
     const e = lowWaterY(x);
-    const tone = mirrorAt(x, rng);
+    const tone = landMirror(x, 0.3 + 0.5 * rng(), rng());
     const strong = x < -340 ? 1 : 0.7;
     softBlob(
       c,
@@ -855,6 +972,109 @@ function paintEdgeWaves(
   ctx.stroke(lit);
   ctx.strokeStyle = rgba(waterDark(240), 0.26);
   ctx.stroke(dark);
+}
+
+/**
+ * The low-water edge in colour: never one ruled line. Above it a lobed film
+ * of shallow water over the sand (the sand warm through it, its upper
+ * edge wandering); below it a few tongues and bars of sand reaching out
+ * into the sea; along it the swash, a broken bright thread swelling and
+ * thinning. lowWaterY itself stays where the fort and the moored line
+ * stand.
+ */
+function paintLowWaterEdge(c: PlateCanvas, seed: number) {
+  const { ctx } = c;
+  const rng = createRng(seed);
+  const [x0, x1] = c.box;
+  const xs = across(x0, x1, 3);
+  const lobe = (x: number) =>
+    1.1 +
+    0.7 * Math.sin(x * 0.027 + 0.8) +
+    0.45 * Math.sin(x * 0.071 + 2.3) +
+    0.25 * Math.sin(x * 0.19 + 1.1);
+  // The film: from the edge up over the sand, lobed.
+  const film = new Path2D();
+  film.moveTo(xs[0], lowWaterY(xs[0]));
+  for (const x of xs) film.lineTo(x, lowWaterY(x) + Math.max(0.2, lobe(x)));
+  for (let i = xs.length - 1; i >= 0; i--) film.lineTo(xs[i], lowWaterY(xs[i]));
+  film.closePath();
+  const fy = lowWaterY(0);
+  const g = ctx.createLinearGradient(0, fy + 2.5, 0, fy);
+  g.addColorStop(0, rgba("#c9b8a8", 0.28));
+  g.addColorStop(1, rgba("#b3aeb6", 0.55));
+  ctx.fillStyle = g;
+  ctx.fill(film);
+  // The film's upper rim: a fine darker wet line, broken.
+  ctx.beginPath();
+  let on = false;
+  for (const x of xs) {
+    const keep = Math.sin(x * 0.05 + 1.7) + 0.4 * Math.sin(x * 0.13) > -0.6;
+    const y = lowWaterY(x) + Math.max(0.2, lobe(x));
+    if (keep && on) ctx.lineTo(x, y);
+    else if (keep) ctx.moveTo(x, y);
+    on = keep;
+  }
+  ctx.lineWidth = c.pen(0.7);
+  ctx.strokeStyle = rgba("#9a8470", 0.35);
+  ctx.stroke();
+  // Tongues and bars of sand reaching out below the edge.
+  for (let i = 0; i < 26; i++) {
+    const x = x0 + (x1 - x0) * rng();
+    const len = 12 + 46 * rng();
+    const th = 0.4 + 1.1 * rng();
+    const off = 0.3 + 1.6 * rng();
+    const p = new Path2D();
+    const n = 12;
+    for (let k = 0; k <= n; k++) {
+      const t = k / n;
+      const xx = x - len / 2 + len * t;
+      const y = lowWaterY(xx) - off + th * Math.sin(Math.PI * t) ** 0.8;
+      if (k === 0) p.moveTo(xx, y);
+      else p.lineTo(xx, y);
+    }
+    for (let k = n; k >= 0; k--) {
+      const t = k / n;
+      const xx = x - len / 2 + len * t;
+      p.lineTo(xx, lowWaterY(xx) - off - 0.25 * th * Math.sin(Math.PI * t));
+    }
+    p.closePath();
+    ctx.fillStyle = rgba(rng() < 0.5 ? "#c7ad8e" : "#bfa68b", 0.6);
+    ctx.fill(p);
+    ctx.lineWidth = c.pen(0.6);
+    ctx.strokeStyle = rgba("#efe2cf", 0.45);
+    ctx.stroke(p);
+  }
+  // The swash: a bright thread, swelling and thinning, broken.
+  const swash = new Path2D();
+  let x = x0 - rng() * 30;
+  while (x < x1) {
+    const len = 30 + 110 * rng();
+    const w = c.pen(0.4 + 0.9 * rng());
+    const off = (rng() - 0.5) * 0.5;
+    const pk = 0.3 + 0.4 * rng();
+    const n = Math.ceil(len / 4);
+    for (let k = 0; k <= n; k++) {
+      const t = k / n;
+      const xx = x + len * t;
+      const pr = t < pk ? t / pk : (1 - t) / (1 - pk);
+      const y = lowWaterY(xx) + 0.15 + off + w * Math.sin((Math.PI / 2) * pr);
+      if (k === 0) swash.moveTo(xx, y);
+      else swash.lineTo(xx, y);
+    }
+    for (let k = n; k >= 0; k--) {
+      const t = k / n;
+      const xx = x + len * t;
+      const pr = t < pk ? t / pk : (1 - t) / (1 - pk);
+      swash.lineTo(
+        xx,
+        lowWaterY(xx) + 0.15 + off - w * Math.sin((Math.PI / 2) * pr),
+      );
+    }
+    swash.closePath();
+    x += len * (rng() < 0.25 ? 1.1 + 0.4 * rng() : 0.8 + 0.15 * rng());
+  }
+  ctx.fillStyle = rgba("#f8eedc", 0.75);
+  ctx.fill(swash);
 }
 
 /** A burin's stroke from a to b along `line`: swelling to `w` either side at `peak`, tapering to nothing at both ends. */
@@ -1028,17 +1248,17 @@ function farStrand(): Plate {
             on(farY, (c) => paintSand(c, 0, 0.25, null, farTone)),
             on(farY, (c) => paintSand(c, 0.25, 0.5, null, farTone)),
             on(farY, (c) => paintSand(c, 0.5, 1, y0, farTone)),
-            on(farY, (c) => paintWet(c, 1201, 0.12, FAR_U, "smears")),
-            on(farY, (c) => paintWet(c, 1701, 0.12, FAR_U, "smears")),
-            on(farY, (c) => paintWet(c, 1201, 0.12, FAR_U, "marks")),
+            on(farY, (c) => paintWet(c, 1201, 0.12, FAR_END, "sheen")),
+            on(farY, (c) => paintWet(c, 1701, 0.12, FAR_END, "mirror")),
+            on(farY, (c) => paintWet(c, 1201, 0.12, FAR_END, "marks")),
             // The art below the hold's view, in four bands so no job runs long.
             ...[0.47, 0.6, 0.73, 0.86].flatMap((u, k) => [
-              on(farY, (c) => paintWet(c, 1210 + k, u, u + 0.12, "smears")),
-              on(farY, (c) => paintWet(c, 1710 + k, u, u + 0.12, "smears")),
-              on(farY, (c) => paintWet(c, 1210 + k, u, u + 0.12, "marks")),
+              on(farY, (c) => paintWet(c, 1210 + k, u, u + 0.13, "sheen")),
+              on(farY, (c) => paintWet(c, 1710 + k, u, u + 0.13, "mirror")),
+              on(farY, (c) => paintWet(c, 1210 + k, u, u + 0.13, "marks")),
             ]),
             on(farY, (c) => {
-              paintMoonStreak(c, 0.1, FAR_U);
+              paintMoonStreak(c, 0.12, FAR_END);
               paintMoonStreak(c, 0.47, 0.98);
               paintChannel(c, CHANNEL_U0, 1);
               paintDriftLine(c, false);
@@ -1074,38 +1294,15 @@ function nearStrand(): Plate {
               paintSand(c, SEAM_U, 1, -40);
               paintEdgeWater(c, y0);
             },
-            (c) => paintWet(c, 1401, NEAR_U, 0.97, "smears"),
-            (c) => paintWet(c, 1901, NEAR_U, 0.97, "smears"),
-            (c) => paintWet(c, 1401, NEAR_U, 0.97, "marks"),
+            (c) => paintWet(c, 1401, SEAM_U, 0.97, "sheen"),
+            (c) => paintWet(c, 1901, SEAM_U, 0.97, "mirror"),
+            (c) => paintWet(c, 1401, SEAM_U, 0.97, "marks"),
             (c) => {
-              paintMoonStreak(c, NEAR_U, 0.99);
+              paintMoonStreak(c, SEAM_U, 0.97);
               paintChannel(c, SEAM_U, 1);
             },
-            (c) => {
-              const { ctx } = c;
-              // The wettest margin and the swash's bright line.
-              const [x0, x1] = c.box;
-              const xs = across(x0, x1, 4);
-              ctx.beginPath();
-              xs.forEach((x, i) => {
-                const y = lowWaterY(x) + 0.5;
-                if (i === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
-              });
-              ctx.lineWidth = c.pen(2.2);
-              ctx.strokeStyle = rgba("#c4a888", 0.35);
-              ctx.stroke();
-              ctx.beginPath();
-              xs.forEach((x, i) => {
-                const y = lowWaterY(x) - 0.2 + Math.sin(x * 0.21) * 0.15;
-                if (i === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
-              });
-              ctx.lineWidth = c.pen(1.1);
-              ctx.strokeStyle = rgba("#f8ecd3", 0.85);
-              ctx.stroke();
-              paintEdgeLight(c, 1501);
-            },
+            (c) => paintEdgeLight(c, 1501),
+            (c) => paintLowWaterEdge(c, 1551),
             (c) => paintEdgeWaves(c, 1601, -26, y0),
           ]
         : [

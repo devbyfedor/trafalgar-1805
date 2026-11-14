@@ -9,7 +9,13 @@ import {
   smooth,
 } from "../interludes";
 import type { SeaViewHandle, SeaViewProps } from "./handle";
-import { DUSK_AT, duskOf, duskShare } from "./paint/dusk";
+import {
+  DUSK_AT,
+  duskOf,
+  duskShare,
+  type EveningOpacities,
+  eveningOpacities,
+} from "./paint/dusk";
 import {
   type Plate,
   type PlateDusk,
@@ -62,7 +68,7 @@ const GLADE = {
   order: 21,
 };
 /** The smoke's cool grey at dusk, and how far the puffs go toward it. */
-const SMOKE_DUSK = { colour: "#6d6a80", amount: 0.55 };
+const SMOKE_DUSK = { colour: "#5c586f", amount: 0.8 };
 /** The haze over the land at dusk: cool, violet-grey, a little denser. */
 const HAZE_DUSK =
   "linear-gradient(to bottom, rgba(120,114,146,0) 0%, rgba(120,114,146,0.16) 55%, rgba(128,120,150,0.36) 88%, rgba(128,120,150,0.18) 100%)";
@@ -86,6 +92,13 @@ function PlateArt({ plate }: { plate: Plate }) {
       {has("colour") ? (
         <canvas
           data-mode="colour"
+          className="absolute inset-0 block h-full w-full will-change-[opacity]"
+          style={{ opacity: 0 }}
+        />
+      ) : null}
+      {dusk?.glow && (!plate.rasters || plate.rasters.includes("glow")) ? (
+        <canvas
+          data-mode="glow"
           className="absolute inset-0 block h-full w-full will-change-[opacity]"
           style={{ opacity: 0 }}
         />
@@ -216,11 +229,15 @@ interface PlateView {
   plate: Plate;
   ink: HTMLCanvasElement | null;
   colour: HTMLCanvasElement | null;
+  glow: HTMLCanvasElement | null;
   dusk: HTMLCanvasElement | null;
   duskSpec: PlateDusk | null;
+  /** The flicker's phase (fires): its own for each plate. */
+  phase: number;
   rock: HTMLElement | null;
   inkOpacity: number;
   colourOpacity: number;
+  glowOpacity: number;
   duskOpacity: number;
   duskRise: number;
 }
@@ -249,12 +266,19 @@ function controller(root: HTMLElement): SeaViewHandle & { dispose(): void } {
       colour:
         box?.querySelector<HTMLCanvasElement>("canvas[data-mode=colour]") ??
         null,
+      glow:
+        box?.querySelector<HTMLCanvasElement>("canvas[data-mode=glow]") ?? null,
       dusk:
         box?.querySelector<HTMLCanvasElement>("canvas[data-mode=dusk]") ?? null,
       duskSpec: duskOf(plate),
+      phase: [...plate.id].reduce(
+        (h, ch) => (h * 31 + ch.charCodeAt(0)) % 997,
+        7,
+      ),
       rock: box?.querySelector<HTMLElement>("[data-rock]") ?? null,
       inkOpacity: -1,
       colourOpacity: -1,
+      glowOpacity: -1,
       duskOpacity: -1,
       duskRise: Number.NaN,
     };
@@ -267,10 +291,11 @@ function controller(root: HTMLElement): SeaViewHandle & { dispose(): void } {
   const glade = gladeCanvas
     ? new GlitterRenderer(gladeCanvas, {
         seed: 1805_08_10,
-        count: 260,
-        color: "#f4ead2",
-        halfWidthTop: 0.06,
+        count: 380,
+        color: "#f6dfb4",
+        halfWidthTop: 0.05,
         halfWidthBottom: 0.5,
+        sheen: { color: "#e8cfa4", alpha: 0.07 },
       })
     : null;
   let gladeOpacity = -1;
@@ -307,6 +332,7 @@ function controller(root: HTMLElement): SeaViewHandle & { dispose(): void } {
     canvases: {
       ...(v.ink ? { ink: v.ink } : {}),
       ...(v.colour ? { colour: v.colour } : {}),
+      ...(v.glow ? { glow: v.glow } : {}),
       ...(v.dusk ? { dusk: v.dusk } : {}),
     },
   }));
@@ -356,6 +382,7 @@ function controller(root: HTMLElement): SeaViewHandle & { dispose(): void } {
   resize.observe(root);
 
   const shift: Shift = { x: 0, y: 0 };
+  const op: EveningOpacities = { colour: 0, glow: 0, dusk: 0 };
   const share: PaintingShare = {
     engraving: 0,
     sky: 0,
@@ -407,25 +434,36 @@ function controller(root: HTMLElement): SeaViewHandle & { dispose(): void } {
         const c = share[v.plate.group as PlateGroup];
         const ink = share.engraving * (1 - smooth(0.85, 1, c));
         v.inkOpacity = setOpacity(v.ink, Math.max(FLOOR, ink), v.inkOpacity);
+        // The evening's rasters (paint/dusk.ts): each over the one before,
+        // the one below gone once the one above is whole.
+        const d = v.duskSpec;
+        eveningOpacities(d, evening, c, op);
         v.colourOpacity = setOpacity(
           v.colour,
-          Math.max(FLOOR, c),
+          Math.max(FLOOR, op.colour),
           v.colourOpacity,
         );
-        const d = v.duskSpec;
+        v.glowOpacity = setOpacity(
+          v.glow,
+          Math.max(FLOOR, op.glow),
+          v.glowOpacity,
+        );
         if (d && v.dusk) {
-          const k = duskShare(d.at, evening);
-          let o = c * k;
-          if (d.flicker && o > 0)
+          let o = op.dusk;
+          if (d.flicker && o > 0) {
+            // Many fires seen on their smoke from 2-3 km: a slow, small
+            // breathing, each camp its own.
+            const amp = Math.min(0.06, d.flicker);
             o *=
               1 -
-              d.flicker *
+              amp *
                 (0.5 +
-                  0.3 * Math.sin(time * 7.3 + d.at[0] * 40) +
-                  0.2 * Math.sin(time * 12.9 + d.at[1] * 70));
+                  0.3 * Math.sin(time * 1.1 + v.phase) +
+                  0.2 * Math.sin(time * 2.3 + v.phase * 1.7));
+          }
           v.duskOpacity = setOpacity(v.dusk, Math.max(FLOOR, o), v.duskOpacity);
           if (d.rise) {
-            const rise = d.rise * k;
+            const rise = d.rise * duskShare(d.at, evening);
             if (rise !== v.duskRise) {
               v.duskRise = rise;
               v.dusk.style.transform = `translate3d(0, ${(-rise * (UNIT_VH / 100) * height).toFixed(2)}px, 0)`;

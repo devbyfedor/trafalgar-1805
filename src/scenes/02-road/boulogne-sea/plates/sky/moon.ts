@@ -47,30 +47,32 @@ function disc(): Path2D {
 
 /**
  * The moon at dusk: the sky darker round it, so the same disc reads
- * bright, cool cream rather than gold; a wider, softer aureole in the
- * haze (painted light, not a bloom), the maria clearer. Painted, not
- * graded from the golden moon.
+ * bright; but still warm, a pale gold, as a moon 2-5° up through the
+ * summer haze is (evening.md 3: it whitens only as it climbs, and the
+ * painting keeps it at its rising place); a soft warm aureole in the haze
+ * (painted light, not a bloom), gone by about 1.6 times its radius; the
+ * maria softer. Painted, not graded from the golden moon.
  */
 function paintDuskMoon(c: PlateCanvas): void {
   const { x, y, r } = MOON;
   const { ctx } = c;
-  softBlob(c, x, y, PAD - 1, PAD - 2, "#e9ddc9", 0.26, [
+  softBlob(c, x, y, PAD - 1, PAD - 2, "#d9bfa2", 0.16, [
     [0, 1],
-    [0.16, 0.72],
-    [0.4, 0.26],
-    [0.7, 0.07],
+    [0.12, 0.6],
+    [0.3, 0.18],
+    [0.6, 0.04],
     [1, 0],
   ]);
-  softBlob(c, x, y, r * 2.6, r * 2.5, "#f6ecd6", 0.42, [
+  softBlob(c, x, y, r * 1.65, r * 1.6, "#e8c9a2", 0.3, [
     [0, 1],
-    [0.4, 0.6],
+    [0.62, 0.55],
     [1, 0],
   ]);
   const d = disc();
   const g = ctx.createRadialGradient(x - r * 0.2, y + r * 0.2, 0, x, y, r);
-  g.addColorStop(0, "#fffaee");
-  g.addColorStop(0.7, "#fbf2df");
-  g.addColorStop(1, "#f1e2c4");
+  g.addColorStop(0, "#ffeccb");
+  g.addColorStop(0.7, "#fbe5bd");
+  g.addColorStop(1, "#f3d7a6");
   ctx.fillStyle = g;
   ctx.fill(d);
   ctx.save();
@@ -78,10 +80,10 @@ function paintDuskMoon(c: PlateCanvas): void {
   ctx.translate(x, y);
   ctx.rotate(TILT);
   for (const [mx, my, rx, ry] of MARIA)
-    softBlob(c, mx * r, my * r, rx * r, ry * r, "#c9bca6", 0.5);
+    softBlob(c, mx * r, my * r, rx * r, ry * r, "#d2b994", 0.42);
   ctx.restore();
   ctx.lineWidth = c.pen(0.9);
-  ctx.strokeStyle = rgba("#fffbf0", 0.55);
+  ctx.strokeStyle = rgba("#fff3dc", 0.45);
   ctx.stroke(d);
 }
 

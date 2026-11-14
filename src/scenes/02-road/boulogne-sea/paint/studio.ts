@@ -1,7 +1,7 @@
 import { SEA_HOLD, type SeaPose } from "../../interludes";
 import { buildPlates } from "../plates";
 import { boxStyle, type Shift, shiftFor } from "../view";
-import { duskJobs, duskOf, duskShare } from "./dusk";
+import { duskJobs, duskOf, duskShare, eveningOpacities } from "./dusk";
 import type {
   PaintMode,
   Plate,
@@ -81,6 +81,7 @@ async function run(): Promise<void> {
     plate: Plate;
     ink: HTMLCanvasElement;
     colour: HTMLCanvasElement;
+    glow: HTMLCanvasElement;
     dusk: HTMLCanvasElement;
   }[] = [];
   for (const plate of plates) {
@@ -94,8 +95,9 @@ async function run(): Promise<void> {
     box.style.transform = `translate3d(${shift.x}px, ${shift.y}px, 0)`;
     const ink = document.createElement("canvas");
     const colour = document.createElement("canvas");
+    const glow = document.createElement("canvas");
     const dusk = document.createElement("canvas");
-    for (const c of [ink, colour, dusk])
+    for (const c of [ink, colour, glow, dusk])
       Object.assign(c.style, {
         position: "absolute",
         inset: "0",
@@ -103,11 +105,12 @@ async function run(): Promise<void> {
         height: "100%",
         display: "block",
       });
-    box.append(ink, colour, dusk);
+    box.append(ink, colour, glow, dusk);
+    glow.style.opacity = "0";
     dusk.style.opacity = "0";
     root.append(box);
-    targets.push({ plate, canvases: { ink, colour, dusk } });
-    views.push({ plate, ink, colour, dusk });
+    targets.push({ plate, canvases: { ink, colour, glow, dusk } });
+    views.push({ plate, ink, colour, glow, dusk });
   }
   // Time each job: wrap them.
   const timings: Timing[] = [];
@@ -171,18 +174,19 @@ async function run(): Promise<void> {
       rec.height = c.height;
     }
   }
+  const op = { colour: 1, glow: 0, dusk: 0 };
   for (const v of views) {
     const d = duskOf(v.plate);
-    v.dusk.style.opacity =
-      o.mode === "colour" && o.dusk !== undefined && d
-        ? String(duskShare(d.at, o.dusk))
-        : "0";
+    const evening = o.mode === "colour" && o.dusk !== undefined;
+    if (evening) eveningOpacities(d, o.dusk ?? 0, 1, op);
+    v.glow.style.opacity = evening ? String(op.glow) : "0";
+    v.dusk.style.opacity = evening ? String(op.dusk) : "0";
     if (d?.rise && o.dusk !== undefined) {
       const px = v.colour.clientHeight / (v.plate.box[3] - v.plate.box[2]);
       v.dusk.style.transform = `translateY(${(-d.rise * duskShare(d.at, o.dusk) * px).toFixed(2)}px)`;
     }
     if (o.mode === "colour") {
-      v.colour.style.opacity = "1";
+      v.colour.style.opacity = evening ? String(op.colour) : "1";
       v.ink.style.opacity = "0";
     } else if (o.mode === "ink") {
       v.colour.style.opacity = "0";

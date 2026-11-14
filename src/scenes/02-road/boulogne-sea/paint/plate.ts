@@ -24,7 +24,7 @@ import type { LightSink } from "./lights";
  * engraving, and the dusk (the same view about twenty minutes after
  * sunset, paint/dusk.ts), which comes in over the colour through the hold.
  */
-export type PlateMode = "colour" | "ink" | "dusk";
+export type PlateMode = "colour" | "ink" | "glow" | "dusk";
 
 /** The rasters an area's painter paints with `Plate.jobs` (the dusk is made from the colour: paint/dusk.ts). */
 export type PaintMode = "colour" | "ink";
@@ -126,6 +126,11 @@ export interface PlateDusk {
   flicker?: number;
   /** Its own dusk painting, over the grade (or alone). */
   jobs?: () => readonly PlateJob[];
+  /**
+   * The sun's last light before the dusk (paint/dusk.ts): a raster graded
+   * from the colour that comes in over it first, when, and how.
+   */
+  glow?: { at: readonly [number, number]; grade: DuskGrade };
 }
 
 /**
@@ -136,7 +141,8 @@ export interface PlateDusk {
  * by height, layer units, so a cloud's top keeps a rose its base has lost.
  */
 export interface DuskGrade {
-  keep: number;
+  /** The light that is left, 0..1: a number, or a ramp by height (layer units). */
+  keep: number | readonly (readonly [number, number])[];
   tint: string | readonly (readonly [number, string])[];
   mix: number;
   /**
@@ -147,6 +153,12 @@ export interface DuskGrade {
    * mix to a brown grey.
    */
   hue?: { colour: string; amount: number };
+  /**
+   * The raster multiplied by itself by this much, after the hue: dark
+   * pixels sink further than light ones, so what faces the bright western
+   * sky (the chalk, the limewash) holds the light longest.
+   */
+  lift?: number;
 }
 
 /** Paint-order keys (Plate.order): every reflection over all the water, every craft over every reflection. */

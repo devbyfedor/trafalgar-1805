@@ -1,6 +1,6 @@
 import { Slicer } from "@/components/chart/engine/slice";
 import { UNIT_VH } from "../view";
-import { duskJobs, duskOf } from "./dusk";
+import { duskJobs, duskOf, glowJobs } from "./dusk";
 import { lightSink } from "./lights";
 import type { Plate, PlateCanvas, PlateJob, PlateMode } from "./plate";
 
@@ -31,11 +31,14 @@ export function plateSize(
   mode: PlateMode = "colour",
 ): { width: number; height: number } {
   const [x0, x1, y0, y1] = plate.box;
-  // The dusk raster is the colour raster graded: the colour's resolution.
+  // The dusk and the last light are the colour raster graded: the
+  // colour's resolution.
   const r =
     k *
     (plate.resolution?.[mode] ??
-      (mode === "dusk" ? plate.resolution?.colour : undefined) ??
+      (mode === "dusk" || mode === "glow"
+        ? plate.resolution?.colour
+        : undefined) ??
       1);
   return {
     width: Math.max(1, Math.ceil((x1 - x0) * r)),
@@ -112,7 +115,10 @@ export async function paintPlates(
   const passes: { t: PlateTarget; mode: PlateMode }[] = [];
   for (const t of targets)
     for (const mode of ["colour", "ink"] as const) passes.push({ t, mode });
-  for (const t of targets) passes.push({ t, mode: "dusk" });
+  for (const t of targets) {
+    passes.push({ t, mode: "glow" });
+    passes.push({ t, mode: "dusk" });
+  }
   try {
     for (const { t, mode } of passes) {
       {
@@ -120,9 +126,9 @@ export async function paintPlates(
         if (!canvas) continue;
         let jobs: readonly PlateJob[];
         if (t.plate.rasters && !t.plate.rasters.includes(mode)) jobs = [];
-        else if (mode === "dusk") {
+        else if (mode === "dusk" || mode === "glow") {
           const dusk = duskOf(t.plate);
-          jobs = dusk ? duskJobs(dusk) : [];
+          jobs = !dusk ? [] : mode === "dusk" ? duskJobs(dusk) : glowJobs(dusk);
         } else jobs = t.plate.jobs(mode);
         if (!jobs.length) {
           // No raster of this mode: no memory for one.
@@ -135,7 +141,7 @@ export async function paintPlates(
           canvas,
           mode,
           k,
-          mode === "dusk" ? t.canvases.colour : undefined,
+          mode === "dusk" || mode === "glow" ? t.canvases.colour : undefined,
         );
         if (!c) continue;
         if (mode === "colour") {

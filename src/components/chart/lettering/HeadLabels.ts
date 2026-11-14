@@ -95,6 +95,12 @@ const GAPS_EM = [0.7, 2.2, 3.7];
  * on screen, out past the band.
  */
 const SCREEN_GAPS_EM = [3.7, 5.2, 6.7];
+/*
+ * At each of those gaps a place toward the eye is tried first: straight
+ * down the screen from the fleet, centred under it. Seen at a slant, a
+ * coast lies beyond its fleet and the open sea, darkest, toward the eye,
+ * which the chart's own sides need not point to when the view is turned.
+ */
 /** The least a gap on the chart shrinks to on screen that a screen gap makes up for. */
 const FORESHORTEN_MIN = 0.1;
 /** Between the name and its strength, ems (a word space of the italic). */
@@ -158,7 +164,9 @@ interface Slot {
    * of a meeting), as far as the host says (Head.aw).
    */
   own: boolean;
-  side: HeadSlot;
+  side: HeadSlot | "toward";
+  /** Toward the eye: which of SCREEN_GAPS_EM (Head.toward). */
+  towardIndex: number;
   /** Above or below: centred on the fleet (0), reaching east of it (1) or west (-1). */
   reach: -1 | 0 | 1;
   /** From the fleet to its nearest edge, ems: on the chart, or on screen (onScreen). */
@@ -222,6 +230,8 @@ interface Head {
    */
   fx: number;
   fy: number;
+  /** This frame: the middles of its places toward the eye (world km, x and y pairs; NaN where the view finds no sea). */
+  toward: Float64Array;
   trail: Float64Array;
   trailCount: number;
   /** Its line on screen this frame, a quad a segment (lineQuads), and how many. */
@@ -314,12 +324,14 @@ export class HeadLabels implements ChartLayer {
       const slots: Slot[] = [];
       const add = (
         own: boolean,
-        side: HeadSlot,
+        side: HeadSlot | "toward",
         gap: number,
         onScreen = false,
       ) => {
         const reaches: readonly (-1 | 0 | 1)[] =
           side === "above" || side === "below" ? [0, 1, -1] : [0];
+        const towardIndex =
+          side === "toward" ? SCREEN_GAPS_EM.indexOf(gap) : -1;
         for (const reach of reaches)
           slots.push({
             own,
@@ -327,6 +339,7 @@ export class HeadLabels implements ChartLayer {
             reach,
             gap,
             onScreen,
+            towardIndex,
             quad: new Float64Array(8).fill(Number.NaN),
             weight: 0,
             why: new Float64Array(8),
@@ -342,8 +355,10 @@ export class HeadLabels implements ChartLayer {
         for (const gap of GAPS_EM) add(true, side, gap);
       for (const gap of GAPS_EM)
         for (const side of spec.slots) add(false, side, gap);
-      for (const gap of SCREEN_GAPS_EM)
+      for (const gap of SCREEN_GAPS_EM) {
+        add(false, "toward", gap, true);
         for (const side of spec.slots) add(false, side, gap, true);
+      }
       const head: Head = {
         spec,
         slots,
@@ -354,6 +369,7 @@ export class HeadLabels implements ChartLayer {
         aw: 0,
         fx: 1,
         fy: 1,
+        toward: new Float64Array(2 * SCREEN_GAPS_EM.length).fill(Number.NaN),
         trail: new Float64Array(2 * TRAIL_POINTS),
         trailCount: 0,
         lines: Array.from({ length: TRAIL_POINTS }, () => new Float64Array(8)),
@@ -699,6 +715,7 @@ export class HeadLabels implements ChartLayer {
     const q = this.probe;
     h.fx = 1;
     h.fy = 1;
+    h.toward.fill(Number.NaN);
     if (
       !this.corner(q, 0, frame, h.x, h.y) ||
       !this.corner(q, 1, frame, h.x + em, h.y) ||
@@ -707,6 +724,42 @@ export class HeadLabels implements ChartLayer {
       return;
     h.fx = Math.hypot(q[2] - q[0], q[3] - q[1]) / emPx;
     h.fy = Math.hypot(q[4] - q[0], q[5] - q[1]) / emPx;
+    // The places toward the eye: down the screen from the head by each
+    // gap and half the label's height, back onto the sea's plane.
+    const half = 0.5 * (h.top - h.bottom) * emPx;
+    for (let i = 0; i < SCREEN_GAPS_EM.length; i++)
+      this.onSea(
+        frame,
+        q[0],
+        q[1] + SCREEN_GAPS_EM[i] * emPx + half,
+        h.toward,
+        i,
+      );
+  }
+
+  /** The point on the sea's plane under a point on screen (CSS px), into out[2i..]: NaN where the view finds none. */
+  private onSea(
+    frame: FrameInfo,
+    sx: number,
+    sy: number,
+    out: Float64Array,
+    i: number,
+  ): void {
+    const W = frame.width / frame.dpr;
+    const H = frame.height / frame.dpr;
+    const v = this.v
+      .set((sx / W) * 2 - 1, 1 - (sy / H) * 2, 0.5)
+      .unproject(frame.camera);
+    const e = frame.eye;
+    const dz = v.z - e.z;
+    if (!(dz < -1e-9)) {
+      out[2 * i] = Number.NaN;
+      out[2 * i + 1] = Number.NaN;
+      return;
+    }
+    const t = -e.z / dz;
+    out[2 * i] = e.x + t * (v.x - e.x);
+    out[2 * i + 1] = e.y + t * (v.y - e.y);
   }
 
   /** The label's width, ems: its name, a space, its widest strength. */
@@ -742,6 +795,12 @@ export class HeadLabels implements ChartLayer {
     const hx = s.own ? h.own[k] : h.x;
     const hy = s.own ? h.own[k + 1] : h.y;
     switch (s.side) {
+      case "toward": {
+        const i = s.towardIndex;
+        o[0] = h.toward[2 * i] - 0.5 * w;
+        o[1] = h.toward[2 * i + 1];
+        return o;
+      }
       case "right":
         o[0] = hx + gap;
         o[1] = hy;
@@ -779,6 +838,11 @@ export class HeadLabels implements ChartLayer {
     const at = this.origin(s, h, em);
     const ox = at[0];
     const oy = at[1];
+    if (!Number.isFinite(ox) || !Number.isFinite(oy)) {
+      s.quad[0] = Number.NaN;
+      s.why.fill(0);
+      return 0;
+    }
     const w = this.width(h) * em;
     const y0 = oy + h.bottom * em;
     const y1 = oy + h.top * em;

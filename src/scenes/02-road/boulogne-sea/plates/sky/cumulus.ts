@@ -195,8 +195,7 @@ function lobesOf(s: CloudSpec): {
     [w * 0.13, H * 0.022],
   ]);
   const mid = (s.x0 + s.x1) / 2;
-  const baseAt = (x: number) =>
-    s.base + s.tilt * (x - mid) + baseWob(x - s.x0);
+  const baseAt = (x: number) => s.base + s.tilt * (x - mid) + baseWob(x - s.x0);
   const topAt = (x: number) => baseAt(x) + H * env((x - s.x0) / w);
   const thick = (x: number) => Math.max(H * 0.1, topAt(x) - baseAt(x));
   const lobes: Lobe[] = [];
@@ -500,9 +499,7 @@ export function sampleRows(cl: Cloud, sf: Surface, upTo: number): void {
           const cs = dx / rho;
           const sn = dy / rho;
           const m =
-            1 +
-            c3[k] * cs * (4 * cs * cs - 3) +
-            s3[k] * sn * (3 - 4 * sn * sn);
+            1 + c3[k] * cs * (4 * cs * cs - 3) + s3[k] * sn * (3 - 4 * sn * sn);
           const u = rho / m;
           const e = (1 - u) * mn[k] * m;
           if (e > E) E = e;
@@ -598,11 +595,11 @@ function rampAt(
   v: number,
   hi: 0 | 1,
 ): RGB {
-  if (v <= ramp[0][0]) return rgb(ramp[0][1 + hi]);
+  if (v <= ramp[0][0]) return rgb(ramp[0][hi ? 2 : 1]);
   for (let i = 1; i < ramp.length; i++) {
     if (v <= ramp[i][0]) {
-      const a = rgb(ramp[i - 1][1 + hi]);
-      const b = rgb(ramp[i][1 + hi]);
+      const a = rgb(ramp[i - 1][hi ? 2 : 1]);
+      const b = rgb(ramp[i][hi ? 2 : 1]);
       const t = (v - ramp[i - 1][0]) / (ramp[i][0] - ramp[i - 1][0]);
       return [
         a[0] + (b[0] - a[0]) * t,
@@ -611,7 +608,7 @@ function rampAt(
       ];
     }
   }
-  return rgb(ramp[ramp.length - 1][1 + hi]);
+  return rgb(ramp[ramp.length - 1][hi ? 2 : 1]);
 }
 
 /** Lookup tables, light -1..1 in 256 steps: shade low, shade high, lit low, lit high. */
@@ -794,8 +791,7 @@ export function paintRows(
           0.004,
           (Math.abs(n10 - n00) + Math.abs(n01 - n00)) / (2 * G),
         );
-        const u =
-          Math.max(0, Math.min(1, (-0.22 - ny) / dn + 0.5)) * low * 0.8;
+        const u = Math.max(0, Math.min(1, (-0.22 - ny) / dn + 0.5)) * low * 0.8;
         if (u > 0) {
           const wr = WARM_SHADE[0] + (WARM[0] - WARM_SHADE[0]) * st;
           const wg = WARM_SHADE[1] + (WARM[1] - WARM_SHADE[1]) * st;

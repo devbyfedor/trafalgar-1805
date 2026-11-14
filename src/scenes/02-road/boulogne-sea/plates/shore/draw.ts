@@ -571,7 +571,9 @@ export function paintHuts(c: PlateCanvas, huts: readonly Hut[]): void {
  * Records a hut just painted for the lights at dusk (lit.ts): its
  * silhouette hides the lights before it (a farther hut's door), then its
  * own door and windows. The men's huts had no fires (heating was
- * forbidden in them): candle light at a door or a casement.
+ * forbidden in them): candle light at a door or a casement. A kitchen's
+ * door shows its hearth, most of them lit (the fires are cooking the
+ * evening's soup); the officers' windows are lit more than the men's.
  */
 function hutLights(c: PlateCanvas, h: Hut, s: HutShape): void {
   if (!c.lights) return;
@@ -586,11 +588,32 @@ function hutLights(c: PlateCanvas, h: Hut, s: HutShape): void {
       ...(s.chimney ?? []),
     ]),
   );
-  if (s.doorway) opening(c, "door", s.doorway, lightSeed(h.e, h.n, 0));
+  if (s.doorway) {
+    const kitchen = h.kind === 2;
+    opening(
+      c,
+      "door",
+      s.doorway,
+      lightSeed(h.e, h.n, 0),
+      kitchen ? HEARTH_LIT : undefined,
+      kitchen,
+    );
+  }
   s.windows.forEach((w, i) => {
-    opening(c, "window", w, lightSeed(h.e, h.n, i + 1));
+    opening(
+      c,
+      "window",
+      w,
+      lightSeed(h.e, h.n, i + 1),
+      h.kind === 1 ? OFFICERS_LIT : undefined,
+    );
   });
 }
+
+/** The share of the kitchens' doors that show their hearth at dusk. */
+const HEARTH_LIT = 0.35;
+/** The share of the officers' windows lit at dusk (the men's: the default). */
+const OFFICERS_LIT = 0.6;
 
 /**
  * Engraves huts: paper-backed, so a nearer row hides the feet of the one

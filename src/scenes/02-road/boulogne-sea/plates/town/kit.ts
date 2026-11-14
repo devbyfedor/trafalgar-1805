@@ -1,6 +1,6 @@
 import { RAMPARTS, TOWN_GROUND } from "../../geo";
 import { createRng, type Pt, rgba } from "../../paint/kit";
-import type { LightSink, LightSite } from "../../paint/lights";
+import { type LightSink, type LightSite, lightReach } from "../../paint/lights";
 import type { PlateCanvas } from "../../paint/plate";
 import { aerial, EYE_EN, EYE_H, VEX, viewOf } from "../../scene";
 
@@ -453,10 +453,10 @@ export class LightBook {
    * Step `k` of `n` (the pass's last jobs): the first indexes the
    * occluders; each finds which of its share of the sites are wholly
    * hidden (the core's middle and corners, a little in, each under a later
-   * occluder); the last writes what shows into the sink. `pen` sizes a
-   * light's glow as paint/lights.ts paints it (the core at least 1.3
-   * device px, the glow out to 2.6 times the core and 2.2 px more), here
-   * half as wide again.
+   * occluder); the last writes what shows into the sink, each occluder
+   * with its box. `pen` sizes what paint/lights.ts lays round a light
+   * (`lightReach`: the core at least 1.3 device px, a little glow or a
+   * door's spill), here half as wide again.
    */
   settle(
     k: number,
@@ -512,9 +512,7 @@ export class LightBook {
       if ("site" in e) {
         if (gone[at]) continue;
         const s = e.site;
-        const r =
-          (Math.max(min, s.w, s.h) * 2.6 + pen(2.2)) * 1.5 +
-          Math.max(s.w, s.h) / 2;
+        const r = lightReach(s, pen) * 1.5 + Math.max(s.w, s.h) / 2;
         const cx = s.x + s.w / 2;
         const cy = s.y + s.h / 2;
         const b: Bounds = [cx - r, cy - r, cx + r, cy + r];
@@ -523,15 +521,24 @@ export class LightBook {
         continue;
       }
       let touches = false;
+      const box: Bounds = [
+        Number.POSITIVE_INFINITY,
+        Number.POSITIVE_INFINITY,
+        Number.NEGATIVE_INFINITY,
+        Number.NEGATIVE_INFINITY,
+      ];
       for (const p of e.shape.parts) {
         const a = p.b;
-        touches = glows.some(
+        box[0] = Math.min(box[0], a[0]);
+        box[1] = Math.min(box[1], a[1]);
+        box[2] = Math.max(box[2], a[2]);
+        box[3] = Math.max(box[3], a[3]);
+        touches ||= glows.some(
           a,
           (b) => a[0] <= b[2] && b[0] <= a[2] && a[1] <= b[3] && b[1] <= a[3],
         );
-        if (touches) break;
       }
-      if (touches) sink.occlude(e.shape.path);
+      if (touches) sink.occlude(e.shape.path, box);
     }
   }
 }

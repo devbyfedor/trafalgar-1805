@@ -314,3 +314,68 @@ export function brokenLine(
   if (drawing && cur.length > 1) out.push(cur);
   return out;
 }
+
+// ------------------------------------------------------------- lights
+
+/**
+ * Shapes gathered into one occluder for a light sink (paint/lights.ts):
+ * each polygon turned anticlockwise in layer units, the ellipses the same
+ * way, so the parts of one path add up under the nonzero rule and never
+ * leave a hole where two overlap.
+ */
+export class Shapes {
+  readonly path = new Path2D();
+  poly(pts: readonly Pt[]): this {
+    if (pts.length < 3) return this;
+    let area = 0;
+    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++)
+      area += pts[j][0] * pts[i][1] - pts[i][0] * pts[j][1];
+    const list = area < 0 ? [...pts].reverse() : pts;
+    this.path.moveTo(list[0][0], list[0][1]);
+    for (let i = 1; i < list.length; i++)
+      this.path.lineTo(list[i][0], list[i][1]);
+    this.path.closePath();
+    return this;
+  }
+  rect(x: number, y: number, w: number, h: number): this {
+    return this.poly(rectPts(x, y, w, h));
+  }
+  ellipse(x: number, y: number, rx: number, ry: number): this {
+    this.path.moveTo(x + rx, y);
+    this.path.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+    this.path.closePath();
+    return this;
+  }
+}
+
+/** A rectangle's corners (x, y its bottom left). */
+export function rectPts(x: number, y: number, w: number, h: number): Pt[] {
+  return [
+    [x, y],
+    [x + w, y],
+    [x + w, y + h],
+    [x, y + h],
+  ];
+}
+
+/**
+ * What `fadeEdges` takes below half its alpha, as an occluder: a light
+ * there would float on a painting that has faded out (paint/lights.ts).
+ */
+export function fadeOccluder(
+  c: PlateCanvas,
+  box: Box,
+  side: number,
+  foot: number,
+): void {
+  if (!c.lights) return;
+  const [x0, x1, y0, y1] = box;
+  const s = new Shapes();
+  if (side > 0) {
+    const half = Math.min(0.45 * (x1 - x0), side) / 2;
+    s.rect(x0 - 1, y0 - 1, half + 1, y1 - y0 + 2);
+    s.rect(x1 - half, y0 - 1, half + 1, y1 - y0 + 2);
+  }
+  if (foot > 0) s.rect(x0 - 1, y0 - 1, x1 - x0 + 2, foot / 2 + 1);
+  c.lights.occlude(s.path);
+}

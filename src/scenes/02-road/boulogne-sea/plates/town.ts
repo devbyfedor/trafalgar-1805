@@ -24,10 +24,12 @@ import {
   brokenLine,
   distToPoly,
   fadeEdges,
+  fadeOccluder,
   groundSkyline,
   MAT,
   penAt,
   riverSide,
+  Shapes,
   strokeLines,
   tones,
   townGround,
@@ -362,6 +364,9 @@ function paintSpire(c: PlateCanvas, s: Spire): void {
     townAir("#2f2a2c", s.distance),
     0.9,
   );
+  // It hides the lights behind it (paint/lights.ts).
+  const f = spireFacets(s);
+  c.lights?.occlude(new Shapes().poly([f[0][0], f[2][1], f[0][2]]).path);
 }
 
 function engraveSpire(c: PlateCanvas, s: Spire): void {
@@ -444,6 +449,17 @@ function paintTree(c: PlateCanvas, t: Tree): void {
       ctx.ellipse(cx, cy, rx * s, ry * s, 0, 0, Math.PI * 2);
     }
     ctx.fill();
+  }
+  // It hides the lights behind it (paint/lights.ts): the trunk and the dark masses (the rest lie inside them).
+  if (c.lights) {
+    const sh = new Shapes().rect(
+      t.x - t.rx * 0.07,
+      t.y,
+      t.rx * 0.14,
+      t.ry * 0.9,
+    );
+    for (const [x, y, rx, ry] of lobes) sh.ellipse(x, y, rx, ry);
+    c.lights.occlude(sh.path);
   }
 }
 
@@ -538,7 +554,10 @@ function lowerPlate(id: string, which: "near" | "far"): Plate {
         drawItems(c, list.slice(i, i + CHUNK));
       });
     // Soft sides and foot: the overscan never shows a cut when the camera rises.
-    out.push((c) => fadeEdges(c, box, 28, 4));
+    out.push((c) => {
+      fadeEdges(c, box, 28, 4);
+      fadeOccluder(c, box, 28, 4);
+    });
     return out;
   };
   return { id, depth, box, group: "land", jobs };
@@ -645,7 +664,10 @@ function upperPlate(): Plate {
         else engraveTrees(c, slice, UPPER_DEPTH - 120);
       });
     out.push((c) => (mode === "colour" ? paintWalls(c) : engraveWalls(c)));
-    out.push((c) => fadeEdges(c, UPPER_BOX, 14, 0));
+    out.push((c) => {
+      fadeEdges(c, UPPER_BOX, 14, 0);
+      fadeOccluder(c, UPPER_BOX, 14, 0);
+    });
     return out;
   };
   return {

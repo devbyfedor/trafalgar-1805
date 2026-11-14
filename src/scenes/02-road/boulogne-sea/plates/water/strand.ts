@@ -554,9 +554,9 @@ function paintChannel(c: PlateCanvas, ua: number, ub: number) {
   // The water.
   const x0 = channel(ua)[0];
   const g = ctx.createLinearGradient(0, at(x0, ua), 0, at(x0, ub));
-  g.addColorStop(0, "#b8b0be");
-  g.addColorStop(0.5, "#aaa7b8");
-  g.addColorStop(1, "#9ca2b4");
+  g.addColorStop(0, "#b2abba");
+  g.addColorStop(0.5, "#a19fb2");
+  g.addColorStop(1, "#9097ab");
   ctx.fillStyle = g;
   ctx.fill(channelPath(ua, ub));
   ctx.save();
@@ -579,7 +579,7 @@ function paintChannel(c: PlateCanvas, ua: number, ub: number) {
     lane.lineTo(x + hw * 0.3, at(x, u));
   }
   lane.closePath();
-  ctx.fillStyle = rgba("#cbc5cf", 0.4);
+  ctx.fillStyle = rgba("#c6c0cb", 0.3);
   ctx.fill(lane);
   // The masts in the basin and the jetties' piles, mirrored: broken
   // verticals in a few groups, each a handful of masts close together.
@@ -607,12 +607,12 @@ function paintChannel(c: PlateCanvas, ua: number, ub: number) {
   ctx.stroke();
   // Glints: short bright broken strokes across it.
   ctx.beginPath();
-  for (let i = 0; i < 26; i++) {
-    const u = ua + (ub - ua) * rng();
+  for (let i = 0; i < 18; i++) {
+    const u = ua + (ub - ua) * rng() ** 1.4;
     const [cx, hw] = channel(u);
-    const x = cx + (rng() - 0.5) * 1.6 * hw;
+    const x = cx + (rng() - 0.5) * 1.4 * hw;
     const y = at(x, u) + (rng() - 0.5) * 0.3;
-    const l = (1.2 + 3.5 * rng()) * (0.5 + u);
+    const l = (1 + 2.5 * rng()) * (0.5 + 0.6 * u);
     ctx.moveTo(x - l / 2, y);
     ctx.lineTo(x + l / 2, y + (rng() - 0.5) * 0.15);
   }

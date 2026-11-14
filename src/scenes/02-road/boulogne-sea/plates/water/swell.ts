@@ -64,7 +64,7 @@ const EDGES = [190, 135, 97, 70, 52, 39, 30, 23] as const;
  * is about 1300 units wide, so no near shape shows twice close by), and no
  * two strips alike, so their repeats never line up.
  */
-const PERIODS = [331, 389, 457, 613, 743, 829, 911, 997] as const;
+const PERIODS = [331, 389, 523, 701, 853, 947, 1031, 1129] as const;
 
 /** The frame's bottom at the hold and at the transition's start (layer units at the hold's horizon), and how far the camera comes down (m). */
 const HOLD_BOTTOM = -283;
@@ -399,9 +399,9 @@ const lightAlpha = numByDistance([
   [220, 0.6],
   [130, 0.55],
   [85, 0.44],
-  [62, 0.24],
-  [45, 0.2],
-  [25, 0.2],
+  [62, 0.22],
+  [45, 0.19],
+  [25, 0.19],
 ]);
 
 const darkAlpha = numByDistance([

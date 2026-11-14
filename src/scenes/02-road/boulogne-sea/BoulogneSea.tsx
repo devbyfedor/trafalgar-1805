@@ -8,7 +8,7 @@ import {
   smooth,
 } from "../interludes";
 import type { SeaViewHandle, SeaViewProps } from "./handle";
-import type { Plate, PlateGroup } from "./paint/plate";
+import { type Plate, type PlateGroup, paintOrder } from "./paint/plate";
 import { type PlateTarget, paintPlates } from "./paint/raster";
 import { buildPlates } from "./plates";
 import { KITCHENS } from "./plates/north";
@@ -87,7 +87,10 @@ function PlateArt({ plate }: { plate: Plate }) {
 function Layers() {
   const items: { depth: number; node: React.ReactNode }[] = [];
   for (const p of PLATES)
-    items.push({ depth: p.depth, node: <PlateArt key={p.id} plate={p} /> });
+    items.push({
+      depth: paintOrder(p),
+      node: <PlateArt key={p.id} plate={p} />,
+    });
   for (const g of SMOKE)
     items.push({
       depth: g.depth,

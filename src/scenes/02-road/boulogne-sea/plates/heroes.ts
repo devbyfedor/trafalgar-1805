@@ -1,5 +1,5 @@
 import type { CraftSpec } from "@/components/ship/craft/types";
-import type { Plate } from "../paint/plate";
+import { ORDER, type Plate } from "../paint/plate";
 import { EYE_H } from "../scene";
 import {
   type CraftPlace,
@@ -77,6 +77,7 @@ export function heroPlates(): Plate[] {
     out.push({
       id: `${h.id}-reflection`,
       depth: h.ahead,
+      order: ORDER.reflection(h.ahead),
       box: [ext.x0 - pad - 4, ext.x1 + pad + 4, reach - pad, pl.y + pad],
       group: "craft",
       jobs: () => [
@@ -98,6 +99,7 @@ export function heroPlates(): Plate[] {
     out.push({
       id: h.id,
       depth: h.ahead,
+      order: ORDER.craft(h.ahead),
       box: [ext.x0 - pad, ext.x1 + pad, ext.bottom - pad, ext.top + pad],
       group: "craft",
       jobs: () => [...prepJobs(h.spec), craftJob(h.spec, pl, "hero", h.seed)],

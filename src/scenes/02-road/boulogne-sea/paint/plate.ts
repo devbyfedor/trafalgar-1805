@@ -79,10 +79,31 @@ export interface PlateSwell {
   delay: number;
 }
 
+/** Paint-order keys (Plate.order): every reflection over all the water, every craft over every reflection. */
+export const ORDER = {
+  /** Reflections, farther first: nearer than the nearest strip of swell (23 m). */
+  reflection: (depth: number) => 20 + depth / 1e4,
+  /** Craft, farther first, over all the reflections. */
+  craft: (depth: number) => 10 + depth / 1e4,
+} as const;
+
+/** A plate's key in the paint order, far (large) to near. */
+export function paintOrder(p: Plate): number {
+  return p.order ?? p.depth;
+}
+
 export interface Plate {
   id: string;
   /** Metres ahead of the hold's eye it moves as (Infinity: the sky). */
   depth: number;
+  /**
+   * Its place in the paint order, far (large) to near, when that differs
+   * from its depth (`paintOrder`): a craft's reflection lies on the water
+   * between the eye and the craft (a masthead 20 m up at 300 m is mirrored
+   * about 70 m from a 6 m eye), so it is painted over the nearer strips of
+   * swell, and the craft over its reflection; it still moves as `depth`.
+   */
+  order?: number;
   /** Its box, layer units: x0, x1, y0 (bottom), y1 (top). */
   box: readonly [number, number, number, number];
   group: PlateGroup;

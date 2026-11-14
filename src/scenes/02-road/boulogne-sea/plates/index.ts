@@ -1,4 +1,4 @@
-import type { Plate } from "../paint/plate";
+import { type Plate, paintOrder } from "../paint/plate";
 import { fleetPlates } from "./fleet";
 import { harbourPlates } from "./harbour";
 import { heroPlates } from "./heroes";
@@ -25,5 +25,5 @@ export function buildPlates(): Plate[] {
     ...waterPlates(),
     ...fleetPlates(),
     ...heroPlates(),
-  ].sort((a, b) => b.depth - a.depth);
+  ].sort((a, b) => paintOrder(b) - paintOrder(a));
 }

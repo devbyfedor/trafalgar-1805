@@ -1,7 +1,7 @@
 import type { CraftSpec } from "@/components/ship/craft/types";
 import { type EN, SHORE_LOW } from "../geo";
 import { createRng } from "../paint/kit";
-import type { Plate, PlateJob } from "../paint/plate";
+import { ORDER, type Plate, type PlateJob } from "../paint/plate";
 import { EYE_H, viewOf } from "../scene";
 import {
   type CraftPlace,
@@ -151,27 +151,46 @@ export function fleetPlates(): Plate[] {
       let x1 = Number.NEGATIVE_INFINITY;
       let y0 = Number.POSITIVE_INFINITY;
       let y1 = Number.NEGATIVE_INFINITY;
+      let bottom = Number.POSITIVE_INFINITY;
+      let water = Number.NEGATIVE_INFINITY;
       let depth = 0;
       for (const m of g) {
         const ext = craftExtent(m.spec, m.pl, m.seed);
         x0 = Math.min(x0, ext.x0);
         x1 = Math.max(x1, ext.x1);
         y1 = Math.max(y1, ext.top);
+        bottom = Math.min(bottom, ext.bottom);
+        water = Math.max(water, m.pl.y);
         y0 = Math.min(y0, reflectionReach(m.spec, m.pl, m.seed));
         depth += m.pl.ahead / g.length;
       }
       const far = [...g].sort((a, b) => b.pl.ahead - a.pl.ahead);
+      const d = Math.round(depth);
+      const id = `line-${row}-${plates.length / 2}`;
+      const prep = (): PlateJob[] =>
+        [...new Set(far.map((m) => m.spec))].flatMap(prepJobs);
+      // The reflections in a plate of their own, painted over the nearer
+      // swell (Plate.order), the craft in another over them.
       plates.push({
-        id: `line-${row}-${plates.length}`,
-        depth: Math.round(depth),
-        box: [x0 - 6, x1 + 6, y0 - 3, y1 + 3],
+        id: `${id}-reflection`,
+        depth: d,
+        order: ORDER.reflection(d),
+        box: [x0 - 6, x1 + 6, y0 - 3, water + 3],
         group: "craft",
         jobs: (): PlateJob[] => [
-          ...[...new Set(far.map((m) => m.spec))].flatMap(prepJobs),
-          ...far.flatMap((m) => [
-            ...reflectionJobs(m.spec, m.pl, m.seed),
-            craftJob(m.spec, m.pl, "mid", m.seed),
-          ]),
+          ...prep(),
+          ...far.flatMap((m) => reflectionJobs(m.spec, m.pl, m.seed)),
+        ],
+      });
+      plates.push({
+        id,
+        depth: d,
+        order: ORDER.craft(d),
+        box: [x0 - 6, x1 + 6, bottom - 3, y1 + 3],
+        group: "craft",
+        jobs: (): PlateJob[] => [
+          ...prep(),
+          ...far.map((m) => craftJob(m.spec, m.pl, "mid", m.seed)),
         ],
       });
     };

@@ -27,7 +27,10 @@ export const BOULOGNE: InterludeSpec = {
   id: "boulogne",
   at: BOULOGNE_AT,
   dive: 1.2,
-  hold: 2.4,
+  // Three screens, the brief's most (was 2.4): the golden light, the
+  // evening going to dusk and the dusk itself each need their stretch
+  // (paint/dusk.ts, DUSK_AT).
+  hold: 3,
   rise: 1.2,
 };
 

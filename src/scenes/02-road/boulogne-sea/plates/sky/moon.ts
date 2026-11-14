@@ -1,5 +1,6 @@
+import { DUSK_AT } from "../../paint/dusk";
 import { createRng, rgba, softBlob } from "../../paint/kit";
-import { INK, PAPER, type Plate } from "../../paint/plate";
+import { INK, PAPER, type Plate, type PlateCanvas } from "../../paint/plate";
 
 /**
  * The full moon of 10–11 August 1805 rising in the east-south-east over
@@ -44,6 +45,46 @@ function disc(): Path2D {
   return p;
 }
 
+/**
+ * The moon at dusk: the sky darker round it, so the same disc reads
+ * bright, cool cream rather than gold; a wider, softer aureole in the
+ * haze (painted light, not a bloom), the maria clearer. Painted, not
+ * graded from the golden moon.
+ */
+function paintDuskMoon(c: PlateCanvas): void {
+  const { x, y, r } = MOON;
+  const { ctx } = c;
+  softBlob(c, x, y, PAD - 1, PAD - 2, "#e9ddc9", 0.26, [
+    [0, 1],
+    [0.16, 0.72],
+    [0.4, 0.26],
+    [0.7, 0.07],
+    [1, 0],
+  ]);
+  softBlob(c, x, y, r * 2.6, r * 2.5, "#f6ecd6", 0.42, [
+    [0, 1],
+    [0.4, 0.6],
+    [1, 0],
+  ]);
+  const d = disc();
+  const g = ctx.createRadialGradient(x - r * 0.2, y + r * 0.2, 0, x, y, r);
+  g.addColorStop(0, "#fffaee");
+  g.addColorStop(0.7, "#fbf2df");
+  g.addColorStop(1, "#f1e2c4");
+  ctx.fillStyle = g;
+  ctx.fill(d);
+  ctx.save();
+  ctx.clip(d);
+  ctx.translate(x, y);
+  ctx.rotate(TILT);
+  for (const [mx, my, rx, ry] of MARIA)
+    softBlob(c, mx * r, my * r, rx * r, ry * r, "#c9bca6", 0.5);
+  ctx.restore();
+  ctx.lineWidth = c.pen(0.9);
+  ctx.strokeStyle = rgba("#fffbf0", 0.55);
+  ctx.stroke(d);
+}
+
 export function moonPlate(): Plate {
   const { x, y, r } = MOON;
   return {
@@ -51,6 +92,7 @@ export function moonPlate(): Plate {
     depth: Number.POSITIVE_INFINITY,
     box: BOX,
     group: "sky",
+    dusk: { at: DUSK_AT.moon, grade: null, jobs: () => [paintDuskMoon] },
     jobs: (mode) =>
       mode === "colour"
         ? [

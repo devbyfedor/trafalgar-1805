@@ -2,10 +2,10 @@ import { createRng, mix, type Pt, vRamp, wobble } from "../../paint/kit";
 import {
   INK,
   PAPER,
+  type PaintMode,
   type Plate,
   type PlateCanvas,
   type PlateJob,
-  type PlateMode,
 } from "../../paint/plate";
 import { BUILD, project, VEX, viewOf } from "../../scene";
 import { addBush, fieldBase, fieldKey, hash01 } from "./camp";
@@ -540,7 +540,7 @@ export function dunesPlate(o: {
     depth: o.depth,
     box: o.box,
     group: "land",
-    jobs(mode: PlateMode) {
+    jobs(mode: PaintMode) {
       return mode === "colour" ? colour : ink;
     },
   };
@@ -552,7 +552,7 @@ export function dunesPlate(o: {
  * gabions, its flag (as the cliffs' batteries: the history's low
  * red-brown block, not a plank).
  */
-function battery(c: PlateCanvas, g: DuneGeo, mode: PlateMode): void {
+function battery(c: PlateCanvas, g: DuneGeo, mode: PaintMode): void {
   const crest = g.hillWorld;
   const from = crest.findIndex((p) => p[1] <= -660);
   const to = crest.findIndex((p) => p[1] <= -760);

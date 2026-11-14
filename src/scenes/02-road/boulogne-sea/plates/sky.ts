@@ -1,7 +1,9 @@
+import { DUSK_AT } from "../paint/dusk";
 import type { Plate } from "../paint/plate";
 import { cloudPlates } from "./sky/clouds";
 import {
   groundColourJobs,
+  groundDuskJobs,
   groundInkJobs,
   HATCH_BOX,
   hatchInkJobs,
@@ -28,6 +30,9 @@ export function skyPlates(): Plate[] {
         mode === "colour" ? groundColourJobs() : groundInkJobs(),
       // A smooth ramp and flat paper: half the resolution, a quarter of the memory.
       resolution: { colour: 0.5, ink: 0.5 },
+      // Painted for the dusk, not graded; it rises a little as it comes
+      // in, the Earth's shadow climbing the eastern sky.
+      dusk: { at: DUSK_AT.sky, grade: null, rise: 26, jobs: groundDuskJobs },
     },
     {
       id: "sky-hatch",
@@ -37,6 +42,7 @@ export function skyPlates(): Plate[] {
       jobs: (mode) => (mode === "ink" ? hatchInkJobs() : []),
       // Ink only: no colour raster worth the name.
       resolution: { colour: 0.02 },
+      dusk: false,
     },
     moonPlate(),
     ...cloudPlates(),

@@ -100,6 +100,18 @@ export class SmokeRenderer {
     this.intensity = value;
   }
 
+  /**
+   * The smoke's colour toward `colour` by `amount` (0..1), over the puffs
+   * as drawn (alpha kept): wood smoke at dusk, no sun on it, cool grey.
+   */
+  setTint(colour: string, amount: number): void {
+    this.tint = colour;
+    this.tintAmount = amount;
+  }
+
+  private tint = "#000";
+  private tintAmount = 0;
+
   draw(time: number): void {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, this.width, this.height);
@@ -142,6 +154,13 @@ export class SmokeRenderer {
           ry * 2,
         );
       }
+    }
+    if (this.tintAmount > 0.002) {
+      ctx.globalCompositeOperation = "source-atop";
+      ctx.globalAlpha = this.tintAmount;
+      ctx.fillStyle = this.tint;
+      ctx.fillRect(0, 0, this.width, this.height);
+      ctx.globalCompositeOperation = "source-over";
     }
     ctx.globalAlpha = 1;
   }

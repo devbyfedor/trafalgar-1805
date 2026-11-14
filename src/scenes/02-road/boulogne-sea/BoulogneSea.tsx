@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { GlitterRenderer } from "@/components/fx/glitter";
 import {
   BOULOGNE_AT,
   type PaintingShare,
@@ -8,10 +9,17 @@ import {
   smooth,
 } from "../interludes";
 import type { SeaViewHandle, SeaViewProps } from "./handle";
-import { type Plate, type PlateGroup, paintOrder } from "./paint/plate";
+import { DUSK_AT, duskOf, duskShare } from "./paint/dusk";
+import {
+  type Plate,
+  type PlateDusk,
+  type PlateGroup,
+  paintOrder,
+} from "./paint/plate";
 import { type PlateTarget, paintPlates } from "./paint/raster";
 import { buildPlates } from "./plates";
 import { KITCHENS } from "./plates/north";
+import { MOON } from "./plates/sky";
 import { TOWN_SMOKE } from "./plates/town";
 import { mixHex, PALETTE } from "./scene";
 import { SmokeRenderer, smokeGroups } from "./smoke";
@@ -40,10 +48,30 @@ const PLATES = buildPlates();
 /** The smoke's canvases, each at its own depth (smoke.ts). */
 const SMOKE = smokeGroups(KITCHENS, TOWN_SMOKE);
 
+/**
+ * The moon's path on the water at dusk (paint/dusk.ts): glints under the
+ * moon in a column from the sea's far edge toward the eye, scene 1's
+ * glitter in the moon's light. A reflection of a thing at an infinite
+ * depth: it moves with the camera's turn, not with the drift. Painted
+ * over the swell and under the craft's reflections (their hulls hide it).
+ * Layer units: x about the moon's; from the sea's edge at low water (y
+ * -15, about 400 m ahead) down past the frame's foot.
+ */
+const GLADE = {
+  box: [MOON.x - 64, MOON.x + 64, -300, -15] as const,
+  order: 21,
+};
+/** The smoke's cool grey at dusk, and how far the puffs go toward it. */
+const SMOKE_DUSK = { colour: "#6d6a80", amount: 0.55 };
+/** The haze over the land at dusk: cool, violet-grey, a little denser. */
+const HAZE_DUSK =
+  "linear-gradient(to bottom, rgba(120,114,146,0) 0%, rgba(120,114,146,0.16) 55%, rgba(128,120,150,0.36) 88%, rgba(128,120,150,0.18) 100%)";
+
 // ------------------------------------------------------------------ art
 
 function PlateArt({ plate }: { plate: Plate }) {
   const [x0, x1, y0, y1] = plate.box;
+  const dusk = duskOf(plate);
   const canvases = (
     <>
       <canvas
@@ -56,6 +84,13 @@ function PlateArt({ plate }: { plate: Plate }) {
         className="absolute inset-0 block h-full w-full will-change-[opacity]"
         style={{ opacity: 0 }}
       />
+      {dusk ? (
+        <canvas
+          data-mode="dusk"
+          className={`absolute inset-0 block h-full w-full ${dusk.rise ? "will-change-[transform,opacity]" : "will-change-[opacity]"}`}
+          style={{ opacity: 0 }}
+        />
+      ) : null}
     </>
   );
   const rock = plate.rock;
@@ -125,6 +160,37 @@ function Layers() {
       />
     ),
   });
+  items.push({
+    depth: 1298.9,
+    node: (
+      <div
+        key="haze-dusk"
+        data-el="sea-haze-dusk"
+        data-depth="1300"
+        className="absolute will-change-[transform,opacity]"
+        style={{
+          ...boxStyle(-1100, 1100, -12, 70),
+          opacity: 0,
+          background: HAZE_DUSK,
+        }}
+      />
+    ),
+  });
+  items.push({
+    depth: GLADE.order,
+    node: (
+      <canvas
+        key="glade"
+        data-el="sea-glade"
+        data-depth="Infinity"
+        className="absolute will-change-[transform,opacity]"
+        style={{
+          ...boxStyle(GLADE.box[0], GLADE.box[1], GLADE.box[2], GLADE.box[3]),
+          opacity: 0,
+        }}
+      />
+    ),
+  });
   items.sort((a, b) => b.depth - a.depth);
   return <>{items.map((i) => i.node)}</>;
 }
@@ -144,9 +210,13 @@ interface PlateView {
   plate: Plate;
   ink: HTMLCanvasElement | null;
   colour: HTMLCanvasElement | null;
+  dusk: HTMLCanvasElement | null;
+  duskSpec: PlateDusk | null;
   rock: HTMLElement | null;
   inkOpacity: number;
   colourOpacity: number;
+  duskOpacity: number;
+  duskRise: number;
 }
 
 function controller(root: HTMLElement): SeaViewHandle & { dispose(): void } {
@@ -173,12 +243,32 @@ function controller(root: HTMLElement): SeaViewHandle & { dispose(): void } {
       colour:
         box?.querySelector<HTMLCanvasElement>("canvas[data-mode=colour]") ??
         null,
+      dusk:
+        box?.querySelector<HTMLCanvasElement>("canvas[data-mode=dusk]") ?? null,
+      duskSpec: duskOf(plate),
       rock: box?.querySelector<HTMLElement>("[data-rock]") ?? null,
       inkOpacity: -1,
       colourOpacity: -1,
+      duskOpacity: -1,
+      duskRise: Number.NaN,
     };
   });
   const haze = root.querySelector<HTMLElement>("[data-el=sea-haze]");
+  const hazeDusk = root.querySelector<HTMLElement>("[data-el=sea-haze-dusk]");
+  const gladeCanvas = root.querySelector<HTMLCanvasElement>(
+    "canvas[data-el=sea-glade]",
+  );
+  const glade = gladeCanvas
+    ? new GlitterRenderer(gladeCanvas, {
+        seed: 1805_08_10,
+        count: 260,
+        color: "#f4ead2",
+        halfWidthTop: 0.06,
+        halfWidthBottom: 0.5,
+      })
+    : null;
+  let gladeOpacity = -1;
+  let gladeOn = false;
   // Wood smoke, front-lit by the low sun behind the eye: a warm light grey,
   // lighter than the blue sky above and a little darker than the pale sky
   // low down, so it reads against both without a dirty, sooty column.
@@ -211,6 +301,7 @@ function controller(root: HTMLElement): SeaViewHandle & { dispose(): void } {
     canvases: {
       ...(v.ink ? { ink: v.ink } : {}),
       ...(v.colour ? { colour: v.colour } : {}),
+      ...(v.dusk ? { dusk: v.dusk } : {}),
     },
   }));
 
@@ -237,6 +328,8 @@ function controller(root: HTMLElement): SeaViewHandle & { dispose(): void } {
       const [x0, x1, y0, y1] = s.group.box;
       s.renderer.resize((x1 - x0) * px, (y1 - y0) * px, px);
     }
+    const [g0, g1, g2, g3] = GLADE.box;
+    glade?.resize((g1 - g0) * px, (g3 - g2) * px);
   };
   sizeSmoke();
   paint();
@@ -288,6 +381,15 @@ function controller(root: HTMLElement): SeaViewHandle & { dispose(): void } {
         shown = state;
       }
       if (state === "hidden") return;
+      // The hold's progress for the dusk: none on the dive, the hold's own
+      // through it, all of it on the rise (the rise leaves from the dusk).
+      const evening = !at
+        ? 0
+        : at.phase === "dive"
+          ? 0
+          : at.phase === "hold"
+            ? at.t
+            : 1;
       if (at) paintingAt(u, share);
       else {
         share.engraving = 0;
@@ -304,9 +406,35 @@ function controller(root: HTMLElement): SeaViewHandle & { dispose(): void } {
           Math.max(FLOOR, c),
           v.colourOpacity,
         );
+        const d = v.duskSpec;
+        if (d && v.dusk) {
+          const k = duskShare(d.at, evening);
+          let o = c * k;
+          if (d.flicker && o > 0)
+            o *=
+              1 -
+              d.flicker *
+                (0.5 +
+                  0.3 * Math.sin(time * 7.3 + d.at[0] * 40) +
+                  0.2 * Math.sin(time * 12.9 + d.at[1] * 70));
+          v.duskOpacity = setOpacity(v.dusk, Math.max(FLOOR, o), v.duskOpacity);
+          if (d.rise) {
+            const rise = d.rise * k;
+            if (rise !== v.duskRise) {
+              v.duskRise = rise;
+              v.dusk.style.transform = `translate3d(0, ${(-rise * (UNIT_VH / 100) * height).toFixed(2)}px, 0)`;
+            }
+          }
+        }
       }
       const land = Math.max(FLOOR, share.land);
-      for (const s of smokes) s.opacity = setOpacity(s.canvas, land, s.opacity);
+      for (const s of smokes) {
+        s.opacity = setOpacity(s.canvas, land, s.opacity);
+        s.renderer.setTint(
+          SMOKE_DUSK.colour,
+          SMOKE_DUSK.amount * duskShare(DUSK_AT.nearLand, evening),
+        );
+      }
 
       const px = (UNIT_VH / 100) * height;
       for (const m of movers) {
@@ -352,12 +480,37 @@ function controller(root: HTMLElement): SeaViewHandle & { dispose(): void } {
           (r.mirror ? -1 : 1);
         v.rock.style.transform = `translate3d(0, ${(-heave).toFixed(2)}px, 0) rotate(${roll.toFixed(3)}deg)`;
       }
+      const breathe = 0.82 + 0.18 * Math.sin(time * 0.21);
+      const hazeDuskShare = duskShare(DUSK_AT.nearLand, evening);
       if (haze)
         haze.style.opacity = (
           Math.max(FLOOR, share.land) *
-          (0.82 + 0.18 * Math.sin(time * 0.21))
+          breathe *
+          (1 - hazeDuskShare)
+        ).toFixed(4);
+      if (hazeDusk)
+        hazeDusk.style.opacity = Math.max(
+          FLOOR,
+          share.land * breathe * hazeDuskShare,
         ).toFixed(4);
       for (const s of smokes) s.renderer.draw(time);
+      // The moon's path: drawn only while it shows.
+      if (glade && gladeCanvas) {
+        const g = share.water * duskShare(DUSK_AT.glade, evening);
+        gladeOpacity = setOpacity(
+          gladeCanvas,
+          Math.max(FLOOR, g),
+          gladeOpacity,
+        );
+        if (g > 0.002) {
+          glade.setIntensity(1);
+          glade.draw(time);
+          gladeOn = true;
+        } else if (gladeOn) {
+          glade.clear();
+          gladeOn = false;
+        }
+      }
     },
     dispose() {
       painting?.abort();

@@ -2,10 +2,10 @@ import { createRng, field, mix, type Pt, softBlob } from "../../paint/kit";
 import {
   INK,
   PAPER,
+  type PaintMode,
   type Plate,
   type PlateCanvas,
   type PlateJob,
-  type PlateMode,
 } from "../../paint/plate";
 import { project } from "../../scene";
 import {
@@ -225,7 +225,7 @@ export function campPlate(o: CampPlateOptions): Plate {
   };
   const bottom = o.box[2];
 
-  function groundJob(i: number, mode: PlateMode): PlateJob {
+  function groundJob(i: number, mode: PaintMode): PlateJob {
     return (c: PlateCanvas) => {
       const k = tierAt(i);
       const nearer = i + 1 < o.count ? tierAt(i + 1) : undefined;
@@ -432,7 +432,7 @@ export function campPlate(o: CampPlateOptions): Plate {
   }
 
   /** A row's huts in two jobs, each a stretch of the row (so neither is long). */
-  function hutsJob(i: number, part: 0 | 1, mode: PlateMode): PlateJob {
+  function hutsJob(i: number, part: 0 | 1, mode: PaintMode): PlateJob {
     return (c: PlateCanvas) => {
       const all = hutsAt(i);
       const mid = Math.ceil(all.length / 2);
@@ -443,7 +443,7 @@ export function campPlate(o: CampPlateOptions): Plate {
   }
 
   /** Trees along the skyline (its upper envelope) and in hedgerows down the tiers, between the given x. */
-  function treesJob(mode: PlateMode): PlateJob {
+  function treesJob(mode: PaintMode): PlateJob {
     return (c: PlateCanvas) => {
       const range = o.trees;
       if (!range) return;
@@ -497,7 +497,7 @@ export function campPlate(o: CampPlateOptions): Plate {
 
   function millJob(
     m: readonly [number, number, number, number, number],
-    mode: PlateMode,
+    mode: PaintMode,
   ): PlateJob {
     return (c) => paintWindmill(c, windmill(m[0], m[1], m[2], m[3]), mode);
   }

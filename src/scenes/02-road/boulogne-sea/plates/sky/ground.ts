@@ -157,6 +157,108 @@ export function groundColourJobs(): PlateJob[] {
   ];
 }
 
+/**
+ * The dusk's ramp (paint/dusk.ts): the eastern sky some twenty minutes
+ * after sunset, the sun about 3-4 degrees under the horizon behind the eye
+ * (light-and-watch.md 1.4): low over the land the Earth's shadow, a
+ * blue-grey band a few degrees deep; over it the Belt of Venus, a soft
+ * rose band some 5-12 degrees up; above, the blue deepening to the night's
+ * at the top, where the chapter title sits. The moon (y 92) rises at the
+ * shadow's top, in the rose.
+ */
+const DUSK_RAMP: readonly (readonly [number, string])[] = [
+  [-95, "#4f5672"],
+  [0, "#58607e"],
+  [26, "#5e6584"],
+  [52, "#686b8b"],
+  [76, "#7a7493"],
+  [98, "#977f9a"],
+  [128, "#ae8b9f"],
+  [160, "#ad8a9f"],
+  [196, "#97809c"],
+  [240, "#776f92"],
+  [295, "#565c82"],
+  [360, "#3d476d"],
+  [448, "#29324f"],
+];
+
+export function groundDuskJobs(): PlateJob[] {
+  const [, , y0, y1] = SKY_BOX;
+  return [
+    (c) => {
+      const g = c.ctx.createLinearGradient(0, y1, 0, y0);
+      for (const [y, col] of DUSK_RAMP)
+        g.addColorStop((y1 - y) / (y1 - y0), col);
+      fillBox(c, g);
+    },
+    // The shadow's top and the belt are not ruled bands: the rose a little
+    // stronger round the antisolar point (right of the axis, low), fading
+    // to either side; the shadow's edge soft and uneven; the top deepest
+    // to the left, under the title.
+    (c) => {
+      softBlob(c, 160, 130, 1150, 95, "#c4949f", 0.2, [
+        [0, 1],
+        [0.55, 0.5],
+        [1, 0],
+      ]);
+      softBlob(c, -560, 120, 700, 70, "#9d86a0", 0.12, [
+        [0, 1],
+        [0.6, 0.45],
+        [1, 0],
+      ]);
+      const rng = createRng(4471);
+      for (let i = 0; i < 12; i++) {
+        const x = -900 + (i + rng()) * (1800 / 12);
+        softBlob(
+          c,
+          x,
+          58 + rng() * 22,
+          140 + rng() * 180,
+          10 + rng() * 10,
+          rng() < 0.5 ? "#5d6383" : "#6c6b8b",
+          0.18 + rng() * 0.12,
+        );
+      }
+      const top = c.ctx.createLinearGradient(-900, 470, -60, 170);
+      top.addColorStop(0, rgba("#161d33", 0.32));
+      top.addColorStop(0.55, rgba("#1b2340", 0.12));
+      top.addColorStop(1, rgba("#1b2340", 0));
+      fillBox(c, top);
+      softBlob(c, 520, 400, 560, 140, "#26304f", 0.08, [
+        [0, 1],
+        [0.55, 0.55],
+        [1, 0],
+      ]);
+      // Thin veils of haze low over the land, cool now.
+      for (const [x0, x1, yv, h, a] of [
+        [-892, 380, 22, 16, 0.14],
+        [-300, 892, 44, 12, 0.1],
+      ] as const) {
+        const edge = wobble(4480 + x0, [
+          [170, h * 0.35],
+          [61, h * 0.18],
+        ]);
+        const p = new Path2D();
+        const n = Math.ceil((x1 - x0) / 6);
+        p.moveTo(x0, yv - h);
+        for (let i = 0; i <= n; i++) {
+          const x = x0 + ((x1 - x0) * i) / n;
+          const taper = Math.sin((Math.PI * i) / n) ** 0.4;
+          p.lineTo(x, yv + (h * 0.6 + edge(x)) * taper);
+        }
+        p.lineTo(x1, yv - h);
+        p.closePath();
+        const g = c.ctx.createLinearGradient(0, yv + h, 0, yv - h);
+        g.addColorStop(0, rgba("#8c7f9a", 0));
+        g.addColorStop(0.45, rgba("#7e7b98", a));
+        g.addColorStop(1, rgba("#6c6f8e", a));
+        c.ctx.fillStyle = g;
+        c.ctx.fill(p);
+      }
+    },
+  ];
+}
+
 export function groundInkJobs(): PlateJob[] {
   return [(c) => fillBox(c, PAPER.low)];
 }

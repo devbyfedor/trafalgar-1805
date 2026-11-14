@@ -2,10 +2,10 @@ import { createRng, mix, type Pt } from "../../paint/kit";
 import {
   INK,
   PAPER,
+  type PaintMode,
   type Plate,
   type PlateCanvas,
   type PlateJob,
-  type PlateMode,
 } from "../../paint/plate";
 import { BUILD, project, VEX, viewOf } from "../../scene";
 import {
@@ -90,7 +90,7 @@ export function cliffsPlate(o: {
     depth: o.depth,
     box: o.box,
     group: "land",
-    jobs(mode: PlateMode) {
+    jobs(mode: PaintMode) {
       return mode === "colour" ? colour : ink;
     },
   };
@@ -98,7 +98,7 @@ export function cliffsPlate(o: {
 
 // ------------------------------------------------------------ the foot
 
-function paintBlocks(c: PlateCanvas, mode: PlateMode): void {
+function paintBlocks(c: PlateCanvas, mode: PaintMode): void {
   const rng = createRng(381);
   const blocks: { pts: Pt[]; lit: Pt[]; tower: boolean }[] = [];
   const add = (n: number, e: number, size: number, tower: boolean) => {
@@ -208,7 +208,7 @@ const BATTERIES: readonly Battery[] = [
  * blocks" (Lewis): a gun's muzzle at 1.35 km is under a pixel, and the
  * mortars behind the parapet do not show.
  */
-function battery(c: PlateCanvas, g: Face, b: Battery, mode: PlateMode): void {
+function battery(c: PlateCanvas, g: Face, b: Battery, mode: PaintMode): void {
   const back = 15 + ((b.n0 * 7) % 11);
   // Level: the mean of the ground along it.
   let sum = 0;
@@ -298,7 +298,7 @@ function battery(c: PlateCanvas, g: Face, b: Battery, mode: PlateMode): void {
 
 const PALETTE_HAZE = "#c3b8bc";
 
-function paintEdgeWorks(c: PlateCanvas, g: Face, mode: PlateMode): void {
+function paintEdgeWorks(c: PlateCanvas, g: Face, mode: PaintMode): void {
   const colourMode = mode === "colour";
   const rng = createRng(391);
   for (const b of BATTERIES) battery(c, g, b, mode);
@@ -338,7 +338,7 @@ function paintEdgeWorks(c: PlateCanvas, g: Face, mode: PlateMode): void {
  * low stumps of red brick along an angular trace, broken, their faces
  * toward the roads in the sun.
  */
-function bastions(c: PlateCanvas, g: Face, mode: PlateMode): void {
+function bastions(c: PlateCanvas, g: Face, mode: PaintMode): void {
   const rng = createRng(397);
   // The trace: a five-sided work round the site, metres north and back from the brow.
   const trace: [number, number][] = [
@@ -399,7 +399,7 @@ function pavilion(
   length: number,
   rotunda: number,
   width: number,
-  mode: PlateMode,
+  mode: PaintMode,
 ): void {
   const gr = browGround(g, n, back);
   const e0 = gr.e;
@@ -517,7 +517,7 @@ function signalMast(
   g: Face,
   n: number,
   back: number,
-  mode: PlateMode,
+  mode: PaintMode,
 ): void {
   const gr = browGround(g, n, back);
   const e = gr.e;

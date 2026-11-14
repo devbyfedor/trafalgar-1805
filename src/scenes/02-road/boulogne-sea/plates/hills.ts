@@ -10,10 +10,10 @@ import {
 import {
   INK,
   PAPER,
+  type PaintMode,
   type Plate,
   type PlateCanvas,
   type PlateJob,
-  type PlateMode,
 } from "../paint/plate";
 import { aerial } from "../scene";
 import { type Box, brokenLine, penAt, strokeLines } from "./town/kit";
@@ -836,7 +836,7 @@ function nearPlate(): Plate {
 
 function farPlate(): Plate {
   const ridge = () => skyline(FAR_RIDGE, 4, 77, 1.2, () => 1);
-  const jobs = (mode: PlateMode): PlateJob[] => [
+  const jobs = (mode: PaintMode): PlateJob[] => [
     (c) => {
       const { ctx } = c;
       const r = ridge();

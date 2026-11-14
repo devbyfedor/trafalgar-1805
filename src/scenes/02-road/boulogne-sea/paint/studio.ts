@@ -1,7 +1,15 @@
 import { SEA_HOLD, type SeaPose } from "../../interludes";
 import { buildPlates } from "../plates";
 import { boxStyle, type Shift, shiftFor } from "../view";
-import type { Plate, PlateMode } from "./plate";
+import { duskJobs, duskOf, duskShare } from "./dusk";
+import type {
+  PaintMode,
+  Plate,
+  PlateCanvas,
+  PlateDusk,
+  PlateJob,
+  PlateMode,
+} from "./plate";
 import { type PlateTarget, paintPlates } from "./raster";
 
 /**
@@ -15,13 +23,16 @@ import { type PlateTarget, paintPlates } from "./raster";
  * Reads `window.__studioOptions`: { plates?: string[] (solo ids), mode:
  * "colour" | "ink" | number (the transition's share of colour, 0..1, over
  * the engraving), x?: number (the drift, metres), h?: number and pitch?:
- * number (the camera's height and pitch, for a view from the dive) }. Writes
+ * number (the camera's height and pitch, for a view from the dive), dusk?:
+ * number (the hold's progress, 0..1: each plate's dusk raster over its
+ * colour as the page shows it then; mode "colour" only) }. Writes
  * `window.__studio` when done: { done, timings }.
  */
 
 interface StudioOptions {
   plates?: string[];
-  mode: PlateMode | number;
+  mode: PaintMode | number;
+  dusk?: number;
   x?: number;
   /** The camera's height (metres) and pitch (degrees), for a view from the dive (the hold's by default). */
   h?: number;
@@ -70,6 +81,7 @@ async function run(): Promise<void> {
     plate: Plate;
     ink: HTMLCanvasElement;
     colour: HTMLCanvasElement;
+    dusk: HTMLCanvasElement;
   }[] = [];
   for (const plate of plates) {
     const [x0, x1, y0, y1] = plate.box;
@@ -82,7 +94,8 @@ async function run(): Promise<void> {
     box.style.transform = `translate3d(${shift.x}px, ${shift.y}px, 0)`;
     const ink = document.createElement("canvas");
     const colour = document.createElement("canvas");
-    for (const c of [ink, colour])
+    const dusk = document.createElement("canvas");
+    for (const c of [ink, colour, dusk])
       Object.assign(c.style, {
         position: "absolute",
         inset: "0",
@@ -90,43 +103,59 @@ async function run(): Promise<void> {
         height: "100%",
         display: "block",
       });
-    box.append(ink, colour);
+    box.append(ink, colour, dusk);
+    dusk.style.opacity = "0";
     root.append(box);
-    targets.push({ plate, canvases: { ink, colour } });
-    views.push({ plate, ink, colour });
+    targets.push({ plate, canvases: { ink, colour, dusk } });
+    views.push({ plate, ink, colour, dusk });
   }
   // Time each job: wrap them.
   const timings: Timing[] = [];
-  const timed: PlateTarget[] = targets.map((t) => ({
-    canvases: t.canvases,
-    plate: {
-      ...t.plate,
-      jobs: (mode: PlateMode) => {
-        const jobs = t.plate.jobs(mode);
-        const rec: Timing = {
-          plate: t.plate.id,
-          mode,
-          jobs: jobs.length,
-          total: 0,
-          worst: 0,
-          worstAt: -1,
-          width: 0,
-          height: 0,
-        };
-        timings.push(rec);
-        return jobs.map((job, i) => (c: Parameters<typeof job>[0]) => {
-          const s = performance.now();
-          job(c);
-          const ms = performance.now() - s;
-          rec.total += ms;
-          if (ms > rec.worst) {
-            rec.worst = ms;
-            rec.worstAt = i;
-          }
-        });
+  const timedJobs = (
+    plate: Plate,
+    mode: PlateMode,
+    jobs: readonly PlateJob[],
+  ): PlateJob[] => {
+    const rec: Timing = {
+      plate: plate.id,
+      mode,
+      jobs: jobs.length,
+      total: 0,
+      worst: 0,
+      worstAt: -1,
+      width: 0,
+      height: 0,
+    };
+    timings.push(rec);
+    return jobs.map((job, i) => (c: PlateCanvas) => {
+      const s = performance.now();
+      job(c);
+      const ms = performance.now() - s;
+      rec.total += ms;
+      if (ms > rec.worst) {
+        rec.worst = ms;
+        rec.worstAt = i;
+      }
+    });
+  };
+  const timed: PlateTarget[] = targets.map((t) => {
+    const d = duskOf(t.plate);
+    const dusk: PlateDusk | false = d
+      ? {
+          ...d,
+          grade: null,
+          jobs: () => timedJobs(t.plate, "dusk", duskJobs(d)),
+        }
+      : false;
+    return {
+      canvases: t.canvases,
+      plate: {
+        ...t.plate,
+        dusk,
+        jobs: (mode: PaintMode) => timedJobs(t.plate, mode, t.plate.jobs(mode)),
       },
-    },
-  }));
+    };
+  });
   await paintPlates(
     timed,
     height,
@@ -143,6 +172,15 @@ async function run(): Promise<void> {
     }
   }
   for (const v of views) {
+    const d = duskOf(v.plate);
+    v.dusk.style.opacity =
+      o.mode === "colour" && o.dusk !== undefined && d
+        ? String(duskShare(d.at, o.dusk))
+        : "0";
+    if (d?.rise && o.dusk !== undefined) {
+      const px = v.colour.clientHeight / (v.plate.box[3] - v.plate.box[2]);
+      v.dusk.style.transform = `translateY(${(-d.rise * duskShare(d.at, o.dusk) * px).toFixed(2)}px)`;
+    }
     if (o.mode === "colour") {
       v.colour.style.opacity = "1";
       v.ink.style.opacity = "0";

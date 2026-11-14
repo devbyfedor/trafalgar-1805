@@ -1,6 +1,7 @@
 import { Slicer } from "@/components/chart/engine/slice";
 import { UNIT_VH } from "../view";
-import type { Plate, PlateCanvas, PlateMode } from "./plate";
+import { duskJobs, duskOf } from "./dusk";
+import type { Plate, PlateCanvas, PlateJob, PlateMode } from "./plate";
 
 /**
  * Paints the plates into their canvases ahead of the dive, in idle slices
@@ -29,7 +30,12 @@ export function plateSize(
   mode: PlateMode = "colour",
 ): { width: number; height: number } {
   const [x0, x1, y0, y1] = plate.box;
-  const r = k * (plate.resolution?.[mode] ?? 1);
+  // The dusk raster is the colour raster graded: the colour's resolution.
+  const r =
+    k *
+    (plate.resolution?.[mode] ??
+      (mode === "dusk" ? plate.resolution?.colour : undefined) ??
+      1);
   return {
     width: Math.max(1, Math.ceil((x1 - x0) * r)),
     height: Math.max(1, Math.ceil((y1 - y0) * r)),
@@ -41,6 +47,7 @@ function canvasFor(
   canvas: HTMLCanvasElement,
   mode: PlateMode,
   k: number,
+  colour?: HTMLCanvasElement,
 ): PlateCanvas | null {
   const { width, height } = plateSize(plate, k, mode);
   canvas.width = width;
@@ -66,6 +73,7 @@ function canvasFor(
     k: Math.min(sx, sy),
     pen: (px: number) => px * unit,
     box: plate.box,
+    ...(colour ? { colour } : {}),
   };
 }
 
@@ -97,13 +105,31 @@ export async function paintPlates(
       () => {},
     );
   };
+  // The colour and the engraving of every plate first, then the dusk of
+  // every plate: a dusk raster grades its colour raster, and the lights'
+  // read what the colour jobs of their areas recorded.
+  const passes: { t: PlateTarget; mode: PlateMode }[] = [];
+  for (const t of targets)
+    for (const mode of ["colour", "ink"] as const) passes.push({ t, mode });
+  for (const t of targets) passes.push({ t, mode: "dusk" });
   try {
-    for (const t of targets) {
-      for (const mode of ["colour", "ink"] as const) {
+    for (const { t, mode } of passes) {
+      {
         const canvas = t.canvases[mode];
         if (!canvas) continue;
-        const jobs = t.plate.jobs(mode);
-        const c = canvasFor(t.plate, canvas, mode, k);
+        let jobs: readonly PlateJob[];
+        if (mode === "dusk") {
+          const dusk = duskOf(t.plate);
+          if (!dusk) continue;
+          jobs = duskJobs(dusk);
+        } else jobs = t.plate.jobs(mode);
+        const c = canvasFor(
+          t.plate,
+          canvas,
+          mode,
+          k,
+          mode === "dusk" ? t.canvases.colour : undefined,
+        );
         if (!c) continue;
         for (const job of jobs) {
           c.ctx.save();

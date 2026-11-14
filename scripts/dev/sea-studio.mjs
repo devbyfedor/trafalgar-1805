@@ -6,6 +6,8 @@
 //   node scripts/dev/sea-studio.mjs <out.png> [plate-id ...]
 // Environment:
 //   MODE   colour (default) | ink | a number 0..1 (colour over the engraving)
+//   DUSK   the hold's progress 0..1: each plate's dusk raster over its colour
+//          as the page shows it then (MODE colour only; paint/dusk.ts)
 //   X      the drift, metres to the right (0)
 //   EYE_H PITCH  the camera's height (m) and pitch (deg), for a view from
 //          the dive: the engraving comes in at about EYE_H=60 PITCH=0.5,
@@ -79,7 +81,14 @@ await tab.evaluate(
   (o) => {
     window.__studioOptions = o;
   },
-  { plates, mode, x, h: eyeH, pitch },
+  {
+    plates,
+    mode,
+    x,
+    h: eyeH,
+    pitch,
+    ...(process.env.DUSK ? { dusk: Number(process.env.DUSK) } : {}),
+  },
 );
 await tab.addScriptTag({ content: code });
 await tab.waitForFunction(() => window.__studio?.done === true, null, {

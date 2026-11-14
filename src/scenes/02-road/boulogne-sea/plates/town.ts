@@ -3,10 +3,10 @@ import { createRng, mix, type Pt, rgba, softBlob } from "../paint/kit";
 import {
   INK,
   PAPER,
+  type PaintMode,
   type Plate,
   type PlateCanvas,
   type PlateJob,
-  type PlateMode,
 } from "../paint/plate";
 import { BUILD, project, VEX, viewOf } from "../scene";
 import {
@@ -518,7 +518,7 @@ function lowerPlate(id: string, which: "near" | "far"): Plate {
     });
     return band;
   };
-  const jobs = (mode: PlateMode): PlateJob[] => {
+  const jobs = (mode: PaintMode): PlateJob[] => {
     const out: PlateJob[] = [];
     // The plan, a row per job (shared by both plates: the first to run lays it out).
     for (let k = 0; k < 22; k++) out.push(() => void lowerRow());
@@ -608,7 +608,7 @@ function paintChateau(c: PlateCanvas): void {
 }
 
 function upperPlate(): Plate {
-  const jobs = (mode: PlateMode): PlateJob[] => {
+  const jobs = (mode: PaintMode): PlateJob[] => {
     const out: PlateJob[] = [
       () => void upperWalls(),
       () => void upperTrees(),

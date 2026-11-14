@@ -17,8 +17,15 @@
  * units and gets a pen width for a size in device pixels from `pen()`.
  */
 
-/** Which raster a job paints. */
-export type PlateMode = "colour" | "ink";
+/**
+ * Which raster a job paints: the colour (the golden evening of 18:33), the
+ * engraving, and the dusk (the same view about twenty minutes after
+ * sunset, paint/dusk.ts), which comes in over the colour through the hold.
+ */
+export type PlateMode = "colour" | "ink" | "dusk";
+
+/** The rasters an area's painter paints with `Plate.jobs` (the dusk is made from the colour: paint/dusk.ts). */
+export type PaintMode = "colour" | "ink";
 
 /**
  * Groups that come in together in the transition (interludes.ts,
@@ -37,6 +44,8 @@ export interface PlateCanvas {
   pen(px: number): number;
   /** The plate's box, layer units: x0, x1, y0 (bottom), y1 (top). */
   box: readonly [number, number, number, number];
+  /** For a dusk job: the plate's colour raster, painted already (paint/dusk.ts grades it). */
+  colour?: HTMLCanvasElement;
 }
 
 export type PlateJob = (c: PlateCanvas) => void;
@@ -93,6 +102,37 @@ export interface PlateBob {
   phase: number;
 }
 
+/**
+ * A plate's dusk (paint/dusk.ts). Its dusk raster is its colour raster
+ * graded (`grade`), then its own dusk jobs (`jobs("dusk")`) over that; a
+ * plate with no colour raster (the lights) has its dusk jobs alone.
+ */
+export interface PlateDusk {
+  /** The hold's progress (0..1) over which its dusk raster comes in, eased. */
+  at: readonly [number, number];
+  /** How its colour raster turns to dusk; null: not graded (its dusk jobs paint it all). */
+  grade: DuskGrade | null;
+  /** Layer units its dusk raster rises as it comes in (the sky: the Earth's shadow climbing). */
+  rise?: number;
+  /** Flicker of its dusk raster's opacity (fires): the share it can dip, 0..1. */
+  flicker?: number;
+  /** Its own dusk painting, over the grade (or alone). */
+  jobs?: () => readonly PlateJob[];
+}
+
+/**
+ * A grade from the golden light to dusk, made on the GPU from the colour
+ * raster with alpha kept: the colour times `keep` (the light that is left),
+ * then `mix` of the way to `tint` (the dusk's diffuse light from the sky
+ * behind the eye: values close up, warm turns cool). `tint` may be a ramp
+ * by height, layer units, so a cloud's top keeps a rose its base has lost.
+ */
+export interface DuskGrade {
+  keep: number;
+  tint: string | readonly (readonly [number, string])[];
+  mix: number;
+}
+
 /** Paint-order keys (Plate.order): every reflection over all the water, every craft over every reflection. */
 export const ORDER = {
   /** Reflections, farther first: nearer than the nearest strip of swell (23 m). */
@@ -122,10 +162,16 @@ export interface Plate {
   box: readonly [number, number, number, number];
   group: PlateGroup;
   /** Jobs for a raster, in paint order. An empty list: no raster of that mode. */
-  jobs(mode: PlateMode): readonly PlateJob[];
+  jobs(mode: PaintMode): readonly PlateJob[];
   rock?: PlateRock;
   bob?: PlateBob;
   swell?: PlateSwell;
+  /**
+   * How the plate turns to dusk through the hold (paint/dusk.ts,
+   * `duskOf`): when, and how its dusk raster is made. Absent: by its
+   * group and depth. `false`: it has no dusk raster and stays as it is.
+   */
+  dusk?: PlateDusk | false;
   /**
    * A raster's resolution as a share of the viewport's (1 by default): a
    * smooth backdrop (a sky's ramp, the deep water's body) can be painted

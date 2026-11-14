@@ -4,7 +4,13 @@ import type { ChartLayer, FrameInfo } from "../engine/Chart";
 import type { CoastField } from "../terrain/coast";
 import type { TerrainField } from "../terrain/field";
 import { FONT_FILES, fontUrl } from "./fonts";
-import { ChartGround, contrast, luminance, type Rgb } from "./ground";
+import {
+  ChartGround,
+  contrast,
+  luminance,
+  type Rgb,
+  waterlineInk,
+} from "./ground";
 import { quadsApart, type ScreenText, YIELD_PX } from "./Lettering";
 import {
   chartText,
@@ -78,13 +84,19 @@ const EM_MAX_PX = 19;
 /** From the fleet to a place's nearest edge, ems: close by, and farther out. */
 const GAPS_EM = [0.7, 2.2, 3.7];
 /**
- * Farther still, tried last and only about a fleet's head (a meeting line's
- * label keeps to the places by its own ships): by a harbour every nearer
- * place can lie on the waterlines or across the coast, and the fleet at
- * anchor would show neither its label nor its ships (the owner's rule of
- * 12 November 2026: a fleet in the frame shows one or the other).
+ * Farther out, tried last and only about a fleet's head (a meeting line's
+ * label keeps to the places by its own ships), measured on screen: the
+ * gaps above are the chart's, and where the view meets the chart at a slant
+ * they shrink on screen toward the horizon while the waterlines' band about
+ * a coast keeps its width on screen, so by a harbour every nearer place can
+ * lie on the waterlines or across the coast, and the fleet at anchor would
+ * show neither its label nor its ships (the owner's rule of 12 November
+ * 2026: a fleet in the frame shows one or the other). These keep their gap
+ * on screen, out past the band.
  */
-const FAR_GAPS_EM = [5.2, 6.7];
+const SCREEN_GAPS_EM = [3.7, 5.2, 6.7];
+/** The least a gap on the chart shrinks to on screen that a screen gap makes up for. */
+const FORESHORTEN_MIN = 0.1;
 /** Between the name and its strength, ems (a word space of the italic). */
 const SPACE_EM = 0.27;
 /** Half the width of the line a label keeps clear of, CSS px. */
@@ -98,6 +110,13 @@ const LINE_HALF_PX = 3.5;
  */
 const WATERLINE_REACH_PX = 57;
 const SEA_CLEAR_SHARE = 0.55;
+/**
+ * The places measured on screen, the last tried, may stand nearer, over the
+ * outer waterlines, as long as the ink reads on them at their strongest
+ * there (ground.ts takes them in): in a narrow bay seen at a slant no place
+ * near the fleet lies beyond the band.
+ */
+const SEA_CLEAR_SHARE_LAST = 0.3;
 const CLEAR_RISE_PX = 6;
 /** Points along a label where the coast's distance is read. */
 const GROUND_SAMPLES = 6;
@@ -142,8 +161,9 @@ interface Slot {
   side: HeadSlot;
   /** Above or below: centred on the fleet (0), reaching east of it (1) or west (-1). */
   reach: -1 | 0 | 1;
-  /** From the fleet to its nearest edge, ems. */
+  /** From the fleet to its nearest edge, ems: on the chart, or on screen (onScreen). */
   gap: number;
+  onScreen: boolean;
   /** Its outline on screen this frame, CSS px; NaN where it can't be seen. */
   quad: Float64Array;
   /** How much of the label stands here this frame (soft first-fit). */
@@ -154,6 +174,15 @@ interface Slot {
    * and how well its ink reads on the ground, which the ground includes).
    */
   why: Float64Array;
+  /** Development: how near the coast it came on screen this frame, CSS px (at sea, and inland). */
+  near: number;
+  inland: number;
+  /** Development: the coast's distance there (km) and its change per CSS px. */
+  nearKm: number;
+  nearPerPx: number;
+  /** Development: the ground's luminance it was read against (ground.ts; NaN where not read): the brightest sea, the darkest land. */
+  seaL: number;
+  landL: number;
 }
 
 /** One drawing of a label: its name and each strength. */
@@ -187,6 +216,12 @@ interface Head {
    */
   own: Float64Array;
   aw: number;
+  /**
+   * This frame: how much an em on the chart east (x) and north (y) of the
+   * head shows on screen, of an em facing the eye (a screen gap's scale).
+   */
+  fx: number;
+  fy: number;
   trail: Float64Array;
   trailCount: number;
   /** Its line on screen this frame, a quad a segment (lineQuads), and how many. */
@@ -239,6 +274,8 @@ export class HeadLabels implements ChartLayer {
   private sized = false;
   private readonly trailPx = new Float64Array(2 * TRAIL_POINTS);
   private readonly block = new Float64Array(8);
+  /** Three points on screen (foreshortening), reused. */
+  private readonly probe = new Float64Array(6);
   private readonly v = new Vector3();
 
   constructor(field: TerrainField, specs: readonly HeadSpec[]) {
@@ -275,7 +312,12 @@ export class HeadLabels implements ChartLayer {
       // a line's label keeps to its side of the line; then those about its
       // head, nearest first.
       const slots: Slot[] = [];
-      const add = (own: boolean, side: HeadSlot, gap: number) => {
+      const add = (
+        own: boolean,
+        side: HeadSlot,
+        gap: number,
+        onScreen = false,
+      ) => {
         const reaches: readonly (-1 | 0 | 1)[] =
           side === "above" || side === "below" ? [0, 1, -1] : [0];
         for (const reach of reaches)
@@ -284,15 +326,24 @@ export class HeadLabels implements ChartLayer {
             side,
             reach,
             gap,
+            onScreen,
             quad: new Float64Array(8).fill(Number.NaN),
             weight: 0,
             why: new Float64Array(8),
+            near: 0,
+            inland: 0,
+            nearKm: 0,
+            nearPerPx: 0,
+            seaL: Number.NaN,
+            landL: Number.NaN,
           });
       };
       for (const side of spec.slots)
         for (const gap of GAPS_EM) add(true, side, gap);
-      for (const gap of [...GAPS_EM, ...FAR_GAPS_EM])
+      for (const gap of GAPS_EM)
         for (const side of spec.slots) add(false, side, gap);
+      for (const gap of SCREEN_GAPS_EM)
+        for (const side of spec.slots) add(false, side, gap, true);
       const head: Head = {
         spec,
         slots,
@@ -301,6 +352,8 @@ export class HeadLabels implements ChartLayer {
         y: 0,
         own: new Float64Array(8),
         aw: 0,
+        fx: 1,
+        fy: 1,
         trail: new Float64Array(2 * TRAIL_POINTS),
         trailCount: 0,
         lines: Array.from({ length: TRAIL_POINTS }, () => new Float64Array(8)),
@@ -463,6 +516,7 @@ export class HeadLabels implements ChartLayer {
         continue;
       }
       const em = (emPx * dist) / cssPerRadian;
+      this.foreshortening(h, frame, em, emPx);
       const blockWeight = this.blocks ? this.blocks(h.spec.id, this.block) : 0;
       h.aw = this.anchors ? this.anchors(h.spec.id, this.anchor) : 0;
       if (h.aw > 0.001) h.own.set(this.anchor);
@@ -530,8 +584,16 @@ export class HeadLabels implements ChartLayer {
     side: string;
     reach: number;
     gap: number;
+    onScreen: boolean;
     weight: number;
     why: number[];
+    near: number;
+    inland: number;
+    nearKm: number;
+    nearPerPx: number;
+    seaL: number;
+    landL: number;
+    quad: number[];
   }[] {
     const out: ReturnType<HeadLabels["explain"]> = [];
     for (const h of this.heads) {
@@ -544,8 +606,16 @@ export class HeadLabels implements ChartLayer {
           side: s.side,
           reach: s.reach,
           gap: s.gap,
+          onScreen: s.onScreen,
           weight: Math.round(s.weight * 1000) / 1000,
           why: Array.from(s.why, (v) => Math.round(v * 1000) / 1000),
+          near: Math.round(s.near * 10) / 10,
+          nearKm: Math.round(s.nearKm * 1000) / 1000,
+          nearPerPx: Math.round(s.nearPerPx * 1e5) / 1e5,
+          inland: Math.round(s.inland * 10) / 10,
+          seaL: Math.round(s.seaL * 1e4) / 1e4,
+          landL: Math.round(s.landL * 1e4) / 1e4,
+          quad: Array.from(s.quad, (v) => Math.round(v * 10) / 10),
         });
       }
     }
@@ -615,6 +685,30 @@ export class HeadLabels implements ChartLayer {
     this.sized = true;
   }
 
+  /**
+   * How much an em on the chart east and north of a head shows on screen
+   * this frame, of an em facing the eye (Head.fx, fy): 1 looking straight
+   * down, less as the view meets the chart at a slant.
+   */
+  private foreshortening(
+    h: Head,
+    frame: FrameInfo,
+    em: number,
+    emPx: number,
+  ): void {
+    const q = this.probe;
+    h.fx = 1;
+    h.fy = 1;
+    if (
+      !this.corner(q, 0, frame, h.x, h.y) ||
+      !this.corner(q, 1, frame, h.x + em, h.y) ||
+      !this.corner(q, 2, frame, h.x, h.y + em)
+    )
+      return;
+    h.fx = Math.hypot(q[2] - q[0], q[3] - q[1]) / emPx;
+    h.fy = Math.hypot(q[4] - q[0], q[5] - q[1]) / emPx;
+  }
+
   /** The label's width, ems: its name, a space, its widest strength. */
   private width(h: Head): number {
     let widest = 0;
@@ -627,7 +721,14 @@ export class HeadLabels implements ChartLayer {
   private origin(s: Slot, h: Head, em: number): Float64Array {
     const o = this.at;
     const w = this.width(h) * em;
-    const gap = s.gap * em;
+    // A gap on screen: as long on the chart as its side shrinks it.
+    const gap = s.onScreen
+      ? (s.gap * em) /
+        Math.max(
+          FORESHORTEN_MIN,
+          s.side === "above" || s.side === "below" ? h.fy : h.fx,
+        )
+      : s.gap * em;
     // About its own ships (the middle of their box's edge on its side), or
     // its head.
     const k =
@@ -746,8 +847,8 @@ export class HeadLabels implements ChartLayer {
    * diagonal of that share; the distance is 1-Lipschitz), so a long label
    * lying along a coast is judged by how near it comes, not by its whole
    * length; and it is measured on screen as the shader's waterlines are,
-   * across the coast: the chart's km per pixel along the distance's
-   * gradient, from the label's own outline on screen, so where the view
+   * by the distance's change per pixel on screen (its gradient on the
+   * chart, through the chart's map to the screen at each point), so where the view
    * meets the chart at a slant the waterlines' band, foreshortened, reaches
    * farther out on the chart than it would face on. Its ink is read against
    * the brightest of the sea (or the darkest of the land) at the label's
@@ -766,41 +867,62 @@ export class HeadLabels implements ChartLayer {
     const model = this.groundModel;
     s.why[7] = 1;
     if (!coast || !model) return 1;
-    // The outline's change on screen per km east (a) and north (b), CSS px.
-    const q = s.quad;
     const h = y1 - y0;
-    const ax = (q[2] - q[0] + q[4] - q[6]) / (2 * w);
-    const ay = (q[3] - q[1] + q[5] - q[7]) / (2 * w);
-    const bx = (q[6] - q[0] + q[4] - q[2]) / (2 * h);
-    const by = (q[7] - q[1] + q[5] - q[3]) / (2 * h);
-    const det = ax * by - ay * bx;
-    if (!(Math.abs(det) > 1e-12)) return 0;
     const y = 0.5 * (y0 + y1);
+    const q = this.probe;
+    const e = 0.25 * h;
     const step = w / GROUND_SAMPLES;
     const reach = 0.5 * Math.hypot(step, h);
     let near = Number.POSITIVE_INFINITY;
     let inland = Number.POSITIVE_INFINITY;
+    let nearPerPx = 0;
     for (let i = 0; i < GROUND_SAMPLES; i++) {
       const x = x0 + (i + 0.5) * step;
+      // The chart's map to the screen here: CSS px per km east (a) and
+      // north (b).
+      if (
+        !this.corner(q, 0, frame, x, y) ||
+        !this.corner(q, 1, frame, x + e, y) ||
+        !this.corner(q, 2, frame, x, y + e)
+      )
+        return 0;
+      const ax = (q[2] - q[0]) / e;
+      const ay = (q[3] - q[1]) / e;
+      const bx = (q[4] - q[0]) / e;
+      const by = (q[5] - q[1]) / e;
+      const det = ax * by - ay * bx;
+      if (!(Math.abs(det) > 1e-12)) return 0;
       const d = coast.distance(x, y);
-      let gx = (coast.distance(x + GRADIENT_KM, y) - d) / GRADIENT_KM;
-      let gy = (coast.distance(x, y + GRADIENT_KM) - d) / GRADIENT_KM;
-      const gl = Math.hypot(gx, gy);
-      if (gl < 1e-6) {
-        gx = 0;
-        gy = 1;
-      } else {
-        gx /= gl;
-        gy /= gl;
-      }
-      // The distance's gradient on screen, km per CSS px (the inverse
-      // transpose of the outline's map applied to the gradient on the chart).
-      const kmPerPx =
+      const gx = (coast.distance(x + GRADIENT_KM, y) - d) / GRADIENT_KM;
+      const gy = (coast.distance(x, y + GRADIENT_KM) - d) / GRADIENT_KM;
+      // The distance's change per CSS px on screen, as the shader's pxKm
+      // (the inverse transpose of the outline's map applied to its gradient
+      // on the chart, as it is: where a tile's distance is capped the field
+      // is flat and, as on the GPU, no waterline is drawn there).
+      const perPx =
         Math.hypot(by * gx - ay * gy, ax * gy - bx * gx) / Math.abs(det);
-      near = Math.min(near, (d - reach) / kmPerPx);
-      inland = Math.min(inland, (-d - reach) / kmPerPx);
+      if (!(perPx > 1e-9)) {
+        if (d < 0) near = Number.NEGATIVE_INFINITY;
+        else inland = Number.NEGATIVE_INFINITY;
+        continue;
+      }
+      const spread = reach * Math.hypot(gx, gy);
+      const n = (d - spread) / perPx;
+      if (n < near) {
+        near = n;
+        nearPerPx = perPx;
+        s.nearKm = d;
+      }
+      inland = Math.min(inland, (-d - spread) / perPx);
     }
-    const clear = SEA_CLEAR_SHARE * WATERLINE_REACH_PX;
+    s.near = near;
+    s.nearPerPx = nearPerPx;
+    s.inland = inland;
+    s.seaL = Number.NaN;
+    s.landL = Number.NaN;
+    const clear =
+      (s.onScreen ? SEA_CLEAR_SHARE_LAST : SEA_CLEAR_SHARE) *
+      WATERLINE_REACH_PX;
     const seaClean = smooth(clear, clear + CLEAR_RISE_PX, near);
     const landClean = smooth(LAND_CLEAR_PX[0], LAND_CLEAR_PX[1], inland);
     if (seaClean <= 0.001 && landClean <= 0.001) return 0;
@@ -819,10 +941,16 @@ export class HeadLabels implements ChartLayer {
     let seaRead = 0;
     if (seaClean > 0.001) {
       let bright = 0;
+      const water = waterlineInk(
+        near / WATERLINE_REACH_PX,
+        nearPerPx,
+        frame.dpr,
+      );
       for (let i = 0; i < READ_POINTS; i++) {
-        model.sea(at[2 * i], at[2 * i + 1], frame, near, WATERLINE_REACH_PX, c);
+        model.sea(at[2 * i], at[2 * i + 1], frame, water, c);
         bright = Math.max(bright, luminance(c));
       }
+      s.seaL = bright;
       seaRead = smooth(
         READ_CONTRAST[0],
         READ_CONTRAST[1],
@@ -836,6 +964,7 @@ export class HeadLabels implements ChartLayer {
         model.land(at[2 * i], at[2 * i + 1], frame, c);
         dark = Math.min(dark, luminance(c));
       }
+      s.landL = dark;
       landRead = smooth(
         READ_CONTRAST[0],
         READ_CONTRAST[1],

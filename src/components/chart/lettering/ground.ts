@@ -12,8 +12,9 @@ import type { CoastField } from "../terrain/coast";
  * which a label can't keep off and are taken at their worst instead.
  *
  * The sea: its colour by depth, the sky it reflects at grazing angles (the
- * horizon's glow under the sun included), the sun's road, the faint outer
- * waterlines at their strongest where the label comes nearest the coast,
+ * horizon's glow under the sun included), the sun's road, the outer
+ * waterlines as they light the label's bright end where it comes nearest
+ * the coast,
  * then the haze toward the colour of the sky behind it. The land: its paper
  * by height in the deepest shade the relief light gives, then the haze.
  * Toward the horizon the haze lightens the ground toward the colour of the
@@ -28,9 +29,19 @@ export type Rgb = [number, number, number];
 /** The sky stops' elevations, degrees (GLSL_SKY, SKY_ELEV). */
 const SKY_ELEV = [0, 1.25, 3.33, 6.66, 11.2, 16.9, 24.6, 34.8, 90];
 const DEG = Math.PI / 180;
-/** The waterlines' share of the pale ink at full strength, and a line's heaviest cover (terrain/shaders.ts). */
+/**
+ * The waterlines (terrain/shaders.ts, waterlines; Terrain.ts's uniforms):
+ * their share of the pale ink at full strength, their spacing on screen
+ * (CSS px), how far each set reaches (uWaterOpen), and a line's cover at
+ * its middle well out from the coast (0.55 device px wide at 1.5, by the
+ * engraver's hand 0.85 to 1.15 of that).
+ */
 const WATER_INK = 0.42;
-const WATER_COVER_MAX = 1.15;
+const WATER_SPACING_PX = 2.2;
+const WATER_OPEN: readonly [number, number] = [0.45, 0.45];
+const WATER_COVER = 0.9;
+/** The share of a label's pixels its ground is read at the bright end of (contrast.mjs: the 95th percentile). */
+const BRIGHT_SHARE = 0.05;
 
 /** WCAG relative luminance of an sRGB colour. */
 export function luminance(c: Rgb): number {
@@ -48,6 +59,38 @@ function mix(out: Rgb, x: number, y: number, z: number, t: number): void {
   out[0] += (x - out[0]) * t;
   out[1] += (y - out[1]) * t;
   out[2] += (z - out[2]) * t;
+}
+
+/**
+ * How much of the pale ink the waterlines lay on the bright end of a
+ * label's ground (0..WATER_INK) at u of their band out from the coast,
+ * where the coast's distance changes by perPx km per CSS px on screen at
+ * device pixel ratio dpr: their strength there, and the cover of their
+ * pixels at the label's bright end. The band is drawn in sets an octave
+ * apart, each reaching less far the finer it is, so well out only sparse
+ * lines are left: a set whose lines are far apart lights too few of the
+ * label's pixels to make its bright end.
+ */
+export function waterlineInk(u: number, perPx: number, dpr: number): number {
+  if (!(u < 1) || !(perPx > 0)) return 0;
+  const uu = Math.max(0, u);
+  const Z = Math.log2((WATER_SPACING_PX * perPx) / 0.001);
+  const z = Z - Math.floor(Z);
+  let cover = 0;
+  for (let i = 0; i < 4; i++) {
+    const r = i - z;
+    const edge = WATER_OPEN[0] + WATER_OPEN[1] * r;
+    const shown =
+      (1 - smoothstep(edge - 0.12, edge + 0.12, uu)) *
+      (i === 0 ? 1 - smoothstep(0, 1, z) : 1);
+    if (shown <= 0) continue;
+    // A line lights about one device pixel of every spacing; the bright
+    // end's share of the label reaches down its edges this far.
+    const spacingDev = WATER_SPACING_PX * 2 ** r * dpr;
+    const atBright = clamp01(1 - (BRIGHT_SHARE * spacingDev) / 2);
+    cover = Math.max(cover, shown * atBright);
+  }
+  return WATER_INK * WATER_COVER * cover * (1 - uu) ** 1.5;
 }
 
 function clamp01(x: number): number {
@@ -128,17 +171,9 @@ export class ChartGround {
 
   /**
    * The sea's colour at a world point (km) as the frame shows it, into out:
-   * with the outer waterlines at their strongest `waterPx` CSS px from the
-   * coast (of `reachPx`; Infinity for none).
+   * with `water` of the pale ink laid by the waterlines (waterlineInk).
    */
-  sea(
-    x: number,
-    y: number,
-    frame: FrameInfo,
-    waterPx: number,
-    reachPx: number,
-    out: Rgb,
-  ): void {
+  sea(x: number, y: number, frame: FrameInfo, water: number, out: Rgb): void {
     const light = frame.light;
     const eye = frame.eye;
     let vx = x - eye.x;
@@ -175,10 +210,9 @@ export class ChartGround {
       mix(out, g.x, g.y, g.z, Math.min(0.6, Math.max(0, road * light.sunDisc)));
     }
     // The faint outer waterlines, where the label comes nearest.
-    if (waterPx < reachPx) {
-      const u = Math.max(0, waterPx / reachPx);
+    if (water > 0) {
       const p = light.inkPale;
-      mix(out, p.x, p.y, p.z, WATER_INK * WATER_COVER_MAX * (1 - u) ** 1.5);
+      mix(out, p.x, p.y, p.z, water);
     }
     this.hazed(vx, vy, vz, dist, frame, out);
   }

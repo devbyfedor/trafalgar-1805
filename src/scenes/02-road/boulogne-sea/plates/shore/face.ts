@@ -221,10 +221,7 @@ function lightAt(f: Face, i: number, h: number): number {
 
 /** Sample index nearest to `n`. */
 export function indexOf(f: Face, n: number): number {
-  return Math.max(
-    0,
-    Math.min(f.ns.length - 1, Math.round((N_MAX - n) / STEP)),
-  );
+  return Math.max(0, Math.min(f.ns.length - 1, Math.round((N_MAX - n) / STEP)));
 }
 
 /** A point on the brow at `n`, `back` metres behind the edge and `up` drawn metres above it. */
@@ -232,11 +229,7 @@ export function browAt(f: Face, n: number, back: number, up: number): Pt {
   const i = indexOf(f, n);
   const top = f.top[i];
   const dip = (f.top[i] - edgeTop(f, i)) * Math.exp(-back / 60);
-  return project(
-    faceE(f, i, top) + back,
-    n,
-    (edgeTop(f, i) + dip) * VEX + up,
-  );
+  return project(faceE(f, i, top) + back, n, (edgeTop(f, i) + dip) * VEX + up);
 }
 
 /** The brow's height before the notches: the plateau's edge. */
@@ -264,9 +257,7 @@ export function buildFace(): Face {
     [64, 1.8],
     [23, 0.6],
   ]);
-  const plan = ns.map(
-    (n) => edgeAt(n)[0] + line(n) * smoothstep(60, 200, n),
-  );
+  const plan = ns.map((n) => edgeAt(n)[0] + line(n) * smoothstep(60, 200, n));
   const cuts: Cut[] = [];
   for (const [n, depth, w, notch, floor] of GULLIES)
     cuts.push({
@@ -440,9 +431,7 @@ export function lineFace(f: Face): void {
     const th = f.talusH[i];
     f.talusTop.push(atH(f, i, th));
     const spread = 3 + (th - FOOT) * 1.25;
-    f.talusFoot.push(
-      project(faceE(f, i, FOOT) - spread, n, FOOT * VEX * 0.85),
-    );
+    f.talusFoot.push(project(faceE(f, i, FOOT) - spread, n, FOOT * VEX * 0.85));
     f.hw.push(project(shoreAt(n), n, -0.6));
     f.ahead.push(viewOf(eb[last][i], n)[0]);
     const back = 36;
@@ -458,7 +447,11 @@ export function lineFace(f: Face): void {
   const jr = createRng(921);
   BEDS.forEach((bed, b) => {
     if (!bed.hard) return;
-    for (let n = N_MAX - jr() * 9; n > N_MIN + 30; n -= 3.5 + jr() ** 1.5 * 13) {
+    for (
+      let n = N_MAX - jr() * 9;
+      n > N_MIN + 30;
+      n -= 3.5 + jr() ** 1.5 * 13
+    ) {
       const i = indexOf(f, n);
       const b0 = f.bh[b][i] + 0.3;
       const b1 = Math.min(f.top[i] - 0.4, f.bh[b + 1][i] - 0.2);
@@ -469,7 +462,14 @@ export function lineFace(f: Face): void {
       const len = 3 + jr() * 9;
       const w = 0.5 + jr() * 1.2;
       if (hi - lo < 0.5 || lo < f.talusH[i]) continue;
-      f.joints.push({ i, hi, lo, stain: r < 0.08 ? 2 : r < 0.18 ? 1 : 0, len, w });
+      f.joints.push({
+        i,
+        hi,
+        lo,
+        stain: r < 0.08 ? 2 : r < 0.18 ? 1 : 0,
+        len,
+        w,
+      });
     }
   });
 }
@@ -522,12 +522,7 @@ function bedBand(f: Face, b: number): BandSamples {
 const SKY_COOL = rgbOf("#b9b6c2");
 
 /** A bed's colour at a sample for its light, its slope (soft beds lean back under the sky) and its unevenness. */
-function bedColour(
-  bed: Bed,
-  light: number,
-  vary: number,
-  ahead: number,
-): RGB {
+function bedColour(bed: Bed, light: number, vary: number, ahead: number): RGB {
   const m = bed.m;
   const lit = bed.hard ? m.lit : lerp3(m.lit, SKY_COOL, 0.14);
   const l = bed.hard ? light : light * 0.84;
@@ -597,13 +592,28 @@ function paintWeather(c: PlateCanvas, f: Face): void {
         const hi = f.bh[Math.min(BEDS.length, b + span)][i];
         // Square-ish ends cut on a slant, a ragged top.
         const shapeT = Math.min(1, t / (0.05 + cutL), (1 - t) / (0.05 + cutR));
-        const hT = Math.min(f.top[i], lo + (hi - lo) * (fBot + (fTop - fBot) * shapeT + lean * (t - 0.5) + edge(i * STEP) * shapeT));
-        const hB = Math.min(f.top[i], Math.max(f.talusH[i], lo + (hi - lo) * fBot));
+        const hT = Math.min(
+          f.top[i],
+          lo +
+            (hi - lo) *
+              (fBot +
+                (fTop - fBot) * shapeT +
+                lean * (t - 0.5) +
+                edge(i * STEP) * shapeT),
+        );
+        const hB = Math.min(
+          f.top[i],
+          Math.max(f.talusH[i], lo + (hi - lo) * fBot),
+        );
         top.push(atH(f, i, Math.max(hB, hT)));
         bot.push(atH(f, i, hB));
       }
       const r = rng();
-      addLine(r < 0.5 ? grey : r < 0.82 ? fresh : dark, [...top, ...bot.reverse()], true);
+      addLine(
+        r < 0.5 ? grey : r < 0.82 ? fresh : dark,
+        [...top, ...bot.reverse()],
+        true,
+      );
     }
   });
   c.ctx.fillStyle = css(hazed(rgbOf("#a39e98"), 1350), 0.2);
@@ -756,7 +766,8 @@ function paintGreens(c: PlateCanvas, f: Face): void {
           const ends = Math.min(1, Math.sin(Math.PI * t) * 2.5);
           const thick = Math.max(0.08, (0.35 + rag(k * STEP)) * ends);
           const hT = s.hTop[k] - 0.15;
-          const hB = s.hTop[k] - (s.hTop[k] - s.hBot[k]) * Math.min(0.95, thick);
+          const hB =
+            s.hTop[k] - (s.hTop[k] - s.hBot[k]) * Math.min(0.95, thick);
           const i = s.idx[k];
           top.push(atH(f, i, hT));
           bot.push(atH(f, i, Math.min(hT, hB)));
@@ -816,8 +827,12 @@ function paintScrub(c: PlateCanvas, f: Face): void {
       const spill = 1 + 1.6 * (1 - k / K) ** 2.5;
       const jl = 0.85 + rng() * 0.3;
       const jr = 0.85 + rng() * 0.3;
-      left.push(atH(f, indexOf(f, cut.n + cut.wn * widen * 0.85 * spill * jl), h));
-      right.push(atH(f, indexOf(f, cut.n - cut.ws * widen * 0.7 * spill * jr), h));
+      left.push(
+        atH(f, indexOf(f, cut.n + cut.wn * widen * 0.85 * spill * jl), h),
+      );
+      right.push(
+        atH(f, indexOf(f, cut.n - cut.ws * widen * 0.7 * spill * jr), h),
+      );
     }
     const mass: Pt[] = [...left];
     const a = left[K];
@@ -826,7 +841,10 @@ function paintScrub(c: PlateCanvas, f: Face): void {
     for (let k = 1; k < lumps; k++) {
       const t = k / lumps;
       const r = Math.abs(z[0] - a[0]) / lumps;
-      mass.push([a[0] + (z[0] - a[0]) * (t - 0.5 / lumps), a[1] + (z[1] - a[1]) * t + r * (0.5 + rng() * 0.5)]);
+      mass.push([
+        a[0] + (z[0] - a[0]) * (t - 0.5 / lumps),
+        a[1] + (z[1] - a[1]) * t + r * (0.5 + rng() * 0.5),
+      ]);
       mass.push([a[0] + (z[0] - a[0]) * t, a[1] + (z[1] - a[1]) * t + r * 0.1]);
     }
     mass.push(...right.slice().reverse());
@@ -882,7 +900,10 @@ function bush(
 const DEBRIS = rgbOf("#c6ae88");
 
 /** A debris fan under a cut: its outline (concave flanks spreading to the foot) and its north flank. */
-function fanOf(f: Face, cut: Cut): { shape: Path2D; flank: Path2D; apex: Pt; left: Pt; right: Pt } {
+function fanOf(
+  f: Face,
+  cut: Cut,
+): { shape: Path2D; flank: Path2D; apex: Pt; left: Pt; right: Pt } {
   const i = indexOf(f, cut.n);
   const apex = atH(f, i, f.talusH[i] - 0.3);
   const half = (cut.wn + cut.ws) * 0.5 * (cut.gully ? 1.6 : 1.15);
@@ -896,7 +917,12 @@ function fanOf(f: Face, cut: Cut): { shape: Path2D; flank: Path2D; apex: Pt; lef
     apex[0] - (apex[0] - left[0]) * 0.06,
     apex[1],
   );
-  shape.quadraticCurveTo(apex[0], apex[1] + (apex[1] - left[1]) * 0.05, apex[0] + (right[0] - apex[0]) * 0.06, apex[1]);
+  shape.quadraticCurveTo(
+    apex[0],
+    apex[1] + (apex[1] - left[1]) * 0.05,
+    apex[0] + (right[0] - apex[0]) * 0.06,
+    apex[1],
+  );
   shape.quadraticCurveTo(
     apex[0] + (right[0] - apex[0]) * 0.3,
     right[1] + (apex[1] - right[1]) * 0.18,
@@ -905,7 +931,10 @@ function fanOf(f: Face, cut: Cut): { shape: Path2D; flank: Path2D; apex: Pt; lef
   );
   shape.closePath();
   const flank = new Path2D();
-  const mid: Pt = [left[0] + (right[0] - left[0]) * 0.3, left[1] + (right[1] - left[1]) * 0.3];
+  const mid: Pt = [
+    left[0] + (right[0] - left[0]) * 0.3,
+    left[1] + (right[1] - left[1]) * 0.3,
+  ];
   flank.moveTo(left[0], left[1]);
   flank.quadraticCurveTo(
     apex[0] - (apex[0] - left[0]) * 0.3,
@@ -964,7 +993,11 @@ function paintTalus(c: PlateCanvas, f: Face): void {
         top.push([a[0] + (z[0] - a[0]) * s0, a[1] + (z[1] - a[1]) * s0]);
         bot.push([a[0] + (z[0] - a[0]) * s1, a[1] + (z[1] - a[1]) * s1]);
       }
-      fill(c, band(top, bot), css(hazed(lerp3(GRASS_SHADE, GRASS_LIT, 0.75), 1350), 0.6));
+      fill(
+        c,
+        band(top, bot),
+        css(hazed(lerp3(GRASS_SHADE, GRASS_LIT, 0.75), 1350), 0.6),
+      );
       const lip = new Path2D();
       addLine(lip, top);
       stroke(c, lip, 0.6, css(hazed(rgbOf("#d6c77a"), 1350)), 0.45);
@@ -1053,11 +1086,7 @@ function paintBeach(c: PlateCanvas, f: Face): void {
 function paintBrow(c: PlateCanvas, f: Face): void {
   const rng = createRng(971);
   // The ground behind the brow, up to the batteries' line.
-  fill(
-    c,
-    band(f.back, f.edge),
-    css(hazed(rgbOf("#bdb063"), 1400)),
-  );
+  fill(c, band(f.back, f.edge), css(hazed(rgbOf("#bdb063"), 1400)));
   const soil: Pt[] = [];
   const grass: Pt[] = [];
   const shade: Pt[] = [];
@@ -1084,8 +1113,18 @@ function paintBrow(c: PlateCanvas, f: Face): void {
     const len = (0.6 + rng() * 2.2) * VEX * (1000 / f.ahead[i]);
     const wd = (0.6 + rng() * 1.6) * c.pen(1.5);
     hang.moveTo(a[0] - wd, a[1] + 0.3);
-    hang.quadraticCurveTo(a[0] - wd * 0.2, a[1] - len * 0.6, a[0] + wd * 0.1, a[1] - len);
-    hang.quadraticCurveTo(a[0] + wd * 0.4, a[1] - len * 0.4, a[0] + wd, a[1] + 0.3);
+    hang.quadraticCurveTo(
+      a[0] - wd * 0.2,
+      a[1] - len * 0.6,
+      a[0] + wd * 0.1,
+      a[1] - len,
+    );
+    hang.quadraticCurveTo(
+      a[0] + wd * 0.4,
+      a[1] - len * 0.4,
+      a[0] + wd,
+      a[1] + 0.3,
+    );
     hang.closePath();
   }
   fill(c, hang, css(hazed(rgbOf("#a69f5c"), 1350)), 0.8);
@@ -1141,7 +1180,10 @@ function engraveBed(
   let crossNext = x;
   while (x < xEnd) {
     while (j < s.count - 2 && s.x[j + 1] < x) j++;
-    const t = Math.min(1, Math.max(0, (x - s.x[j]) / (s.x[j + 1] - s.x[j] || 1)));
+    const t = Math.min(
+      1,
+      Math.max(0, (x - s.x[j]) / (s.x[j + 1] - s.x[j] || 1)),
+    );
     const L = s.light[j] + (s.light[j + 1] - s.light[j]) * t;
     const yT = s.top[j] + (s.top[j + 1] - s.top[j]) * t;
     const yB = s.bot[j] + (s.bot[j + 1] - s.bot[j]) * t;
@@ -1201,7 +1243,11 @@ function engraveStrata(c: PlateCanvas, f: Face): void {
       if (visible && t > 0.18) {
         run.push(p);
         if (p[0] - lastTick > 1.3 * unit && rng() < 0.85) {
-          const q = atH(f, i, Math.max(f.talusH[i], h - (t + 0.4) * (0.5 + rng() * 0.9)));
+          const q = atH(
+            f,
+            i,
+            Math.max(f.talusH[i], h - (t + 0.4) * (0.5 + rng() * 0.9)),
+          );
           ticks.moveTo(p[0], p[1]);
           ticks.lineTo(q[0], q[1]);
           lastTick = p[0];
@@ -1217,7 +1263,8 @@ function engraveStrata(c: PlateCanvas, f: Face): void {
       for (let k = 1; k <= inner; k++) {
         const line: Pt[] = [];
         for (let i = 0; i < f.ns.length; i++) {
-          const h = f.bh[b][i] + ((f.bh[b + 1][i] - f.bh[b][i]) * k) / (inner + 1);
+          const h =
+            f.bh[b][i] + ((f.bh[b + 1][i] - f.bh[b][i]) * k) / (inner + 1);
           line.push(atH(f, i, Math.min(f.top[i], Math.max(f.talusH[i], h))));
         }
         addBroken(fine, line, 5, 4, rng, () => 0.45);
@@ -1265,8 +1312,14 @@ function engraveTalus(c: PlateCanvas, f: Face): void {
     // The north flank, turned from the sun: a few strokes down it.
     for (let k = 1; k <= 3; k++) {
       const t = k / 11;
-      const end: Pt = [left[0] + (right[0] - left[0]) * t, left[1] + (right[1] - left[1]) * t];
-      fans.moveTo(apex[0] - (apex[0] - end[0]) * 0.15, apex[1] - (apex[1] - end[1]) * 0.15);
+      const end: Pt = [
+        left[0] + (right[0] - left[0]) * t,
+        left[1] + (right[1] - left[1]) * t,
+      ];
+      fans.moveTo(
+        apex[0] - (apex[0] - end[0]) * 0.15,
+        apex[1] - (apex[1] - end[1]) * 0.15,
+      );
       fans.quadraticCurveTo(
         apex[0] - (apex[0] - end[0]) * 0.75,
         end[1] + (apex[1] - end[1]) * 0.2,

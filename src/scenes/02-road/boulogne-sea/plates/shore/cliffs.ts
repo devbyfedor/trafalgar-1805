@@ -234,7 +234,10 @@ function paintEdgeWorks(c: PlateCanvas, g: Face, mode: PlateMode): void {
       gab.moveTo(p[0], p[1]);
       gab.lineTo(p[0], p[1] + 0.55);
     }
-    const ahead = viewOf(faceE(g, indexOf(g, b.n0), g.top[indexOf(g, b.n0)]), b.n0)[0];
+    const ahead = viewOf(
+      faceE(g, indexOf(g, b.n0), g.top[indexOf(g, b.n0)]),
+      b.n0,
+    )[0];
     const fl = onEdge(g, b.n0 - 6, 12, 0);
     const f = flag(fl[0], fl[1], 12 * BUILD * (1000 / ahead), 2.4);
     if (colourMode) {

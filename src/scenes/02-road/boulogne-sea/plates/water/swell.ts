@@ -1,5 +1,5 @@
 import { SEA_DRIFT } from "../../../interludes";
-import { createRng, mix, rgba } from "../../paint/kit";
+import { createRng, luminance, mix, rgba } from "../../paint/kit";
 import {
   INK,
   PAPER,
@@ -628,142 +628,128 @@ function paintRows(
 
 // ------------------------------------------------------------------ the engraving
 
-/** Dashes over one period, repeated across the box. */
-function dashes(
-  seed: number,
-  period: number,
-  len: number,
-  gap: number,
-  keep: number,
-): [number, number][] {
-  const rng = createRng(seed);
-  // Patches of open water (the shine) between patches of strokes.
-  const patch = periodic(seed + 11, period, [
-    [1, 0.5],
-    [2, 0.35],
-    [3, 0.25],
-    [5, 0.15],
-  ]);
-  const out: [number, number][] = [];
-  let s = rng() * gap;
-  while (s < period) {
-    const l = len * (0.5 + rng());
-    const e = Math.min(period, s + l);
-    const m = Math.min(1, Math.max(0, 0.5 + 0.75 * patch((s + e) / 2)));
-    if (rng() < keep * m) out.push([s, e]);
-    s = e + gap * (0.3 + rng() * 1.3);
-  }
-  return out;
+/**
+ * The engraving's tone for the colour's value (docs/reviews/boulogne-sea/
+ * s27-critique-whole.md, finding 3): the lines' spacing about k / (1 - L)
+ * for the colour's relative luminance L, so the engraving is the
+ * painting's value map in line: close, heavier lines where the water is
+ * dark (near the eye), wide, fine ones where it is light (far off).
+ */
+function inkTone(s: Strip, y: number): number {
+  return luminance(bodyTone(s, y));
 }
-
-function strokeAlong(
-  ctx: CanvasRenderingContext2D,
-  c: PlateCanvas,
-  f: (x: number) => number,
-  ds: readonly [number, number][],
-  period: number,
-  step: number,
-): void {
-  const [x0, x1] = c.box;
-  for (let m = Math.floor(x0 / period) - 1; m * period < x1; m++) {
-    for (const [a, b] of ds) {
-      const s = a + m * period;
-      const e = b + m * period;
-      if (e < x0 || s > x1) continue;
-      ctx.moveTo(s, f(s));
-      for (let x = s + step; x < e; x += step) ctx.lineTo(x, f(x));
-      ctx.lineTo(e, f(e));
-    }
-  }
-}
-
-const INK_CREST: readonly (readonly [number, number])[] = [
-  [1, 0.3],
-  [2, 0.22],
-  [3, 0.16],
-  [5, 0.12],
-  [8, 0.09],
-  [13, 0.06],
-  [21, 0.05],
-];
 
 interface InkRow {
   y: number;
   d: number;
-  dy: number;
+  /** The colour's value here, 0..1. */
+  L: number;
+  /** How far its line wanders, layer units. */
   amp: number;
+  /** In the swell's face, just under the crest: the lines tightest there. */
+  face: boolean;
   seed: number;
 }
 
 function inkRowsOf(s: Strip): InkRow[] {
-  const rng = createRng(800 + s.i * 31);
+  const rng = createRng(1800 + s.i * 31);
   const out: InkRow[] = [];
-  let y = crestLow(s) - 1.5;
+  let y = crestLow(s) - 0.6;
   let k = 0;
   while (y > s.bottom) {
     const d = dAt(s, y);
-    const dy = Math.max(2.4, (6000 * 6) / (d * d)) * (0.8 + rng() * 0.4);
+    const L = inkTone(s, y);
+    const u = clamp01((s.top - y) / s.gap);
+    const face = u < 0.22;
     out.push({
       y,
       d,
-      dy,
-      amp:
-        Math.min(0.35 * dy + 1, 13, 180 / d + 9000 / (d * d)) *
-        (0.75 + rng() * 0.5),
-      seed: 900 + s.i * 97 + k * 13,
+      L,
+      amp: Math.min(1.6, 0.25 + 30 / d) * (0.7 + rng() * 0.6),
+      face,
+      seed: 1900 + s.i * 97 + k * 13,
     });
-    y -= dy;
+    const sp = (2.5 / (1 - L)) * (face ? 0.72 : 1) * (0.85 + rng() * 0.3);
+    y -= sp;
     k++;
   }
   return out;
 }
 
-function inkRows(c: PlateCanvas, s: Strip, rs: readonly InkRow[]): void {
+/**
+ * The engraved water: long horizontal lines that follow the wavelets,
+ * fine and nearly unbroken far off, opening to bare paper in the still
+ * patches (the slicks' glassy lanes, bright with the low sky); shorter,
+ * wavier strokes in the middle distance; closer and heavier near the eye,
+ * tightest in the swell's faces. Over one period, repeated across.
+ */
+function inkRows(
+  c: PlateCanvas,
+  s: Strip,
+  rs: readonly InkRow[],
+  cat: (x: number, y: number) => number,
+): void {
   const { ctx } = c;
-  ctx.lineCap = "round";
+  const [x0, x1] = c.box;
+  const P = s.period;
   for (const r of rs) {
-    // Some close far rows left out, so the far water never reads as ruling.
-    if (r.dy < 3.4 && (r.seed * 7919) % 10 < 3) continue;
-    const w = periodic(r.seed, s.period, INK_CREST);
-    const t = periodic(r.seed + 9, s.period, INK_CREST);
-    const crest = (x: number) => r.y + r.amp * w(x);
-    const trough = (x: number) => r.y - r.dy * 0.6 + r.amp * 0.7 * t(x);
-    const near = Math.min(1, Math.max(0, (-r.y - 30) / 230));
-    const len = Math.min(40, Math.max(5, 1200 / r.d));
-    const step = Math.max(1.5, len / 6);
-    ctx.beginPath();
-    strokeAlong(
-      ctx,
-      c,
-      crest,
-      dashes(r.seed, s.period, len, len * 0.7, 0.8),
-      s.period,
-      step,
-    );
-    ctx.lineWidth = c.pen(0.6 + 0.9 * near);
-    ctx.strokeStyle = rgba(
-      near > 0.5 ? INK.line : INK.hatch,
-      0.62 + 0.15 * near,
-    );
-    ctx.stroke();
-    ctx.beginPath();
-    strokeAlong(
-      ctx,
-      c,
-      trough,
-      dashes(
-        r.seed + 3,
-        s.period,
-        len * 0.6,
-        len * (1.4 - near * 0.8),
-        0.55 + 0.3 * near,
-      ),
-      s.period,
-      step,
-    );
-    ctx.lineWidth = c.pen(0.5 + 0.8 * near);
-    ctx.strokeStyle = rgba(INK.hatch, 0.5 + 0.2 * near);
-    ctx.stroke();
+    const rng = createRng(r.seed);
+    const dark = 1 - r.L;
+    const wob = periodic(r.seed + 5, P, [
+      [P / 300, 0.45],
+      [P / 140, 0.3],
+      [P / 60, 0.25],
+    ]);
+    // Wavelets along the line: small bumps, larger near.
+    const ripple = periodic(r.seed + 7, P, [
+      [P / Math.max(6, 900 / r.d), 0.6],
+      [P / Math.max(4, 500 / r.d), 0.4],
+    ]);
+    const bump = Math.min(0.9, 12 / r.d);
+    const line = (x: number) => r.y + r.amp * wob(x) + bump * ripple(x);
+    // Strokes: long far off, shorter in the middle, long and heavy near.
+    const len =
+      r.d > 110 ? 70 + 0.3 * r.d : r.d > 50 ? 22 + 0.35 * r.d : 50 + 900 / r.d;
+    const strokes: [number, number][] = [];
+    let x = rng() * len;
+    while (x < P) {
+      const l = len * (0.4 + 1.2 * rng());
+      const calm = 1 - cat(x + l / 2, r.y);
+      // The still patches are bright far off: open paper there; near, the
+      // lines only thin out.
+      const open = r.d > 70 ? calm * calm * 1.2 : calm * 0.5;
+      if (rng() > open) strokes.push([x, x + l]);
+      x += l + len * (0.08 + 0.35 * rng()) * (0.4 + 1.6 * (1 - dark));
+    }
+    // Each stroke a burin's line: swelling in its middle, tapering to
+    // nothing at both ends.
+    const p = new Path2D();
+    const step = Math.max(1.5, Math.min(6, len / 10));
+    const w = c.pen(0.55 + 1.5 * dark * dark + (r.face ? 0.2 : 0)) / 2;
+    for (const [a0, b0] of strokes) {
+      const peak = 0.3 + 0.4 * rng();
+      const swell = 0.6 + 0.7 * rng();
+      for (let k = Math.floor((x0 - b0) / P); k * P + a0 < x1; k++) {
+        const a = a0 + k * P;
+        const b = b0 + k * P;
+        if (b < x0) continue;
+        const n = Math.max(3, Math.ceil((b - a) / step));
+        p.moveTo(a, line(a));
+        for (let i = 1; i <= n; i++) {
+          const t = i / n;
+          const xx = a + (b - a) * t;
+          p.lineTo(xx, line(xx) + w * swell * prof(t, peak) ** 0.6);
+        }
+        for (let i = n - 1; i > 0; i--) {
+          const t = i / n;
+          const xx = a + (b - a) * t;
+          p.lineTo(xx, line(xx) - w * swell * prof(t, peak) ** 0.6);
+        }
+        p.closePath();
+      }
+    }
+    ctx.fillStyle = rgba(dark > 0.85 ? INK.line : INK.hatch, 0.5 + 0.4 * dark);
+    ctx.fill(p);
   }
 }
 
@@ -974,7 +960,7 @@ function swellPlate(i: number): Plate {
           c.ctx.fill(bodyPath(c, s, crest));
         });
         for (let k = 0; k < parts; k++)
-          jobs.push((c) => inkRows(c, s, chunk(getInk(), k, parts)));
+          jobs.push((c) => inkRows(c, s, chunk(getInk(), k, parts), cat));
       }
       return jobs;
     },

@@ -1,4 +1,11 @@
-import { createRng, field, mix, rgba, softBlob } from "../../paint/kit";
+import {
+  createRng,
+  field,
+  luminance,
+  mix,
+  rgba,
+  softBlob,
+} from "../../paint/kit";
 import {
   INK,
   PAPER,
@@ -850,49 +857,65 @@ function paintEdgeWaves(
   ctx.stroke(dark);
 }
 
-function inkEdge(c: PlateCanvas, seed: number, bottom: number) {
+/** A burin's stroke from a to b along `line`: swelling to `w` either side at `peak`, tapering to nothing at both ends. */
+function burin(
+  p: Path2D,
+  a: number,
+  b: number,
+  line: (x: number) => number,
+  w: number,
+  peak: number,
+) {
+  const n = Math.max(3, Math.ceil((b - a) / 5));
+  const prof = (t: number) =>
+    t < peak
+      ? Math.sin((Math.PI / 2) * (t / peak))
+      : Math.sin((Math.PI / 2) * ((1 - t) / (1 - peak)));
+  p.moveTo(a, line(a));
+  for (let i = 1; i <= n; i++) {
+    const t = i / n;
+    const x = a + (b - a) * t;
+    p.lineTo(x, line(x) + w * prof(t) ** 0.6);
+  }
+  for (let i = n - 1; i > 0; i--) {
+    const t = i / n;
+    const x = a + (b - a) * t;
+    p.lineTo(x, line(x) - w * prof(t) ** 0.6);
+  }
+  p.closePath();
+}
+
+/** The water off the edge in the engraving, rows from `from` down to `to` (layer units), in jobs of a few rows. */
+const EDGE_INK_ROWS: readonly (readonly [number, number])[] = [
+  [-13.5, -40],
+  [-40, -80],
+  [-80, -130],
+  [-130, -175],
+  [-175, -212],
+];
+
+function inkEdge(c: PlateCanvas, seed: number) {
   const { ctx } = c;
   const rng = createRng(seed);
-  const patch = field(seed + 5, 90, 3);
   const [x0, x1] = c.box;
-  // The low-water edge: one firm line, swelling and thinning along the
-  // shore's lobes, with a few irregular breaks where the swash runs up.
-  const weight = (x: number) =>
-    0.55 + 0.3 * Math.sin(x * 0.019 + 0.7) + 0.15 * Math.sin(x * 0.053 + 2.1);
-  const breaks: [number, number][] = [];
-  for (let b = x0 + 20 + rng() * 80; b < x1; b += 70 + rng() * 210)
-    breaks.push([b, b + 2 + rng() * 7]);
+  // The low-water edge: the swash drawn as long tapering strokes that
+  // overlap and step a little up and down along the shore's lobes, now and
+  // then leaving a gap where a tongue of sand runs out; never one ruled line.
   const edge = new Path2D();
-  const step = 2;
-  let open = false;
-  let run: [number, number][] = [];
-  const close = () => {
-    if (run.length > 1) {
-      edge.moveTo(run[0][0], run[0][1]);
-      for (const [x, y] of run) edge.lineTo(x, y);
-      for (let i = run.length - 1; i >= 0; i--) {
-        const [x, y] = run[i];
-        edge.lineTo(x, y - c.pen(0.5 + 0.9 * weight(x)));
-      }
-      edge.closePath();
-    }
-    run = [];
-  };
-  for (let x = x0; x <= x1; x += step) {
-    const gap = breaks.some(([a, b]) => x > a && x < b);
-    if (gap) {
-      if (open) close();
-      open = false;
-      continue;
-    }
-    open = true;
-    // The shore's small lobes and tongues of sand.
-    const lobe =
-      0.3 * Math.sin(x * 0.043 + 1.2) + 0.18 * Math.sin(x * 0.117 + 0.3);
-    run.push([x, lowWaterY(x) + 0.1 + Math.max(-0.2, lobe)]);
+  let x = x0 - rng() * 30;
+  while (x < x1) {
+    const len = 40 + 130 * rng();
+    const off = (rng() - 0.5) * 0.7;
+    const line = (xx: number) =>
+      lowWaterY(xx) +
+      0.1 +
+      off +
+      0.25 * Math.sin(xx * 0.043 + seed) +
+      0.15 * Math.sin(xx * 0.117 + 0.3);
+    burin(edge, x, x + len, line, c.pen(0.35 + 0.6 * rng()), 0.3 + 0.4 * rng());
+    x += len * (rng() < 0.2 ? 1.05 + 0.25 * rng() : 0.72 + 0.2 * rng());
   }
-  close();
-  ctx.fillStyle = rgba(INK.line, 0.8);
+  ctx.fillStyle = rgba(INK.line, 0.78);
   ctx.fill(edge);
   // The shore's reflection: broken verticals just off the edge, more under the cliffs.
   ctx.beginPath();
@@ -912,33 +935,45 @@ function inkEdge(c: PlateCanvas, seed: number, bottom: number) {
   ctx.lineWidth = c.pen(0.55);
   ctx.strokeStyle = rgba(INK.hatch, 0.6);
   ctx.stroke();
-  // The water: short broken strokes along wavelets, closer and stronger down.
-  ctx.beginPath();
-  let y = -14;
-  while (y > bottom) {
-    const d = distanceAt(y);
-    y -= Math.max(1.6, (6000 * 4) / (d * d)) * (0.75 + rng() * 0.5);
-    let xx = x0 - rng() * 20;
-    const near = Math.min(1, Math.max(0, (-y - 20) / 160));
+}
+
+/**
+ * The water off the edge in the engraving, from `from` down to `to`: the
+ * far water's long fine lines, spaced by its value (light water open, as
+ * the strips' engraving), opening to bare paper in the still patches.
+ */
+function inkEdgeWater(c: PlateCanvas, seed: number, from: number, to: number) {
+  const { ctx } = c;
+  const rng = createRng(seed);
+  const patch = field(seed + 5, 90, 3);
+  const [x0, x1] = c.box;
+  const water = new Path2D();
+  let y = from;
+  while (y > to) {
+    const L = luminance(waterBody(edgeD(y)));
+    y -= (2.5 / (1 - L)) * (0.85 + rng() * 0.3);
+    const row = y;
+    let xx = x0 - rng() * 40;
     while (xx < x1) {
-      const len = (3 + rng() * 10) * (1 + near * 2);
-      const top = Math.min(lowWaterY(xx), lowWaterY(xx + len)) - 0.8;
-      if (
-        y < top &&
-        rng() <
-          (0.45 + near * 0.35) *
-            (0.35 + 0.65 * Math.max(0, 0.5 + 0.5 * patch(xx, y)))
-      ) {
-        const amp = Math.min(2.5, 60 / d);
-        ctx.moveTo(xx, y);
-        ctx.quadraticCurveTo(xx + len / 2, y + amp, xx + len, y);
+      const len = 50 + 110 * rng();
+      const top = Math.min(lowWaterY(xx), lowWaterY(xx + len)) - 1;
+      const calm = 0.5 + 0.5 * patch(xx * 0.5, row * 3);
+      if (row < top && rng() > calm * calm * 1.1) {
+        const ph = rng() * 6;
+        burin(
+          water,
+          xx,
+          xx + len,
+          (v) => row + 0.25 * Math.sin(v * 0.21 + ph),
+          c.pen(0.3 + 0.25 * rng()),
+          0.3 + 0.4 * rng(),
+        );
       }
-      xx += len + 2 + rng() * 14;
+      xx += len + 6 + 40 * rng();
     }
   }
-  ctx.lineWidth = c.pen(0.7);
-  ctx.strokeStyle = rgba(INK.hatch, 0.6);
-  ctx.stroke();
+  ctx.fillStyle = rgba(INK.hatch, 0.62);
+  ctx.fill(water);
 }
 
 // ------------------------------------------------------------------ plates
@@ -1012,8 +1047,10 @@ function farStrand(): Plate {
         : [
             (c) => inkPaper(c, (x) => strandY(x, 0), y0),
             on(farY, (c) => inkStrand(c, 1301, 0, FAR_END)),
-            on(farY, (c) => inkStrand(c, 1302, 0.47, 0.72)),
-            on(farY, (c) => inkStrand(c, 1303, 0.72, 0.98)),
+            on(farY, (c) => inkStrand(c, 1302, 0.47, 0.6)),
+            on(farY, (c) => inkStrand(c, 1303, 0.6, 0.72)),
+            on(farY, (c) => inkStrand(c, 1304, 0.72, 0.85)),
+            on(farY, (c) => inkStrand(c, 1305, 0.85, 0.98)),
             on(farY, (c) => {
               inkChannel(c, CHANNEL_U0, 1);
               paintDriftLine(c, true);
@@ -1077,7 +1114,12 @@ function nearStrand(): Plate {
               inkStrand(c, 1701, NEAR_U, 0.97);
               inkChannel(c, SEAM_U, 1);
             },
-            (c) => inkEdge(c, 1801, y0),
+            (c) => inkEdge(c, 1801),
+            ...EDGE_INK_ROWS.map(
+              ([a, b], k) =>
+                (c: PlateCanvas) =>
+                  inkEdgeWater(c, 1811 + k, a, b),
+            ),
           ],
   };
 }

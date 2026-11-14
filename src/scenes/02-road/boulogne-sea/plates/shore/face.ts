@@ -742,7 +742,7 @@ export function edgeFace(f: Face): void {
 // ------------------------------------------------------------ the beds
 
 const SKY_COOL = rgbOf("#aeb0c4");
-const DEEP = rgbOf("#3d3944");
+const DEEP = rgbOf("#34303b");
 
 /** A bed's colour for a facet's light and its local colour; a soft bed lies back, cooler and darker, in the sky's light. */
 function bedColour(
@@ -794,7 +794,14 @@ function paintBed(c: PlateCanvas, f: Face, b: number): void {
     // One sample past its end: the next block, painted after it, covers the seam.
     const pts = bedPolygon(f, b, blk.i0, Math.min(last, blk.i1 + 1), 0.35);
     const mid = Math.floor((blk.i0 + blk.i1) / 2);
-    const col = bedColour(bed, blk.light, blk.tint, blk.tintK, f.ahead[mid]);
+    // A wall turned from the sun into a recess (a gully's or a cleft's
+    // north wall) takes no light back from the sky beyond it: the face's
+    // real darks.
+    const deep = blk.light < 0.2 ? 0.78 + blk.light * 1.1 : 1;
+    const col = scale3(
+      bedColour(bed, blk.light, blk.tint, blk.tintK, f.ahead[mid]),
+      deep,
+    );
     if (bed.hard) {
       let yTop = Number.NEGATIVE_INFINITY;
       let yBot = Number.POSITIVE_INFINITY;

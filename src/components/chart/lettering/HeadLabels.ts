@@ -560,8 +560,12 @@ export class HeadLabels implements ChartLayer {
       .multiplyScalar(LIFT_PALE)
       .min(this.one);
     this.inkDark.copy(frame.light.ink);
-    this.inkPaleL = luminance([this.inkPale.x, this.inkPale.y, this.inkPale.z]);
-    this.inkDarkL = luminance([this.inkDark.x, this.inkDark.y, this.inkDark.z]);
+    // The inks' luminance, through the scratch colour (no allocation a frame).
+    const ink = this.rgb;
+    this.inkPale.toArray(ink);
+    this.inkPaleL = luminance(ink);
+    this.inkDark.toArray(ink);
+    this.inkDarkL = luminance(ink);
     const eye = frame.eye;
     const cssPerRadian = frame.pxPerRadian / frame.dpr;
     const cssH = frame.height / frame.dpr;
@@ -575,7 +579,9 @@ export class HeadLabels implements ChartLayer {
     }
     this.shipQuads(frame);
     for (const h of this.heads) {
-      const dist = Math.hypot(h.x - eye.x, h.y - eye.y, eye.z);
+      const ex = h.x - eye.x;
+      const ey = h.y - eye.y;
+      const dist = Math.sqrt(ex * ex + ey * ey + eye.z * eye.z);
       // Lying on the chart, it fades as the chart does toward the horizon,
       // and with the haze, as the names do; each place by its own ground
       // (room). As it gives way to its ships it fades by that or by the
@@ -647,7 +653,8 @@ export class HeadLabels implements ChartLayer {
       // The place with the most of the label, and the next: the two
       // drawings, each where it was the frame before if that is still one
       // of the two, so a crossfade keeps each drawing in its place.
-      const [a, b] = h.copies;
+      const a = h.copies[0];
+      const b = h.copies[1];
       if (b.slot === best || a.slot === next) {
         this.draw(b, h, best, seen, em);
         this.draw(a, h, next, seen, em);
@@ -794,8 +801,12 @@ export class HeadLabels implements ChartLayer {
       !this.corner(q, 2, frame, h.x, h.y + em)
     )
       return;
-    h.fx = Math.hypot(q[2] - q[0], q[3] - q[1]) / emPx;
-    h.fy = Math.hypot(q[4] - q[0], q[5] - q[1]) / emPx;
+    const ax = q[2] - q[0];
+    const ay = q[3] - q[1];
+    const bx = q[4] - q[0];
+    const by = q[5] - q[1];
+    h.fx = Math.sqrt(ax * ax + ay * ay) / emPx;
+    h.fy = Math.sqrt(bx * bx + by * by) / emPx;
     const W = frame.width / frame.dpr;
     const H = frame.height / frame.dpr;
     const out = Math.max(-q[0], q[0] - W, -q[1], q[1] - H);
@@ -1046,7 +1057,7 @@ export class HeadLabels implements ChartLayer {
     const y = 0.5 * (y0 + y1);
     const h = y1 - y0;
     const step = w / GROUND_SAMPLES;
-    const reach = 0.5 * Math.hypot(step, h);
+    const reach = 0.5 * Math.sqrt(step * step + h * h);
     let near = Number.POSITIVE_INFINITY;
     let inland = Number.POSITIVE_INFINITY;
     for (let i = 0; i < GROUND_SAMPLES; i++) {
@@ -1082,7 +1093,7 @@ export class HeadLabels implements ChartLayer {
     const q = this.probe;
     const e = 0.25 * h;
     const step = w / GROUND_SAMPLES;
-    const reach = 0.5 * Math.hypot(step, h);
+    const reach = 0.5 * Math.sqrt(step * step + h * h);
     let near = Number.POSITIVE_INFINITY;
     let inland = Number.POSITIVE_INFINITY;
     let nearPerPx = 0;
@@ -1109,14 +1120,15 @@ export class HeadLabels implements ChartLayer {
       // (the inverse transpose of the outline's map applied to its gradient
       // on the chart, as it is: where a tile's distance is capped the field
       // is flat and, as on the GPU, no waterline is drawn there).
-      const perPx =
-        Math.hypot(by * gx - ay * gy, ax * gy - bx * gx) / Math.abs(det);
+      const tx = by * gx - ay * gy;
+      const ty = ax * gy - bx * gx;
+      const perPx = Math.sqrt(tx * tx + ty * ty) / Math.abs(det);
       if (!(perPx > 1e-9)) {
         if (d < 0) near = Number.NEGATIVE_INFINITY;
         else inland = Number.NEGATIVE_INFINITY;
         continue;
       }
-      const spread = reach * Math.hypot(gx, gy);
+      const spread = reach * Math.sqrt(gx * gx + gy * gy);
       const n = (d - spread) / perPx;
       if (n < near) {
         near = n;
@@ -1241,7 +1253,7 @@ export class HeadLabels implements ChartLayer {
       const ay = px[i * 2 + 1];
       const bx = px[i * 2 + 2];
       const by = px[i * 2 + 3];
-      const l = Math.hypot(bx - ax, by - ay);
+      const l = Math.sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay));
       if (l < 1e-3) continue;
       const nx = (-(by - ay) / l) * LINE_HALF_PX;
       const ny = ((bx - ax) / l) * LINE_HALF_PX;
@@ -1279,17 +1291,18 @@ export class HeadLabels implements ChartLayer {
     c.count = 0;
     for (let k = 1; k < h.counts.length; k++)
       if (h.counts[k] > h.counts[c.count]) c.count = k;
-    c.counts.forEach((t, k) => {
+    for (let k = 0; k < c.counts.length; k++) {
+      const t = c.counts[k];
       const a = c.opacity * h.counts[k];
       if (a <= 0.001) {
         t.scale.setScalar(0);
         t.fillOpacity = 0;
-        return;
+        continue;
       }
       t.position.set(cx, oy, 0);
       t.scale.setScalar(em);
       t.fillOpacity = a;
-    });
+    }
   }
 
   private hide(c: Copy): void {
@@ -1298,9 +1311,9 @@ export class HeadLabels implements ChartLayer {
     c.quad[0] = Number.NaN;
     c.name.scale.setScalar(0);
     c.name.fillOpacity = 0;
-    for (const t of c.counts) {
-      t.scale.setScalar(0);
-      t.fillOpacity = 0;
+    for (let k = 0; k < c.counts.length; k++) {
+      c.counts[k].scale.setScalar(0);
+      c.counts[k].fillOpacity = 0;
     }
   }
 

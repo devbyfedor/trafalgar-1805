@@ -510,7 +510,7 @@ export function quadsApart(a: Float64Array, b: Float64Array): number {
     for (let e = 0; e < 4; e++) {
       const ex = q[((e + 1) % 4) * 2] - q[e * 2];
       const ey = q[((e + 1) % 4) * 2 + 1] - q[e * 2 + 1];
-      const len = Math.hypot(ex, ey);
+      const len = Math.sqrt(ex * ex + ey * ey);
       if (len < 1e-9) continue;
       const nx = -ey / len;
       const ny = ex / len;

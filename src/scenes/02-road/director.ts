@@ -995,6 +995,8 @@ export function squadronMarks(): ShipMark[] {
 
 export class RoadDirector {
   private readonly ships: readonly Ship[] = [...BRITISH, ...COMBINED];
+  /** Each squadron's symbol by its id (formationOf), made at its first read. */
+  private formations: Map<string, Formation> | null = null;
   private readonly state: ShipState = {
     x: 0,
     y: 0,
@@ -1509,7 +1511,13 @@ export class RoadDirector {
 
   /** A squadron's symbol by its id, as the glyph layout lays it out. */
   formationOf(id: string): Formation | null {
-    return this.squads.find((s) => s.spec.id === id)?.formation ?? null;
+    // Read for every label every frame (HeadLabels' blocks and anchors): a
+    // map, so no closure is made a call.
+    if (!this.formations) {
+      this.formations = new Map();
+      for (const s of this.squads) this.formations.set(s.spec.id, s.formation);
+    }
+    return this.formations.get(id) ?? null;
   }
 
   /** Scene 1's Victory box to hand over from (null: no scene 1 on the page). */

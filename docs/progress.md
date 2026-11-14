@@ -2,6 +2,24 @@
 
 Live checklist. A later session picks up from here. The briefs are `docs/scene-01-brief.md` and `docs/scene-02-brief.md`; decisions and deviations are in `docs/decisions.md`.
 
+## Session 32, part one (14 November 2026): the fleets' labels: allocation, flicker, figures
+
+**The owner's order** (complete; it ends "Конец сообщения"). Session 32 is split in two, each part one limit window. **This part: the fixes in the fleets' labels only;** the code review, the full checks and the merge into `main` are part two's, not this one's. His answers: (1) the night signals are shown as the record has them: a short chain between the closing fleets (into the relay's plan); (2) no flicker of a label: it is a jerk, and there must be none; a label passes from place to place smoothly, without flicker: a minimum time at a place, hysteresis, a soft change, for every fleet's label; (3) the figures that can't be read are fixed now: each figure holds long enough to be read; an intermediate value that still flashes is skipped and recorded in `decisions.md`. Order of work:
+1. No allocation a frame in `HeadLabels.update`.
+2. The labels' flicker (answer 2).
+3. The figures (answer 3).
+4. Checks of what changed on the production build, the build checked with `served.mjs`: clash and jerks at the four sizes, the flicker on a fast scroll included; contrast and "a label or its ships" at the four sizes.
+5. This file: done, and what is left for part two; the report with the commands to look at the branch on the preview; stop.
+No helpers in this session. The comparison with the reference frames, the frame budget and `npm run check` are part two's. Nothing into `main`. Never `npm run screenshots`. Commit after each step.
+
+**Plan and state** (branch `wip/s32-labels-march`):
+- [x] Step 0: oriented (clean tree at `d2a475c`, `main` untouched at `e43e191`).
+- [x] Step 1: no allocation a frame in the labels' path. The inks' luminance through the scratch colour; no closures a frame (`draw`'s figures, `RoadDirector.formationOf` now a map, `CoastField.read`'s texel reader, `luminance`'s channel helper); `Math.hypot` (a builtin call that boxes its result) replaced by `Math.sqrt` in the labels' path, the ground model and `quadsApart`. New tool `scripts/dev/label-alloc.mjs` (dev server; Chrome's sampling heap profiler, every short-lived object counted, what is allocated under `HeadLabels.update`): over p 0.655–0.84 at 1280×720@1.5, after four warm passes, about 240 kB a frame before, **106 kB a frame after**, all of it now numbers V8 boxes as they are returned from calls it doesn't inline (`CoastField.distance` and `read` most); no array, closure or object is made. Whether that rest matters is for part two's frame budget (`road-bench.mjs`); a further step would pass the coast field's reads through a scratch array.
+- [ ] Step 2: the flicker.
+- [ ] Step 3: the figures.
+- [ ] Step 4: the checks.
+- [ ] Step 5: this file, the report.
+
 ## Session 32 (14 November 2026): the Cádiz labels, the march to Ulm, the history section
 
 **Where we stopped (the owner's deliberate stop, 14 November 2026, in step 4).** The main tree is on `wip/s32-labels-march` (this record; the same work as `s32-gulf-labels` at `c80c190`, one commit behind). **`main` is untouched at `e43e191`: nothing of this session is in it yet.** Typecheck and lint pass on this tree. Nothing runs: my servers on 4173 and 4180, the check chain and a read-only code-review workflow (`wf_78e8f2cb-17b`, stopped before any result: nothing lost) are stopped. No merge, rebase, lock or stash.

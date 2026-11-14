@@ -43,11 +43,14 @@ const WATER_COVER = 0.9;
 /** The share of a label's pixels its ground is read at the bright end of (contrast.mjs: the 95th percentile). */
 const BRIGHT_SHARE = 0.05;
 
-/** WCAG relative luminance of an sRGB colour. */
+/** WCAG relative luminance of an sRGB colour (read every frame: allocates nothing). */
 export function luminance(c: Rgb): number {
-  const lin = (v: number) =>
-    v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
-  return 0.2126 * lin(c[0]) + 0.7152 * lin(c[1]) + 0.0722 * lin(c[2]);
+  return 0.2126 * linear(c[0]) + 0.7152 * linear(c[1]) + 0.0722 * linear(c[2]);
+}
+
+/** An sRGB channel (0..1) in linear light. */
+function linear(v: number): number {
+  return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
 }
 
 /** WCAG contrast of two luminances. */
@@ -113,7 +116,9 @@ function horizonGlow(
   const s = light.sunDir;
   const dAz = azimuthApart(Math.atan2(x, y), Math.atan2(s.x, s.y));
   const elev = Math.asin(Math.min(1, Math.max(-1, z)));
-  const r = Math.hypot(dAz / (30 * DEG), elev / (14 * DEG));
+  const ra = dAz / (30 * DEG);
+  const re = elev / (14 * DEG);
+  const r = Math.sqrt(ra * ra + re * re);
   const a =
     r < 0.24
       ? 0.62 + (0.32 - 0.62) * (r / 0.24)
@@ -156,7 +161,7 @@ function hazeColor(
   out: Rgb,
 ): void {
   const up = Math.max(z, 0);
-  const n = Math.hypot(x, y, up) || 1;
+  const n = Math.sqrt(x * x + y * y + up * up) || 1;
   skyColor(light, x / n, y / n, up / n, out);
   const h = light.haze;
   // Looking down, the haze is the general colour of the air.
@@ -179,7 +184,7 @@ export class ChartGround {
     let vx = x - eye.x;
     let vy = y - eye.y;
     let vz = -eye.z;
-    const dist = Math.hypot(vx, vy, vz) || 1;
+    const dist = Math.sqrt(vx * vx + vy * vy + vz * vz) || 1;
     vx /= dist;
     vy /= dist;
     vz /= dist;
@@ -224,7 +229,7 @@ export class ChartGround {
     let vx = x - eye.x;
     let vy = y - eye.y;
     let vz = -eye.z;
-    const dist = Math.hypot(vx, vy, vz) || 1;
+    const dist = Math.sqrt(vx * vx + vy * vy + vz * vz) || 1;
     vx /= dist;
     vy /= dist;
     vz /= dist;

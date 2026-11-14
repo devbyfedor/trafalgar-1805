@@ -334,7 +334,7 @@ function lobesOf(s: CloudSpec): {
       const q = rng();
       const r = p.a * (0.3 + 0.22 * q * q);
       const at = 0.62 + 0.2 * rng();
-      seat(
+      const l2 = seat(
         lobes,
         lobe(
           p.x + Math.cos(th) * p.a * at,
@@ -345,12 +345,33 @@ function lobesOf(s: CloudSpec): {
         ),
         0.45 + 0.12 * rng(),
       );
+      // On a crown big enough to show it, the finest lumps: one or two
+      // on its lit upper left, where the light catches the silhouette.
+      if ((s.crisp ?? 1) >= 1 && l2.a > 4 && th > 0.6 && th < 2.6) {
+        const k3 = rng() < 0.55 ? 1 : 2;
+        for (let m = 0; m < k3; m++) {
+          const t3 = ((70 + 90 * rng()) * Math.PI) / 180;
+          const r3 = l2.a * (0.28 + 0.14 * rng());
+          seat(
+            lobes,
+            lobe(
+              l2.x + Math.cos(t3) * l2.a * 0.7,
+              l2.y + Math.sin(t3) * l2.b * 0.7,
+              r3,
+              r3 * flat * 0.92,
+              r3,
+            ),
+            0.42 + 0.1 * rng(),
+          );
+        }
+      }
     }
   }
 
   // Torn fragments under the base, toward the ends: each a few small
-  // forms in a loose row, not one lozenge.
-  const nf = s.fragments ?? 2;
+  // forms in a loose row, not one lozenge (none where the underside shows:
+  // it is the base seen from below).
+  const nf = (s.under ?? 0) > 0 ? 0 : (s.fragments ?? 2);
   for (let i = 0; i < nf; i++) {
     const t = rng() < 0.5 ? 0.04 + 0.22 * rng() : 0.74 + 0.22 * rng();
     let fx = s.x0 + t * w;
@@ -1012,10 +1033,10 @@ function cover(
   let au = 0;
   // The outline: crisp (anti-aliased to a pixel) or lost over `ew` units
   // inside it, where the cloud thins.
-  const edge =
-    ew * kk <= 1
-      ? Math.max(0, Math.min(1, E * kk + 0.5))
-      : smooth(-0.5 / kk, ew, E);
+  // (one ramp for both, continuous in ew: at ew 0 the pixel's own
+  // anti-aliasing)
+  const ramp = Math.max(0, Math.min(1, (E * kk + 0.5) / (1 + ew * kk)));
+  const edge = ramp * ramp * (3 - 2 * ramp) * 0.5 + ramp * 0.5;
   if (under > 0) {
     // The face runs down to its own lower outline; the underside fills
     // below and behind it, its far edge soft.
@@ -1461,7 +1482,9 @@ export function cloudJobs(
   const h = spec.height * (1.5 + (spec.under ?? 0)) + 30;
   const px = w * h * K_EST * K_EST;
   const nSample = Math.max(1, Math.ceil(px / (G * G) / SAMPLES_PER_JOB));
-  const nPaint = Math.max(1, Math.ceil(px / PX_PER_JOB));
+  // One more band than the work needs: the first is a small one, so the
+  // painter's first, unoptimised run is short.
+  const nPaint = Math.max(1, Math.ceil(px / PX_PER_JOB)) + 1;
   const jobs: PlateJob[] = [];
   // The forms, then the packing (two jobs: the first is the costlier).
   jobs.push(() => {
@@ -1519,8 +1542,10 @@ export function cloudJobs(
       }
       const out = new Int32Array(nPaint + 1);
       let r = 0;
+      const share = (k: number) =>
+        k === 0 ? 0 : (0.12 + (k - 1)) / (0.12 + (nPaint - 1));
       for (let k = 0; k <= nPaint; k++) {
-        const goal = (work[rows] * k) / nPaint;
+        const goal = work[rows] * share(k);
         while (r < rows && work[r] < goal) r++;
         out[k] = sf.ry0 + r;
       }

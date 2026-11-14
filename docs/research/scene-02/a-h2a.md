@@ -353,6 +353,8 @@ All checked in the OCR with their datelines:
 
 ### R15. Camp sites at Boulogne (H2-02c note)
 
+- **Superseded (session 32).** Outreau and the right camp's extent toward Terlincthun are now documented (Desbrière, *Projets* III 428, for 1804; Bertrand I 334, for the extent): `docs/history-notes.md`, "Scene 2: Boulogne from the sea (beat 1)", "The camps", "Where they stood". The uncited Wikipedia page below is no longer needed.
+
 - **No. 9137** (XI p. 144): Boulogne's "camp de droite" and "camp de gauche".
 - **Corr. IX**:
   - No. 7964 (p. 488) is dated "A la baraque de la Tour d'Ordre, au camp près Boulogne, 9 fructidor an XII" (27 Aug 1804);

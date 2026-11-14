@@ -440,7 +440,7 @@ This is the checked version of `anchorage-19oct.md`. An independent reader went 
 - **Fraser 1906.** E. Fraser, *The Enemy at Trafalgar* (1906), pp. 29, 53, 82, 84–85. https://archive.org/details/enemyattrafalgar00frasuoft
 - **Robinson 1858.** H. Robinson, *Sea Drift* (1858), p. 209. https://archive.org/details/seadrift00robigoog
 - **Ferrer de Couto 1851.** *Historia del combate naval de Trafalgar*: nothing on the berths of 19 October (first writer). https://archive.org/details/historiadelcomba00ferr
-- **Pointers only:** Wikipedia, "Arsenal de La Carraca" (position; three dry docks completed 1788); es.wikipedia coordinates for the Puntal, Matagorda and San Luis forts; Hispanopedia, "Batalla de la Poza de Santa Isabel" (the Flora at Cádiz in 1808).
+- **Pointers only:** Wikipedia, "Arsenal de La Carraca" (position; three dry docks completed 1788; https://en.wikipedia.org/wiki/Arsenal_de_La_Carraca); es.wikipedia coordinates for the Puntal, Matagorda and San Luis forts; Hispanopedia, "Batalla de la Poza de Santa Isabel" (https://es.hispanopedia.com/wiki/Batalla_de_la_Poza_de_Santa_Isabel) (the Flora at Cádiz in 1808).
 
 ## Checker's changes
 

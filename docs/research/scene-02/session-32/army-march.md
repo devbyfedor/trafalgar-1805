@@ -8,10 +8,10 @@ Sources are paraphrased and linked at the end. Coordinates are present-day town 
 
 The bullet is in `session-17/history-scene-02-wip.md`, "The turn east and Ulm". Its substance stands: the line is a composite labelled as the army. Boulogne to Donauwörth was Soult's road, Soult then turned south, and Ney's corps fought at Elchingen. Five things need changing.
 
-1. **Boulogne to Metz.** The centre road did not run straight across Picardy and Champagne. It went north-east by Saint-Omer, Béthune, Douai and Cambrai, east by Landrecies, Avesnes and Hirson to Mézières, then up the Meuse by Sedan and Stenay to Verdun, and on to Metz. The lab's straight Boulogne–Metz chord cuts across that bow. It misses the road by about 15 km at Douai, about 20 km at Avesnes (north of the chord) and about 23 km at Verdun (south of it).
-2. **The Rhine.** Soult crossed at Rheinhausen, on the right bank a little upstream of Speyer, not at Speyer itself. The crossing began at noon on 26 September, when the advance guard went over by ferry. It ended with the 4th division on the 30th. No troops crossed there on the 25th: that day's crossing was Lannes and Murat at Kehl, on another road. The line's head should reach the Rhine on 26 September. "25–30 September" is the whole army's span and fits only as a label for the army.
+1. **Boulogne to Metz.** The centre road did not run straight across Picardy and Champagne. It went east to Saint-Omer, then south-east by Béthune, Douai and Cambrai, well north of the straight line to Metz, east by Landrecies, Avesnes and Hirson to Mézières, then up the Meuse by Sedan and Stenay to Verdun, and on to Metz. The lab's straight Boulogne–Metz chord cuts across that bow. It misses the road by about 15 km at Douai, about 20 km at Avesnes (north of the chord) and about 23 km at Verdun (south of it).
+2. **The Rhine.** Soult crossed at Rheinhausen, on the right bank a little upstream of Speyer, not at Speyer itself. The crossing began on 26 September, when the advance guard went over by ferry, at noon as Soult planned that morning (Alombert and Colin's narrative has only "dès le 26"). It ended with the 4th division on the 30th. No troops crossed there on the 25th: that day's crossing was Lannes and Murat at Kehl, on another road. The line's head should reach the Rhine on 26 September and go on: Bruchsal on the 27th, Heilbronn on the 29th. "25–30 September" is the whole army's span and fits only as a label for the army.
 3. **Rhine to Danube.** From Rheinhausen the head went by Bruchsal and Eppingen to Heilbronn. The order of 27 September said Wiesloch and Sinsheim, but Soult took Bruchsal to keep clear of Davout. From Hall the head (Vandamme's 2nd division) went by Rosenberg and Ellwangen to Nördlingen. The 1st Bulletin's Gaildorf–Abtsgmünd–Aalen was the plan, and the 1st division's road. Vandamme's advance guard took Donauwörth in the night of 6–7 October, and the Danube was crossed on the 7th. The bullet's "7 October" stands.
-4. **Ney.** Ney's corps did not come by Donauwörth. It reached the Danube from Heidenheim and Giengen, and Malher's division fought for the bridge at Günzburg on 9 October. So the composite changes corps between Donauwörth and Günzburg. "Took Elchingen and Ulm" is loose. Ney won Elchingen on 14 October and stormed the heights above Ulm on the 15th, with part of Suchet's division. Ulm capitulated on the 17th, a brigade of Ney's corps took over a gate on the 18th, and the garrison laid down its arms on the 20th.
+4. **Ney.** Ney's corps did not come by Donauwörth. It came down from Heidenheim and Giengen to the Danube at Höchstädt, 17 km above Donauwörth, on the evening of 7 October (Maude 200; A&C II 61 has him ordered that morning to stay at Giengen), spread west along the left bank on the 8th (the 59th at Gundelfingen, with companies at Lauingen and Dillingen, A&C III/1 21), and on the 9th Labassée's column marched from Gundelfingen while Malher's division fought for the bridge at Günzburg (A&C III/1 34; Maude 210–211). So the composite changes corps between Donauwörth and Höchstädt, and only that stretch joins the two corps' roads. "Took Elchingen and Ulm" is loose. Ney won Elchingen on 14 October and stormed the heights above Ulm on the 15th, with part of Suchet's division. Ulm capitulated on the 17th, a brigade of Ney's corps took over a gate on the 18th, and the garrison laid down its arms on the 20th.
 5. **A page reference.** The draft's "To the Rhine" bullet cites Alombert and Colin I 236, 414 for Soult's road through Metz and Bitche. The IV corps' itinerary is on p. 415. Page 414 has Nansouty's and Davout's itineraries.
 
 ## The road and its dates
@@ -37,7 +37,7 @@ The head is the leading division of the corps. From Boulogne to the Rhine that w
 | 15 | Stenay | 5.188, 49.492 | 12 September, derived | Berjaud; A&C II 70–71 (Klein there on 8 September) | Medium |
 | 16 | Dun-sur-Meuse (or Liny-devant-Dun) | 5.186, 49.386 | 13 September, derived | Berjaud ("Livry") | Low |
 | 17 | Verdun | 5.387, 49.159 | 14 September; halted on the 15th, derived | A&C II 5; Berjaud | Medium |
-| 18 | Metz | 6.176, 49.120 | 16 September (derived), halted on the 17th; left on the 18th | A&C I 415 (departure); A&C I 436–437 | High for leaving on the 18th; medium for arriving on the 16th |
+| 18 | Metz | 6.176, 49.120 | 16 September (derived), halted on the 17th; left on the 18th | A&C I 415 (the order of movement); A&C I 436–437 | Medium-high for leaving on the 18th (as ordered); medium for arriving on the 16th |
 | 19 | Courcelles-Chaussy | 6.405, 49.109 | 18 September | A&C I 415 (itinerary) | High as ordered |
 | 20 | Saint-Avold | 6.707, 49.104 | 19 September | A&C I 415 | High as ordered |
 | 21 | Sarreguemines | 7.071, 49.109 | 20 September | A&C I 415 | High as ordered |
@@ -45,7 +45,7 @@ The head is the leading division of the corps. From Boulogne to the Rhine that w
 | 23 | Lembach | 7.790, 49.004 | 22 September | A&C I 415 | High as ordered |
 | 24 | Wissembourg | 7.945, 49.037 | 23 September | A&C I 415 | High as ordered |
 | 25 | Germersheim | 8.367, 49.222 | 24 September | A&C I 415, 421 | High as ordered |
-| 26 | Rheinhausen (the crossing, opposite and upstream of Speyer) | 8.473, 49.280 | 26 September, noon: advance guard by ferry. Bridge laid in the night of 26–27; 1st division over at 9 a.m. on the 27th, 4th division on the 30th | A&C II 42, 507–508 | High |
+| 26 | Rheinhausen (the crossing, opposite and upstream of Speyer) | 8.473, 49.280 | 26 September: advance guard by ferry, at noon by Soult's plan of that morning. Bridge laid in the night of 26–27; 1st division over at 9 a.m. on the 27th, 4th division on the 30th | A&C II 42, 507–508 | High (the day), medium (the hour) |
 | 27 | Bruchsal (Heidelsheim) | 8.598, 49.124 (Heidelsheim 8.645, 49.101) | 27 September: advance guard beyond Heidelsheim | A&C II 43, 508 | High |
 | 28 | Eppingen | 8.910, 49.137 | 28 September | A&C II 44 | High |
 | 29 | Heilbronn | 9.219, 49.142 | 29 September: first two divisions; whole corps by 1 October; left on 2 October | A&C II 44; Soult, A&C II 508 | High |
@@ -55,7 +55,7 @@ The head is the leading division of the corps. From Boulogne to the Rhine that w
 | 33 | Ellwangen | 10.132, 48.962 | 5 October, 6 a.m.: Vandamme's advance guard enters; advance guard to Zöbingen | A&C II 57–58, 813–814 | High |
 | 34 | Nördlingen | 10.489, 48.852 | 6 October: 2nd division through to Möttingen; advance guard on to Harburg and Ebermergen | A&C II 61, 867–868 | High |
 | 35 | Donauwörth | 10.781, 48.718 | Night of 6–7 October: town taken (about 8 p.m. by Maude); the Danube crossed on 7 October | A&C II 868; Maude 199–200 | High |
-| 36 | Dillingen | 10.494, 48.577 | (no date; a shaping point on the left bank) | — | — |
+| 36 | Höchstädt; then Dillingen | 10.566, 48.611; 10.494, 48.577 | 7 October, evening: Ney's corps at Höchstädt (A&C II 61 has him held at Giengen); 8 October: the 59th at Gundelfingen, companies at Lauingen and Dillingen | Maude 200; A&C III/1 20–21 | Medium (the 7th), high (the 8th) |
 | 37 | Günzburg | 10.277, 48.455 | 9 October: Malher's division (VI corps) takes the bridge in the evening | Maude 176–177, 210–211 | High |
 | 38 | Elchingen (Oberelchingen) | 10.080, 48.450 | 14 October, 8 a.m.: Ney, with Loison's division leading, forces the bridge | Maude 231–233 | High |
 | 39 | Michelsberg, above Ulm | 9.981, 48.421 | 15 October, about 3 p.m.: Ney and part of Suchet's division take the Michelsberg and Geisberg | Maude 240–241 | High |
@@ -65,15 +65,15 @@ The head is the leading division of the corps. From Boulogne to the Rhine that w
 
 The full table is the road stage by stage. On a chart of western Europe, about 22 points keep the line on the road. Every left-out stage lies within about 8 km of a straight segment between its neighbours. These are:
 
-Boulogne (28 August), Saint-Omer (29 August), Douai (2 September), Cambrai (3 September), Avesnes (6 September), Hirson (7 September), Mézières (9 September, held to the 11th), Sedan (11 September), Verdun (14 September), Metz (16 September, held to the 18th), Bitche (21 September), Wissembourg (23 September), Rheinhausen (26 September, noon; held to the 30th if the line shows the whole corps crossing), Bruchsal (27 September), Heilbronn (29 September, held to 2 October), Hall (3 October), Ellwangen (5 October), Nördlingen (6 October), Donauwörth (7 October), Günzburg (9 October), Elchingen (14 October), Ulm (20 October, 2 p.m.).
+Boulogne (28 August), Saint-Omer (29 August), Douai (2 September), Cambrai (3 September), Avesnes (6 September), Hirson (7 September), Mézières (9 September, held to the 11th), Sedan (11 September), Verdun (14 September), Metz (16 September, held to the 18th), Bitche (21 September), Wissembourg (23 September), Rheinhausen (26 September, noon; no hold: the head goes on, and "26–30 September" letters the corps' crossing span), Bruchsal (27 September), Heilbronn (29 September, held to 2 October), Hall (3 October), Ellwangen (5 October), Nördlingen (6 October), Donauwörth (7 October), Günzburg (9 October), Elchingen (14 October), Ulm (20 October, 2 p.m.).
 
 - Germersheim (24 September) lies on the Wissembourg–Rheinhausen segment, within 1 km of it. Keep it only to pace the head (24 September there, 26 September at the river).
 - Öhringen lies about 8 km off the Heilbronn–Hall segment and Stenay about 5 km off Sedan–Verdun. Either can go in for a closer fit.
-- Dillingen lies on the Donauwörth–Günzburg segment.
+- Höchstädt (7 October, evening) and Dillingen lie within 1 km of the Donauwörth–Günzburg segment. Höchstädt can go in as the point where the line passes from the joining stretch to Ney's road.
 
 The suggested date labels are four:
 - "28 August" at Boulogne.
-- "26–30 September" at the Rhine by Speyer. The notes' "25–30 September" can stay only as the whole army's span.
+- "26–30 September" at the Rhine by Speyer, the span of the corps' crossing; the head does not hold there. The notes' "25–30 September" can stay only as the whole army's span.
 - "7 October" at Donauwörth.
 - "20 October" at Ulm.
 
@@ -81,10 +81,10 @@ A fifth label, "18 September" at Metz, would show the pace across France if the 
 
 ## How the dates between Boulogne and Metz were found
 
-No report of the 1st division gives its stages across France. Two dates are fixed by period documents:
+No report of the 1st division gives its stages across France. Two dates come from period documents, one reported and one ordered:
 
 - **Mézières.** Saint-Hilaire's division arrived on 22 fructidor (9 September) and left on 24 fructidor (11 September). This is in the war ministry's digest of march reports, from Saint-Hilaire's letter and the report of the general commanding the 2nd military division (A&C II 74–77).
-- **Metz.** By the second order of movement, the 1st division was to leave Metz on the 1st complementary day (18 September) for Germersheim (A&C I 415).
+- **Metz.** By the second order of movement, the 1st division was to leave Metz on the 1st complementary day (18 September) for Germersheim (A&C I 415). This is the order, not a report that it left; the 4th division kept the same order to the day (see "Doubts").
 
 Departure from Boulogne on 28 August is also fixed (Corr. XI No. 9137; Berthier, A&C I 373).
 
@@ -104,7 +104,7 @@ That itinerary agrees with every period date found for the 4th division:
 - by the second order the 4th division was to leave Metz on 1 vendémiaire (23 September), sleeping at Courcelles that night and at Saint-Avold on the 24th (A&C I 416);
 - it was due at Wissembourg on 28 September (A&C I 416, 421).
 
-The 1st division left Boulogne five days before the 40th. Shifted five days earlier, the 40th's itinerary puts the 1st division at Mézières on 9 September, halted on the 10th, gone on the 11th, and leaving Metz on the 18th. Those are exactly the two fixed dates. The 3rd division (Legrand) left three days after the 1st and two before the 40th, and it fits the same pattern:
+The 1st division left Boulogne five days before the 40th. Shifted five days earlier, the 40th's itinerary puts the 1st division at Mézières on 9 September, halted on the 10th, gone on the 11th, and leaving Metz on the 18th. Those are exactly the two dates. The 3rd division (Legrand) left three days after the 1st and two before the 40th, and it fits the same pattern:
 
 - it was at Landrecies on 21 fructidor (8 September), two days ahead of the 40th (A&C II 74–75);
 - Legrand wrote from Mézières on 26 fructidor (13 September), during a halt, two days ahead of the 40th's halt at Charleville (A&C II 73).
@@ -142,9 +142,9 @@ The 1st Bulletin's list for Soult (Heilbronn, Öhringen, Hall, Gaildorf, Abtsgm�
 
 ## Donauwörth to Ulm
 
-From Donauwörth Soult went south (Augsburg, Landsberg, Memmingen), so the line changes corps here. Ney's VI corps had come down from Heidenheim and Giengen on the left bank. On 9 October Malher's division seized the Günzburg bridge in the evening, after a hard fight (Maude 176–177, 210–211). On 14 October at 8 a.m. Ney, with Loison's division leading, forced the Elchingen bridge and drove the Austrians back on Ulm; the fighting lasted ten hours (Maude 231–233). On the 15th, at about 3 p.m., Ney and part of Suchet's division took the Michelsberg and Geisberg above the town (Maude 240–241). The capitulation followed on the 17th and the march-out on 20 October from 2 p.m. (see the draft's "Ulm").
+From Donauwörth Soult went south (Augsburg, Landsberg, Memmingen), so the line changes corps here. Ney's VI corps came down from Heidenheim and Giengen to Höchstädt on the evening of the 7th and spread west along the left bank on the 8th, by Dillingen, Lauingen and Gundelfingen. On 9 October Labassée's column marched from Gundelfingen, and Malher's division seized the Günzburg bridge in the evening, after a hard fight (Maude 176–177, 200, 210–211; A&C III/1 20–21, 34). On 14 October at 8 a.m. Ney, with Loison's division leading, forced the Elchingen bridge and drove the Austrians back on Ulm; the fighting lasted ten hours (Maude 231–233). On the 15th, at about 3 p.m., Ney and part of Suchet's division took the Michelsberg and Geisberg above the town (Maude 240–241). The capitulation followed on the 17th and the march-out on 20 October from 2 p.m. (see the draft's "Ulm").
 
-For the chart, the line can run up the Danube's left bank from Donauwörth by Dillingen to Günzburg, then by Leipheim to Elchingen and Ulm. That keeps it on the river the army closed along. It is honest as a composite: no one corps marched from Donauwörth to Günzburg.
+For the chart, the line can run up the Danube's left bank from Donauwörth by Höchstädt and Dillingen to Günzburg, then by Leipheim to Elchingen and Ulm. That keeps it on the river the army closed along. Only Donauwörth to Höchstädt is a joining stretch that no corps marched; from Höchstädt on it is Ney's road.
 
 ## Doubts
 
@@ -168,11 +168,12 @@ For the chart, the line can run up the Danube's left bank from Donauwörth by Di
   - the march-report register pp. 70–77;
   - documents pp. 507–508, 638, 685, 812–814, 867–868;
   - https://archive.org/details/la-campagne-de-1805-en-allemagne-vol.-2 (e.g. https://archive.org/details/la-campagne-de-1805-en-allemagne-vol.-2/page/72/mode/1up).
+- Same, vol. III, part 1: pp. 20–21, 34 (Ney's corps on the Danube, 7–9 October). https://archive.org/details/la-campagne-de-1805-en-allemagne-vol.-3-p.-1
 - *Correspondance de Napoléon Ier*, vol. XI:
   - No. 9137, 26 August 1805, pp. 141–144;
   - No. 9348, 1st Bulletin, pp. 294–295;
   - https://archive.org/details/correspondancede11napouoft.
-- F. N. Maude, *The Ulm Campaign 1805* (London, 1912), pp. 123, 149–150, 176–177, 199–200, 209–211, 231–233, 240–241. https://archive.org/details/ulmcampaign180500mauduoft
+- F. N. Maude, *The Ulm Campaign 1805* (London, 1912), pp. 123, 149–150, 176–177, 199–200, 205–206, 209–211, 231–233, 240–241. https://archive.org/details/ulmcampaign180500mauduoft
 - J. M. Berjaud, *Sur les pas de la Grande Armée, 1805* (Sospel, 2009; put online by the S.E.H.R.I., 2010), PDF pp. 35–42. This is a modern work, so its stages are cited as facts and not quoted. http://assosehri.fr/bibliothequemili/la-campagne-de-1805.pdf
 - *The Memoirs of Baron Thiébault*, translated and condensed by A. J. Butler (London, 1896), II 128. https://archive.org/details/memoirsofbaronth02thiuoft
 - Coordinates: OpenStreetMap Nominatim, https://nominatim.openstreetmap.org/ (present-day town centres).

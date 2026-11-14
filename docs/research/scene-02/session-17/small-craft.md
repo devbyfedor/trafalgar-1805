@@ -216,11 +216,11 @@ Period sources (public domain):
 Modern references (facts only, paraphrased):
 
 - R. Winfield, *British Warships in the Age of Sail 1793–1817* (2008), and R. Winfield and S. S. Roberts, *French Warships in the Age of Sail 1786–1861* (2015), as reported by threedecks.org and Wikipedia; not read directly.
-- threedecks.org: Pickle (ex-Sting), id 6910; Entreprenante, id 4112; Le Furet (1802), id 13186; L'Argus (1800), id 32372.
+- threedecks.org (https://threedecks.org/): Pickle (ex-Sting), id 6910; Entreprenante, id 4112; Le Furet (1802), id 13186; L'Argus (1800), id 32372.
 - Wikipedia: HMS Pickle (1800); HMS Entreprenante; French brig Furet (1801); French brig Argus (1800); French brig Observateur; Abeille-class brig; HMS Weazel (1805). Used as pointers to Winfield, Roche, Hore, Marshall, the London Gazette and Dallas.
-- maritimeviews.co.uk, "The prelude" (Trafalgar), for the Pickle's manuscript log ADM 52/3669 (noon reckoning of 21 October; the log-keeper's name; Lyon's dimensions).
+- maritimeviews.co.uk, "The prelude" (Trafalgar), https://www.maritimeviews.co.uk/trafalgar/the-prelude/, for the Pickle's manuscript log ADM 52/3669 (noon reckoning of 21 October; the log-keeper's name; Lyon's dimensions).
 - French Wikipedia, "Le Renard (bateau)", for the replica cutter's dimensions; Pride of Baltimore II specification sheet for her rig height.
-- Royal Museums Greenwich catalogue: model of the Pickle by William Haines, SLR2745.19; Pocock, BHC0548.
+- Royal Museums Greenwich catalogue: model of the Pickle by William Haines, SLR2745.19; Pocock, BHC0548 (https://www.rmg.co.uk/collections/objects/rmgc-object-12040).
 
 ## What the check changed
 

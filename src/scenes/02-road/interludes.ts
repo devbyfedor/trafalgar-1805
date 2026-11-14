@@ -117,8 +117,16 @@ export const SEA_HOLD: SeaPose = {
  * between her mainmast and her ensign, and the reflection a little short of
  * the caption's lines. The hold's first frame is unchanged; the parallax
  * through it is 18 % smaller.
+ * 12.1 since session 29 (the owner: the moon whole at the hold's end): at
+ * 11.5 her main topmast's aft shroud lay along the moon's left limb, and
+ * her roll (now 0.95°, following the swell) carried it across the disc;
+ * with the moon climbing 10 units through the evening (plates/sky/moon.ts,
+ * MOON_CLIMB), at 12.1 the disc stands clear of the topmast's shroud, the
+ * topgallant backstay and the line under it by about 6 units at rest, more
+ * than the roll and heave move them (studio frames in .claude/s29/moon/).
+ * Her jib-boom's reflection stays off the caption (measured on the page).
  */
-export const SEA_DRIFT = 11.5;
+export const SEA_DRIFT = 12.1;
 
 /** The hold's drift at its progress t (0..1), eased at both ends. */
 export function driftAt(t: number): number {

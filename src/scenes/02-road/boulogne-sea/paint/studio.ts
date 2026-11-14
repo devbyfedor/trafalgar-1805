@@ -1,6 +1,6 @@
 import { SEA_HOLD, type SeaPose } from "../../interludes";
 import { buildPlates } from "../plates";
-import { boxStyle, type Shift, shiftFor } from "../view";
+import { boxStyle, type Shift, shiftFor, UNIT_VH } from "../view";
 import { duskJobs, duskOf, duskShare, eveningOpacities } from "./dusk";
 import type {
   PaintMode,
@@ -92,7 +92,13 @@ async function run(): Promise<void> {
       position: "absolute",
     });
     shiftFor(plate.depth, pose, height, shift);
-    box.style.transform = `translate3d(${shift.x}px, ${shift.y}px, 0)`;
+    const climb =
+      plate.climb && o.dusk !== undefined
+        ? plate.climb.units *
+          ((UNIT_VH / 100) * height) *
+          duskShare(plate.climb.at, o.dusk)
+        : 0;
+    box.style.transform = `translate3d(${shift.x}px, ${shift.y - climb}px, 0)`;
     const ink = document.createElement("canvas");
     const colour = document.createElement("canvas");
     const glow = document.createElement("canvas");

@@ -21,6 +21,9 @@ import { INK, PAPER, type Plate, type PlateCanvas } from "../../paint/plate";
  */
 export const MOON = { x: 248, y: 92, r: 8.6 } as const;
 
+/** Layer units the moon climbs through the hold (moonPlate's `climb`). */
+export const MOON_CLIMB = 10;
+
 const PAD = 52;
 const BOX = [MOON.x - PAD, MOON.x + PAD, MOON.y - PAD, MOON.y + PAD] as const;
 
@@ -95,6 +98,11 @@ export function moonPlate(): Plate {
     box: BOX,
     group: "sky",
     dusk: { at: DUSK_AT.moon, grade: null, jobs: () => [paintDuskMoon] },
+    // It rises through the evening: from its place at sunset (its lower
+    // limb just clear of Mont Lambert's shoulder) a little higher by the
+    // dusk, where by 19:45 it would stand some 3° higher still (a licence:
+    // its rise drawn about a fifth of the true one).
+    climb: { units: MOON_CLIMB, at: [0.15, 0.95] },
     jobs: (mode) =>
       mode === "colour"
         ? [

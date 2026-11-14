@@ -197,6 +197,11 @@ export interface Plate {
   bob?: PlateBob;
   swell?: PlateSwell;
   /**
+   * Layer units the whole plate climbs over a stretch of the hold (the
+   * moon rising through the evening), eased; it stays up on the rise.
+   */
+  climb?: { units: number; at: readonly [number, number] };
+  /**
    * How the plate turns to dusk through the hold (paint/dusk.ts,
    * `duskOf`): when, and how its dusk raster is made. Absent: by its
    * group and depth. `false`: it has no dusk raster and stays as it is.

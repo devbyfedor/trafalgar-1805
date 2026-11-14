@@ -223,6 +223,7 @@ interface Mover {
   y: number;
   swell: Plate["swell"] | null;
   bob: Plate["bob"] | null;
+  climb: Plate["climb"] | null;
 }
 
 interface PlateView {
@@ -255,6 +256,9 @@ function controller(root: HTMLElement): SeaViewHandle & { dispose(): void } {
       : null,
     bob: el.dataset.plate
       ? (PLATES.find((p) => p.id === el.dataset.plate)?.bob ?? null)
+      : null,
+    climb: el.dataset.plate
+      ? (PLATES.find((p) => p.id === el.dataset.plate)?.climb ?? null)
       : null,
   }));
   const views: PlateView[] = PLATES.map((plate) => {
@@ -494,6 +498,7 @@ function controller(root: HTMLElement): SeaViewHandle & { dispose(): void } {
           y +=
             w.amp * px * Math.sin(((time - w.delay) * 2 * Math.PI) / w.seconds);
         }
+        if (m.climb) y -= m.climb.units * px * duskShare(m.climb.at, evening);
         const b = m.bob;
         if (b) {
           // A moored row rising and falling with the swell, all together.

@@ -17,7 +17,10 @@ import type { CraftPaint, CraftSpec } from "@/components/ship/craft/types";
  * - masts and yards of brown wood, the canvas furled on the yards off-white
  *   weathered to buff;
  * - the tricolour at every stern, as long as the beam at most (about 5.5 m
- *   on a brig), and a long masthead pennant, about 11 m on a brig;
+ *   on a brig), and a long masthead pennant, about 11 m on a brig; at
+ *   anchor the ensign flew from a staff at the taffrail, as in Lewis's view
+ *   of the line (flotilla-check.md, item 13; the owner's answer of 14
+ *   November 2026), not from the gaff's peak, where it flew under way;
  * - the chaloupe's carronades along her sides, in ports in the bulwark.
  */
 
@@ -54,7 +57,14 @@ export const SEA_CHALOUPE: CraftSpec = {
       muzzle: 0.24,
     },
   },
-  ensign: { ...CHALOUPE.ensign, fly: 4.4, hoist: 2.9 },
+  // On its staff at the taffrail, raking aft: the main boom, eased off to
+  // one side, overhangs the stern beside it.
+  ensign: {
+    at: "staff",
+    staff: { foot: [-0.6, 1.92], height: 5.4, rake: 8, d: 0.12 },
+    fly: 4.4,
+    hoist: 2.9,
+  },
   pennant: { mast: "main", length: 10.8, hoist: 0.4 },
   boat: { length: 5.2, height: 0.5, gap: 2.2 },
   paint: TARRED,
@@ -89,6 +99,12 @@ export const SEA_PRAME: CraftSpec = {
   ...PRAME,
   id: "prame-sea",
   hull: { ...PRAME.hull, band: undefined },
+  ensign: {
+    at: "staff",
+    staff: { foot: [-0.82, 3.3], height: 5.2, rake: 8, d: 0.13 },
+    fly: PRAME.ensign.fly,
+    hoist: PRAME.ensign.hoist,
+  },
   pennant: PRAME.pennant
     ? { ...PRAME.pennant, length: 12, hoist: 0.45 }
     : undefined,

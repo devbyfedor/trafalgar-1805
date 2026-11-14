@@ -456,10 +456,22 @@ export function dunesPlate(o: {
       const rng = createRng(641);
       for (const crestLine of g.ranks) {
         fill(c, under(crestLine, bottom), PAPER.low);
+        // Each dune's crest one firm line of its own weight, broken only
+        // where a blowout opens (no regular dashes: across the frame those
+        // read as the owner's broken horizontal line).
         const crest = new Path2D();
-        addBroken(crest, crestLine, 14, 1.2, rng);
+        let run: Pt[] = [];
+        for (let i = 0; i < crestLine.length; i++) {
+          run.push(crestLine[i]);
+          if (run.length > 12 && rng() < 0.04) {
+            addLine(crest, run);
+            run = [];
+            i += 1 + Math.floor(rng() * 3);
+          }
+        }
+        if (run.length > 1) addLine(crest, run);
         stroke(c, crest, 0.85, INK.line, 0.8);
-        // The lee of each hump hatched, marram in tufts.
+        // The lee of each hump hatched; marram in a few fanned tufts.
         const lee = new Path2D();
         const grass = new Path2D();
         for (let i = 2; i < crestLine.length - 2; i++) {
@@ -469,13 +481,14 @@ export function dunesPlate(o: {
             lee.moveTo(p[0] + 0.3, p[1] - 0.2);
             lee.lineTo(p[0] + 1, p[1] - 2.2);
           }
-          if (rng() < 0.3) {
-            for (let k = 0; k < 4; k++)
+          if (rng() < 0.09) {
+            const blades = 3 + Math.floor(rng() * 3);
+            for (let k = 0; k < blades; k++)
               addTicks(
                 grass,
-                [[p[0] + k * 0.3, p[1] - 0.2]],
-                0.9 + rng(),
-                70 + rng() * 40,
+                [[p[0] + (rng() - 0.5) * 0.6, p[1] - 0.1]],
+                0.7 + rng() * 1.1,
+                55 + (70 * k) / Math.max(1, blades - 1) + (rng() - 0.5) * 12,
               );
           }
         }
@@ -487,26 +500,38 @@ export function dunesPlate(o: {
       const g = get();
       const rng = createRng(651);
       fill(c, band(g.foot, g.hw), PAPER.low);
+      // The beach: a few short flicks at uneven steps and heights, more of
+      // them toward the dunes' foot (a regular row of them read as a
+      // dotted rule across the frame, the owner's remark 9).
       const s = new Path2D();
-      for (let i = 0; i < g.hw.length; i += 5) {
-        const a = g.foot[i];
-        const b = g.hw[i];
-        const t = 0.3 + rng() * 0.6;
-        const x = a[0] + (b[0] - a[0]) * t;
-        const y = a[1] + (b[1] - a[1]) * t;
-        s.moveTo(x, y);
-        s.lineTo(x + 0.8 + rng() * 1.4, y);
+      for (let i = Math.floor(rng() * 6); i < g.hw.length; ) {
+        if (rng() < 0.55) {
+          const a = g.foot[i];
+          const b = g.hw[i];
+          const t = 0.15 + rng() * rng() * 0.8;
+          const x = a[0] + (b[0] - a[0]) * t;
+          const y = a[1] + (b[1] - a[1]) * t;
+          s.moveTo(x, y);
+          s.lineTo(x + 0.5 + rng() * 1.6, y + (rng() - 0.5) * 0.35);
+        }
+        i += 2 + Math.floor(rng() * 9);
       }
       stroke(c, s, 0.5, INK.hatch, 0.45);
+      // The wrack at the high-water line: clumps of a few strokes along a
+      // wandering line, with long gaps between them, never a dashed rule.
       const wrack = new Path2D();
-      addBroken(
-        wrack,
-        g.hw.map(([x, y]) => [x, y + 0.5] as Pt),
-        1.5,
-        2,
-        rng,
-      );
-      stroke(c, wrack, 0.6, INK.hatch, 0.6);
+      for (let i = Math.floor(rng() * 12); i < g.hw.length - 1; ) {
+        const clump = 2 + Math.floor(rng() * 4);
+        const lift = 0.2 + rng() * 1.1;
+        for (let k = 0; k < clump && i + k < g.hw.length; k++) {
+          const [x, y] = g.hw[i + k];
+          const yy = y + lift + (rng() - 0.5) * 0.5;
+          wrack.moveTo(x - rng() * 0.4, yy);
+          wrack.lineTo(x + 0.4 + rng() * 1.3, yy + (rng() - 0.5) * 0.4);
+        }
+        i += clump + 5 + Math.floor(rng() * 22);
+      }
+      stroke(c, wrack, 0.6, INK.hatch, 0.55);
     },
   ];
 

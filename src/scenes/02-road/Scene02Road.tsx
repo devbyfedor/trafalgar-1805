@@ -507,6 +507,7 @@ export function Scene02Road() {
                 return s.labels(p);
               },
               routeLabels: (explain?: boolean) => s.routeLabels(explain),
+              labelClock: (step: number | null) => s.labelClock(step),
               trackLabels: (explain?: boolean) => s.trackLabels(explain),
               hideRouteLabels: (hidden: boolean) => {
                 s.hideRouteLabels(hidden);
@@ -722,6 +723,8 @@ declare global {
         explain?: boolean,
       ) => ReturnType<import("./stage").RoadStage["routeLabels"]>;
       hideRouteLabels: (hidden: boolean) => void;
+      /** Development and the checks: the fleets' labels' clock (RoadStage.labelClock). */
+      labelClock: (step: number | null) => void;
       /** Development: the tracks' dates and legends last drawn (RoadStage.trackLabels). */
       trackLabels: (
         explain?: boolean,

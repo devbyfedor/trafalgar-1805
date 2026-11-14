@@ -26,6 +26,10 @@ await waitForRoad(page, { timeout: 180_000 });
 await page.waitForFunction(() => window.__road?.baked, null, {
   timeout: 180_000,
 });
+// The labels as they settle at each p (their clock makes every move at
+// once: HeadLabels.setClock), not partway through a move begun on the
+// sample before.
+await page.evaluate(() => window.__road.labelClock?.(Number.POSITIVE_INFINITY));
 let rows = 0;
 let frames = 0;
 for (const point of points) {

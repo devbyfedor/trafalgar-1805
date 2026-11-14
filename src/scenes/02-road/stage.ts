@@ -206,6 +206,12 @@ export interface RoadStage {
     explain?: boolean,
   ): HeadLabelState[] | ReturnType<HeadLabels["explain"]>;
   hideRouteLabels(hidden: boolean): void;
+  /**
+   * Development and the checks: the fleets' labels' clock held to a step a
+   * frame (1/60: a reader's frames; Infinity: every move made at once),
+   * or null for the frame's own time (HeadLabels.setClock).
+   */
+  labelClock(step: number | null): void;
   /** Development: the tracks' dates and legends as they stood in the frame last drawn (Tracks.snapshot). */
   trackLabels(
     explain?: boolean,
@@ -734,6 +740,9 @@ export async function createRoadStage(
       },
       hideRouteLabels(hidden) {
         heads.setHidden(hidden);
+      },
+      labelClock(step) {
+        heads.setClock(step);
       },
       trackLabels(explain) {
         return explain ? tracks.explain() : tracks.snapshot();

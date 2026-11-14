@@ -82,6 +82,11 @@ export interface HeadLabelState {
   /** Its inks, 0..255: on the sea, and on the land. */
   inkPale: [number, number, number];
   inkDark: [number, number, number];
+  /** Development: the place it stands at (an index into its head's places), and the share of the label its figure has. */
+  slot: number;
+  share: number;
+  /** Development: its share of the label by the labels' clock (before the label's presence). */
+  w: number;
 }
 
 /** The most points of its line a head is given (HeadLabels.set). */
@@ -189,6 +194,46 @@ const GRADIENT_KM = 0.05;
  */
 const LIFT_PALE = 1.12;
 
+/*
+ * How a label moves from place to place (the owner's rule of 14 November
+ * 2026: no flicker, which is a jerk; a label passes from one place to
+ * another smoothly, with a least time at a place, hysteresis and a soft
+ * change). Each place has its room every frame (room, 0..1, the frame's
+ * geometry alone); the label stands at one place and keeps it while it
+ * keeps KEEP_ROOM, leaving it only when it loses that (the room the place
+ * needs to be taken is TAKE_ROOM, well above, so a place passing through
+ * the band between can neither take the label nor drop it: hysteresis).
+ * A place holds once it has had room for STEADY_S. The label moves to a
+ * place before its own in the order (nearer its fleet) only when it has
+ * been at its own DWELL_S and that place holds; losing its place, it moves
+ * at once, but a second time within DWELL_S only to a place that holds,
+ * and with none it goes out and comes back once a place holds (where the
+ * view sweeps its places across a coast, each with room for a moment, it
+ * would otherwise chase them: choose). Every move is a crossfade of its
+ * two drawings over MOVE_S of its own clock (seconds, not scroll), so
+ * however fast the reader scrolls, a move takes the same time and the
+ * label never pops.
+ * A place with KEEP_ROOM still keeps the rules the room stands for (its
+ * ink reads at 4.7:1 or more by the ground model, no ship under it), so a
+ * label held there shows whole.
+ */
+/** The room a place needs to take the label (the first in order with it). */
+const TAKE_ROOM = 0.85;
+/** The room a place keeps the label with. */
+const KEEP_ROOM = 0.15;
+/** With no place at TAKE_ROOM, the roomiest with this much takes it. */
+const FALLBACK_ROOM = 0.5;
+/** A move's crossfade, seconds. */
+const MOVE_S = 0.35;
+/** The least time at a place before the label moves to a better one, seconds. */
+const DWELL_S = 1;
+/** How long a place must have had room (FALLBACK_ROOM, frame after frame) to hold, seconds. */
+const STEADY_S = 0.3;
+/** A move cut short by the next: the two drawings go out this much faster. */
+const CLEAR_RATE = 2.5;
+/** The longest step of the labels' clock, seconds. */
+const STEP_MAX_S = 0.1;
+
 /** A place about a fleet: its side, how it lines up there, its gap. */
 interface Slot {
   /**
@@ -207,8 +252,11 @@ interface Slot {
   onScreen: boolean;
   /** Its outline on screen this frame, CSS px; NaN where it can't be seen. */
   quad: Float64Array;
-  /** How much of the label stands here this frame (soft first-fit). */
+  /** Its room this frame (roomAt; 0 where not read), and the frame it was read in. */
   weight: number;
+  stamp: number;
+  /** Since when (the labels' clock) it has had FALLBACK_ROOM unbroken, frame after frame (NaN: it hasn't). */
+  since: number;
   /**
    * Development: this frame's room and what made it (the frame's edge, the
    * ground, the names and card, the labels before it, its line, its ships,
@@ -230,9 +278,13 @@ interface Slot {
 interface Copy {
   name: Text;
   counts: Text[];
-  /** The place it stands at this frame (-1 none), and how much shows. */
+  /** The place it stands at (-1 none), its share of the label there (0..1, by the labels' clock), and how much shows this frame. */
   slot: number;
+  w: number;
   opacity: number;
+  /** Where it last stood on the chart (its left middle, world km; NaN: nowhere yet). */
+  ox: number;
+  oy: number;
   /** Its outline this frame, for the lettering after it (screen). */
   quad: Float64Array;
   /** The strength it shows most of this frame (an index into its counts). */
@@ -243,6 +295,17 @@ interface Head {
   spec: HeadSpec;
   slots: Slot[];
   copies: [Copy, Copy];
+  /**
+   * Where the label stands (choose): the drawing that has it, coming in or
+   * whole (-1: none, the label going out); the place it is bound for while
+   * both drawings still show (-1: none); when it last moved, by the
+   * labels' clock; whether it is yet to come in (forget), when it takes
+   * the first place with room at once.
+   */
+  fresh: boolean;
+  lead: number;
+  pending: number;
+  since: number;
   /**
    * This frame: where the label stands by (world km), its line from the
    * head back (world x, y pairs; trailCount points), how much shows.
@@ -331,6 +394,18 @@ export class HeadLabels implements ChartLayer {
   /** Three points on screen (foreshortening), reused. */
   private readonly probe = new Float64Array(6);
   private readonly v = new Vector3();
+  /** The labels' clock (seconds), the frame's time it last read, and a step a check holds it to (setClock). */
+  private clock = 0;
+  private lastTime = Number.NaN;
+  private fixedStep: number | null = null;
+  /** Frames updated (Slot.stamp). */
+  private frameNo = 0;
+  /**
+   * A head's places this frame (choose): the first with TAKE_ROOM, the
+   * first of those that hold; the roomiest with FALLBACK_ROOM, the
+   * roomiest of those that hold (-1: none).
+   */
+  private readonly chosen = new Int32Array(4);
 
   constructor(field: TerrainField, specs: readonly HeadSpec[]) {
     configureFonts();
@@ -356,7 +431,10 @@ export class HeadLabels implements ChartLayer {
       name: typeset(spec.name),
       counts: spec.counts.map(typeset),
       slot: -1,
+      w: 0,
       opacity: 0,
+      ox: Number.NaN,
+      oy: Number.NaN,
       quad: new Float64Array(8).fill(Number.NaN),
       count: 0,
     });
@@ -390,6 +468,8 @@ export class HeadLabels implements ChartLayer {
                 : -1,
             quad: new Float64Array(8).fill(Number.NaN),
             weight: 0,
+            stamp: -1,
+            since: Number.NaN,
             why: new Float64Array(8),
             near: 0,
             inland: 0,
@@ -412,6 +492,10 @@ export class HeadLabels implements ChartLayer {
         spec,
         slots,
         copies: [copy(spec), copy(spec)],
+        fresh: true,
+        lead: -1,
+        pending: -1,
+        since: 0,
         x: 0,
         y: 0,
         own: new Float64Array(8),
@@ -542,6 +626,16 @@ export class HeadLabels implements ChartLayer {
   }
 
   /**
+   * Development and the checks: the labels' clock steps `step` seconds a
+   * frame, whatever the frame's time (a reader's frames at 60 a second,
+   * 1/60), or makes every change at once (Infinity: each frame shows where
+   * the labels settle, as after a pause); null for the frame's own time.
+   */
+  setClock(step: number | null): void {
+    this.fixedStep = step;
+  }
+
+  /**
    * Development and the contrast check: the labels leave the frame (true)
    * or come back. They are still placed, and other lettering still keeps
    * clear of them, so the frame under them is the frame they were drawn on.
@@ -566,6 +660,18 @@ export class HeadLabels implements ChartLayer {
     this.inkPaleL = luminance(ink);
     this.inkDark.toArray(ink);
     this.inkDarkL = luminance(ink);
+    // The labels' own clock, seconds: the frame's time, a step at most
+    // STEP_MAX_S (after a stall a change goes on where it was), or the step
+    // a check holds it to (setClock; Infinity: every change made at once).
+    let step = this.fixedStep;
+    if (step === null)
+      step = Number.isFinite(this.lastTime)
+        ? Math.min(STEP_MAX_S, Math.max(0, frame.time - this.lastTime))
+        : 0;
+    this.lastTime = frame.time;
+    const settle = step === Number.POSITIVE_INFINITY;
+    if (!settle) this.clock += step;
+    this.frameNo++;
     const eye = frame.eye;
     const cssPerRadian = frame.pxPerRadian / frame.dpr;
     const cssH = frame.height / frame.dpr;
@@ -599,10 +705,13 @@ export class HeadLabels implements ChartLayer {
           Math.exp(-hx * hx) *
           (1 - smooth(HAZE_CLEAR[0], HAZE_CLEAR[1], hx));
       h.emPx = emPx;
-      for (const s of h.slots) s.weight = 0;
+      for (let i = 0; i < h.slots.length; i++) h.slots[i].weight = 0;
       if (!this.sized || seen <= 0.001) {
-        for (const c of h.copies) {
-          this.hide(c);
+        // Unseen, it starts afresh where it is next seen (coming in, it
+        // fades in with its presence, so it needs no crossfade).
+        this.forget(h);
+        for (let k = 0; k < 2; k++) {
+          this.hide(h.copies[k]);
           this.screen.weights[n++] = 0;
         }
         continue;
@@ -613,55 +722,40 @@ export class HeadLabels implements ChartLayer {
       const blockWeight = this.blocks ? this.blocks(h.spec.id, this.block) : 0;
       h.aw = this.anchors ? this.anchors(h.spec.id, this.anchor) : 0;
       if (h.aw > 0.001) h.own.set(this.anchor);
-      // A soft first-fit over its places in order: once one has the whole
-      // label, those after it are not tried. The places by its own ships
-      // have room only as far as the host gives them.
-      let left = 1;
-      let best = -1;
-      let next = -1;
-      // The places by its own ships come first and share the host's weight
-      // among them, first-fit; those by its head share what is left.
       const aw = Math.min(1, h.aw);
-      let ownLeft = aw > 0.001 ? 1 : 0;
-      let headStarted = false;
+      // Each place's room in order, up to the first with room to take the
+      // label; with none, the roomiest of those with enough to fall back
+      // on. The places by its own ships come first and have room only as
+      // far as the host gives them (aw).
+      // Each the first such place (or the roomiest) of any, and of those
+      // that hold (with room for STEADY_S): the scan goes on to the first
+      // that holds.
+      const c = this.chosen;
+      c.fill(-1);
       for (let i = 0; i < h.slots.length; i++) {
         const s = h.slots[i];
-        if (s.own) {
-          if (ownLeft <= 0.001) {
-            s.quad[0] = Number.NaN;
-            continue;
+        const r = this.roomAt(h, i, em, frame, blockWeight, aw);
+        const holds = settle || this.clock - s.since >= STEADY_S;
+        if (r >= TAKE_ROOM) {
+          if (c[0] < 0) c[0] = i;
+          if (holds) {
+            c[1] = i;
+            break;
           }
-          const room = this.room(s, h, em, frame, blockWeight);
-          s.weight = room * ownLeft * aw;
-          ownLeft *= 1 - room;
-        } else {
-          if (!headStarted) {
-            headStarted = true;
-            left = 1 - aw * (1 - ownLeft);
-          }
-          if (left <= 0.001) break;
-          const room = this.room(s, h, em, frame, blockWeight);
-          s.weight = room * left;
-          left *= 1 - room;
+        } else if (r >= FALLBACK_ROOM) {
+          if (c[2] < 0 || r > h.slots[c[2]].weight) c[2] = i;
+          if (holds && (c[3] < 0 || r > h.slots[c[3]].weight)) c[3] = i;
         }
-        if (s.weight <= 0.001) continue;
-        if (best < 0 || s.weight > h.slots[best].weight) {
-          next = best;
-          best = i;
-        } else if (next < 0 || s.weight > h.slots[next].weight) next = i;
       }
-      // The place with the most of the label, and the next: the two
-      // drawings, each where it was the frame before if that is still one
-      // of the two, so a crossfade keeps each drawing in its place.
-      const a = h.copies[0];
-      const b = h.copies[1];
-      if (b.slot === best || a.slot === next) {
-        this.draw(b, h, best, seen, em);
-        this.draw(a, h, next, seen, em);
-      } else {
-        this.draw(a, h, best, seen, em);
-        this.draw(b, h, next, seen, em);
-      }
+      // The places its drawings stand at, or are bound for, wherever they
+      // come in the order.
+      for (let k = 0; k < 2; k++)
+        if (h.copies[k].slot >= 0)
+          this.roomAt(h, h.copies[k].slot, em, frame, blockWeight, aw);
+      if (h.pending >= 0) this.roomAt(h, h.pending, em, frame, blockWeight, aw);
+      this.choose(h, settle);
+      this.fade(h, step, settle);
+      for (let k = 0; k < 2; k++) this.draw(h.copies[k], h, seen, em);
       for (const c of h.copies) {
         if (c.opacity > 0.001) anything = true;
         this.screen.weights[n++] = c.opacity > 0.001 ? c.opacity : 0;
@@ -735,6 +829,9 @@ export class HeadLabels implements ChartLayer {
           quad: Array.from(c.quad, (v) => Math.round(v * 10) / 10),
           inkPale: rgb(this.inkPale),
           inkDark: rgb(this.inkDark),
+          slot: c.slot,
+          w: Math.round(c.w * 1000) / 1000,
+          share: Math.round((h.counts[c.count] ?? 0) * 1000) / 1000,
         });
       }
     }
@@ -1271,19 +1368,160 @@ export class HeadLabels implements ChartLayer {
     }
   }
 
-  /** Draws one copy of a label at a place (-1: none) for the frame. */
-  private draw(c: Copy, h: Head, slot: number, seen: number, em: number): void {
-    const s = slot >= 0 ? h.slots[slot] : null;
-    if (!s || s.weight <= 0.001) {
+  /**
+   * A place's room this frame (Slot.weight), read once a frame however
+   * often it is asked: its own room (room), and for a place by its own
+   * ships only as far as the host gives them (aw).
+   */
+  private roomAt(
+    h: Head,
+    i: number,
+    em: number,
+    frame: FrameInfo,
+    blockWeight: number,
+    aw: number,
+  ): number {
+    const s = h.slots[i];
+    if (s.stamp === this.frameNo) return s.weight;
+    // Read the frame before too, or its time with room starts afresh.
+    const read = s.stamp === this.frameNo - 1;
+    s.stamp = this.frameNo;
+    if (s.own && aw <= 0.001) {
+      s.quad[0] = Number.NaN;
+      s.why.fill(0);
+      s.weight = 0;
+    } else
+      s.weight = this.room(s, h, em, frame, blockWeight) * (s.own ? aw : 1);
+    if (s.weight < FALLBACK_ROOM) s.since = Number.NaN;
+    else if (!read || Number.isNaN(s.since)) s.since = this.clock;
+    return s.weight;
+  }
+
+  /**
+   * Where the label is to stand (Head.lead's drawing), from this frame's
+   * places (chosen: the first with TAKE_ROOM, and the first of those that
+   * hold; the roomiest with FALLBACK_ROOM, and of those that hold). It
+   * keeps its place while the place keeps KEEP_ROOM. Losing it, it moves
+   * at once, in a crossfade, to the first place that holds, or failing one
+   * to the first with room; but where it moved less than DWELL_S before
+   * (the view sweeping its places across a coast one after another, each
+   * with room for a moment) only to a place that holds, and with none it
+   * goes out and comes back once, at a place that holds, instead of
+   * chasing them. It moves to a place before its own in the order (nearer
+   * its fleet) that holds, after DWELL_S at its own. A check settling every
+   * frame (setClock) waits for nothing.
+   */
+  private choose(h: Head, settle: boolean): void {
+    const c = this.chosen;
+    const cur = h.lead >= 0 ? h.copies[h.lead].slot : h.pending;
+    const dwelt = settle || h.fresh || this.clock - h.since >= DWELL_S;
+    let target = cur;
+    if (cur < 0 || h.slots[cur].weight < KEEP_ROOM) {
+      if (c[1] >= 0) target = c[1];
+      else if (dwelt) target = c[0] >= 0 ? c[0] : c[3] >= 0 ? c[3] : c[2];
+      else target = c[3];
+    } else if (c[1] >= 0 && c[1] < cur && dwelt) target = c[1];
+    if (target === cur) return;
+    h.since = this.clock;
+    h.pending = -1;
+    if (target >= 0) h.fresh = false;
+    if (target < 0) {
+      h.lead = -1;
+      return;
+    }
+    if (settle) {
+      // Made at once: one drawing there, the other gone.
+      h.lead = 0;
+      h.copies[0].slot = target;
+      h.copies[1].slot = -1;
+      return;
+    }
+    // A drawing there already, going out: it comes back from where it is.
+    for (let k = 0; k < 2; k++)
+      if (h.copies[k].slot === target && h.copies[k].w > 0) {
+        h.lead = k;
+        return;
+      }
+    // A drawing not shown goes there and comes in as the other goes out.
+    for (let k = 0; k < 2; k++)
+      if (h.copies[k].w <= 0) {
+        h.copies[k].slot = target;
+        h.lead = k;
+        return;
+      }
+    // Both show (a change cut short): both go out, faster, and the label
+    // comes in there as soon as one has gone.
+    h.lead = -1;
+    h.pending = target;
+  }
+
+  /**
+   * Each drawing toward its share of the label (the lead's whole, the
+   * other's none) over MOVE_S, so a crossfade between two places keeps the
+   * label whole throughout. A place that can't be found this frame (behind
+   * the eye, or a place by its own ships once they have gone) has no room,
+   * so the label leaves it, its drawing going out where it last stood
+   * (draw).
+   */
+  private fade(h: Head, step: number, settle: boolean): void {
+    const rate = settle ? 1 : step / MOVE_S;
+    const out = h.pending >= 0 ? CLEAR_RATE * rate : rate;
+    for (let k = 0; k < 2; k++) {
+      const c = h.copies[k];
+      if (c.slot < 0) c.w = 0;
+      else if (k === h.lead) c.w = Math.min(1, c.w + rate);
+      else c.w = Math.max(0, c.w - out);
+    }
+    if (h.pending < 0) return;
+    for (let k = 0; k < 2; k++) {
+      const c = h.copies[k];
+      if (c.w > 0) continue;
+      c.slot = h.pending;
+      h.lead = k;
+      h.pending = -1;
+      if (!Number.isNaN(h.slots[c.slot].quad[0])) c.w = Math.min(1, c.w + rate);
+      return;
+    }
+  }
+
+  /** A head's label starts afresh: no place, no drawing. */
+  private forget(h: Head): void {
+    h.fresh = true;
+    h.lead = -1;
+    h.pending = -1;
+    for (let k = 0; k < 2; k++) {
+      h.copies[k].slot = -1;
+      h.copies[k].w = 0;
+      h.copies[k].ox = Number.NaN;
+    }
+  }
+
+  /** Draws one copy of a label at its place for the frame, as much as it shows there. */
+  private draw(c: Copy, h: Head, seen: number, em: number): void {
+    const s = c.slot >= 0 && c.w > 0 ? h.slots[c.slot] : null;
+    // Eased, the two drawings of a crossfade still sum to the whole.
+    const shown = seen * smooth(0, 1, c.w);
+    if (!s || shown <= 0.001) {
       this.hide(c);
       return;
     }
-    c.slot = slot;
-    c.opacity = seen * s.weight;
-    c.quad.set(s.quad);
+    c.opacity = shown;
     const at = this.origin(s, h, em);
-    const ox = at[0];
-    const oy = at[1];
+    if (
+      Number.isFinite(at[0]) &&
+      Number.isFinite(at[1]) &&
+      !Number.isNaN(s.quad[0])
+    ) {
+      c.ox = at[0];
+      c.oy = at[1];
+      c.quad.set(s.quad);
+    } else if (!Number.isFinite(c.ox)) {
+      this.hide(c);
+      return;
+    }
+    // Its place lost this frame, it goes out where it last stood.
+    const ox = c.ox;
+    const oy = c.oy;
     c.name.position.set(ox, oy, 0);
     c.name.scale.setScalar(em);
     c.name.fillOpacity = c.opacity;
@@ -1305,8 +1543,8 @@ export class HeadLabels implements ChartLayer {
     }
   }
 
+  /** Draws none of a copy this frame (its place and share are kept: Head.lead). */
   private hide(c: Copy): void {
-    c.slot = -1;
     c.opacity = 0;
     c.quad[0] = Number.NaN;
     c.name.scale.setScalar(0);

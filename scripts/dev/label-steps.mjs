@@ -9,6 +9,7 @@
 // pops. Each p is drawn by the page's own map at that p (window.__road.
 // labels(p) draws the scene there without scrolling).
 //   node scripts/dev/label-steps.mjs 0.66 0.84 0.0005
+// Each step is a frame of the labels' own clock (1/60 s).
 // Environment: BASE (default http://127.0.0.1:3000), W, H, S, JUMP, SLIDE.
 import { chromium } from "@playwright/test";
 import { waitForRoad } from "./road-scroll.mjs";
@@ -28,6 +29,10 @@ const page = await browser.newPage({
 });
 await page.goto(`${base}/?quality=0`);
 await waitForRoad(page, { timeout: 180_000 });
+// Each step a reader's frame: the labels' clock a sixtieth of a second a
+// step (HeadLabels.setClock), so a step of 0.0005 is a scroll of about
+// 650 px a second at 1280×720 (label-flicker.mjs plays other speeds).
+await page.evaluate(() => window.__road.labelClock?.(1 / 60));
 const mid = (q) => [(q[0] + q[4]) / 2, (q[1] + q[5]) / 2];
 let prev = null;
 let flagged = 0;

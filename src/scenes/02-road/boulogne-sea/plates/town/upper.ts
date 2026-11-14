@@ -1,11 +1,12 @@
 import { PLACES, RAMPART_HEIGHT, RAMPARTS, TOWN_GROUND } from "../../geo";
 import { createRng, mix, type Pt, rgba, softBlob } from "../../paint/kit";
 import { INK, PAPER, type PlateCanvas } from "../../paint/plate";
-import { BUILD, project, VEX, viewOf } from "../../scene";
+import { BUILD, EYE_EN, project, VEX, viewOf } from "../../scene";
 import {
   airTone,
   type Building,
   build,
+  DUSK,
   ROOFS,
   type Tone,
   toneAt,
@@ -64,6 +65,8 @@ export interface Tower {
   y1: number;
   r: number;
   distance: number;
+  /** A crenellated top over a corbelled band (the château, the gate); else a plain parapet. */
+  crenel: boolean;
 }
 
 export interface TreeCrown {
@@ -71,7 +74,16 @@ export interface TreeCrown {
   y: number;
   rx: number;
   ry: number;
+  /** The trunk's foot, layer units (the walk's level): shows in the gaps against the hill. */
+  foot: number;
   seed: number;
+}
+
+/** The belfry's square stage: its corner turrets and its bell stage's openings. */
+export interface BelfryStage {
+  turrets: Tower[];
+  /** Tall openings at the bell stage, each a quad (foot left, foot right, top right, top left), with its face's light. */
+  openings: { quad: Pt[]; f: number }[];
 }
 
 export interface Upper {
@@ -88,6 +100,7 @@ export interface Upper {
   };
   trees: TreeCrown[];
   belfry: Building;
+  stage: BelfryStage;
   /** The octagonal stage (y0 to y1), its half-width, and the spire's height above it. */
   octagon: { x: number; y0: number; y1: number; r: number; spire: number };
   telegraph: { x: number; y0: number; y1: number; reg: number; arm: number };
@@ -118,47 +131,70 @@ function towerAt(
   t: number,
   radius: number,
   extra: number,
+  crenel: boolean,
 ): Tower {
   const p = lerp(a, b, t);
   const [ahead] = viewOf(p[0], p[1]);
   const u = 1000 / ahead;
   const [x, y0] = P(p, FOOT - 3);
   const [, y1] = P(p, TOP + extra);
-  return { x, y0, y1, r: radius * BUILD * u, distance: ahead };
+  return { x, y0, y1, r: radius * BUILD * u, distance: ahead, crenel };
 }
 
-export function upper(): Upper {
-  if (cache) return cache;
+type Walls = Pick<Upper, "nw" | "sw" | "towers" | "gate">;
+let wallsCache: Walls | undefined;
+
+/** The walls' faces, towers and gate (the plan's first job). */
+export function upperWalls(): Walls {
+  if (wallsCache) return wallsCache;
   const nw = face(N, W);
   const sw = face(W, S);
   const towers: Tower[] = [];
   for (const t of [0.02, 0.19, 0.37, 0.56])
-    towers.push(towerAt(N, W, t, 5.2, 1.5));
-  towers.push(towerAt(N, W, 0.995, 6.2, 2.5));
-  for (const t of [0.42, 0.985]) towers.push(towerAt(W, S, t, 5.2, 1.5));
-  // The Porte des Dunes: two round towers flanking the arch, toward the lower town and the harbour.
+    towers.push(towerAt(N, W, t, 5.2, 1.5, false));
+  towers.push(towerAt(N, W, 0.995, 6.2, 2.5, false));
+  for (const t of [0.42, 0.985]) towers.push(towerAt(W, S, t, 5.2, 1.5, false));
+  // The Porte des Dunes: two broad round towers flanking the arch, a little
+  // over the walls, crenellated, no roofs; toward the lower town and the harbour.
   const gp = lerp(N, W, 0.78);
   const [gAhead] = viewOf(gp[0], gp[1]);
   const gu = 1000 / gAhead;
   const [gx, gy0] = P(gp, FOOT - 2);
-  const [, gy1] = P(gp, TOP + 3 * BUILD);
+  const [, gy1] = P(gp, TOP + 1.5 * BUILD);
   const gate = {
     x: gx,
     y0: gy0,
     y1: gy1,
     r: 4 * BUILD * gu,
     arch: 3.6 * BUILD * gu,
-    towers: [towerAt(N, W, 0.745, 4.6, 4.5), towerAt(N, W, 0.815, 4.6, 4.5)],
+    towers: [
+      towerAt(N, W, 0.742, 5.6, 2.2 * BUILD, true),
+      towerAt(N, W, 0.818, 5.6, 2.2 * BUILD, true),
+    ],
   };
-  // The double row of trees on the ramparts' walk.
+  wallsCache = { nw, sw, towers, gate };
+  return wallsCache;
+}
+
+let treesCache: TreeCrown[] | undefined;
+
+/** The trees on the ramparts' walk (the plan's second job). */
+export function upperTrees(): TreeCrown[] {
+  if (treesCache) return treesCache;
+  // The double row of trees on the ramparts' walk: crowns of different
+  // sizes, a few tall elms, gaps of one to three missing crowns.
   const rng = createRng(911);
   const trees: TreeCrown[] = [];
   const cx = (W[0] + E[0]) / 2;
   const cn = (W[1] + E[1]) / 2;
   const row = (a: Pt, b: Pt, inset: number) => {
     const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
-    for (let s = 8; s < len - 6; s += 8 + rng() * 5) {
-      if (rng() < 0.08) continue;
+    let s = 6 + rng() * 6;
+    while (s < len - 6) {
+      if (rng() < 0.13) {
+        s += (1 + Math.floor(rng() * 3)) * 9;
+        continue;
+      }
       const [e0, n0] = lerp(a, b, s / len);
       const k = inset / Math.hypot(cx - e0, cn - n0);
       const e = e0 + (cx - e0) * k;
@@ -166,37 +202,60 @@ export function upper(): Upper {
       const [ahead] = viewOf(e, n);
       const u = 1000 / ahead;
       const [x, y] = P([e, n], TOP - 2);
-      const size = 0.85 + rng() * 0.35;
-      trees.push({
-        x,
-        y,
-        rx: 5.6 * BUILD * u * 0.5 * size,
-        ry: 7.5 * BUILD * u * 0.5 * size,
-        seed: Math.floor(rng() * 1e6),
-      });
+      const elm = rng() < 0.1;
+      const size = elm ? 1.2 + rng() * 0.3 : 0.6 + rng() * 0.75;
+      const lift = elm ? 1.3 : 1;
+      const rx = 5.6 * BUILD * u * 0.5 * size;
+      // A gap in the rows where the château's towers show over the wall.
+      if (Math.abs(x - 37) > 9)
+        trees.push({
+          x,
+          y: y + rx * 0.4 * (lift - 1),
+          rx: rx * (elm ? 1.1 : 1),
+          ry: 7.5 * BUILD * u * 0.5 * size * lift,
+          foot: y - 0.4,
+          seed: Math.floor(rng() * 1e6),
+        });
+      s += 7 + rng() * 5;
     }
   };
   row(N, W, 22);
   row(W, S, 22);
   row(N, W, 9);
   row(W, S, 9);
+  trees.sort((p, q) => q.y - p.y);
+  treesCache = trees;
+  return trees;
+}
+
+export function upper(): Upper {
+  if (cache) return cache;
+  const { nw, sw, towers, gate } = upperWalls();
+  const trees = upperTrees();
   const te = (W[0] - N[0]) / Math.hypot(W[0] - N[0], W[1] - N[1]);
   const tn = (W[1] - N[1]) / Math.hypot(W[0] - N[0], W[1] - N[1]);
   // Inward, away from the north-west wall: left of N→W.
   const ie = -tn;
   const in_ = te;
   const [be, bn] = PLACES.belfry;
-  // The belfry: the square stone tower (27 m) on the old town hall's roofs, faces square to the town's streets.
+  // The belfry: the square stone tower (27 m) on the old town hall's roofs,
+  // faces square to the town's streets: plain coursed stone, no house
+  // windows; tall louvred openings at the bell stage; four small corner
+  // turrets on its square stage (history-notes.md, "The belfry").
   const ground = 52 * VEX;
+  const bw = 10 * BUILD;
+  const bh = 27 * BUILD;
+  const fe = be - ie * 5 * BUILD;
+  const fn = bn - in_ * 5 * BUILD;
   const belfry = build({
-    e: be - ie * 5 * BUILD,
-    n: bn - in_ * 5 * BUILD,
+    e: fe,
+    n: fn,
     ground,
     te,
     tn,
-    w: 10 * BUILD,
-    d: 10 * BUILD,
-    h: 27 * BUILD,
+    w: bw,
+    d: bw,
+    h: bh,
     pitch: 0.12,
     ridge: "along",
     hip: true,
@@ -204,8 +263,10 @@ export function upper(): Upper {
     roof: ROOFS.slateDark,
     storeys: 6,
     chimneys: 0,
+    plain: true,
     seed: 4242,
   });
+  const stage = belfryStage(fe, fn, te, tn, ground, bw, bh);
   const [bx] = P([be, bn], ground);
   const [bAhead] = viewOf(be, bn);
   const bu = 1000 / bAhead;
@@ -229,14 +290,17 @@ export function upper(): Upper {
     reg: 2.3 * BUILD * bu * T,
     arm: 1.15 * BUILD * bu * T,
   };
-  // The château's round towers at the far (east) corner, barely over the walls.
-  const chateau: Tower[] = [-16, -2, 12].map((off) => {
+  // The château at the far (east) corner: an octagon of round towers, of
+  // which three or four show over the north-west wall, low broad drums of
+  // dark coursed stone with crenellated tops, barely over the walls.
+  const chateau: Tower[] = [-24, -9, 6, 21].map((off) => {
     const p: Pt = [PLACES.chateau[0] + off, PLACES.chateau[1] - off * 0.7];
     const [ahead] = viewOf(p[0], p[1]);
     const u = 1000 / ahead;
     const [x, y0] = P(p, TOWN_GROUND * VEX);
-    const [, y1] = P(p, TOWN_GROUND * VEX + 20 * BUILD);
-    return { x, y0, y1, r: 5 * BUILD * u, distance: ahead };
+    const lift = off === -9 || off === 6 ? 26 : 23.5;
+    const [, y1] = P(p, TOWN_GROUND * VEX + lift * BUILD);
+    return { x, y0, y1, r: 6.4 * BUILD * u, distance: ahead, crenel: true };
   });
   // The slope below the walls and beside them.
   const nwFoot0 = nw.foot[0][0];
@@ -244,7 +308,6 @@ export function upper(): Upper {
   const left = groundSkyline(-80, nwFoot0 - 1, 3, 2250, 2750, 18);
   const right = groundSkyline(swFoot1 + 1, 196, 3, 2250, 2850, 18);
   const groundLine: Pt[] = [...left, ...nw.foot, ...sw.foot.slice(1), ...right];
-  trees.sort((a, b) => b.y - a.y);
   cache = {
     nw,
     sw,
@@ -252,12 +315,78 @@ export function upper(): Upper {
     gate,
     trees,
     belfry,
+    stage,
     octagon,
     telegraph,
     chateau,
     ground: groundLine,
   };
   return cache;
+}
+
+/**
+ * The belfry's square stage seen from the roads: a turret at each corner
+ * that shows (a small drum with a pointed cap over the parapet), and two
+ * tall louvred openings in each face that shows, at the bell stage.
+ */
+function belfryStage(
+  fe: number,
+  fn: number,
+  te: number,
+  tn: number,
+  ground: number,
+  w: number,
+  h: number,
+): BelfryStage {
+  // The plan: the front F0-F1 along t, the back a depth w behind (left of t), as build() lays it.
+  const be = -tn;
+  const bn = te;
+  const F0: Pt = [fe - (te * w) / 2, fn - (tn * w) / 2];
+  const F1: Pt = [fe + (te * w) / 2, fn + (tn * w) / 2];
+  const B0: Pt = [F0[0] + be * w, F0[1] + bn * w];
+  const B1: Pt = [F1[0] + be * w, F1[1] + bn * w];
+  const top = ground + h;
+  const turrets: Tower[] = [];
+  for (const c of [F0, F1, B0, B1]) {
+    const [ahead] = viewOf(c[0], c[1]);
+    const u = 1000 / ahead;
+    const [x, y0] = P(c, top - 2.5 * BUILD);
+    const [, y1] = P(c, top + 3.2 * BUILD);
+    turrets.push({
+      x,
+      y0,
+      y1,
+      r: 1.05 * BUILD * u,
+      distance: ahead,
+      crenel: false,
+    });
+  }
+  // Only the turrets that show: the nearer three (the far corner hides behind the octagon's foot).
+  turrets.sort((a, b) => b.distance - a.distance);
+  turrets.shift();
+  // The faces that show (toward the eye), their light, and two openings each.
+  const openings: BelfryStage["openings"] = [];
+  const faces: [Pt, Pt, number, number][] = [
+    [F0, F1, -be, -bn],
+    [B1, B0, be, bn],
+    [B0, F0, -te, -tn],
+    [F1, B1, te, tn],
+  ];
+  for (const [a, b, ne, nn] of faces) {
+    const mx = (a[0] + b[0]) / 2;
+    const my = (a[1] + b[1]) / 2;
+    if (ne * (EYE_EN[0] - mx) + nn * (EYE_EN[1] - my) <= 0) continue;
+    const az = (Math.atan2(ne, nn) * 180) / Math.PI;
+    const f = sunOn(az);
+    for (const k of [0.3, 0.7]) {
+      const p0 = lerp(a, b, k - 0.08);
+      const p1 = lerp(a, b, k + 0.08);
+      const z0 = top - 8.5 * BUILD;
+      const z1 = top - 3.2 * BUILD;
+      openings.push({ quad: [P(p0, z0), P(p1, z0), P(p1, z1), P(p0, z1)], f });
+    }
+  }
+  return { turrets, openings };
 }
 
 /** The houses inside the walls: rows parallel to the north-west wall, their fronts to it (only their roofs and upper storeys show over the walls and between the trees). */
@@ -299,6 +428,11 @@ function layRow(row: number): Building[] {
       if (Math.hypot(e - be, n - bn) < 34) continue;
       if (Math.hypot(e - PLACES.chateau[0], n - PLACES.chateau[1]) < 55)
         continue;
+      // Nor in front of the château across its moat, so its drums show over the wall.
+      {
+        const [ahead, right] = viewOf(e, n);
+        if (Math.abs((1000 * right) / ahead - 37) < 9 && ahead > 2380) continue;
+      }
       if (
         Math.hypot(e - PLACES.cathedralSite[0], n - PLACES.cathedralSite[1]) <
         40
@@ -350,7 +484,14 @@ export function interiorHouses(): Building[] {
 
 // ------------------------------------------------------------- painting
 
-/** A round tower's light across its visible half: the sun 16° left of behind. */
+/**
+ * The walls' and towers' stone: dark grey-brown (history-notes.md, "The
+ * upper town": walls 13-16 m of dark grey-brown stone), warm where the low
+ * sun takes it, cool in the sky's shade.
+ */
+const WALL_STONE: Tone = { lit: "#9d8467", graze: "#73685f", shade: "#4f4c57" };
+
+/** A round tower's light across its visible half: the sun 8° left of behind. */
 function towerStops(t: Tone, distance: number): [number, string][] {
   const tone = airTone(t, distance);
   const out: [number, string][] = [];
@@ -358,120 +499,187 @@ function towerStops(t: Tone, distance: number): [number, string][] {
     const k = i / 8;
     // x from the left limb (k=0) to the right limb (k=1); the face's azimuth offset from the eye's line.
     const phi = Math.asin(1 - 2 * k);
-    const f = Math.max(0, Math.cos(phi - (16 * Math.PI) / 180));
+    const f = Math.max(0, Math.cos(phi - (8 * Math.PI) / 180));
     out.push([k, toneAt(tone, f * 0.98)]);
   }
   return out;
 }
 
-export function paintTower(
-  c: PlateCanvas,
-  tw: Tower,
-  t: Tone,
-  cap: boolean,
-): void {
+/** The drum's top edge: a slight arc, its front higher (seen from below, the near side of a ring stands up). */
+function drumTop(tw: Tower, x: number): number {
+  const u = (x - tw.x) / tw.r;
+  return tw.y1 + tw.r * 0.1 * (1 - u * u);
+}
+
+function drumPath(tw: Tower, top: (x: number) => number): Path2D {
+  const p = new Path2D();
+  p.moveTo(tw.x - tw.r, tw.y0);
+  for (let k = 0; k <= 10; k++) {
+    const x = tw.x - tw.r + (2 * tw.r * k) / 10;
+    p.lineTo(x, top(x));
+  }
+  p.lineTo(tw.x + tw.r, tw.y0);
+  p.closePath();
+  return p;
+}
+
+/** The merlons along a crenellated top: their boxes, layer units. */
+function merlons(tw: Tower): [number, number, number, number][] {
+  const n = Math.max(3, Math.round((2 * tw.r) / 1.15));
+  const out: [number, number, number, number][] = [];
+  const h = Math.max(0.55, tw.r * 0.16);
+  for (let i = 0; i < n; i++) {
+    // Narrower toward the limbs, as the ring turns away.
+    const a0 = Math.PI * (1 - (i + 0.18) / n);
+    const a1 = Math.PI * (1 - (i + 0.72) / n);
+    const x0 = tw.x + Math.cos(a0) * tw.r;
+    const x1 = tw.x + Math.cos(a1) * tw.r;
+    out.push([x0, x1, drumTop(tw, (x0 + x1) / 2), h]);
+  }
+  return out;
+}
+
+/** A round tower in dark coursed stone: lit on its left, its courses curving with the drum, the street's dusk at its foot, a corbelled band and merlons on a crenellated top, else a plain parapet with its lit coping. */
+export function paintTower(c: PlateCanvas, tw: Tower, t: Tone): void {
   const { ctx } = c;
+  const tone = airTone(t, tw.distance);
   const g = ctx.createLinearGradient(tw.x - tw.r, 0, tw.x + tw.r, 0);
   for (const [k, col] of towerStops(t, tw.distance)) g.addColorStop(k, col);
+  const top = (x: number) => drumTop(tw, x);
+  const drum = drumPath(tw, top);
   ctx.fillStyle = g;
-  ctx.fillRect(tw.x - tw.r, tw.y0, 2 * tw.r, tw.y1 - tw.y0);
-  // Courses, a darker foot, the parapet's lit coping.
-  const tone = airTone(t, tw.distance);
-  ctx.fillStyle = rgba(tone.shade, 0.35);
-  ctx.fillRect(tw.x - tw.r, tw.y0, 2 * tw.r, (tw.y1 - tw.y0) * 0.18);
-  ctx.strokeStyle = rgba(tone.shade, 0.22);
-  ctx.lineWidth = c.pen(0.5);
+  ctx.fill(drum);
+  ctx.save();
+  ctx.clip(drum);
+  // The ditch's dusk at the foot.
+  const h = tw.y1 - tw.y0;
+  const dusk = ctx.createLinearGradient(0, tw.y0, 0, tw.y0 + h * 0.35);
+  dusk.addColorStop(0, rgba(townAir(DUSK, tw.distance), 0.55));
+  dusk.addColorStop(1, rgba(townAir(DUSK, tw.distance), 0));
+  ctx.fillStyle = dusk;
+  ctx.fillRect(tw.x - tw.r, tw.y0, 2 * tw.r, h * 0.35);
+  // Courses, curving with the drum.
+  ctx.strokeStyle = rgba(tone.shade, 0.3);
+  ctx.lineWidth = c.pen(0.45);
   ctx.beginPath();
-  for (let y = tw.y0 + 1.1; y < tw.y1 - 0.6; y += 1.15) {
-    ctx.moveTo(tw.x - tw.r, y);
-    ctx.lineTo(tw.x + tw.r, y);
+  const n = Math.floor(h / 0.95);
+  for (let k = 1; k < n; k++) {
+    const y = tw.y0 + (h * k) / n;
+    const bow = tw.r * 0.1 * (k / n);
+    for (let i = 0; i <= 8; i++) {
+      const u = -1 + (2 * i) / 8;
+      const x = tw.x + u * tw.r;
+      const yy = y + bow * (1 - u * u);
+      if (i === 0) ctx.moveTo(x, yy);
+      else ctx.lineTo(x, yy);
+    }
   }
   ctx.stroke();
-  ctx.fillStyle = mix(tone.lit, "#fff1d0", 0.25);
-  ctx.fillRect(tw.x - tw.r * 1.04, tw.y1 - 0.45, tw.r * 1.5, 0.45);
-  ctx.fillStyle = tone.graze;
-  ctx.fillRect(tw.x + tw.r * 0.46, tw.y1 - 0.45, tw.r * 0.58, 0.45);
-  if (cap) {
-    // A low conical cap of slate.
-    const s = airTone(ROOFS.slateDark, tw.distance);
-    const cg = ctx.createLinearGradient(tw.x - tw.r, 0, tw.x + tw.r, 0);
-    cg.addColorStop(0, s.graze);
-    cg.addColorStop(0.35, s.lit);
-    cg.addColorStop(1, s.shade);
-    ctx.fillStyle = cg;
+  // Weathering: a few dark streaks down from the parapet.
+  const rng = createRng(Math.floor(tw.x * 97 + tw.y1 * 13));
+  for (let i = 0; i < 4; i++) {
+    const x = tw.x - tw.r * 0.8 + rng() * tw.r * 1.6;
+    const len = h * (0.2 + rng() * 0.4);
+    ctx.fillStyle = rgba(tone.shade, 0.18 + rng() * 0.12);
+    ctx.fillRect(x, tw.y1 - len, 0.3 + rng() * 0.3, len);
+  }
+  ctx.restore();
+  if (tw.crenel) {
+    // The corbelled band's shadow under the parapet, the parapet's lit face above it.
+    const band = Math.max(0.35, tw.r * 0.09);
+    ctx.save();
+    ctx.clip(drum);
+    ctx.fillStyle = rgba(townAir("#2c282e", tw.distance), 0.6);
     ctx.beginPath();
-    ctx.moveTo(tw.x - tw.r * 1.08, tw.y1);
-    ctx.lineTo(tw.x, tw.y1 + tw.r * 1.5);
-    ctx.lineTo(tw.x + tw.r * 1.08, tw.y1);
+    for (let k = 0; k <= 10; k++) {
+      const x = tw.x - tw.r + (2 * tw.r * k) / 10;
+      const y = top(x) - band * 2.6;
+      if (k === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    for (let k = 10; k >= 0; k--) {
+      const x = tw.x - tw.r + (2 * tw.r * k) / 10;
+      ctx.lineTo(x, top(x) - band * 1.6);
+    }
     ctx.closePath();
     ctx.fill();
+    ctx.restore();
+    // Merlons, each lit on its left.
+    for (const [x0, x1, y, mh] of merlons(tw)) {
+      const k = ((x0 + x1) / 2 - (tw.x - tw.r)) / (2 * tw.r);
+      const stops = towerStops(t, tw.distance);
+      const col = stops[Math.min(8, Math.max(0, Math.round(k * 8)))][1];
+      ctx.fillStyle = col;
+      ctx.fillRect(x0, y - 0.05, x1 - x0, mh);
+      ctx.fillStyle = rgba(mix(tone.lit, "#fff1d0", 0.3), 0.7 * (1 - k));
+      ctx.fillRect(x0, y + mh - 0.18, x1 - x0, 0.18);
+    }
+  } else {
+    // A plain parapet: its coping lit gold on the left, in shade on the right.
+    ctx.lineWidth = c.pen(1.1);
+    ctx.beginPath();
+    for (let k = 0; k <= 10; k++) {
+      const x = tw.x - tw.r + (2 * tw.r * k) / 10;
+      if (k === 0) ctx.moveTo(x, top(x) - 0.15);
+      else ctx.lineTo(x, top(x) - 0.15);
+    }
+    const lg = ctx.createLinearGradient(tw.x - tw.r, 0, tw.x + tw.r, 0);
+    lg.addColorStop(0, mix(tone.lit, "#fff1d0", 0.35));
+    lg.addColorStop(0.6, mix(tone.lit, "#fff1d0", 0.1));
+    lg.addColorStop(1, tone.graze);
+    ctx.strokeStyle = lg;
+    ctx.stroke();
   }
 }
 
-export function engraveTower(c: PlateCanvas, tw: Tower, cap: boolean): void {
+export function engraveTower(c: PlateCanvas, tw: Tower): void {
   const { ctx } = c;
   const pen = penAt(tw.distance);
+  const top = (x: number) => drumTop(tw, x);
+  const drum = drumPath(tw, top);
   ctx.fillStyle = PAPER.low;
-  ctx.fillRect(tw.x - tw.r, tw.y0, 2 * tw.r, tw.y1 - tw.y0);
-  // Hatching closer toward the shaded right limb, following the curve (uprights).
+  ctx.fill(drum);
+  for (const [x0, x1, y, mh] of tw.crenel ? merlons(tw) : [])
+    ctx.fillRect(x0, y - 0.05, x1 - x0, mh);
+  // Uprights closer toward the shaded right limb (the drum's form), courses curving across the lit side.
   const lines: Pt[][] = [];
-  for (let k = 0.3; k < 1; k += 0.09) {
+  for (let k = 0.3; k < 1; k += 0.08) {
     const x = tw.x - tw.r + 2 * tw.r * k;
-    if (k < 0.62 && Math.floor(k * 100) % 2) continue;
+    if (k < 0.6 && Math.floor(k * 100) % 2) continue;
     lines.push([
       [x, tw.y0],
-      [x, tw.y1 - 0.3],
+      [x, top(x) - 0.3],
     ]);
   }
-  strokeLines(c, lines, pen * 0.42, INK.hatch, 0.8);
-  // Courses on the lit side, broken.
+  strokeLines(c, lines, pen * 0.42, INK.hatch, 0.85);
   const courses: Pt[][] = [];
-  for (let y = tw.y0 + 1.6; y < tw.y1 - 0.8; y += 2.2)
-    courses.push(
-      ...brokenLine(
-        [
-          [tw.x - tw.r, y],
-          [tw.x + tw.r * 0.3, y],
-        ],
-        2.5,
-        1.2,
-        Math.floor(y * 31 + tw.x),
-      ),
-    );
-  strokeLines(c, courses, pen * 0.35, INK.hatch, 0.55);
-  const outline: Pt[] = [
-    [tw.x - tw.r, tw.y0],
-    [tw.x - tw.r, tw.y1],
-    [tw.x + tw.r, tw.y1],
-    [tw.x + tw.r, tw.y0],
-  ];
+  const h = tw.y1 - tw.y0;
+  for (let y = tw.y0 + 1.4; y < tw.y1 - 0.8; y += 1.9) {
+    const bow = tw.r * 0.1 * ((y - tw.y0) / h);
+    const l: Pt[] = [];
+    for (let i = 0; i <= 6; i++) {
+      const u = -1 + (1.4 * i) / 6;
+      l.push([tw.x + u * tw.r, y + bow * (1 - u * u)]);
+    }
+    courses.push(...brokenLine(l, 2.5, 1, Math.floor(y * 31 + tw.x)));
+  }
+  strokeLines(c, courses, pen * 0.35, INK.hatch, 0.6);
+  // The outline: the limbs and the top (the foot is a cut, never stroked).
+  const outline: Pt[] = [[tw.x - tw.r, tw.y0]];
+  for (let k = 0; k <= 10; k++) {
+    const x = tw.x - tw.r + (2 * tw.r * k) / 10;
+    outline.push([x, top(x)]);
+  }
+  outline.push([tw.x + tw.r, tw.y0]);
   strokeLines(c, [outline], pen * 0.85, INK.line, 0.95);
-  if (cap) {
-    const p = new Path2D();
-    p.moveTo(tw.x - tw.r * 1.08, tw.y1);
-    p.lineTo(tw.x, tw.y1 + tw.r * 1.5);
-    p.lineTo(tw.x + tw.r * 1.08, tw.y1);
-    ctx.fillStyle = PAPER.low;
-    ctx.fill(p);
-    strokeLines(
-      c,
-      [
-        [
-          [tw.x + tw.r * 0.2, tw.y1 + tw.r * 1.2],
-          [tw.x + tw.r * 0.9, tw.y1 + 0.2],
-        ],
-        [
-          [tw.x + tw.r * 0.45, tw.y1 + tw.r * 0.8],
-          [tw.x + tw.r * 0.75, tw.y1 + 0.2],
-        ],
-      ],
-      pen * 0.4,
-      INK.hatch,
-      0.8,
-    );
-    ctx.strokeStyle = INK.line;
-    ctx.lineWidth = c.pen(pen * 0.8);
-    ctx.stroke(p);
+  if (tw.crenel) {
+    const ml: Pt[][] = merlons(tw).map(([x0, x1, y, mh]) => [
+      [x0, y],
+      [x0, y + mh],
+      [x1, y + mh],
+      [x1, y],
+    ]);
+    strokeLines(c, ml, pen * 0.6, INK.line, 0.9);
   }
 }
 
@@ -485,12 +693,12 @@ function wallPath(f: Face): Path2D {
   return p;
 }
 
-/** The ramparts' faces: courses of dark stone lit gold on the north-west, the south-west in the sky's shade; the ditch's dusk at the foot. */
+/** The ramparts' faces: courses of dark stone, the north-west face taking the low sun at a slant, warm; the south-west in the sky's cool shade; the ditch's dusk at the foot; each tower's shadow on the wall at its right. */
 export function paintWalls(c: PlateCanvas): void {
   const { ctx } = c;
   const u = upper();
   const air = UPPER_DEPTH - 100;
-  const tone = airTone(STONE, air);
+  const tone = airTone(WALL_STONE, air);
   for (const f of [u.sw, u.nw]) {
     const p = wallPath(f);
     const lit = sunOn(f.az);
@@ -498,20 +706,20 @@ export function paintWalls(c: PlateCanvas): void {
     const y0 = Math.min(...f.foot.map((q) => q[1]));
     const y1 = Math.max(...f.top.map((q) => q[1]));
     const g = ctx.createLinearGradient(0, y0, 0, y1);
-    g.addColorStop(0, mix(col, tone.shade, 0.45));
-    g.addColorStop(0.25, mix(col, tone.shade, 0.12));
+    g.addColorStop(0, mix(col, townAir(DUSK, air), 0.55));
+    g.addColorStop(0.3, mix(col, tone.shade, 0.12));
     g.addColorStop(0.85, col);
-    g.addColorStop(1, mix(col, "#fff0cc", 0.12 * lit));
+    g.addColorStop(1, mix(col, "#fff0cc", 0.1 * lit));
     ctx.fillStyle = g;
     ctx.fill(p);
     ctx.save();
     ctx.clip(p);
     // Courses.
-    ctx.strokeStyle = rgba(tone.shade, lit > 0.5 ? 0.2 : 0.14);
+    ctx.strokeStyle = rgba(tone.shade, lit > 0.5 ? 0.3 : 0.2);
     ctx.lineWidth = c.pen(0.5);
     ctx.beginPath();
-    for (let k = 1; k < 10; k++) {
-      const t = k / 10;
+    for (let k = 1; k < 12; k++) {
+      const t = k / 12;
       for (let i = 0; i < f.foot.length; i++) {
         const x = f.foot[i][0];
         const y = f.foot[i][1] + (f.top[i][1] - f.foot[i][1]) * t;
@@ -522,12 +730,12 @@ export function paintWalls(c: PlateCanvas): void {
     ctx.stroke();
     // Weathering: streaks from the walk's drains, patches of lichen and damp.
     const rng = createRng(17 + Math.floor(f.az));
-    for (let i = 0; i < 26; i++) {
+    for (let i = 0; i < 34; i++) {
       const k = Math.floor(rng() * f.foot.length);
       const x = f.foot[k][0] + rng() * 2;
       const top = f.top[k][1];
       const len = (top - f.foot[k][1]) * (0.2 + rng() * 0.55);
-      ctx.fillStyle = rgba(tone.shade, 0.12 + rng() * 0.12);
+      ctx.fillStyle = rgba(tone.shade, 0.16 + rng() * 0.14);
       ctx.fillRect(x, top - len, 0.35 + rng() * 0.5, len);
     }
     for (let i = 0; i < 16; i++) {
@@ -538,24 +746,46 @@ export function paintWalls(c: PlateCanvas): void {
         f.foot[k][1] + rng() * 5,
         2 + rng() * 4,
         0.8 + rng() * 1.5,
-        rng() < 0.5 ? "#6d7258" : tone.shade,
-        0.2,
+        rng() < 0.5 ? "#5d634b" : tone.shade,
+        0.22,
       );
     }
+    // Each tower's shadow on the wall beside it (the light from behind and a little left: a narrow band at its right).
+    for (const tw of [...u.towers, ...u.gate.towers]) {
+      const sg = ctx.createLinearGradient(
+        tw.x + tw.r * 0.8,
+        0,
+        tw.x + tw.r * 1.7,
+        0,
+      );
+      sg.addColorStop(0, rgba(townAir("#3a3640", air), 0.45));
+      sg.addColorStop(1, rgba(townAir("#3a3640", air), 0));
+      ctx.fillStyle = sg;
+      ctx.fillRect(tw.x + tw.r * 0.8, tw.y0, tw.r * 0.9, tw.y1 - tw.y0);
+    }
     ctx.restore();
-    // The parapet's coping catching the sun.
-    strokeLines(c, [f.top], 0.9, mix(col, "#fff2d4", 0.3 * lit), 0.9);
+    // The parapet's coping catching the sun, a dark line of its shadow under it.
+    strokeLines(
+      c,
+      [f.top.map(([x, y]) => [x, y - 0.55] as Pt)],
+      0.8,
+      townAir("#2f2a30", air),
+      0.45,
+    );
+    strokeLines(c, [f.top], 0.9, mix(col, "#fff2d4", 0.32 * lit), 0.9);
   }
-  for (const tw of u.towers) paintTower(c, tw, STONE, false);
-  // The Porte des Dunes: its towers taller than the walls, the arch dark between them.
+  for (const tw of u.towers) paintTower(c, tw, WALL_STONE);
+  // The Porte des Dunes: the gate's front between its towers, the arch dark.
   const gt = u.gate;
-  const gtone = airTone(STONE, air);
-  ctx.fillStyle = toneAt(gtone, 0.85);
+  const gtone = airTone(WALL_STONE, air);
+  ctx.fillStyle = toneAt(gtone, 0.8);
   ctx.fillRect(gt.x - gt.r, gt.y0, gt.r * 2, gt.y1 - gt.y0);
+  ctx.fillStyle = rgba(townAir(DUSK, air), 0.5);
+  ctx.fillRect(gt.x - gt.r, gt.y0, gt.r * 2, (gt.y1 - gt.y0) * 0.3);
   ctx.fillStyle = rgba(gtone.shade, 0.5);
   ctx.fillRect(gt.x - gt.r, gt.y1 - 0.5, gt.r * 2, 0.5);
-  for (const tw of gt.towers) paintTower(c, tw, STONE, true);
-  ctx.fillStyle = townAir("#3d3638", air);
+  for (const tw of gt.towers) paintTower(c, tw, WALL_STONE);
+  ctx.fillStyle = townAir("#2a2428", air);
   ctx.beginPath();
   const aw = gt.arch * 0.42;
   ctx.moveTo(gt.x - aw, gt.y0);
@@ -576,34 +806,35 @@ export function engraveWalls(c: PlateCanvas): void {
     ctx.fill(p);
     const lit = sunOn(f.az);
     const lines: Pt[][] = [];
-    if (lit < 0.5) {
-      // In shade: close uprights, crossed by the courses.
-      for (let i = 0; i < f.foot.length - 1; i++) {
-        const a = f.foot[i];
-        const b = f.foot[i + 1];
-        const ta = f.top[i];
-        const span = b[0] - a[0];
-        const n = Math.max(1, Math.round(span / c.pen(1.5)));
-        for (let k = 0; k < n; k++) {
-          const t = (k + 0.5) / n;
-          lines.push([
-            [a[0] + span * t, a[1] + (b[1] - a[1]) * t],
-            [a[0] + span * t, ta[1] + (f.top[i + 1][1] - ta[1]) * t],
-          ]);
-        }
+    // Dark stone: open uprights on the lit face, close ones in shade.
+    const gap = c.pen(lit < 0.6 ? 1.3 : 2.6);
+    for (let i = 0; i < f.foot.length - 1; i++) {
+      const a = f.foot[i];
+      const b = f.foot[i + 1];
+      const ta = f.top[i];
+      const span = b[0] - a[0];
+      const n = Math.max(1, Math.round(span / gap));
+      for (let k = 0; k < n; k++) {
+        const t = (k + 0.5) / n;
+        lines.push([
+          [a[0] + span * t, a[1] + (b[1] - a[1]) * t],
+          [a[0] + span * t, ta[1] + (f.top[i + 1][1] - ta[1]) * t],
+        ]);
       }
     }
-    // The courses: broken, closer toward the foot (the ditch's dusk).
-    for (let k = 1; k < 9; k++) {
-      const t = (k / 9) ** 1.4;
+    // The courses, crossing them: broken, closer toward the foot (the ditch's dusk); unbroken in shade.
+    for (let k = 1; k < 10; k++) {
+      const t = (k / 10) ** 1.4;
       const l = f.foot.map(
         (q, i) => [q[0], q[1] + (f.top[i][1] - q[1]) * t] as Pt,
       );
-      lines.push(
-        ...brokenLine(l, 5 + k, 1.5 + k * 0.3, 300 + k + Math.floor(f.az)),
-      );
+      if (lit < 0.6) lines.push(l);
+      else
+        lines.push(
+          ...brokenLine(l, 5 + k, 1.5 + k * 0.3, 300 + k + Math.floor(f.az)),
+        );
     }
-    strokeLines(c, lines, pen * 0.4, INK.hatch, lit < 0.5 ? 0.85 : 0.65);
+    strokeLines(c, lines, pen * 0.4, INK.hatch, lit < 0.6 ? 0.85 : 0.6);
     // The true contours: the parapet's line; the foot only as a light broken line.
     strokeLines(c, [f.top], pen, INK.line, 1);
     strokeLines(
@@ -618,7 +849,7 @@ export function engraveWalls(c: PlateCanvas): void {
   const wc = u.nw.top[u.nw.top.length - 1];
   const wf = u.nw.foot[u.nw.foot.length - 1];
   strokeLines(c, [[wf, wc]], pen, INK.line, 1);
-  for (const tw of u.towers) engraveTower(c, tw, false);
+  for (const tw of u.towers) engraveTower(c, tw);
   const gt = u.gate;
   ctx.fillStyle = PAPER.low;
   ctx.fillRect(gt.x - gt.r, gt.y0, gt.r * 2, gt.y1 - gt.y0);
@@ -633,7 +864,7 @@ export function engraveWalls(c: PlateCanvas): void {
     pen,
     INK.line,
   );
-  for (const tw of gt.towers) engraveTower(c, tw, true);
+  for (const tw of gt.towers) engraveTower(c, tw);
   ctx.fillStyle = INK.line;
   ctx.beginPath();
   const aw = gt.arch * 0.42;
@@ -645,25 +876,94 @@ export function engraveWalls(c: PlateCanvas): void {
   ctx.fill();
 }
 
+/** The belfry's square stage: the bell stage's tall louvred openings, and the corner turrets over the parapet with their small pointed caps. */
+export function paintBelfryStage(c: PlateCanvas): void {
+  const { ctx } = c;
+  const s = upper().stage;
+  const d = 2533;
+  for (const o of s.openings) {
+    ctx.fillStyle = townAir(o.f > 0.4 ? "#3a3236" : "#2c272d", d);
+    ctx.beginPath();
+    ctx.moveTo(o.quad[0][0], o.quad[0][1]);
+    for (const q of o.quad) ctx.lineTo(q[0], q[1]);
+    ctx.closePath();
+    ctx.fill();
+    // The louvres: a few lit slats across.
+    const [a, b, , t] = o.quad;
+    ctx.strokeStyle = rgba(townAir("#8c7a66", d), 0.55);
+    ctx.lineWidth = c.pen(0.4);
+    ctx.beginPath();
+    for (let k = 1; k < 5; k++) {
+      const y = a[1] + ((t[1] - a[1]) * k) / 5;
+      ctx.moveTo(a[0], y);
+      ctx.lineTo(b[0], y + (b[1] - a[1]));
+    }
+    ctx.stroke();
+  }
+  const slate = airTone(ROOFS.slateDark, d);
+  for (const tw of s.turrets) {
+    paintTower(c, tw, STONE);
+    // Its cap: a small pointed cone of slate, lit on the left.
+    const cg = ctx.createLinearGradient(tw.x - tw.r, 0, tw.x + tw.r, 0);
+    cg.addColorStop(0, slate.graze);
+    cg.addColorStop(0.35, slate.lit);
+    cg.addColorStop(1, slate.shade);
+    ctx.fillStyle = cg;
+    ctx.beginPath();
+    ctx.moveTo(tw.x - tw.r * 1.15, tw.y1);
+    ctx.lineTo(tw.x, tw.y1 + tw.r * 2.4);
+    ctx.lineTo(tw.x + tw.r * 1.15, tw.y1);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+export function engraveBelfryStage(c: PlateCanvas): void {
+  const { ctx } = c;
+  const s = upper().stage;
+  const pen = penAt(2533);
+  ctx.fillStyle = rgba(INK.line, 0.85);
+  for (const o of s.openings) {
+    ctx.beginPath();
+    ctx.moveTo(o.quad[0][0], o.quad[0][1]);
+    for (const q of o.quad) ctx.lineTo(q[0], q[1]);
+    ctx.closePath();
+    ctx.fill();
+  }
+  for (const tw of s.turrets) {
+    engraveTower(c, tw);
+    const cap = new Path2D();
+    cap.moveTo(tw.x - tw.r * 1.15, tw.y1);
+    cap.lineTo(tw.x, tw.y1 + tw.r * 2.4);
+    cap.lineTo(tw.x + tw.r * 1.15, tw.y1);
+    ctx.fillStyle = PAPER.low;
+    ctx.fill(cap);
+    ctx.strokeStyle = INK.line;
+    ctx.lineWidth = c.pen(pen * 0.7);
+    ctx.stroke(cap);
+  }
+}
+
 /** Foliage masses of a crown: a few overlapping lobes, seeded. */
 function lobes(t: TreeCrown): [number, number, number, number][] {
   const rng = createRng(t.seed);
   const out: [number, number, number, number][] = [];
-  const n = 5 + Math.floor(rng() * 3);
+  const n = 5 + Math.floor(rng() * 4);
   for (let k = 0; k < n; k++) {
-    const a = (k / n) * Math.PI * 2 + rng() * 0.6;
-    const d = 0.35 + rng() * 0.35;
+    const a = (k / n) * Math.PI * 2 + rng() * 0.8;
+    const d = 0.3 + rng() * 0.45;
     out.push([
       t.x + Math.cos(a) * t.rx * d,
-      t.y + t.ry + Math.sin(a) * t.ry * d * 0.8,
-      t.rx * (0.42 + rng() * 0.22),
-      t.ry * (0.38 + rng() * 0.2),
+      t.y + t.ry + Math.sin(a) * t.ry * d * 0.85,
+      t.rx * (0.34 + rng() * 0.26),
+      t.ry * (0.3 + rng() * 0.22),
     ]);
   }
   return out;
 }
 
-const FOLIAGE: Tone = { lit: "#a6a057", graze: "#6f7a4c", shade: "#465545" };
+/** The ramparts' trees: dark masses, cool in the shade, with a golden rim where the low sun takes them, up and to the left. */
+const FOLIAGE: Tone = { lit: "#8d8a4c", graze: "#56603f", shade: "#343f36" };
 
 export function paintTrees(
   c: PlateCanvas,
@@ -672,6 +972,15 @@ export function paintTrees(
 ): void {
   const { ctx } = c;
   const t = airTone(FOLIAGE, distance);
+  // Trunks first: they show in the gaps against the hill.
+  ctx.strokeStyle = townAir("#3b322f", distance);
+  ctx.lineWidth = c.pen(0.8);
+  ctx.beginPath();
+  for (const tr of list) {
+    ctx.moveTo(tr.x, tr.foot);
+    ctx.lineTo(tr.x + tr.rx * 0.05, tr.y + tr.ry * 0.7);
+  }
+  ctx.stroke();
   for (const tr of list) {
     const ls = lobes(tr);
     ctx.fillStyle = t.shade;
@@ -681,35 +990,25 @@ export function paintTrees(
       ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
     }
     ctx.fill();
-    // The lit side up and to the left (the sun behind the eye, a little to its left).
+    // The mid tone up and to the left (the sun behind the eye, a little to its left).
     ctx.fillStyle = t.graze;
     ctx.beginPath();
     for (const [x, y, rx, ry] of ls) {
-      ctx.moveTo(x - rx * 0.12 + rx * 0.8, y + ry * 0.12);
-      ctx.ellipse(
-        x - rx * 0.12,
-        y + ry * 0.12,
-        rx * 0.8,
-        ry * 0.8,
-        0,
-        0,
-        Math.PI * 2,
-      );
+      const cx = x - rx * 0.16;
+      const cy = y + ry * 0.16;
+      ctx.moveTo(cx + rx * 0.72, cy);
+      ctx.ellipse(cx, cy, rx * 0.72, ry * 0.72, 0, 0, Math.PI * 2);
     }
     ctx.fill();
+    // The lit rim: crescents on the upper left of the lobes facing the sun.
     ctx.fillStyle = rgba(t.lit, 0.9);
     ctx.beginPath();
     for (const [x, y, rx, ry] of ls) {
-      ctx.moveTo(x - rx * 0.3 + rx * 0.48, y + ry * 0.3);
-      ctx.ellipse(
-        x - rx * 0.3,
-        y + ry * 0.3,
-        rx * 0.48,
-        ry * 0.46,
-        0,
-        0,
-        Math.PI * 2,
-      );
+      if (y < tr.y + tr.ry * 0.9) continue;
+      const cx = x - rx * 0.34;
+      const cy = y + ry * 0.34;
+      ctx.moveTo(cx + rx * 0.4, cy);
+      ctx.ellipse(cx, cy, rx * 0.4, ry * 0.36, 0, 0, Math.PI * 2);
     }
     ctx.fill();
   }
@@ -722,6 +1021,16 @@ export function engraveTrees(
 ): void {
   const { ctx } = c;
   const pen = penAt(distance);
+  strokeLines(
+    c,
+    list.map((tr) => [
+      [tr.x, tr.foot],
+      [tr.x, tr.y + tr.ry * 0.7],
+    ]),
+    pen * 0.5,
+    INK.line,
+    0.8,
+  );
   for (const tr of list) {
     const ls = lobes(tr);
     const p = new Path2D();

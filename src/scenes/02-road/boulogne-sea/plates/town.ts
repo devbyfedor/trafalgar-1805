@@ -8,10 +8,15 @@ import {
   type PlateJob,
   type PlateMode,
 } from "../paint/plate";
+import { BUILD, project, VEX, viewOf } from "../scene";
 import {
+  airTone,
   type Building,
+  DUSK,
   engraveBuildings,
   paintBuildings,
+  ROOFS,
+  toneAt,
   townAir,
 } from "./town/houses";
 import {
@@ -22,19 +27,26 @@ import {
   groundSkyline,
   MAT,
   penAt,
+  riverSide,
   strokeLines,
   tones,
+  townGround,
 } from "./town/kit";
 import {
+  crossStreetArcs,
   type Item,
   itemDistance,
   lowerItems,
+  lowerLandmarks,
   lowerRow,
   SMOKE_SITES,
+  type Spire,
   smokeTop,
+  streetPoint,
   type Tree,
 } from "./town/lower";
 import {
+  engraveBelfryStage,
   engraveBelfryTop,
   engraveTower,
   engraveTrees,
@@ -42,12 +54,15 @@ import {
   INTERIOR_ROWS,
   interiorHouses,
   interiorRows,
+  paintBelfryStage,
   paintBelfryTop,
   paintTower,
   paintTrees,
   paintWalls,
   UPPER_DEPTH,
   upper,
+  upperTrees,
+  upperWalls,
 } from "./town/upper";
 
 /**
@@ -82,21 +97,38 @@ export const TOWN_SMOKE: readonly {
 
 const LOWER_BOX: Box = [-262, 292, -6, 64];
 
+/** The far band's box reaches higher, for Saint-Nicolas's spire; the near band's top keeps the smoke site's house on the plateau's edge hidden, as before. */
+const FAR_BOX: Box = [-262, 292, -6, 70];
+
 /** Where the lower-town plates split, metres ahead. */
 const SPLIT = 1960;
 
 /** The ground of a band of the lower town: the slope's skyline over the band's depths, never tapered into a cut. */
-function lowerGround(near: number, far: number): Pt[] {
+const groundParts = new Map<number, Pt[][]>();
+
+/** One of three parts of a band's ground line (a job's worth each), kept for the band's painting jobs. */
+function lowerGroundPart(near: number, far: number, part: number): void {
+  const parts = groundParts.get(near) ?? [];
+  groundParts.set(near, parts);
+  if (parts[part]) return;
   const [x0, x1] = LOWER_BOX;
-  return groundSkyline(
-    x0,
-    x1,
+  const n = Math.floor((x1 - x0) / 3);
+  const k0 = Math.round((n * part) / 3);
+  const k1 = part === 2 ? n : Math.round((n * (part + 1)) / 3) - 1;
+  parts[part] = groundSkyline(
+    x0 + k0 * 3,
+    x0 + k1 * 3,
     3,
     near,
     far,
     -3,
-    (e, n) => distToPoly(RAMPARTS, e, n) < 40,
+    (e, nn) => distToPoly(RAMPARTS, e, nn) < 40,
   );
+}
+
+function lowerGround(near: number, far: number): Pt[] {
+  for (let k = 0; k < 3; k++) lowerGroundPart(near, far, k);
+  return (groundParts.get(near) ?? []).flat();
 }
 
 function groundPath(line: readonly Pt[], bottom: number): Path2D {
@@ -108,22 +140,61 @@ function groundPath(line: readonly Pt[], bottom: number): Path2D {
   return p;
 }
 
-/** The slopes between and behind the houses: gardens and grass lit gold above, the streets' dusk and the quays' wet stone below. */
+/**
+ * The cross streets' slots climbing the slope, for a band of depths: each
+ * street's middle line on the ground (layer units) and its width there.
+ * With the sun 7° up and 44° off their line, the houses' shadows fill them:
+ * they are the town's darks between the lit fronts.
+ */
+const slotCache = new Map<number, { line: Pt[]; w: number }[]>();
+
+function streetSlots(near: number, far: number): { line: Pt[]; w: number }[] {
+  const hit = slotCache.get(near);
+  if (hit) return hit;
+  const out: { line: Pt[]; w: number }[] = [];
+  slotCache.set(near, out);
+  for (const s of crossStreetArcs()) {
+    let line: Pt[] = [];
+    let w = 0;
+    const flush = () => {
+      if (line.length > 1) out.push({ line, w });
+      line = [];
+    };
+    for (let d = 36; d <= 720; d += 8) {
+      const [e, n] = streetPoint(s, d);
+      const [ahead] = viewOf(e, n);
+      if (ahead < near - 60 || ahead > far + 60 || riverSide(e, n).side <= 0) {
+        flush();
+        continue;
+      }
+      line.push(project(e, n, townGround(e, n) * VEX) as Pt);
+      w = Math.max(w, (8 * BUILD * 1000) / ahead);
+    }
+    flush();
+  }
+  return out;
+}
+
+/** The slopes between and behind the houses: the streets' and yards' dusk, gardens catching the sun on the open slopes, the quays' wet stone below. */
 function paintGround(
   c: PlateCanvas,
   line: readonly Pt[],
   distance: number,
   seed: number,
+  near: number,
+  far: number,
 ): void {
   const { ctx } = c;
   const g = tones(MAT.grass, distance);
   const mud = tones(MAT.mud, distance);
+  const dusk = townAir(DUSK, distance);
   const p = groundPath(line, LOWER_BOX[2]);
   const top = Math.max(...line.map((q) => q[1]));
   const grad = ctx.createLinearGradient(0, top, 0, LOWER_BOX[2]);
-  grad.addColorStop(0, g.lit);
-  grad.addColorStop(0.35, mix(g.graze, townAir("#a99178", distance), 0.4));
-  grad.addColorStop(0.7, mix(g.shade, mud.wet, 0.5));
+  grad.addColorStop(0, mix(g.graze, g.lit, 0.4));
+  grad.addColorStop(0.18, mix(g.graze, dusk, 0.35));
+  grad.addColorStop(0.55, mix(g.shade, dusk, 0.55));
+  grad.addColorStop(0.8, mix(mud.wet, dusk, 0.3));
   grad.addColorStop(1, mud.wet);
   ctx.fillStyle = grad;
   ctx.fill(p);
@@ -132,20 +203,34 @@ function paintGround(
   const rng = createRng(seed);
   const x0 = line[0][0];
   const x1 = line[line.length - 1][0];
-  for (let i = 0; i < 90; i++) {
+  // Gardens on the open slopes in the sun, yards in the dusk.
+  for (let i = 0; i < 110; i++) {
     const x = x0 + rng() * (x1 - x0);
     const y = LOWER_BOX[2] + rng() * (top - LOWER_BOX[2]);
+    const lit = rng() < 0.45;
     softBlob(
       c,
       x,
       y,
-      6 + rng() * 18,
-      1.5 + rng() * 3,
-      rng() < 0.5 ? g.shade : g.lit,
-      0.22,
+      4 + rng() * 14,
+      1.2 + rng() * 2.5,
+      lit ? g.lit : dusk,
+      lit ? 0.26 : 0.3,
     );
   }
-  // Hedges and garden walls along the slope: broken dark strokes with a lit top.
+  // The cross streets: dark slots climbing the slope.
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  for (const sl of streetSlots(near, far)) {
+    ctx.strokeStyle = rgba(dusk, 0.75);
+    ctx.lineWidth = sl.w * 0.8;
+    ctx.beginPath();
+    ctx.moveTo(sl.line[0][0], sl.line[0][1]);
+    for (const q of sl.line) ctx.lineTo(q[0], q[1]);
+    ctx.stroke();
+  }
+  ctx.lineCap = "butt";
+  // Garden walls and hedges along the slope: broken dark strokes with a lit top.
   const hedges: Pt[][] = [];
   for (let k = 1; k < 7; k++) {
     const drop = 2 + k * k * 0.45;
@@ -158,22 +243,25 @@ function paintGround(
       ),
     );
   }
-  strokeLines(c, hedges, 1, townAir("#5c6448", distance), 0.45);
+  strokeLines(c, hedges, 1, townAir("#4a5040", distance), 0.55);
   strokeLines(
     c,
     hedges.map((l) => l.map(([x, y]) => [x, y + 0.3] as Pt)),
     0.5,
     g.lit,
-    0.5,
+    0.45,
   );
   ctx.restore();
 }
 
+/** The ground engraved: close crossed hatching, so the streets and the gaps are the town's darks and the lit fronts stay open paper. */
 function engraveGround(
   c: PlateCanvas,
   line: readonly Pt[],
   distance: number,
   seed: number,
+  near: number,
+  far: number,
 ): void {
   const { ctx } = c;
   const p = groundPath(line, LOWER_BOX[2]);
@@ -182,23 +270,134 @@ function engraveGround(
   const pen = penAt(distance);
   // The slope's skyline: a light broken contour (never the box's foot).
   strokeLines(c, brokenLine(line, 40, 3, seed), pen * 0.7, INK.hatch, 0.85);
-  // Contour-following hatching under it, closer down the slope; hedges as dotted lines.
+  ctx.save();
+  ctx.clip(p);
+  // Contour-following hatching, then a second set crossing it along the fall line.
   const lines: Pt[][] = [];
-  for (let k = 1; k < 12; k++) {
-    const drop = k * k * 0.32;
+  for (let k = 1; k < 30; k++) {
+    const drop = k * 1.4 + k * k * 0.03;
     lines.push(
       ...brokenLine(
         line.map(([x, y]) => [x, y - drop] as Pt),
-        7 + k,
-        4 + k * 0.6,
+        14 + k,
+        2 + k * 0.2,
         seed + k,
       ),
     );
   }
-  ctx.save();
-  ctx.clip(p);
-  strokeLines(c, lines, pen * 0.4, INK.hatch, 0.5);
+  strokeLines(c, lines, pen * 0.4, INK.hatch, 0.55);
+  const [bx0, bx1] = [line[0][0], line[line.length - 1][0]];
+  const top = Math.max(...line.map((q) => q[1]));
+  const cross: Pt[][] = [];
+  for (let x = bx0; x < bx1; x += c.pen(2.2)) {
+    cross.push([
+      [x, LOWER_BOX[2]],
+      [x + (top - LOWER_BOX[2]) * 0.35, top],
+    ]);
+  }
+  strokeLines(c, cross, pen * 0.35, INK.hatch, 0.4);
+  // The streets' slots: closer, darker strokes along them.
+  for (const sl of streetSlots(near, far)) {
+    const set: Pt[][] = [];
+    for (let k = -2; k <= 2; k++)
+      set.push(sl.line.map(([x, y]) => [x + k * sl.w * 0.15, y] as Pt));
+    strokeLines(c, set, pen * 0.45, INK.hatch, 0.8);
+  }
   ctx.restore();
+}
+
+/** A spire's three facets seen: the front square to the eye and lit, the left grazed, the right turned south-west, a little darker. */
+function spireFacets(s: Spire): Pt[][] {
+  const apex: Pt = [s.x, s.y + s.h];
+  const xs = [s.x - s.r, s.x - s.r * 0.414, s.x + s.r * 0.414, s.x + s.r];
+  const bell = s.h * 0.05;
+  return [0, 1, 2].map((i) => [
+    [xs[i] - (i === 0 ? bell * 0.5 : 0), s.y],
+    [xs[i + 1] + (i === 2 ? bell * 0.5 : 0), s.y],
+    apex,
+  ]);
+}
+
+function paintSpire(c: PlateCanvas, s: Spire): void {
+  const { ctx } = c;
+  const slate = airTone(ROOFS.slateDark, s.distance);
+  const tones3 = [toneAt(slate, 0.8), toneAt(slate, 0.98), toneAt(slate, 0.45)];
+  spireFacets(s).forEach((f, i) => {
+    ctx.fillStyle = tones3[i];
+    ctx.beginPath();
+    ctx.moveTo(f[0][0], f[0][1]);
+    ctx.lineTo(f[1][0], f[1][1]);
+    ctx.lineTo(f[2][0], f[2][1]);
+    ctx.closePath();
+    ctx.fill();
+  });
+  // The sun's line down the lit arris, the cornice's shadow at its foot, the cross.
+  strokeLines(
+    c,
+    [
+      [
+        [s.x - s.r * 0.414, s.y + 0.1],
+        [s.x - 0.03, s.y + s.h - 0.3],
+      ],
+    ],
+    0.5,
+    townAir("#f0d29a", s.distance),
+    0.7,
+  );
+  ctx.fillStyle = rgba(townAir(DUSK, s.distance), 0.6);
+  ctx.fillRect(s.x - s.r * 1.05, s.y - 0.25, s.r * 2.1, 0.3);
+  strokeLines(
+    c,
+    [
+      [
+        [s.x, s.y + s.h - 0.2],
+        [s.x, s.y + s.h + s.r * 0.6],
+      ],
+      [
+        [s.x - s.r * 0.18, s.y + s.h + s.r * 0.38],
+        [s.x + s.r * 0.18, s.y + s.h + s.r * 0.38],
+      ],
+    ],
+    0.6,
+    townAir("#2f2a2c", s.distance),
+    0.9,
+  );
+}
+
+function engraveSpire(c: PlateCanvas, s: Spire): void {
+  const { ctx } = c;
+  const pen = penAt(s.distance);
+  const facets = spireFacets(s);
+  const outline = new Path2D();
+  outline.moveTo(facets[0][0][0], facets[0][0][1]);
+  outline.lineTo(facets[0][2][0], facets[0][2][1]);
+  outline.lineTo(facets[2][1][0], facets[2][1][1]);
+  outline.closePath();
+  ctx.fillStyle = PAPER.low;
+  ctx.fill(outline);
+  // The right facet hatched along its slope; the left lightly.
+  const hl: Pt[][] = [];
+  const [r0, r1, apex] = facets[2];
+  for (let k = 0.15; k < 1; k += 0.22)
+    hl.push([
+      [r0[0] + (r1[0] - r0[0]) * k, s.y],
+      [apex[0] + (r1[0] - apex[0]) * k * 0.1, apex[1] - s.h * 0.08],
+    ]);
+  strokeLines(c, hl, pen * 0.4, INK.hatch, 0.85);
+  strokeLines(
+    c,
+    [
+      [facets[0][0], facets[0][2], facets[2][1]],
+      [facets[1][0], facets[1][2]],
+      [
+        [s.x, s.y + s.h],
+        [s.x, s.y + s.h + s.r * 0.6],
+      ],
+    ],
+    pen * 0.8,
+    INK.line,
+    0.95,
+  );
 }
 
 /** A garden tree's crown: seven or so foliage masses round an irregular crown, its foot on the trunk. */
@@ -294,7 +493,10 @@ function drawItems(c: PlateCanvas, items: readonly Item[]): void {
     if (it.type === "house") run.push(it.b);
     else {
       flush();
-      if (c.mode === "colour") paintTree(c, it.t);
+      if (it.type === "spire") {
+        if (c.mode === "colour") paintSpire(c, it.s);
+        else engraveSpire(c, it.s);
+      } else if (c.mode === "colour") paintTree(c, it.t);
       else engraveTree(c, it.t);
     }
   }
@@ -307,6 +509,7 @@ function lowerPlate(id: string, which: "near" | "far"): Plate {
   const near = which === "near" ? 1300 : SPLIT;
   const far = which === "near" ? SPLIT : 2520;
   const depth = which === "near" ? 1760 : 2180;
+  const box = which === "near" ? LOWER_BOX : FAR_BOX;
   let band: Item[] | undefined;
   const items = () => {
     band ??= lowerItems().filter((it) => {
@@ -319,11 +522,14 @@ function lowerPlate(id: string, which: "near" | "far"): Plate {
     const out: PlateJob[] = [];
     // The plan, a row per job (shared by both plates: the first to run lays it out).
     for (let k = 0; k < 22; k++) out.push(() => void lowerRow());
+    out.push(() => void lowerLandmarks());
     out.push(() => void items());
+    for (let k = 0; k < 3; k++) out.push(() => lowerGroundPart(near, far, k));
+    out.push(() => void streetSlots(near, far));
     out.push((c) => {
       const line = lowerGround(near, far);
-      if (mode === "colour") paintGround(c, line, depth, 31);
-      else engraveGround(c, line, depth, 31);
+      if (mode === "colour") paintGround(c, line, depth, 31, near, far);
+      else engraveGround(c, line, depth, 31, near, far);
     });
     for (let i = 0; i < 1600; i += CHUNK)
       out.push((c) => {
@@ -332,10 +538,10 @@ function lowerPlate(id: string, which: "near" | "far"): Plate {
         drawItems(c, list.slice(i, i + CHUNK));
       });
     // Soft sides and foot: the overscan never shows a cut when the camera rises.
-    out.push((c) => fadeEdges(c, LOWER_BOX, 28, 4));
+    out.push((c) => fadeEdges(c, box, 28, 4));
     return out;
   };
-  return { id, depth, box: LOWER_BOX, group: "land", jobs };
+  return { id, depth, box, group: "land", jobs };
 }
 
 // ----------------------------------------------------------- the upper town
@@ -392,23 +598,27 @@ function paintUpperGround(c: PlateCanvas): void {
   }
 }
 
+/** The château's towers: the walls' dark stone, a little greyer (the grey stones of the coast). */
+const CHATEAU_STONE = { lit: "#978270", graze: "#6e665f", shade: "#4b4954" };
+
 function paintChateau(c: PlateCanvas): void {
-  const stone = { lit: "#c8ac84", graze: "#988b80", shade: "#6b6977" };
   for (const k of upper().chateau)
-    if (c.mode === "colour") paintTower(c, k, stone, true);
-    else engraveTower(c, k, true);
+    if (c.mode === "colour") paintTower(c, k, CHATEAU_STONE);
+    else engraveTower(c, k);
 }
 
 function upperPlate(): Plate {
   const jobs = (mode: PlateMode): PlateJob[] => {
     const out: PlateJob[] = [
+      () => void upperWalls(),
+      () => void upperTrees(),
       () => void upper(),
       (c) => paintUpperGround(c),
       (c) => paintChateau(c),
     ];
     for (let r = 0; r < INTERIOR_ROWS; r += 3)
       out.push(() => interiorRows(r, r + 3));
-    const per = 30;
+    const per = 18;
     for (let i = 0; i < 480; i += per)
       out.push((c) => {
         const list = interiorHouses();
@@ -421,6 +631,8 @@ function upperPlate(): Plate {
       const b = upper().belfry;
       if (mode === "colour") paintBuildings(c, [b]);
       else engraveBuildings(c, [b]);
+      if (mode === "colour") paintBelfryStage(c);
+      else engraveBelfryStage(c);
       if (mode === "colour") paintBelfryTop(c);
       else engraveBelfryTop(c);
     });

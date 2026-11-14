@@ -9,8 +9,9 @@ import { aerial, EYE_EN, EYE_H, VEX, viewOf } from "../../scene";
  * the way back from the view to the map, the colours of the town's walls
  * and roofs, and the engraver's strokes these plates share.
  *
- * The light (brief, "The picture"): the sun about 5° up at azimuth 294,
- * behind the eye and a little to its left. A face turned west is lit gold
+ * The light (history-notes.md, "The painting's light is that of 18:33"):
+ * the sun 7° up at azimuth 286.2, 8° left of straight behind the eye. A
+ * face turned west is lit gold
  * and square-on; a face turned north takes it at a graze; a face turned
  * south is in the cool shade of the blue sky; shadows fall away to the
  * east-south-east, mostly hidden behind what casts them.
@@ -18,8 +19,9 @@ import { aerial, EYE_EN, EYE_H, VEX, viewOf } from "../../scene";
 
 export type Box = readonly [number, number, number, number];
 
-/** The sun's azimuth, degrees from north. */
-export const SUN_AZ = 294;
+/** The sun's azimuth, degrees from north, and its height, degrees. */
+export const SUN_AZ = 286.2;
+export const SUN_ALT = 7;
 
 /** How square-on the sun strikes an upright face whose outward normal points to azimuth `az` (degrees): 0..1. */
 export function sunOn(az: number): number {

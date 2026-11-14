@@ -26,6 +26,7 @@ import {
   under,
   windmill,
 } from "./draw";
+import { fire, lightSeed, occlude, union } from "./lit";
 
 /**
  * A camp's ground drawn as tiers of contours, far to near: each tier is
@@ -210,6 +211,13 @@ export interface CampPlateOptions {
    * huts on a skyline, outlined, reads as a zigzag ornament.
    */
   inkFar?: number;
+  /**
+   * The kitchens' fires behind this ground (layer units), for the lights
+   * at dusk: hidden by all of it, their glow showing over the skyline.
+   */
+  fires?: () => readonly Pt[];
+  /** Their glow's radius, layer units. */
+  fireRadius?: number;
 }
 
 export function campPlate(o: CampPlateOptions): Plate {
@@ -219,8 +227,23 @@ export function campPlate(o: CampPlateOptions): Plate {
     tiers[i] ??= prepare(o.contour(i));
     return tiers[i];
   };
+  /**
+   * Whether tier `i`'s men's huts open away from the eye: the men's rows
+   * stand in close pairs, each pair's huts opening on the street between
+   * them (gable-on to it; camps.md), so the nearer row of a pair turns
+   * its doors from the eye. For the lights at dusk.
+   */
+  const awayAt = (i: number): boolean => {
+    let run = 0;
+    for (let j = i - 1; j >= 0 && tierAt(j).row === 0; j--) run++;
+    return tierAt(i).row === 0 && run % 2 === 1;
+  };
   const hutsAt = (i: number): Hut[] => {
-    rows[i] ??= hutsOn(tierAt(i), o.seed + i * 17, o.box);
+    if (!rows[i]) {
+      const huts = hutsOn(tierAt(i), o.seed + i * 17, o.box);
+      if (awayAt(i)) for (const h of huts) h.away = true;
+      rows[i] = huts;
+    }
     return rows[i];
   };
   const bottom = o.box[2];
@@ -235,6 +258,8 @@ export function campPlate(o: CampPlateOptions): Plate {
       const lightAt = (j: number) => (k.light ? k.light(j) : 0.7);
       if (mode === "colour") {
         fill(c, region, air(mix(SHORE.turf, SHORE.turfLit, 0.4), d));
+        // The tier's ground hides the farther tiers' lights under its line.
+        occlude(c, region);
         if (nearer) {
           const hedges = new Path2D();
           const hedgeTops = new Path2D();
@@ -345,6 +370,7 @@ export function campPlate(o: CampPlateOptions): Plate {
           stroke(c, hedgeTops, 0.6, air(SHORE.hedgeLit, d), 0.6);
           fill(c, trees, air(SHORE.hedge, d), 0.95);
           fill(c, treeTops, air(SHORE.hedgeLit, d), 0.85);
+          occlude(c, trees);
           if (k.row !== undefined) {
             // The huts' gardens: a faint mottling between the rows.
             c.ctx.save();
@@ -488,6 +514,7 @@ export function campPlate(o: CampPlateOptions): Plate {
       if (mode === "colour") {
         fill(c, crowns, air(mix(SHORE.hedge, "#4a5040", 0.4), d), 0.95);
         fill(c, lit, air(SHORE.hedgeLit, d), 0.8);
+        occlude(c, crowns);
       } else {
         fill(c, crowns, PAPER.low);
         stroke(c, crowns, penFor(d, 1) * 0.6, INK.line, 0.7);
@@ -499,7 +526,27 @@ export function campPlate(o: CampPlateOptions): Plate {
     m: readonly [number, number, number, number, number],
     mode: PaintMode,
   ): PlateJob {
-    return (c) => paintWindmill(c, windmill(m[0], m[1], m[2], m[3]), mode);
+    return (c) => {
+      const w = windmill(m[0], m[1], m[2], m[3]);
+      paintWindmill(c, w, mode);
+      // Its body and sails against a kitchen's glow behind the skyline.
+      if (mode === "colour") occlude(c, union([w.body, ...w.sails]));
+    };
+  }
+
+  /**
+   * The kitchens' fires behind the camp (o.fires): recorded before any of
+   * the plate's ground, so every tier of it hides them and only their
+   * glow over the skyline shows, where their smoke rises (smoke.ts, its
+   * canvas behind the plate).
+   */
+  function firesJob(): PlateJob {
+    return (c) => {
+      const fires = o.fires?.() ?? [];
+      fires.forEach(([x, y], i) => {
+        fire(c, x, y, o.fireRadius ?? 20, lightSeed(x, y, i));
+      });
+    };
   }
 
   return {
@@ -509,6 +556,7 @@ export function campPlate(o: CampPlateOptions): Plate {
     group: "land",
     jobs(mode) {
       const jobs: PlateJob[] = [];
+      if (mode === "colour" && o.fires) jobs.push(firesJob());
       const mills = o.mills?.() ?? [];
       for (const m of mills) if (m[4] < 0) jobs.push(millJob(m, mode));
       for (let i = 0; i < o.count; i++) {

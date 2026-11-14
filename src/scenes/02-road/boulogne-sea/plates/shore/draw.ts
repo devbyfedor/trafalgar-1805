@@ -3,6 +3,7 @@ import { INK, PAPER, type PlateCanvas } from "../../paint/plate";
 import { aerial, BUILD, EYE_EN, EYE_H, project, viewOf } from "../../scene";
 import { HAZE, hazeOf } from "../heroes/common";
 import { engraveCloth, paintCloth, staffFlag } from "../heroes/flags";
+import { hull, lightSeed, occlude, opening } from "./lit";
 
 /**
  * The shore painter's drawing kit: paths, broken strokes, contour-following
@@ -231,6 +232,12 @@ export interface Hut {
   white: boolean;
   /** Its long axis, a unit vector [east, north] (north-south by default). */
   axis?: readonly [number, number];
+  /**
+   * Its door in the gable turned from the eye: the nearer row of a close
+   * pair, whose huts open on the street between the two (the farther
+   * row's open on it toward the eye). For the lights at dusk.
+   */
+  away?: boolean;
 }
 
 /**
@@ -253,6 +260,15 @@ export interface HutShape {
   foot: Pt[];
   door: Pt[] | null;
   chimney: Pt[] | null;
+  /**
+   * For the lights at dusk (lit.ts), every hut's whatever its size: its
+   * door in the gable end toward the eye (the painted door's place), and
+   * its windows: a small casement in the gable beside the door for some
+   * men's huts, one there and one in the long wall toward the eye for
+   * the officers'.
+   */
+  doorway: Pt[] | null;
+  windows: Pt[][];
   /** A cone thatched to the ground: no walls. */
   cone: boolean;
   ahead: number;
@@ -302,6 +318,9 @@ export function hutShape(h: Hut): HutShape {
     const base1 = P(0, -h.w, 0);
     const toward = P(h.w * 0.7 * s, h.w * 0.7, 0);
     const apex = P(0, 0, h.ridge);
+    // Its low door at the foot on the eye's side.
+    const half = 0.4 * BUILD * unit;
+    const tall = Math.min(1.1 * BUILD, h.ridge * 0.2) * unit;
     return {
       gable: [toward, base1, apex],
       gableLight,
@@ -314,6 +333,13 @@ export function hutShape(h: Hut): HutShape {
       foot: [base0, toward, base1],
       door: null,
       chimney: null,
+      doorway: [
+        [toward[0] - half, toward[1]],
+        [toward[0] + half, toward[1]],
+        [toward[0] + half, toward[1] + tall],
+        [toward[0] - half, toward[1] + tall],
+      ],
+      windows: [],
       cone: true,
       ahead,
       unit,
@@ -359,17 +385,57 @@ export function hutShape(h: Hut): HutShape {
     P(near, h.w, wall),
   ];
   let door: Pt[] | null = null;
-  if (h.kind !== 3 && h.w * unit > 3.2) {
-    const dw = 0.45 * BUILD;
-    const dh = Math.min(wall + 0.6 * BUILD, h.ridge * 0.6);
-    const pick = (((Math.floor(h.e * 7 + h.n * 3) % 3) + 3) % 3) - 1;
-    const off = h.w * 0.3 * pick;
-    door = [
-      P(near, off - dw, 0),
-      P(near, off + dw, 0),
-      P(near, off + dw, dh),
-      P(near, off - dw, dh),
-    ];
+  const dw = 0.45 * BUILD;
+  const dh =
+    h.kind === 3 ? h.ridge * 0.35 : Math.min(wall + 0.6 * BUILD, h.ridge * 0.6);
+  const pick = (((Math.floor(h.e * 7 + h.n * 3) % 3) + 3) % 3) - 1;
+  const off = h.w * 0.3 * pick;
+  const doorway: Pt[] = [
+    P(near, off - dw, 0),
+    P(near, off + dw, 0),
+    P(near, off + dw, dh),
+    P(near, off - dw, dh),
+  ];
+  if (h.kind !== 3 && h.w * unit > 3.2) door = doorway;
+  // For the lights: the doorway's lit opening, low and narrow (a door
+  // ajar, candle light inside); none where the hut opens away from the eye.
+  const away = h.away === true && h.kind === 0;
+  const lw = 0.3 * BUILD;
+  const lh = h.kind === 3 ? h.ridge * 0.3 : wall + 0.15 * BUILD;
+  const lit: Pt[] | null = away
+    ? null
+    : [
+        P(near, off - lw, 0),
+        P(near, off + lw, 0),
+        P(near, off + lw, lh),
+        P(near, off - lw, lh),
+      ];
+  // A casement in the gable toward the eye, just over the eaves' height
+  // (the huts are half sunk: under the eaves there is no room for one):
+  // beside the door, or in the back gable of a hut that opens away; in
+  // some men's huts and every officers', the officers' another in their
+  // long wall toward the eye. None in the kitchens.
+  const windows: Pt[][] = [];
+  const pane = (a: number, b0: number, b1: number, z0: number, z1: number) =>
+    windows.push([P(a, b0, z0), P(a, b1, z0), P(a, b1, z1), P(a, b0, z1)]);
+  const roll = lightSeed(h.e, h.n, 9) / 100003;
+  if (h.kind === 1 || (h.kind === 0 && roll < 0.3)) {
+    const sideOf = pick !== 0 ? -pick : roll < 0.15 ? 1 : -1;
+    const at = away
+      ? h.w * 0.2 * sideOf
+      : h.w * (pick !== 0 ? 0.4 : 0.55) * sideOf;
+    const ww = 0.25 * BUILD;
+    pane(near, at - ww, at + ww, wall + 0.05 * BUILD, wall + 0.5 * BUILD);
+  }
+  if (h.kind === 1) {
+    const a = near + (far - near) * 0.35;
+    const ww = 0.3 * BUILD;
+    windows.push([
+      P(a - ww, h.w, wall * 0.45),
+      P(a + ww, h.w, wall * 0.45),
+      P(a + ww, h.w, wall * 0.8),
+      P(a - ww, h.w, wall * 0.8),
+    ]);
   }
   let chimney: Pt[] | null = null;
   if (h.kind === 2) {
@@ -394,6 +460,8 @@ export function hutShape(h: Hut): HutShape {
     foot: [P(far, h.w, 0), P(near, h.w, 0), P(near, -h.w, 0)],
     door,
     chimney,
+    doorway: lit,
+    windows,
     cone: false,
     ahead,
     unit,
@@ -437,6 +505,7 @@ export function paintHuts(c: PlateCanvas, huts: readonly Hut[]): void {
       const foot = new Path2D();
       addLine(foot, s.foot);
       stroke(c, foot, 0.7, air(SHORE.hutFoot, d), 0.7);
+      hutLights(c, h, s);
       continue;
     }
     ctx.fillStyle = air(wallOf(h, s.sideLight), d);
@@ -494,7 +563,33 @@ export function paintHuts(c: PlateCanvas, huts: readonly Hut[]): void {
     const foot = new Path2D();
     addLine(foot, s.foot);
     stroke(c, foot, 0.8, air(SHORE.hutFoot, d), 0.75);
+    hutLights(c, h, s);
   }
+}
+
+/**
+ * Records a hut just painted for the lights at dusk (lit.ts): its
+ * silhouette hides the lights before it (a farther hut's door), then its
+ * own door and windows. The men's huts had no fires (heating was
+ * forbidden in them): candle light at a door or a casement.
+ */
+function hutLights(c: PlateCanvas, h: Hut, s: HutShape): void {
+  if (!c.lights) return;
+  occlude(
+    c,
+    hull([
+      ...s.side,
+      ...s.roof,
+      ...s.gable,
+      ...s.rake,
+      ...s.foot,
+      ...(s.chimney ?? []),
+    ]),
+  );
+  if (s.doorway) opening(c, "door", s.doorway, lightSeed(h.e, h.n, 0));
+  s.windows.forEach((w, i) => {
+    opening(c, "window", w, lightSeed(h.e, h.n, i + 1));
+  });
 }
 
 /**

@@ -599,6 +599,9 @@ function cover(sites: LightSite[] | undefined, pts: readonly Pt[]): void {
   }
 }
 
+/** Of each thousand doors on the street, how many show a hearth or a forge at dusk. */
+const HEARTHS = 90;
+
 /** A light site on a painted opening (its box). */
 function opening(
   kind: "window" | "door",
@@ -791,7 +794,12 @@ export function paintBuildings(
             Math.min(sh * 0.62, wh * 1.6),
           );
           cover(sites, door);
-          sites.push(opening("door", door, seed));
+          const site = opening("door", door, seed);
+          // A hearth or a forge inside now and then (a tavern, a baker's,
+          // a smith's): its door redder and brighter at dusk.
+          if ((Math.imul(seed, 2654435761) >>> 0) % 1000 < HEARTHS)
+            site.hearth = true;
+          sites.push(site);
         }
         seed++;
       }

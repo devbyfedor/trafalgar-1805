@@ -1,5 +1,5 @@
 import type { Pt } from "../../paint/kit";
-import type { LightKind } from "../../paint/lights";
+import type { Bounds, LightKind } from "../../paint/lights";
 import type { PlateCanvas } from "../../paint/plate";
 
 /**
@@ -62,15 +62,67 @@ export function union(polys: readonly (readonly Pt[])[]): Path2D {
   return path;
 }
 
+/** Whether a point lies inside a polygon (even-odd). */
+export function within(poly: readonly Pt[], x: number, y: number): boolean {
+  let hit = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i];
+    const [xj, yj] = poly[j];
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi)
+      hit = !hit;
+  }
+  return hit;
+}
+
+/** The box of polygons (layer units), for an occluder made of them. */
+export function boundsOf(polys: readonly (readonly Pt[])[]): Bounds {
+  let x0 = Number.POSITIVE_INFINITY;
+  let y0 = Number.POSITIVE_INFINITY;
+  let x1 = Number.NEGATIVE_INFINITY;
+  let y1 = Number.NEGATIVE_INFINITY;
+  for (const poly of polys)
+    for (const [x, y] of poly) {
+      if (x < x0) x0 = x;
+      if (x > x1) x1 = x;
+      if (y < y0) y0 = y;
+      if (y > y1) y1 = y;
+    }
+  return [x0, y0, x1, y1];
+}
+
+/** A box grown as shapes are added to a path (layer units), for an occluder of them. */
+export class Grow {
+  x0 = Number.POSITIVE_INFINITY;
+  y0 = Number.POSITIVE_INFINITY;
+  x1 = Number.NEGATIVE_INFINITY;
+  y1 = Number.NEGATIVE_INFINITY;
+  add(x0: number, y0: number, x1: number, y1: number): void {
+    this.x0 = Math.min(this.x0, x0);
+    this.y0 = Math.min(this.y0, y0);
+    this.x1 = Math.max(this.x1, x1);
+    this.y1 = Math.max(this.y1, y1);
+  }
+  get box(): Bounds | undefined {
+    return this.x0 <= this.x1
+      ? [this.x0, this.y0, this.x1, this.y1]
+      : undefined;
+  }
+}
+
 /**
  * Records a shape just painted as an occluder of the lights recorded
- * before it in this plate; nothing when there are none yet (it would hide
- * nothing, and every lights job replays it).
+ * before it in this plate, with its box where the painter knows it (a
+ * polygon's is found); nothing when there are no lights yet (it would
+ * hide nothing, and every lights job replays it).
  */
-export function occlude(c: PlateCanvas, shape: Path2D | readonly Pt[]): void {
+export function occlude(
+  c: PlateCanvas,
+  shape: Path2D | readonly Pt[],
+  bounds?: Bounds,
+): void {
   const sink = c.lights;
   if (!sink || sink.events.length === 0) return;
-  sink.occlude(shape);
+  sink.occlude(shape, bounds);
 }
 
 /** A seed for a light from a place (metres east, north) and an index: the same every time. */
@@ -82,13 +134,14 @@ export function lightSeed(e: number, n: number, k: number): number {
   return ((h ^ (h >>> 13)) >>> 0) % 100003;
 }
 
-/** Records an opening (a window or a door) by its corners, layer units: its box. */
+/** Records an opening (a window or a door) by its corners, layer units: its box; a kitchen's door its hearth. */
 export function opening(
   c: PlateCanvas,
   kind: LightKind,
   corners: readonly Pt[],
   seed: number,
   lit?: number,
+  hearth?: boolean,
 ): void {
   if (!c.lights) return;
   let x0 = Number.POSITIVE_INFINITY;
@@ -109,6 +162,7 @@ export function opening(
     h: y1 - y0,
     seed,
     ...(lit === undefined ? {} : { lit }),
+    ...(hearth ? { hearth } : {}),
   });
 }
 
@@ -131,13 +185,18 @@ export function lamp(
   });
 }
 
-/** Records a fire, behind whatever is painted after it: its centre and its glow's radius (layer units). */
+/**
+ * Records a fire, behind whatever is painted after it: its centre, its
+ * glow's radius (layer units, up and down; it is narrower across) and
+ * its strength (0..1).
+ */
 export function fire(
   c: PlateCanvas,
   x: number,
   y: number,
   radius: number,
+  strength: number,
   seed: number,
 ): void {
-  c.lights?.add({ kind: "fire", x, y, w: radius, h: radius, seed });
+  c.lights?.add({ kind: "fire", x, y, w: radius, h: strength, seed });
 }

@@ -26,7 +26,7 @@ import {
   under,
   windmill,
 } from "./draw";
-import { fire, lightSeed, occlude, union } from "./lit";
+import { boundsOf, fire, Grow, lightSeed, occlude, union } from "./lit";
 
 /**
  * A camp's ground drawn as tiers of contours, far to near: each tier is
@@ -216,9 +216,12 @@ export interface CampPlateOptions {
    * at dusk: hidden by all of it, their glow showing over the skyline.
    */
   fires?: () => readonly Pt[];
-  /** Their glow's radius, layer units. */
+  /** The largest of their glows' radius, up and down, layer units (26 by default; each kitchen's its own, smaller). */
   fireRadius?: number;
 }
+
+/** How far across (layer units) a kitchen's row reaches a mill that stands by it. */
+const MILL_REACH = 45;
 
 export function campPlate(o: CampPlateOptions): Plate {
   const tiers: (Tier | undefined)[] = [];
@@ -259,13 +262,15 @@ export function campPlate(o: CampPlateOptions): Plate {
       if (mode === "colour") {
         fill(c, region, air(mix(SHORE.turf, SHORE.turfLit, 0.4), d));
         // The tier's ground hides the farther tiers' lights under its line.
-        occlude(c, region);
+        const [gx0, , gx1, gy1] = boundsOf([k.pts]);
+        occlude(c, region, [gx0, bottom, gx1, gy1]);
         if (nearer) {
           const hedges = new Path2D();
           const hedgeTops = new Path2D();
           const lanes = new Path2D();
           const furrows = new Path2D();
           const trees = new Path2D();
+          const treesBox = new Grow();
           const treeTops = new Path2D();
           const farther = i > 0 ? tierAt(i - 1) : undefined;
           const L = Math.min(k.pts.length, nearer.pts.length);
@@ -319,6 +324,12 @@ export function campPlate(o: CampPlateOptions): Plate {
                 if (rng() < 0.12) {
                   const r = 0.9 + rng() * 1.2;
                   addBush(trees, p[0], p[1] + r * 0.4, r, r * 0.8, rng);
+                  treesBox.add(
+                    p[0] - r * 1.2,
+                    p[1],
+                    p[0] + r * 1.2,
+                    p[1] + r * 1.4,
+                  );
                   addBush(
                     treeTops,
                     p[0] - r * 0.25,
@@ -370,7 +381,8 @@ export function campPlate(o: CampPlateOptions): Plate {
           stroke(c, hedgeTops, 0.6, air(SHORE.hedgeLit, d), 0.6);
           fill(c, trees, air(SHORE.hedge, d), 0.95);
           fill(c, treeTops, air(SHORE.hedgeLit, d), 0.85);
-          occlude(c, trees);
+          const tb = treesBox.box;
+          if (tb) occlude(c, trees, tb);
           if (k.row !== undefined) {
             // The huts' gardens: a faint mottling between the rows.
             c.ctx.save();
@@ -484,11 +496,13 @@ export function campPlate(o: CampPlateOptions): Plate {
         }
       }
       const crowns = new Path2D();
+      const crownsBox = new Grow();
       const lit = new Path2D();
       const d = tierAt(0).ahead;
       const unit = 1000 / d;
       const crown = (x: number, y: number, r: number) => {
         addBush(crowns, x, y + r * 0.35, r, r * 0.85, rng);
+        crownsBox.add(x - r * 1.2, y, x + r * 1.2, y + r * 1.4);
         addBush(lit, x - r * 0.25, y + r * 0.7, r * 0.55, r * 0.45, rng);
       };
       // On the skyline: trees standing alone and in short rows.
@@ -514,7 +528,8 @@ export function campPlate(o: CampPlateOptions): Plate {
       if (mode === "colour") {
         fill(c, crowns, air(mix(SHORE.hedge, "#4a5040", 0.4), d), 0.95);
         fill(c, lit, air(SHORE.hedgeLit, d), 0.8);
-        occlude(c, crowns);
+        const cb = crownsBox.box;
+        if (cb) occlude(c, crowns, cb);
       } else {
         fill(c, crowns, PAPER.low);
         stroke(c, crowns, penFor(d, 1) * 0.6, INK.line, 0.7);
@@ -530,7 +545,8 @@ export function campPlate(o: CampPlateOptions): Plate {
       const w = windmill(m[0], m[1], m[2], m[3]);
       paintWindmill(c, w, mode);
       // Its body and sails against a kitchen's glow behind the skyline.
-      if (mode === "colour") occlude(c, union([w.body, ...w.sails]));
+      if (mode === "colour")
+        occlude(c, union([w.body, ...w.sails]), boundsOf([w.body, ...w.sails]));
     };
   }
 
@@ -538,13 +554,51 @@ export function campPlate(o: CampPlateOptions): Plate {
    * The kitchens' fires behind the camp (o.fires): recorded before any of
    * the plate's ground, so every tier of it hides them and only their
    * glow over the skyline shows, where their smoke rises (smoke.ts, its
-   * canvas behind the plate).
+   * canvas behind the plate). Each kitchen's row has its own fire where
+   * its smoke rises, and none, one or two more beside it, smaller and
+   * lower, some all but hidden by the crest: the glows cluster, each its
+   * own size and strength, never a row of beads.
    */
   function firesJob(): PlateJob {
     return (c) => {
       const fires = o.fires?.() ?? [];
+      const big = o.fireRadius ?? 26;
+      // The mills on this ground (layer units: across, and their foot): a
+      // kitchen's row that reaches one has a fire just behind it, the
+      // mill's body and sails against the glow.
+      const mills = (o.mills?.() ?? []).map((m) => {
+        const w = windmill(m[0], m[1], m[2], m[3]);
+        return [w.hub[0], Math.min(...w.body.map((p) => p[1]))] as const;
+      });
       fires.forEach(([x, y], i) => {
-        fire(c, x, y, o.fireRadius ?? 20, lightSeed(x, y, i));
+        const seed = lightSeed(x, y, i);
+        const h = (k: number) => hash01(seed * 0.0173 + k * 3.71);
+        fire(c, x, y, big * (0.55 + 0.45 * h(1)), 0.42 + 0.18 * h(2), seed);
+        for (const [mx, foot] of mills)
+          if (Math.abs(mx - x) < MILL_REACH)
+            fire(
+              c,
+              mx - 1.5,
+              foot - 4,
+              big * 0.8,
+              0.5,
+              lightSeed(mx, y, i + 50),
+            );
+        const more = h(3) < 0.3 ? 0 : h(3) < 0.75 ? 1 : 2;
+        let side = h(4) < 0.5 ? -1 : 1;
+        for (let k = 0; k < more; k++) {
+          const dx = side * (4 + 7 * h(5 + k));
+          const dy = -(1 + 5 * h(7 + k));
+          fire(
+            c,
+            x + dx,
+            y + dy,
+            big * (0.38 + 0.2 * h(9 + k)),
+            0.3 + 0.14 * h(11 + k),
+            lightSeed(x + dx, y, i + 100 * (k + 1)),
+          );
+          side = -side;
+        }
       });
     };
   }

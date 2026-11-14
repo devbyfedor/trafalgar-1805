@@ -34,7 +34,16 @@ import {
   pointFace,
   shapeFace,
 } from "./face";
-import { hull, lamp, lightSeed, occlude, opening, union } from "./lit";
+import {
+  boundsOf,
+  hull,
+  lamp,
+  lightSeed,
+  occlude,
+  opening,
+  union,
+  within,
+} from "./lit";
 import { edgeAt, northUp, shoreAt, smoothstep } from "./terrain";
 
 /**
@@ -385,6 +394,9 @@ function bastions(c: PlateCanvas, g: Face, mode: PaintMode): void {
   }
 }
 
+/** The pavilion's lamps along its paling: one every this many metres, as drawn (BUILD times). */
+const LAMP_STEP = 3.4;
+
 /**
  * A pavilion of grey-white planks seen almost end-on, as it stood (its
  * long axis about east-west, history-notes "Which way it faced"): the
@@ -487,35 +499,67 @@ function pavilion(
     );
     stroke(c, fence, 0.5, air(SHORE.wood, ahead), 0.7);
     if (!c.lights) return;
-    // The lights at dusk (lit.ts), in paint order: the pavilion hides
-    // what lies behind it; then the windows of its body's side, the
-    // rotunda over them; the rotunda's windows; the lamps along the
-    // paling, in front of all of it.
+    // The lights at dusk (lit.ts), in paint order: the pavilion and its
+    // mound hide what lies behind them; the lamps standing behind the
+    // body's side, then the building again over them; the windows of its
+    // body's side, the rotunda over them; the rotunda's windows; the lamps
+    // in front of the building's foot.
     occlude(c, hull([...mound, ...side, ...roof, ...drum, ...cone]));
     const seed = (k: number) => lightSeed(e0, n, k);
+    const front: [Pt, number][] = [];
+    if (lamps) {
+      // Constant: reflector lamps on posts outside the lattice round it
+      // (a ring of lights at dusk is safe; "four feet apart" is doubted:
+      // camps-check.md items 4 and 75, some sixty lamps round an 80 m
+      // paling): one every 7 m or so, a little uneven. From the roads, 50 m
+      // below the brow, only the ring's seaward half shows, along the
+      // building's foot as the paling is painted (in front of it); the
+      // far half is under the mound's crown and behind the building, and
+      // where the paling passes the body's side it runs behind the body.
+      const run = Math.hypot(52, 52);
+      const many = run / (LAMP_STEP * BUILD);
+      const behind: [Pt, number][] = [];
+      for (let k = 0; k <= Math.ceil(many); k++) {
+        const jitter = (lightSeed(e0, n, 70 + k) / 100003 - 0.5) * 0.24;
+        const u = 1 - (2 * (k + jitter)) / many;
+        if (u >= 0.2 || u < -1) continue;
+        const a = Math.acos(u);
+        const p = project(
+          e0 + u * 26 + 6,
+          n + Math.sin(a - Math.PI / 2) * -26,
+          ground - 1.5 * VEX + Math.sin(a) * 1.5 * VEX,
+        );
+        const at: Pt = [p[0], p[1] + 1.05];
+        (within(side, at[0], at[1]) ? behind : front).push([at, seed(40 + k)]);
+      }
+      for (const [[x, y], s] of behind) lamp(c, x, y, 0.3, s);
+      if (behind.length) occlude(c, hull([...side, ...roof, ...drum, ...cone]));
+    }
     // The Emperor was at Boulogne from 3 August 1805: his pavilion's
     // windows lit more than a hut's (a licence: whether he worked there
     // in the evening is not recorded).
     const litShare = lamps ? 0.7 : undefined;
     const span = L - r * 0.5;
     const count = Math.max(2, Math.round(span / (3.5 * BUILD)));
+    // Seen so nearly end-on, the side's windows close up into slits a
+    // pixel apart: only those a few pixels from the last one recorded
+    // can read as windows, not as one block of light.
+    let last = Number.NEGATIVE_INFINITY;
     for (let k = 0; k < count; k++) {
       const a = r * 0.5 + ((k + 0.5) * span) / count;
       const hw = 0.5 * BUILD;
-      opening(
-        c,
-        "window",
-        [
-          P(a - hw, -half, 0.9 * BUILD),
-          P(a + hw, -half, 0.9 * BUILD),
-          P(a + hw, -half, 2.7 * BUILD),
-          P(a - hw, -half, 2.7 * BUILD),
-        ],
-        seed(k),
-        litShare,
-      );
+      const corners = [
+        P(a - hw, -half, 0.9 * BUILD),
+        P(a + hw, -half, 0.9 * BUILD),
+        P(a + hw, -half, 2.7 * BUILD),
+        P(a - hw, -half, 2.7 * BUILD),
+      ];
+      const mid = (corners[0][0] + corners[1][0]) / 2;
+      if (Math.abs(mid - last) < c.pen(2.8)) continue;
+      last = mid;
+      opening(c, "window", corners, seed(k), litShare);
     }
-    occlude(c, union([drum, cone]));
+    occlude(c, union([drum, cone]), boundsOf([drum, cone]));
     const ww = 0.5 * BUILD * (1000 / ahead);
     for (let k = -1; k <= 2; k++) {
       const x = cx + (rw * k) / 2.6 - rw * 0.12;
@@ -530,21 +574,7 @@ function pavilion(
         litShare,
       );
     }
-    if (lamps) {
-      // Constant: reflector lamps outside the lattice round it, four feet
-      // apart (BUILD times, as everything built is drawn), on posts.
-      const run = Math.hypot(52, 52);
-      const many = Math.round(run / (1.3 * BUILD));
-      for (let k = 0; k <= many; k++) {
-        const a = Math.acos(1 - (2 * k) / many);
-        const p = project(
-          e0 + Math.cos(a) * 26 + 6,
-          n + Math.sin(a - Math.PI / 2) * -26,
-          ground - 1.5 * VEX + Math.sin(a) * 1.5 * VEX,
-        );
-        lamp(c, p[0], p[1] + 1.05, 0.3, seed(40 + k));
-      }
-    }
+    for (const [[x, y], s] of front) lamp(c, x, y, 0.3, s);
     return;
   }
   for (const p of [mound, side, roof, drum, cone]) fill(c, poly(p), PAPER.low);

@@ -7,7 +7,15 @@ import {
   type PlateJob,
 } from "../../paint/plate";
 import { MOON } from "../sky/moon";
-import { distanceAt, highWaterY, lowWaterY, strandY, waterBody } from "./shore";
+import {
+  distanceAt,
+  highWaterY,
+  lowWaterY,
+  strandY,
+  waterBody,
+  waterDark,
+  waterLight,
+} from "./shore";
 
 /**
  * The wide wet strand at low water in front of the town and the cliffs,
@@ -466,15 +474,28 @@ function inkStrand(c: PlateCanvas, seed: number, ua: number, ub: number) {
 
 // ------------------------------------------------------------------ water
 
+/**
+ * The distance the water off the edge paints at height y: its own (a
+ * little farther, as the plate stands farther than the strips), but never
+ * nearer than the first strip of swell's far edge, so the part the dive
+ * shows below that strip's crest keeps the crest's tone and no seam opens.
+ */
+function edgeD(y: number): number {
+  return Math.max(SWELL_FAR, distanceAt(y) * 1.35);
+}
+
+/** The first strip of swell's far edge, metres (water/swell.ts, EDGES). */
+const SWELL_FAR = 190;
+
 /** The water off the edge: its body by distance, down to `bottom`. */
 function paintEdgeWater(c: PlateCanvas, bottom: number) {
   const { ctx } = c;
   const [x0, x1] = c.box;
   const xs = across(x0, x1, 6);
   const g = ctx.createLinearGradient(0, -13, 0, bottom);
-  const stops = [-13, -18, -22, -26, -31, -40, -55, -75, -105, -150, bottom];
+  const stops = [-13, -18, -22, -26, -31, -37, -43, -55, bottom];
   for (const y of stops)
-    g.addColorStop((y + 13) / (bottom + 13), waterBody(distanceAt(y) * 1.35));
+    g.addColorStop((y + 13) / (bottom + 13), waterBody(edgeD(y)));
   ctx.fillStyle = g;
   ctx.fill(
     bandPath(
@@ -555,23 +576,22 @@ function paintEdgeWaves(
   const dark = new Path2D();
   let y = from;
   while (y > to) {
-    const d = distanceAt(y);
-    const dy = Math.max(2.6, (6000 * 6) / (d * d));
+    const d = edgeD(y);
+    const dy = Math.max(2.4, (6000 * 6) / (d * d));
     y -= dy * (0.8 + rng() * 0.4);
     let x = x0 - rng() * 30;
     while (x < x1) {
-      const len = Math.min(40, 600 / d) * (0.6 + rng());
-      const amp = Math.min(3, 120 / d);
-      const p = rng() < 0.55 ? lit : dark;
+      const len = Math.min(70, 9000 / d) * (0.5 + rng());
+      const p = rng() < 0.35 ? lit : dark;
       p.moveTo(x, y);
-      p.quadraticCurveTo(x + len / 2, y + amp, x + len, y);
-      x += len * (1.1 + rng() * 1.2);
+      p.lineTo(x + len, y + (rng() - 0.5) * 0.3);
+      x += len * (1.4 + rng() * 2.4);
     }
   }
-  ctx.lineWidth = c.pen(1);
-  ctx.strokeStyle = rgba("#c9ae86", 0.28);
+  ctx.lineWidth = c.pen(0.9);
+  ctx.strokeStyle = rgba(waterLight(240), 0.4);
   ctx.stroke(lit);
-  ctx.strokeStyle = rgba("#2f4554", 0.3);
+  ctx.strokeStyle = rgba(waterDark(240), 0.26);
   ctx.stroke(dark);
 }
 

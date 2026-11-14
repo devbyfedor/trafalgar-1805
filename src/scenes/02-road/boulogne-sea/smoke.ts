@@ -33,6 +33,8 @@ const CLIMB = 24;
 export class SmokeRenderer {
   private readonly ctx: CanvasRenderingContext2D;
   private readonly sprite: HTMLCanvasElement;
+  /** The sprite as a bitmap once made: drawn from a canvas, every puff made the browser take a snapshot of it (session 28's trace of the hold). */
+  private bitmap: ImageBitmap | null = null;
   private readonly phase: Float32Array;
   private readonly sway: Float32Array;
   private width = 1;
@@ -66,6 +68,13 @@ export class SmokeRenderer {
       s.globalCompositeOperation = "source-in";
       s.fillStyle = color;
       s.fillRect(0, 0, 64, 64);
+      if (typeof createImageBitmap === "function")
+        createImageBitmap(this.sprite).then(
+          (b) => {
+            this.bitmap = b;
+          },
+          () => {},
+        );
     }
     this.phase = new Float32Array(plumes.length * PUFFS);
     this.sway = new Float32Array(plumes.length * PUFFS);
@@ -97,6 +106,7 @@ export class SmokeRenderer {
     if (this.intensity <= 0.002) return;
     const [x0, , , y1] = this.box;
     const s = this.scale;
+    const sprite = this.bitmap ?? this.sprite;
     for (let i = 0; i < this.plumes.length; i++) {
       const p = this.plumes[i];
       for (let k = 0; k < PUFFS; k++) {
@@ -125,7 +135,7 @@ export class SmokeRenderer {
         if (alpha < 0.004) continue;
         ctx.globalAlpha = alpha;
         ctx.drawImage(
-          this.sprite,
+          sprite,
           (x - x0) * s - rx,
           (y1 - y) * s - ry,
           rx * 2,

@@ -61,9 +61,10 @@ export function buildPennant(
     return `M${top.join("L")}L${bottom.reverse().join("L")}Z`;
   };
   const layers = [
-    { fill: colours.blue, d: edge(0, 0.15) },
-    { fill: colours.white, d: edge(0.15, 0.3) },
-    { fill: colours.red, d: edge(0.3, 1) },
+    // The decree of 1794: a fifth blue at the mast, a fifth white, three fifths red.
+    { fill: colours.blue, d: edge(0, 0.2) },
+    { fill: colours.white, d: edge(0.2, 0.4) },
+    { fill: colours.red, d: edge(0.4, 1) },
   ];
   return {
     layers,

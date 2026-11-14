@@ -3,9 +3,9 @@ import { path } from "../../geometry/path";
 import type { Vec } from "../../geometry/vec";
 import type { CraftSpec } from "../types";
 import { buildFittingsArt, type FittingsArt } from "./fittings";
-import { buildHullArt, type HullArt } from "./hull";
+import { buildHullArt, type HullArt, hullSteps } from "./hull";
 import { buildPennant, type PennantShape } from "./pennant";
-import { buildRigArt, type RigArt } from "./rig";
+import { type RigArt, rigSteps } from "./rig";
 import { buildRiggingArt, type RiggingArt } from "./rigging";
 
 /**
@@ -87,15 +87,84 @@ function placeFlag(d: string, anchor: Vec): string {
 
 const cache = new Map<string, CraftArt>();
 
+/** Parts built so far by craftArtSteps, before the whole is assembled. */
+interface Partial {
+  hullBuild?: { steps: (() => void)[]; finish: () => HullArt; next: number };
+  hull?: HullArt;
+  rig?: { steps: (() => void)[]; finish: () => RigArt; next: number };
+  rigArt?: RigArt;
+  rigging?: RiggingArt;
+  fittings?: FittingsArt;
+}
+const partials = new Map<string, Partial>();
+
+/**
+ * The build in steps, for a caller that must keep each piece of work short
+ * (Boulogne's painting runs them as its plates' first jobs): the hull, the
+ * rig mast by mast, the rigging, the fittings, then the whole. Each step
+ * does nothing once the craft is built; buildCraftArt uses what they left.
+ */
+export function craftArtSteps(spec: CraftSpec): (() => void)[] {
+  const key = `${spec.id}:${spec.seed}`;
+  const part = () => {
+    let p = partials.get(key);
+    if (!p) {
+      p = {};
+      partials.set(key, p);
+    }
+    return p;
+  };
+  const built = () => cache.has(key);
+  const rigCount = rigSteps(spec).steps.length;
+  const hullStep = () => {
+    if (built()) return;
+    const p = part();
+    if (p.hull) return;
+    p.hullBuild ??= { ...hullSteps(spec), next: 0 };
+    p.hullBuild.steps[p.hullBuild.next++]?.();
+    if (p.hullBuild.next >= p.hullBuild.steps.length)
+      p.hull = p.hullBuild.finish();
+  };
+  const hullCount = hullSteps(spec).steps.length;
+  return [
+    ...Array.from({ length: hullCount }, () => hullStep),
+    ...Array.from({ length: rigCount }, () => () => {
+      if (built()) return;
+      const p = part();
+      if (p.rigArt) return;
+      p.rig ??= { ...rigSteps(spec), next: 0 };
+      p.rig.steps[p.rig.next++]?.();
+      if (p.rig.next >= p.rig.steps.length) p.rigArt = p.rig.finish();
+    }),
+    () => {
+      if (built()) return;
+      const p = part();
+      if (!p.rigArt) return;
+      p.rigging ??= buildRiggingArt(spec, p.rigArt.layout);
+      if (p.hull) p.fittings ??= buildFittingsArt(spec, p.hull.farRise);
+    },
+    () => {
+      buildCraftArt(spec);
+    },
+  ];
+}
+
 export function buildCraftArt(spec: CraftSpec): CraftArt {
   const key = `${spec.id}:${spec.seed}`;
   const hit = cache.get(key);
   if (hit) return hit;
 
-  const hull = buildHullArt(spec);
-  const rig = buildRigArt(spec);
-  const rigging = buildRiggingArt(spec, rig.layout);
-  const fittings = buildFittingsArt(spec, hull.farRise);
+  const p = partials.get(key) ?? {};
+  partials.delete(key);
+  const hull = p.hull ?? buildHullArt(spec);
+  let rig = p.rigArt;
+  if (!rig) {
+    const b = rigSteps(spec);
+    for (const step of b.steps) step();
+    rig = b.finish();
+  }
+  const rigging = p.rigging ?? buildRiggingArt(spec, rig.layout);
+  const fittings = p.fittings ?? buildFittingsArt(spec, hull.farRise);
 
   const flags: CraftFlag[] = [];
   const e = spec.ensign;

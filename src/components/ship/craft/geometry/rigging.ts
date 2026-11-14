@@ -3,7 +3,15 @@ import { path } from "../../geometry/path";
 import { deg, lerp, type Vec } from "../../geometry/vec";
 import type { CraftSpec } from "../types";
 import { type MastLayout, pointOf, type RigLayout } from "./rig";
-import { circle, quadPoints, railAt, ribbon, stemX, taper } from "./shapes";
+import {
+  circle,
+  quadPoints,
+  railAt,
+  ribbon,
+  stemX,
+  sternX,
+  taper,
+} from "./shapes";
 
 /**
  * Standing and running rigging, merged by pen into a few paths, with what
@@ -354,6 +362,11 @@ export function buildRiggingArt(spec: CraftSpec, rig: RigLayout): RiggingArt {
     // Its heel lashed at the stem head, a bobstay from the stem.
     heavy.segment([stemX(h, 0.4) - 0.04, 0.4], lerp(rb.from, rb.to, 0.85));
   }
+  if (rig.bumkin) {
+    const bk = rig.bumkin;
+    // The bumkin's shroud from its end down to the sternpost, as a bobstay.
+    heavy.segment(lerp(bk.from, bk.to, 0.92), [sternX(h, 0.45) + 0.04, 0.45]);
+  }
 
   // The ensign's halyard down the staff.
   const e = rig.ensign;
@@ -456,15 +469,17 @@ export function buildRiggingArt(spec: CraftSpec, rig: RigLayout): RiggingArt {
           ],
         ]);
       }
-      // The stock across the shank near the ring, and the ring.
+      // The stock across the shank near the ring: with the flukes fished up
+      // against the bow it stands out from the side toward the eye, seen
+      // end-on as a short block; and the ring.
       const sc = lerp(o(ring), o(crown), 0.1);
-      const half = L * 0.42;
+      const half = L * 0.07;
       b.polygon(
         taper(
           [sc[0] - nrm[0] * half, sc[1] - nrm[1] * half],
           [sc[0] + nrm[0] * half, sc[1] + nrm[1] * half],
-          w * 1.2,
-          w * 1.2,
+          w * 1.7,
+          w * 1.5,
         ),
       );
       circle(b, o(ring), w * 1.15);

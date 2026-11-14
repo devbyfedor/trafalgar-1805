@@ -149,27 +149,30 @@ export function flightU(phase: InterludePhase, t: number): number {
  * into an engraving of the same view, lines on the chart's paper in the
  * chart's inks (each plate's ink raster, paper-backed, so nearer things
  * hide farther ones as an engraver leaves them out); then colour comes
- * into the engraving, group by group like a print coloured by hand: the
- * sky, the land, the water, the craft last. The rise runs it backwards.
+ * into the engraving like a print coloured by hand: a light wash over the
+ * whole sheet first, the land's warmth leading, then the sky, the water
+ * and the craft close behind, the sky's blue deepening last (its share
+ * eased in), so no frame shows a finished sky over a paper sea (session
+ * 27's critique of the whole, finding 4). The rise runs it backwards.
  * Opacity only. The text steps aside while the ground under it is in
  * flux (paper is bright where the chart and the painting are dark) and
  * comes back over the painting.
  *
  * The stages overlap (the owner's second look: a wholly colourless frame
- * read as a loading bug): the sky's colour starts while the engraving is
- * still coming in over the chart, each group a little after the one
- * before, all while the camera is still coming down; only while the
- * engraving rises through the chart is the frame without colour. All of
- * it is done by u 0.87, the last 13 % of the descent in full colour.
+ * read as a loading bug): colour starts while the engraving is still
+ * coming in over the chart, all while the camera is still coming down;
+ * only while the engraving rises through the chart is the frame without
+ * colour. All of it is done by u 0.86, the last 14 % of the descent in
+ * full colour.
  */
 export const TRANSITION = {
   /** The engraving over the chart: from nothing to whole. */
   engraving: [0.64, 0.7] as const,
   /** Colour by group, each from nothing to whole over the engraving. */
-  sky: [0.665, 0.78] as const,
-  land: [0.68, 0.82] as const,
-  water: [0.695, 0.845] as const,
-  craft: [0.71, 0.87] as const,
+  land: [0.665, 0.8] as const,
+  sky: [0.67, 0.81] as const,
+  water: [0.675, 0.825] as const,
+  craft: [0.69, 0.86] as const,
   /** The captions, the date line and the chapter marker: out, then back in. */
   textOut: [0.585, 0.635] as const,
   textIn: [0.95, 0.995] as const,
@@ -201,7 +204,9 @@ export interface PaintingShare {
 export function paintingAt(u: number, out: PaintingShare): PaintingShare {
   const T = TRANSITION;
   out.engraving = smooth(T.engraving[0], T.engraving[1], u);
-  out.sky = smooth(T.sky[0], T.sky[1], u);
+  // The sky's blue is the strongest change of all (paper to deep blue):
+  // eased in, so its strength comes after the land's warmth.
+  out.sky = smooth(T.sky[0], T.sky[1], u) ** 1.5;
   out.land = smooth(T.land[0], T.land[1], u);
   out.water = smooth(T.water[0], T.water[1], u);
   out.craft = smooth(T.craft[0], T.craft[1], u);

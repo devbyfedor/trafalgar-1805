@@ -213,8 +213,13 @@ const INTERLUDE_POINTS: InterludePoint[] = [
   ...steps(4).map((t) => ({ phase: "hold" as const, t })),
   ...steps(10).map((t) => ({ phase: "rise" as const, t })),
 ];
-/** Where the page's own frames are timed at rest through the hold, and how many. */
-const HOLD_REST = [0.25, 0.5, 0.75];
+/**
+ * Where the page's own frames are timed at rest through the hold, and how
+ * many: the golden light, the sunset, the lights coming up, and the dusk
+ * whole at the hold's end, where every light flickers and the moon's path
+ * glints (session 30).
+ */
+const HOLD_REST = [0.25, 0.5, 0.75, 1];
 const REST_FRAMES = 90;
 /**
  * The page's whole main thread per frame through the hold (its scripts and

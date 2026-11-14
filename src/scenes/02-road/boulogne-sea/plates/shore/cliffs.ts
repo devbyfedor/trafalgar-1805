@@ -25,12 +25,15 @@ import {
 import {
   browAt,
   buildFace,
+  carveFace,
+  edgeFace,
   type Face,
   faceColourJobs,
   faceE,
   faceInkJobs,
   indexOf,
   lineFace,
+  pointFace,
   shapeFace,
 } from "./face";
 import { edgeAt, northUp, shoreAt } from "./terrain";
@@ -49,31 +52,32 @@ export function cliffsPlate(o: {
   depth: number;
   box: Plate["box"];
 }): Plate {
-  // The face's geometry is built in three jobs, so none is long; any job
+  // The face's geometry is built in six jobs, so none is long; any job
   // that needs it finishes what is left.
   let face: Face | undefined;
   let stage = 0;
+  const stages: ((f: Face) => void)[] = [
+    carveFace,
+    shapeFace,
+    (f) => pointFace(f, 0, 5),
+    (f) => pointFace(f, 5, f.bh.length),
+    lineFace,
+    edgeFace,
+  ];
   const step = () => {
-    face ??= buildFace();
-    if (stage === 0) stage = 1;
-    else if (stage === 1) {
-      shapeFace(face);
-      stage = 2;
-    } else if (stage === 2) {
-      lineFace(face);
-      stage = 3;
-    }
+    if (!face) face = buildFace();
+    else if (stage < stages.length) stages[stage++](face);
     return face;
   };
   const get = () => {
     let f = step();
-    while (stage < 3) f = step();
+    while (stage < stages.length) f = step();
     return f;
   };
   const colour: PlateJob[] = [
-    () => step(),
-    () => step(),
-    () => step(),
+    ...Array.from({ length: stages.length + 1 }, () => () => {
+      step();
+    }),
     ...faceColourJobs(get),
     (c) => paintBlocks(c, "colour"),
     (c) => paintEdgeWorks(c, get(), "colour"),

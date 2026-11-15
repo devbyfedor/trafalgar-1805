@@ -237,10 +237,11 @@ export class ChartGround {
     const t = smoothstep(50, 2200, hl);
     const lo = light.paperLow;
     const hi = light.paperHigh;
-    // The relief's deepest shade (terrain/shaders.ts: shade = gain x lit -
-    // shadow x cast, the paper times 1 + 0.45 shade, tinted toward the
-    // shade's colour).
-    const shade = -Math.min(1, light.shadowStrength);
+    // The relief's deepest shade (terrain/shaders.ts: shade = gain x relief
+    // x lit - shadow x cast, the paper times 1 + 0.45 shade, tinted toward
+    // the shade's colour): a slope turned from the sun lit at its least
+    // (reliefLight's -0.5) and in a cast shadow at once.
+    const shade = -(0.5 * light.reliefGain + light.shadowStrength);
     const k = 1 + 0.45 * shade;
     out[0] = (lo.x + (hi.x - lo.x) * t) * k;
     out[1] = (lo.y + (hi.y - lo.y) * t) * k;

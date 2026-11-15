@@ -695,7 +695,7 @@ export const GAZETTEER: readonly Label[] = [
   {
     text: "Danube",
     role: "water",
-    // East of Donawerth, on the reach from Neuburg toward Ingolstadt, where
+    // East of Donawerth, past Ingolstadt on the reach toward Vohburg, where
     // the river runs nearly east: between Ulm and Donawerth it lay over
     // Donawerth's name, and nearer it lay over that name set east of its
     // town, clear of the march's road (march.ts).

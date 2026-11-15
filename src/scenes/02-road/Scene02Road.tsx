@@ -507,7 +507,15 @@ export function Scene02Road() {
                 return s.labels(p);
               },
               routeLabels: (explain?: boolean) => s.routeLabels(explain),
-              labelClock: (step: number | null) => s.labelClock(step),
+              labelClock: (step: number | null) => {
+                // A check that holds the labels' clock draws its own frames
+                // (labels, gates, sample): the loop is held meanwhile, so
+                // no frame at the page's own scroll comes between two of
+                // its frames and starts the labels afresh there.
+                held = step !== null;
+                drawn = -1;
+                s.labelClock(step);
+              },
               trackLabels: (explain?: boolean) => s.trackLabels(explain),
               hideRouteLabels: (hidden: boolean) => {
                 s.hideRouteLabels(hidden);

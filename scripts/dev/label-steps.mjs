@@ -1,13 +1,16 @@
 // Do the fleets' head labels jerk? (development only) Over fine steps of
 // scene 2's progress, each head label's drawings (window.__road.routeLabels:
-// text, opacity, outline) are matched from one step to the next by their
-// place on screen, and a row is flagged where a drawing's opacity changes
-// by more than JUMP (0.25) in one step, or a drawing that shows at SHOWN
-// (0.2) or more in both steps moves more than SLIDE (6 CSS px) against the
-// chart's own drift (the label's site, its outline's middle, compared with
-// the step before): a label crossfades between places, it never slides or
-// pops. Each p is drawn by the page's own map at that p (window.__road.
-// labels(p) draws the scene there without scrolling).
+// text, opacity, outline, place) are matched from one step to the next by
+// their place (slot), and a row is flagged where a head's opacity (all its
+// drawings) changes by more than JUMP (0.25) in one step, or a drawing that
+// shows at SHOWN (0.2) or more in both steps at the same place moves more
+// than SLIDE (24 CSS px) in a step (its outline's middle): a label
+// crossfades between places, it never pops. The chart's own drift under a
+// step (a few pixels, more in the fast descents) is within SLIDE; a
+// crossfade between two places is two drawings, not a move. Each p is
+// drawn by the page's own map at that p (window.__road.labels(p) draws the
+// scene there without scrolling; the labels' clock held, the page's own
+// loop draws nothing between the steps).
 //   node scripts/dev/label-steps.mjs 0.66 0.84 0.0005
 // Each step is a frame of the labels' own clock (1/60 s).
 // Environment: BASE (default http://127.0.0.1:3000), W, H, S, JUMP, SLIDE.
@@ -20,7 +23,7 @@ const width = Number(process.env.W ?? 1280);
 const height = Number(process.env.H ?? 720);
 const scale = Number(process.env.S ?? 1.5);
 const JUMP = Number(process.env.JUMP ?? 0.25);
-const SLIDE = Number(process.env.SLIDE ?? 6);
+const SLIDE = Number(process.env.SLIDE ?? 24);
 const SHOWN = 0.2;
 const browser = await chromium.launch({ channel: "chromium" });
 const page = await browser.newPage({
@@ -61,15 +64,15 @@ for (let k = 0; ; k++) {
         notes.push(`opacity ${sa.toFixed(2)} -> ${sb.toFixed(2)}`);
       for (const l of b) {
         if (l.opacity < SHOWN) continue;
+        const m = a.find((d) => d.slot === l.slot && d.opacity >= SHOWN);
+        if (!m) continue;
         const [x, y] = mid(l.quad);
-        let near = Infinity;
-        for (const m of a) {
-          if (m.opacity < SHOWN) continue;
-          const [px, py] = mid(m.quad);
-          near = Math.min(near, Math.hypot(x - px, y - py));
-        }
-        if (Number.isFinite(near) && near > SLIDE && near < 120)
-          notes.push(`moved ${near.toFixed(1)} px at ${l.opacity.toFixed(2)}`);
+        const [px, py] = mid(m.quad);
+        const moved = Math.hypot(x - px, y - py);
+        if (moved > SLIDE)
+          notes.push(
+            `place ${l.slot} moved ${moved.toFixed(1)} px at ${l.opacity.toFixed(2)}`,
+          );
       }
       if (notes.length) {
         flagged++;

@@ -15,7 +15,7 @@ Commit after each step.
 **Plan and state:**
 - [x] Step 0: oriented (clean tree at `9f806ef` on `wip/s32-labels-march`; `main` at `e43e191`; ports 3000, 4173, 4174, 4180, 4181 free; Chrome closed).
 - [x] Step 1a: **`npm run check` whole on the quiet machine: 37 of 37 pass** (`.claude/s32d/checks/npm-check-9f806ef.txt`, 13:15–13:25; the tests' server on 4174 checked with `served.mjs` during the run: OK, build `9y7bvDiiM5Sb9wSIfbrLD` of `9f806ef`, source `b600ca182d73`, the source every check of part two measured; `.claude/s32d/checks/served-4174-during-9f806ef.txt`). Lint (the two old infos), typecheck, lettering. **Scene 1's regression passes** (p 0 0.0014 %, p 0.5 0.066 %, p 0.75 0.14 % moved). **The hold at rest: the page's main thread p95 4.3–4.8 ms (limit 8), medians 2.9–3.6, 0 late of 90–95, intervals p95 16.8–16.9** (part two's 8.1–8.7 was the machine: this is session 31's 4.7–5.2). The dive and the rise GPU p95 at worst 8.57 ms (limit 11), CPU 2.3; the lab's flight GPU at worst 8.38, CPU 3.1; both wheel tests without a long task. `perf` (report only): 8 long tasks over 50 ms scrolling into the road (the longest 114 ms), as in sessions 28–31.
-- [ ] Step 1b: the merge into `main` (`git merge --no-ff wip/s32-labels-march`).
+- [x] Step 1b: **merged into `main`** (`4734ff7`, `git merge --no-ff wip/s32-labels-march`; `main` was still at `e43e191`, an ancestor of the branch; no conflicts; the merge's tree is the branch head's `3f3f24f` exactly). Not needed: the hold test on `main`'s build (it passed on the branch).
 - [ ] Step 2: new reference frames from `main`'s build.
 - [ ] Step 3: the branch for the lowest views' gaps.
 - [ ] Step 4: its checks.

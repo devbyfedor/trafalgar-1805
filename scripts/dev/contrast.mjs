@@ -70,10 +70,14 @@ const SETTLE_MS = 1700;
 /** Below this opacity a text or a label is hidden. */
 const HIDDEN = 0.05;
 
-const lin = (c) => {
+const linOf = (c) => {
   const v = c / 255;
   return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
 };
+/** Each 8-bit channel's linear value, computed once (the frames' pixels). */
+const LIN = Float64Array.from({ length: 256 }, (_, c) => linOf(c));
+const lin = (c) =>
+  Number.isInteger(c) && c >= 0 && c < 256 ? LIN[c] : linOf(c);
 const luminance = (r, g, b) =>
   0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
 const contrast = (a, b) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);

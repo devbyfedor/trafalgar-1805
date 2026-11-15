@@ -57,6 +57,7 @@ const WHY = [
   "tracks",
   "block",
   "reads",
+  "tall",
 ];
 
 const browser = await chromium.launch({ channel: "chromium" });

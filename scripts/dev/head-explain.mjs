@@ -65,7 +65,7 @@ for (const point of points) {
     if (who && !who.includes(t.id)) continue;
     if (process.env.ALL !== "1" && t.weight <= 0 && t.why[0] <= 0.01) continue;
     console.log(
-      `    ${t.id} ${t.own ? "own " : "head"} ${t.side} reach ${t.reach} gap ${t.gap}${t.onScreen ? " on screen" : ""}: weight ${t.weight} room ${t.why[0]} [edge ${t.why[1]} ground ${t.why[2]} names ${t.why[3]} labels ${t.why[4]} line ${t.why[5]} ships ${t.why[6]} reads ${t.why[7]}] near ${t.near} inland ${t.inland}`,
+      `    ${t.id} ${t.own ? "own " : "head"} ${t.side} reach ${t.reach} gap ${t.gap}${t.onScreen ? " on screen" : ""}: weight ${t.weight} room ${t.why[0]} [edge ${t.why[1]} ground ${t.why[2]} names ${t.why[3]} labels ${t.why[4]} line ${t.why[5]} ships ${t.why[6]} reads ${t.why[7]} tall ${t.why[8]} (${t.tall})] near ${t.near} inland ${t.inland}`,
     );
   }
 }

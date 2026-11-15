@@ -2,6 +2,25 @@
 
 Live checklist. A later session picks up from here. The briefs are `docs/scene-01-brief.md` and `docs/scene-02-brief.md`; decisions and deviations are in `docs/decisions.md`.
 
+## Session 32, part three (15 November 2026): the check on a quiet machine, the merge, the labels in the lowest views off Cádiz
+
+**The owner's order** (complete; it ends "Конец сообщения"). The machine quiet (his Chrome closed, the laptop on mains, he isn't using it). His answers: (1) `npm run check` again on the quiet machine; 37 of 37: merge. If the Boulogne hold test fails again by under a millisecond, run it at once on `main`'s build: failing there too, it is the machine: merge, record it in `decisions.md`, plan a lighter hold; passing on `main` and not on the branch: no merge, find out why. (2) A label that goes out for a fraction of a second and comes back is a blink: not acceptable; fixed after the merge, a step of its own. Order of work:
+1. `npm run check` on the quiet machine and the merge as in answer 1; a true merge, not a squash.
+2. New reference frames, with my own look-diff script; never `npm run screenshots`.
+3. A branch from the new `main` for the label's gaps in the lowest views off Cádiz: the label must not go out for a short while; the other rules stand (not over ships, contrast by the rules, every move soft). The way is mine. If the rules can't all be kept without a compromise: no merge; the variants as stills in `docs/screenshots` and a question to him.
+4. Checked on the production build with `served.mjs`: the frame-by-frame reader's check, clash and jerks, contrast at the four sizes, `npm run check` whole.
+5. All passed: merged into `main`; the plan in this file; the report with the commands to see `main` on the preview; stop.
+Commit after each step.
+
+**Plan and state:**
+- [x] Step 0: oriented (clean tree at `9f806ef` on `wip/s32-labels-march`; `main` at `e43e191`; ports 3000, 4173, 4174, 4180, 4181 free; Chrome closed).
+- [x] Step 1a: **`npm run check` whole on the quiet machine: 37 of 37 pass** (`.claude/s32d/checks/npm-check-9f806ef.txt`, 13:15–13:25; the tests' server on 4174 checked with `served.mjs` during the run: OK, build `9y7bvDiiM5Sb9wSIfbrLD` of `9f806ef`, source `b600ca182d73`, the source every check of part two measured; `.claude/s32d/checks/served-4174-during-9f806ef.txt`). Lint (the two old infos), typecheck, lettering. **Scene 1's regression passes** (p 0 0.0014 %, p 0.5 0.066 %, p 0.75 0.14 % moved). **The hold at rest: the page's main thread p95 4.3–4.8 ms (limit 8), medians 2.9–3.6, 0 late of 90–95, intervals p95 16.8–16.9** (part two's 8.1–8.7 was the machine: this is session 31's 4.7–5.2). The dive and the rise GPU p95 at worst 8.57 ms (limit 11), CPU 2.3; the lab's flight GPU at worst 8.38, CPU 3.1; both wheel tests without a long task. `perf` (report only): 8 long tasks over 50 ms scrolling into the road (the longest 114 ms), as in sessions 28–31.
+- [ ] Step 1b: the merge into `main` (`git merge --no-ff wip/s32-labels-march`).
+- [ ] Step 2: new reference frames from `main`'s build.
+- [ ] Step 3: the branch for the lowest views' gaps.
+- [ ] Step 4: its checks.
+- [ ] Step 5: merged; the plan; the report.
+
 ## Session 32, part two (15 November 2026): the review, the checks, the merge
 
 **The owner's order** (complete; it ends "Конец сообщения"). This part: the review, the full checks and the merge into `main`; no new features; a problem a check finds is fixed on this branch and measured again. His answers: (1) about p 0.73 the ships stay (half a screen is more than the figures' threshold); check only that the label gives way to them by the same soft change; (2) 23, then 27 is fine; the dates' pace untouched; the skipped 29 recorded in `decisions.md` (it is). Order of work:

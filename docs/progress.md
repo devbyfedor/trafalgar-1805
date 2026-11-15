@@ -2,6 +2,31 @@
 
 Live checklist. A later session picks up from here. The briefs are `docs/scene-01-brief.md` and `docs/scene-02-brief.md`; decisions and deviations are in `docs/decisions.md`.
 
+## Session 32, part two (15 November 2026): the review, the checks, the merge
+
+**The owner's order** (complete; it ends "Конец сообщения"). This part: the review, the full checks and the merge into `main`; no new features; a problem a check finds is fixed on this branch and measured again. His answers: (1) about p 0.73 the ships stay (half a screen is more than the figures' threshold); check only that the label gives way to them by the same soft change; (2) 23, then 27 is fine; the dates' pace untouched; the skipped 29 recorded in `decisions.md` (it is). Order of work:
+1. Finish the stopped code review of the labels and the march: one pass, at most one helper in the background; fix what it finds.
+2. About p 0.705: if the combined fleet's label lies on the land at a grazing angle a few pixels tall, it can't be read: find it a readable place, or show the ships there by the rule "a label or its ships".
+3. Rebuild the production build and check it with `served.mjs`; every measurement after on it.
+4. The full contrast every 0.01 at the four sizes (faster if it can be made so without losing accuracy), in the background, waited for without polling; meanwhile the frame comparison with the reference where nothing changed.
+5. The frame budget off Cádiz and in the night by Ulm, on a quiet machine only (contrast done, no helper).
+6. `npm run check` whole, scene 1's regression in it.
+7. All passed: merge into `main`, the plan below updated, the report with the commands to see `main` on the preview, stop. Any check failed or not finished: no merge; commit, say what is left, stop.
+Never `npm run screenshots`. Commit after each step.
+
+**Plan and state** (branch `wip/s32-labels-march`; `main` untouched at `e43e191`):
+- [x] Step 0: oriented (clean tree at `3c12736`).
+- [x] Step 1: the review (workflow `s32-code-review`, run `wf_82727140-2d3`, one read-only reviewer at `3c12736`: 10 findings). Fixed in `1cc03d6` (readableChanges' lettered count; the land's deepest shade in `ground.ts`; the page's loop held while a check holds the labels' clock; `label-steps.mjs` by place; the Danube's comment) and `6834d38` (ships under a held label: `CLEAR_TAKE`/`CLEAR_KEEP`; `explain()` stale places; a drawing's old coordinates); left and recorded: the night's figures reuse (no data triggers it), `head-ground`'s old median. `decisions.md`, "session 32, part two".
+- [x] Step 2 (`6834d38`): the label at 0.705 stood 2.7–3.2 px tall on the land beyond the bay: a judged label now stands only where it shows 0.4–0.5 of its height facing the eye (`READ_TALL`), two places farther toward the eye. **Found on the way** by the new `scripts/dev/fleet-scroll.mjs` (the owner's rule frame by frame on a reader's scroll; `fleet-frame.mjs` settles each p and missed it): on a scroll the combined fleet showed neither label nor ships for up to 1.5 s at 300 px/s in the descent and the relay's low views (part one's code too). Fixed: a judged label reads every place every frame (its places keep their time with room), and returns where its going-out drawing's place has room again. Left (dev, 300 px/s): 0.08 s and 0.25 s at the descent's bottom, 0.67 s in the relay's lowest view, where no place has room; the British fleet at the frame's edge as recorded. The hand-over to the ships at 0.73: soft both ways (owner's answer 1). Numbers in `decisions.md`.
+- [ ] Step 3: production build, `served.mjs`.
+- [ ] Step 4: contrast at the four sizes (background); look-diff where nothing changed.
+- [ ] Step 5: frame budget (`road-bench.mjs`), quiet machine.
+- [ ] Step 6: `npm run check`.
+- [ ] Step 7: merge or not; the report.
+
+**Not yet measured on the production build:** everything of steps 1–2 (dev server only); the per-frame cost of reading every place (step 5 measures it).
+
+
 ## Session 32, part one (14 November 2026): the fleets' labels: allocation, flicker, figures
 
 **The owner's order** (complete; it ends "Конец сообщения"). Session 32 is split in two, each part one limit window. **This part: the fixes in the fleets' labels only;** the code review, the full checks and the merge into `main` are part two's, not this one's. His answers: (1) the night signals are shown as the record has them: a short chain between the closing fleets (into the relay's plan); (2) no flicker of a label: it is a jerk, and there must be none; a label passes from place to place smoothly, without flicker: a minimum time at a place, hysteresis, a soft change, for every fleet's label; (3) the figures that can't be read are fixed now: each figure holds long enough to be read; an intermediate value that still flashes is skipped and recorded in `decisions.md`. Order of work:

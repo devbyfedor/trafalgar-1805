@@ -9,6 +9,7 @@ import {
 } from "three";
 import type { ChartLayer, FrameInfo } from "../engine/Chart";
 import type { Glyphs } from "../glyphs/Glyphs";
+import { type ScreenText, YIELD_PX } from "../lettering/Lettering";
 import { GLSL_LINES } from "../shaders/common";
 import type { ShipAnatomy } from "./anatomy";
 import { effectQuad, GLSL_FX, InstanceData, windToward } from "./common";
@@ -338,6 +339,12 @@ export class Smoke implements ChartLayer {
   private readonly at = { x: 0, y: 0, front: false };
   /** Whether the mesh is shown (set only as the count crosses zero). */
   private shown = false;
+  /** A puff's lobes' outline, units from its foot (puffExtent). */
+  private readonly extent = new Float64Array(4);
+  /** The band on screen the puffs keep within (setBand), device px. */
+  private readonly band = new Float64Array(2);
+  /** The lettering the puffs give way to (setKeepClear). */
+  private keepClear: readonly ScreenText[] = [];
 
   /**
    * `anatomy` from the glyphs' atlas and types; `capacity` puffs at most a
@@ -397,6 +404,27 @@ export class Smoke implements ChartLayer {
   setWind(fromDeg: number, strength: number): void {
     windToward(fromDeg, this.toward);
     this.strength = Math.min(1, Math.max(0, strength));
+  }
+
+  /**
+   * This frame's band on screen (device px from the viewport's centre, y
+   * up) that every puff keeps within, its lobes' outline and all: a puff
+   * taller than the band is shrunk to it, one reaching past an edge is
+   * moved back in. `lo >= hi`: no band.
+   */
+  setBand(lo: number, hi: number): void {
+    this.band[0] = lo;
+    this.band[1] = hi;
+  }
+
+  /**
+   * The lettering on screen the smoke gives way to (names, labels; CSS
+   * px, as Lettering.screen and HeadLabels.screen give it): a puff goes as
+   * its outline comes within YIELD_PX of one, as a minor name gives way
+   * to a higher one.
+   */
+  setKeepClear(texts: readonly ScreenText[]): void {
+    this.keepClear = texts;
   }
 
   /** Starts this frame's puffs: the scene adds them after it. */
@@ -518,31 +546,67 @@ export class Smoke implements ChartLayer {
       const q = i * VALUES;
       const drift = v[q + 4];
       const px = footX + (v[q] * narrow * dir + v[q + 2] + wx * drift) * h;
-      const py = footY + (v[q + 1] + v[q + 3] + wy * drift) * h;
+      let py = footY + (v[q + 1] + v[q + 3] + wy * drift) * h;
+      let unit = v[q + 5] * h;
+      const age = v[q + 6];
+      const seed = v[q + 7];
+      const lie = v[q + 9];
+      const swx = wx * this.strength;
+      const swy = wy * this.strength;
+      // Its lobes' outline as drawn (puffExtent), units from its foot.
+      const e = this.extent;
+      puffExtent(age, seed, lie, swx, swy, e);
+      const pad = (1.5 * frame.dpr) / Math.max(unit, 1e-3);
+      // Kept within the scene's band on screen (setBand): shrunk to it if
+      // taller, then moved up or down into it.
+      const bandLo = this.band[0];
+      const bandHi = this.band[1];
+      if (bandHi > bandLo) {
+        const tall = (e[3] - e[2] + 2 * pad) * unit;
+        if (tall > bandHi - bandLo) unit *= (bandHi - bandLo) / tall;
+        const bottom = py + (e[2] - pad) * unit;
+        const top = py + (e[3] + pad) * unit;
+        if (bottom < bandLo) py += bandLo - bottom;
+        else if (top > bandHi) py -= top - bandHi;
+      }
       const hz = dist / visibility;
       // Smoke hangs in the air, not on her: whole while her glyph still
       // shows, going only as she goes out (SHIP_GONE). Faded with her
       // drawing, a puff at a ship striking or leaving the story read as a
       // grey ghost of itself, its body and lines dimmed alike.
       const ship = Math.min(1, d.alpha[m] / SHIP_GONE);
-      const alpha =
-        ship * ship * (3 - 2 * ship) * v[q + 8] * Math.exp(-hz * hz);
+      let alpha = ship * ship * (3 - 2 * ship) * v[q + 8] * Math.exp(-hz * hz);
+      // It gives way to the lettering as a name gives way to a higher one
+      // (YIELD_PX): gone within 4 CSS px of a name's or label's outline,
+      // whole from 10.
+      if (alpha > 0.002 && this.keepClear.length) {
+        const dpr = frame.dpr;
+        const x0 = (px + (e[0] - pad) * unit + halfW) / dpr;
+        const x1 = (px + (e[1] + pad) * unit + halfW) / dpr;
+        const y0 = (halfH - (py + (e[3] + pad) * unit)) / dpr;
+        const y1 = (halfH - (py + (e[2] - pad) * unit)) / dpr;
+        alpha *= clearOfText(this.keepClear, x0, y0, x1, y1);
+      }
       if (!(alpha > 0.002)) continue;
       const r = k * stride;
       rows[r] = px;
       rows[r + 1] = py;
       rows[r + 2] = 0;
-      rows[r + 3] = v[q + 5] * h;
-      rows[r + 4] = v[q + 6];
-      rows[r + 5] = v[q + 7];
+      rows[r + 3] = unit;
+      rows[r + 4] = age;
+      rows[r + 5] = seed;
       rows[r + 6] = alpha;
-      rows[r + 7] = v[q + 9];
-      rows[r + 8] = wx * this.strength;
-      rows[r + 9] = wy * this.strength;
+      rows[r + 7] = lie;
+      rows[r + 8] = swx;
+      rows[r + 9] = swy;
       rows[r + 10] = 0;
       rows[r + 11] = 0;
-      // Higher on screen is farther: drawn first.
-      this.depth[k] = py;
+      // Higher on screen is farther: drawn first. By where the scene set it
+      // at her (her foot and its shift), not where it has drifted or been
+      // moved into the band: puffs keep their order as they drift, so two
+      // that overlap never trade places within a frame (a nearer billow's
+      // contour would jump to the other).
+      this.depth[k] = footY + (v[q + 1] + v[q + 3]) * h;
       k++;
     }
 
@@ -593,6 +657,37 @@ export class Smoke implements ChartLayer {
     this.data.upload(k);
     geometry.instanceCount = k;
     this.drawnCount = k;
+  }
+
+  /**
+   * Development and checks: each puff drawn in the last frame, the box of
+   * its lobes as drawn (puffExtent) with its contour, CSS px from the
+   * canvas's top left, and its opacity: x0, y0, x1, y1, opacity, five
+   * numbers a puff.
+   */
+  bounds(dpr: number, width: number, height: number): number[] {
+    const out: number[] = [];
+    const rows = this.data.array;
+    const e = this.extent;
+    for (let i = 0; i < this.drawnCount; i++) {
+      const r = i * this.stride;
+      const unit = rows[r + 3];
+      const age = rows[r + 4];
+      if (!(age > 0 && age < 1) || !(unit >= 0.05)) continue;
+      puffExtent(age, rows[r + 5], rows[r + 7], rows[r + 8], rows[r + 9], e);
+      // The contour's half width and its antialiasing round the lobes.
+      const pad = (1.5 * dpr) / unit;
+      const x = rows[r];
+      const y = rows[r + 1];
+      out.push(
+        (x + (e[0] - pad) * unit + 0.5 * width) / dpr,
+        (0.5 * height - (y + (e[3] + pad) * unit)) / dpr,
+        (x + (e[1] + pad) * unit + 0.5 * width) / dpr,
+        (0.5 * height - (y + (e[2] - pad) * unit)) / dpr,
+        rows[r + 6],
+      );
+    }
+    return out;
   }
 
   /**
@@ -652,4 +747,138 @@ export class Smoke implements ChartLayer {
     this.mesh.geometry.dispose();
     this.mesh.material.dispose();
   }
+}
+
+function smoothstep(e0: number, e1: number, x: number): number {
+  const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
+  return t * t * (3 - 2 * t);
+}
+
+/** FRAGMENT's LOBE table: each lobe's centre x, y and radius, units. */
+const LOBES = [
+  0.0, 0.3, 0.3, -0.4, 0.26, 0.25, 0.42, 0.24, 0.24, -0.66, 0.19, 0.17, -0.19,
+  0.58, 0.27, 0.25, 0.6, 0.25, 0.04, 0.86, 0.19,
+];
+
+const hashFloat = new Float32Array(1);
+const hashBits = new Uint32Array(hashFloat.buffer);
+
+/** GLSL_FX's fxRand on the CPU, bit for bit (a seed as the float32 it is drawn with). */
+function fxRand(seed: number, k: number): number {
+  hashFloat[0] = seed;
+  let n =
+    (Math.imul(hashBits[0], 747796405) + Math.imul(k, 2891336453 | 0)) >>> 0;
+  n = (n ^ 61 ^ (n >>> 16)) >>> 0;
+  n = Math.imul(n, 9) >>> 0;
+  n = (n ^ (n >>> 4)) >>> 0;
+  n = Math.imul(n, 0x27d4eb2d) >>> 0;
+  n = (n ^ (n >>> 15)) >>> 0;
+  return (n & 0xffff) / 65536;
+}
+
+/**
+ * A puff's lobes as FRAGMENT places them at `age` (with VERTEX's lean):
+ * their outline's box in units from the puff's foot, x right and y up,
+ * `out` = [x0, x1, y0, y1]. `windX`, `windY`: the wind on screen times its
+ * strength (iWind). Lets the layer keep a puff where the scene means it to
+ * be, and the checks measure it as drawn; the shader's own quad leaves
+ * room round it.
+ */
+export function puffExtent(
+  age: number,
+  seed: number,
+  lie: number,
+  windX: number,
+  windY: number,
+  out: Float64Array,
+): void {
+  let wideX = 1 + 0.6 * lie;
+  const wideY = 1 - 0.3 * lie;
+  if (fxRand(seed, 99) < 0.5) wideX = -wideX;
+  const grow = 1 + 0.5 * age;
+  const spread = 1 + 0.4 * age;
+  const settle = smoothstep(0.45, 1, age);
+  const stretch = 1 + 0.4 * (Math.abs(wideX) - 1);
+  const squashX = (1 + 0.55 * settle) * stretch;
+  const squashY = (1 - 0.3 * settle) * wideY;
+  let x0 = Number.POSITIVE_INFINITY;
+  let x1 = Number.NEGATIVE_INFINITY;
+  let y0 = Number.POSITIVE_INFINITY;
+  let y1 = Number.NEGATIVE_INFINITY;
+  for (let k = 0; k < 7; k++) {
+    const t = Math.min(1, Math.max(0, (age - 0.028 * k) / 0.2));
+    if (t <= 0) continue;
+    const swell = 1 - (1 - t) * (1 - t) * (1 - t);
+    let cx = (LOBES[3 * k] + (fxRand(seed, 3 * k) - 0.5) * 0.16) * wideX;
+    let cy = LOBES[3 * k + 1] + (fxRand(seed, 3 * k + 1) - 0.5) * 0.12;
+    let r =
+      LOBES[3 * k + 2] *
+      (0.85 + 0.3 * fxRand(seed, 3 * k + 2)) *
+      (0.15 + 0.85 * swell) *
+      grow;
+    const f = 0.35 + 0.65 * swell;
+    cx = cx * spread * f;
+    cy = 0.22 * (1 - f) + cy * (0.5 + 0.5 * spread) * f;
+    cy *= (1 - 0.45 * settle) * wideY;
+    const lean = cy * 0.4 * age;
+    cx += windX * lean;
+    cy += windY * lean;
+    const p1 = 6.2832 * fxRand(seed, 40 + k);
+    const p2 = 6.2832 * fxRand(seed, 50 + k);
+    cx += 0.03 * Math.sin(5 * age + p1);
+    cy += 0.03 * Math.cos(3.7 * age + p2);
+    r *= 1 + 0.04 * Math.sin(2.9 * age + p2);
+    const ex = r * squashX;
+    const ey = r * squashY;
+    if (cx - ex < x0) x0 = cx - ex;
+    if (cx + ex > x1) x1 = cx + ex;
+    if (cy - ey < y0) y0 = cy - ey;
+    if (cy + ey > y1) y1 = cy + ey;
+  }
+  if (!(x1 > x0)) {
+    x0 = 0;
+    x1 = 0;
+    y0 = 0;
+    y1 = 0;
+  }
+  // VERTEX's lean: the whole puff downwind and a little up as it ages.
+  const leanX = windX * 0.55 * age;
+  const leanY = windY * 0.55 * age + 0.1 * age;
+  out[0] = x0 + leanX;
+  out[1] = x1 + leanX;
+  out[2] = y0 + leanY;
+  out[3] = y1 + leanY;
+}
+
+/**
+ * How far a box (CSS px) keeps clear of the lettering: the product, over
+ * every outline, of 1 - weight × (1 - smooth(YIELD_PX, gap)), the gap the
+ * distance between the box and the outline's own box (0 where they meet).
+ */
+function clearOfText(
+  texts: readonly ScreenText[],
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+): number {
+  let clear = 1;
+  for (const t of texts) {
+    for (let i = 0; i < t.count; i++) {
+      const w = t.weights[i];
+      if (!(w > 0.01)) continue;
+      const q = t.quads[i];
+      const qx0 = Math.min(q[0], q[2], q[4], q[6]);
+      const qx1 = Math.max(q[0], q[2], q[4], q[6]);
+      const qy0 = Math.min(q[1], q[3], q[5], q[7]);
+      const qy1 = Math.max(q[1], q[3], q[5], q[7]);
+      const gx = Math.max(qx0 - x1, x0 - qx1, 0);
+      const gy = Math.max(qy0 - y1, y0 - qy1, 0);
+      const gap = Math.sqrt(gx * gx + gy * gy);
+      if (gap >= YIELD_PX[1]) continue;
+      clear *= 1 - w * (1 - smoothstep(YIELD_PX[0], YIELD_PX[1], gap));
+      if (clear <= 0) return 0;
+    }
+  }
+  return clear;
 }

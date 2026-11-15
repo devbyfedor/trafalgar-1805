@@ -83,6 +83,8 @@ const PORT_FOOT = 0.25;
 const DRIFT = 4.5;
 /** The lines' feet apart on screen, glyph heights, if not measured. */
 const GAP = 1.6;
+/** A ship's mastheads above her glyph's foot, glyph heights (atlas: 1 - FOOT). */
+const MASTHEAD = 0.92;
 
 export class BattleSmoke implements ChartLayer {
   private p = 0;
@@ -119,7 +121,19 @@ export class BattleSmoke implements ChartLayer {
     const p = this.p;
     if (!(p > FIRST_GUN_P && p < SMOKE_END_P)) return;
     this.measure(frame);
-    const gap = this.level[0] > this.level[1] ? this.gapOf() : GAP;
+    const both = this.level[0] > this.level[1] && this.level[2] > 0.5;
+    const gap = both ? this.gapOf() : GAP;
+    // The smoke keeps to the lines' own band on screen, from the lower
+    // line's feet to the upper line's mastheads: the lines' labels stand
+    // above and below it, and the smoke never comes over them (spreading
+    // and drifting toward the eye, the old smoke had come down over the
+    // lower line's label as the camera rose).
+    if (both)
+      this.smoke.setBand(
+        this.level[1],
+        this.level[0] + MASTHEAD * this.level[2],
+      );
+    else this.smoke.setBand(0, 0);
     this.line(this.upper, 0, -gap);
     this.line(this.lower, 1, gap);
   }

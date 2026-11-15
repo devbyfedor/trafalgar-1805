@@ -656,6 +656,17 @@ export class Tracks implements ChartLayer {
   }
 
   /** Development: each mark's text and what its opacity was made of in the last frame (markWhy). */
+  /**
+   * Development and checks: each mark's outline on screen in the last frame
+   * (CSS px, four corners) and how much of it shows.
+   */
+  screenMarks(): { quad: number[]; shown: number }[] {
+    return this.markQuads.map((q, i) => ({
+      quad: Array.from(q),
+      shown: this.markShown[i],
+    }));
+  }
+
   explain(): { text: string; why: number[] }[] {
     const texts = this.labels.snapshot();
     return this.marks.map((m, i) => ({

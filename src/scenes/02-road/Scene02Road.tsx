@@ -486,6 +486,10 @@ export function Scene02Road() {
                 drawn = -1;
                 return s.clash(p, ink);
               },
+              smoke: (p: number) => {
+                drawn = -1;
+                return s.smoke(p);
+              },
               glyphNames: () => s.glyphNames(),
               motion: (p: number) => {
                 drawn = -1;
@@ -704,6 +708,11 @@ declare global {
         p: number,
         ink?: number,
       ) => import("@/components/chart/glyphs/clash").ClashResult;
+      /**
+       * Development and checks: the smoke's puffs at p and what they keep
+       * clear of (RoadStage.smoke).
+       */
+      smoke: (p: number) => import("./stage").SmokeCheck;
       /** Development: each glyph layer's ships by name, in mark order. */
       glyphNames: () => string[][];
       /** Development: each glyph's drawing and intended place at p (RoadStage.motion). */

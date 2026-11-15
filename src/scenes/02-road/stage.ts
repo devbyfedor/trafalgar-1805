@@ -129,6 +129,14 @@ export interface RoadStage {
   /** Development: draws the scene at p and probes its water (Chart.probeWaterLift). */
   waterLift(p: number): WaterLift;
   /**
+   * Development and checks: draws the scene at p and returns the smoke's
+   * puffs as drawn (Smoke.bounds: CSS px boxes and opacity), the coast's
+   * distance under each (km, the least of its middle and corners; positive
+   * at sea), and the outlines of what the smoke must keep clear of: the
+   * names and the caption's card, the fleets' labels, the tracks' dates.
+   */
+  smoke(p: number): SmokeCheck;
+  /**
    * Development and tests: draws the scene at p and finds every glyph whose
    * ink touches land or another glyph's (Chart.probeClash): the fleets are
    * layer 0, the squadrons layer 1, Boulogne's flotilla layer 2. `ink`: the
@@ -271,6 +279,19 @@ function idleSlice(): Promise<void> {
       requestIdleCallback(() => resolve(), { timeout: 200 });
     else setTimeout(resolve, 16);
   });
+}
+
+/** What `RoadStage.smoke` returns. */
+export interface SmokeCheck {
+  /** The canvas, CSS px. */
+  width: number;
+  height: number;
+  /** x0, y0, x1, y1, opacity: five numbers a puff. */
+  puffs: number[];
+  /** The coast's distance under each puff, km. */
+  coast: number[];
+  /** Each outline: what it is, its four corners (CSS px) and how much it shows. */
+  text: { kind: string; quad: number[]; weight: number }[];
 }
 
 export interface RoadStageOptions {
@@ -432,6 +453,8 @@ export async function createRoadStage(
     const battle = new BattleSmoke(smoke, upper, lower);
     director.setSmoke(battle);
     chart.add(battle);
+    // It gives way to the names, the caption's card and the labels.
+    smoke.setKeepClear([lettering.screen, heads.screen]);
     chart.add(smoke, smoke.mesh);
     heads.setCoast(coast);
     // Every label keeps clear of every ship drawn, whosever she is.
@@ -590,6 +613,61 @@ export async function createRoadStage(
           return (a + b) / 2;
         }
         return Number.NaN;
+      },
+      smoke(p) {
+        sampled = Number.NaN;
+        director.apply(p);
+        keepCard(p);
+        chart.frame(performance.now() / 1000);
+        const dpr = chart.renderer.getPixelRatio();
+        const w = chart.renderer.domElement.width;
+        const h = chart.renderer.domElement.height;
+        const puffs = smoke.bounds(dpr, w, h);
+        const camera = chart.camera;
+        const v = new Vector3();
+        const seaAt = (cssX: number, cssY: number): number => {
+          v.set((2 * cssX * dpr) / w - 1, 1 - (2 * cssY * dpr) / h, 0.5);
+          v.unproject(camera).sub(camera.position);
+          if (v.z >= 0) return Number.NaN;
+          const t = -camera.position.z / v.z;
+          return coast.distance(
+            camera.position.x + v.x * t,
+            camera.position.y + v.y * t,
+          );
+        };
+        const coastUnder: number[] = [];
+        for (let i = 0; i < puffs.length; i += 5) {
+          const [x0, y0, x1, y1] = puffs.slice(i, i + 4);
+          coastUnder.push(
+            Math.min(
+              seaAt((x0 + x1) / 2, (y0 + y1) / 2),
+              seaAt(x0, y0),
+              seaAt(x1, y0),
+              seaAt(x1, y1),
+              seaAt(x0, y1),
+            ),
+          );
+        }
+        const text: SmokeCheck["text"] = [];
+        for (const [kind, screen] of [
+          ["name", lettering.screen],
+          ["label", heads.screen],
+        ] as const)
+          for (let i = 0; i < screen.count; i++)
+            text.push({
+              kind,
+              quad: Array.from(screen.quads[i]),
+              weight: screen.weights[i],
+            });
+        for (const m of tracks.screenMarks())
+          text.push({ kind: "date", quad: m.quad, weight: m.shown });
+        return {
+          width: w / dpr,
+          height: h / dpr,
+          puffs,
+          coast: coastUnder,
+          text,
+        };
       },
       waterLift(p) {
         sampled = Number.NaN;

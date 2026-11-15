@@ -147,6 +147,22 @@ function handOver(fine: number, below: number, sat: number): number {
   return fine + (below - fine) * smoothstep(0.85 * sat, sat, Math.abs(fine));
 }
 
+/**
+ * A texel's 16-bit code in a channel (its high byte, then its low). A
+ * function of the module, not a closure: read every frame, for every label
+ * and ship, it allocates nothing.
+ */
+function code16(
+  b: Uint8Array,
+  cols: number,
+  cx: number,
+  cy: number,
+  channel: number,
+): number {
+  const o = (cy * cols + cx) * 4 + channel;
+  return (b[o] << 8) | b[o + 1];
+}
+
 /** A bilinear read of a tile's distance (channel 0) or height (channel 2). */
 function read(t: CoastTile, x: number, y: number, channel: 0 | 2): number {
   const fx = ((x - t.x0) / t.width) * t.cols - 0.5;
@@ -160,14 +176,10 @@ function read(t: CoastTile, x: number, y: number, channel: 0 | 2): number {
   const y0 = Math.min(t.rows - 1, Math.max(0, iy));
   const y1 = Math.min(t.rows - 1, Math.max(0, iy + 1));
   const b = t.bytes;
-  const at = (cx: number, cy: number) => {
-    const o = (cy * t.cols + cx) * 4 + channel;
-    return (b[o] << 8) | b[o + 1];
-  };
-  const c00 = at(x0, y0);
-  const c10 = at(x1, y0);
-  const c01 = at(x0, y1);
-  const c11 = at(x1, y1);
+  const c00 = code16(b, t.cols, x0, y0, channel);
+  const c10 = code16(b, t.cols, x1, y0, channel);
+  const c01 = code16(b, t.cols, x0, y1, channel);
+  const c11 = code16(b, t.cols, x1, y1, channel);
   const code =
     (c00 + (c10 - c00) * tx) * (1 - ty) + (c01 + (c11 - c01) * tx) * ty;
   const u = code / 65535;

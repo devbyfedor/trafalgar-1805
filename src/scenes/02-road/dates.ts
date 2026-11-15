@@ -1,7 +1,7 @@
 /**
  * Dates in the scene: days since midnight on 1 January 1805 (ship's time),
  * fractional for the hour. 1805 was not a leap year. Civil days throughout
- * (docs/history-notes.md, "Scene 2", "Dates and conventions"): a log's
+ * (docs/history-notes.md, "Scene 2: the road to Trafalgar", "Dates and conventions"): a log's
  * nautical day has already been turned into the civil one.
  */
 

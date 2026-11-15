@@ -31,8 +31,9 @@ import type { LabDemo, LabDemoContext } from "./index";
  *
  * The waypoints are the research's (docs/research/scene-02/routes-draft.json,
  * "nelson-outward" and "villeneuve-crossing"; the march from
- * history-scene-02-merged.md, "The turn east and Ulm"); the scene's own
- * route data will hold them.
+ * docs/history-notes.md, "Scene 2: the road to Trafalgar", "The turn east and Ulm",
+ * as the lab first drew it: the scene's march, src/scenes/02-road/march.ts,
+ * follows "Routes on the chart", "The army's march").
  */
 
 /** Nelson from Cape St Vincent to Barbados, 11 May to 4 June 1805: Faden's daily marks. */

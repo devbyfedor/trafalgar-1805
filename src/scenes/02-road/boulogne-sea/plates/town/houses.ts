@@ -68,7 +68,7 @@ export const ROOFS = {
 export const WINDOW = "#2c272c";
 export const GLINT = "#ffe6a8";
 
-/** The sun at 18:33 on 10 August 1805: azimuth 286.2, 7° up (history-notes.md, "The painting's light"); a unit vector (east, north, up) toward it. */
+/** The sun at 18:33 on 10 August 1805: azimuth 286.2, 7° up (history-notes.md, "Boulogne from the sea", "The evening and its light"); a unit vector (east, north, up) toward it. */
 const SUN: readonly [number, number, number] = (() => {
   const az = (SUN_AZ * Math.PI) / 180;
   const alt = (SUN_ALT * Math.PI) / 180;

@@ -130,11 +130,6 @@ const renderer = await page.evaluate(() => {
 });
 console.log(renderer);
 
-if (real) await realFrames();
-else await chartFrames();
-if (errors.length) console.log(errors.join("\n"));
-await browser.close();
-
 // ------------------------------------------------------- the chart's own
 
 async function chartFrames() {
@@ -383,7 +378,9 @@ function frameRecorder() {
 }
 
 /** Starts the recorder; whether the chart's GPU time can be read. */
-const startFrames = () => page.evaluate(() => window.__frames.start());
+function startFrames() {
+  return page.evaluate(() => window.__frames.start());
+}
 
 /** Stops it and reads the frames, once the GPU's last times are in. */
 async function stopFrames() {
@@ -567,3 +564,10 @@ async function realFrames() {
   }
   if (process.env.JSON) await writeFile(process.env.JSON, JSON.stringify(json));
 }
+
+// Run last: the helpers above are module-level (constants declared after a
+// top-level await are not yet initialised while it waits).
+if (real) await realFrames();
+else await chartFrames();
+if (errors.length) console.log(errors.join("\n"));
+await browser.close();

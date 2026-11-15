@@ -8,8 +8,8 @@
 // more (sample), its label's opacity (routeLabels) and its best place's
 // room and what limits it (routeLabels(true): on the frame, clean ground,
 // clear of the names and the card, of the labels before it, of the tracks,
-// of its own block), and how far its ships' middle lies into the haze
-// (the label is gone by 0.55 of the haze's visibility) and how steeply the
+// of its own block, how well its ink reads on the ground there), and how
+// far its ships' middle lies into the haze and how steeply the
 // view looks down on it. A row is flagged (!) where a side has ships in the
 // frame, its label under half and none drawn. Development only.
 //   node scripts/dev/fleet-frame.mjs <p> [<p> ...]
@@ -48,7 +48,17 @@ const SMALL = new Set([
   "Observateur",
 ]);
 const BRITISH_COUNT = 34;
-const WHY = ["room", "frame", "ground", "names", "labels", "tracks", "block"];
+const WHY = [
+  "room",
+  "frame",
+  "ground",
+  "names",
+  "labels",
+  "tracks",
+  "block",
+  "reads",
+  "tall",
+];
 
 const browser = await chromium.launch({ channel: "chromium" });
 const page = await browser.newPage({
@@ -61,6 +71,10 @@ await page.waitForFunction(
   null,
   { timeout: 180_000 },
 );
+// The labels as they settle at each p (their clock makes every move at
+// once: HeadLabels.setClock), not partway through a move begun on the
+// sample before.
+await page.evaluate(() => window.__road.labelClock?.(Number.POSITIVE_INFINITY));
 const names = (await page.evaluate(() => window.__road.glyphNames()))[0];
 
 function project(cam, x, y) {
@@ -128,7 +142,7 @@ for (const p of ps) {
           .join(", ") || "none"
       : "no place";
     // Where the label stands (its ships' middle): how far into the haze
-    // (HeadLabels: gone by 0.55 of the haze's visibility) and how steeply
+    // (HeadLabels judges each place by its own ground) and how steeply
     // the view looks down on it (gone under 0.1).
     const e = row.cam.eye;
     const dist = Math.hypot(cx / present - e[0], cy / present - e[1], e[2]);

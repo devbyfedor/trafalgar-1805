@@ -1,9 +1,17 @@
 import { type Object3D, Vector3 } from "three";
 import type { BatchedText, Text } from "troika-three-text";
 import type { ChartLayer, FrameInfo } from "../engine/Chart";
+import type { GlyphDrawn } from "../glyphs/Glyphs";
 import type { CoastField } from "../terrain/coast";
 import type { TerrainField } from "../terrain/field";
 import { FONT_FILES, fontUrl } from "./fonts";
+import {
+  ChartGround,
+  contrast,
+  luminance,
+  type Rgb,
+  waterlineInk,
+} from "./ground";
 import { quadsApart, type ScreenText, YIELD_PX } from "./Lettering";
 import {
   chartText,
@@ -52,6 +60,14 @@ export interface HeadSpec {
   counts: readonly string[];
   /** The sides it tries about its fleet, in order. */
   slots: readonly HeadSlot[];
+  /**
+   * Each place judged by the chart's colour under it and kept clear of
+   * every ship drawn, with the places measured on screen tried last (the
+   * October fleets, off Cádiz, in the night and at the dawn: session 32).
+   * Without it a label keeps the rule the chase was approved with: clean
+   * ground judged face on, and gone at HAZE_CLEAR of the haze.
+   */
+  judged?: boolean;
 }
 
 /** A label's state in the last frame, for development and the contrast check. */
@@ -66,6 +82,11 @@ export interface HeadLabelState {
   /** Its inks, 0..255: on the sea, and on the land. */
   inkPale: [number, number, number];
   inkDark: [number, number, number];
+  /** Development: the place it stands at (an index into its head's places), and the share of the label its figure has. */
+  slot: number;
+  share: number;
+  /** Development: its share of the label by the labels' clock (before the label's presence). */
+  w: number;
 }
 
 /** The most points of its line a head is given (HeadLabels.set). */
@@ -76,6 +97,55 @@ const EM_MIN_PX = 12;
 const EM_MAX_PX = 19;
 /** From the fleet to a place's nearest edge, ems: close by, and farther out. */
 const GAPS_EM = [0.7, 2.2, 3.7];
+/**
+ * Farther out, tried last and only about a fleet's head (a meeting line's
+ * label keeps to the places by its own ships), measured on screen: the
+ * gaps above are the chart's, and where the view meets the chart at a slant
+ * they shrink on screen toward the horizon while the waterlines' band about
+ * a coast keeps its width on screen, so by a harbour every nearer place can
+ * lie on the waterlines or across the coast, and the fleet at anchor would
+ * show neither its label nor its ships (the owner's rule of 12 November
+ * 2026: a fleet in the frame shows one or the other). These keep their gap
+ * on screen, out past the band.
+ */
+const SCREEN_GAPS_EM = [3.7, 5.2, 6.7];
+/**
+ * Farther toward the eye still, tried after every other place: in the
+ * descent to Cádiz the watching squadron off the harbour's mouth sweeps
+ * across the nearer places toward the eye, and the clean sea beyond it is
+ * the only ground a label can be read on, low over the bay.
+ */
+const TOWARD_FAR_EM = [8.2, 9.7];
+/** Every gap of the places toward the eye, in order (Head.toward). */
+const TOWARD_GAPS_EM = [...SCREEN_GAPS_EM, ...TOWARD_FAR_EM];
+/*
+ * At each of those gaps a place toward the eye is tried first: straight
+ * down the screen from the fleet, centred under it. Seen at a slant, a
+ * coast lies beyond its fleet and the open sea, darkest, toward the eye,
+ * which the chart's own sides need not point to when the view is turned.
+ */
+/**
+ * The places measured on screen stand only by a fleet in the frame: they
+ * reach far from it, and for a fleet off the frame they would bring its
+ * label in over whatever lies between (CSS px outside the frame over which
+ * they go).
+ */
+const SCREEN_GAPS_OUT_PX = 24;
+/** The places toward the eye: centred under the fleet, or reaching right or left of it. */
+const TOWARD_REACHES: readonly (-1 | 0 | 1)[] = [0, 1, -1];
+/**
+ * A judged label stands only where it shows tall enough to be read: its
+ * ink's height on screen there, across its line, as a share of its height
+ * facing the eye, room coming in across the band. Lying on the chart, a
+ * label seen at a grazing angle is squeezed to a few pixels (beyond the
+ * bay off Cádiz in the descent, the land's paper lay so flat that "33
+ * sail" stood 3 px tall: the owner's word of 15 November 2026, a label a
+ * few pixels tall can't be read): there it has no place, and the label
+ * stands nearer the eye, where the chart rises toward it, or gives way.
+ */
+const READ_TALL: readonly [number, number] = [0.4, 0.5];
+/** The least a gap on the chart shrinks to on screen that a screen gap makes up for. */
+const FORESHORTEN_MIN = 0.1;
 /** Between the name and its strength, ems (a word space of the italic). */
 const SPACE_EM = 0.27;
 /** Half the width of the line a label keeps clear of, CSS px. */
@@ -89,25 +159,120 @@ const LINE_HALF_PX = 3.5;
  */
 const WATERLINE_REACH_PX = 57;
 const SEA_CLEAR_SHARE = 0.55;
+/**
+ * The places measured on screen, the last tried, may stand nearer, over the
+ * outer waterlines, as long as the ink reads on them at their strongest
+ * there (ground.ts takes them in): in a narrow bay seen at a slant no place
+ * near the fleet lies beyond the band.
+ */
+const SEA_CLEAR_SHARE_LAST = 0.3;
 const CLEAR_RISE_PX = 6;
 /** Points along a label where the coast's distance is read. */
 const GROUND_SAMPLES = 6;
 /** A label on the land stands this far inland, CSS px (in as it rises). */
 const LAND_CLEAR_PX: readonly [number, number] = [4, 10];
+/**
+ * A ship's glyph as a label keeps clear of it: as wide as this share of its
+ * height either side of its foot, and a little below the foot (its wake's
+ * start); only where it shows at SHIP_MIN or more.
+ */
+const SHIP_HALF_WIDTH = 0.6;
+const SHIP_BELOW = 0.15;
+const SHIP_MIN = 0.05;
 /** The edge of the frame a label keeps clear of, CSS px. */
 const EDGE_PX = 10;
 /**
- * Toward the horizon the haze brightens the sea under a label past what its
- * ink can read against: it is gone by this share of the haze's visibility
- * (in from the first), where the ground's luminance passes about 0.15.
+ * A place's ink must read against its ground (ground.ts: the chart's colour
+ * there, as the frame draws it) at this contrast or more: the owner's 4.5:1
+ * for a readable label (opacity 0.5 or more; decisions.md, sessions 29 and
+ * 32), with a margin for what the ground model leaves out. A place's room
+ * comes in across the band, so it is half there at its middle. Toward the
+ * horizon the haze lightens the ground toward the colour of the air, and at
+ * dawn the sun's road and the glow brighten the sea under it: each place is
+ * judged by its own ground, not by its fleet's distance, so by day a place
+ * nearer the eye can stand where a farther one can't, at dusk and night the
+ * hazed sea stays dark and the pale ink reads far into the haze, and at
+ * night the dark ink on the dark paper never reads, so no label stands on
+ * the land then.
+ */
+const READ_CONTRAST: readonly [number, number] = [4.6, 5.0];
+/**
+ * The rule a label not judged (HeadSpec.judged) keeps: toward the horizon
+ * the haze brightens the sea under it past what its ink can read against,
+ * so it is gone by this share of the haze's visibility (in from the first),
+ * where the ground's luminance passes about 0.15 in the daylight views.
  */
 const HAZE_CLEAR: readonly [number, number] = [0.42, 0.55];
+/** Where the ground is read about a place: its corners and its middle. */
+const READ_POINTS = 5;
+/** The step of the coast's gradient, km (inside a texel: the field is bilinear). */
+const GRADIENT_KM = 0.05;
 /**
  * The ink on the sea: the chart's pale ink lightened toward the page's, so
  * the label reads over the whole sea, the brighter haze toward the horizon
  * included, at 4.5:1 or more.
  */
 const LIFT_PALE = 1.12;
+
+/*
+ * How a label moves from place to place (the owner's rule of 14 November
+ * 2026: no flicker, which is a jerk; a label passes from one place to
+ * another smoothly, with a least time at a place, hysteresis and a soft
+ * change). Each place has its room every frame (room, 0..1, the frame's
+ * geometry alone); the label stands at one place and keeps it while it
+ * keeps KEEP_ROOM, leaving it only when it loses that (the room the place
+ * needs to be taken is TAKE_ROOM, well above, so a place passing through
+ * the band between can neither take the label nor drop it: hysteresis).
+ * A place holds once it has had room for STEADY_S. The label moves to a
+ * place before its own in the order (nearer its fleet) only when it has
+ * been at its own DWELL_S and that place holds; losing its place, it moves
+ * at once, but a second time within DWELL_S only to a place that holds,
+ * and with none it goes out and comes back once a place holds (where the
+ * view sweeps its places across a coast, each with room for a moment, it
+ * would otherwise chase them: choose). Every move is a crossfade of its
+ * two drawings over MOVE_S of its own clock (seconds, not scroll), so
+ * however fast the reader scrolls, a move takes the same time and the
+ * label never pops.
+ * A place with KEEP_ROOM still keeps the rules the room stands for (its
+ * ink reads at 4.7:1 or more by the ground model, no ship under it), so a
+ * label held there shows whole.
+ */
+/**
+ * A place's room passes from none to whole across this band of the product
+ * of its factors (room): decisively, so a label stands in one place, not
+ * in faint copies wherever there is some room.
+ */
+const ROOM_FROM = 0.3;
+const ROOM_TO = 0.7;
+/** The room a place needs to take the label (the first in order with it). */
+const TAKE_ROOM = 0.85;
+/** The room a place keeps the label with. */
+const KEEP_ROOM = 0.15;
+/** With no place at TAKE_ROOM, the roomiest with this much takes it. */
+const FALLBACK_ROOM = 0.5;
+/** A move's crossfade, seconds. */
+const MOVE_S = 0.35;
+/** The least time at a place before the label moves to a better one, seconds. */
+const DWELL_S = 1;
+/** How long a place must have had room (FALLBACK_ROOM, frame after frame) to hold, seconds. */
+const STEADY_S = 0.3;
+/**
+ * A place keeps the label only while it stays this clear of the lettering,
+ * the lines and the ships it keeps clear of (the least of those factors of
+ * its room, Slot.clear), and is taken only with CLEAR_TAKE: its room
+ * (KEEP_ROOM) alone let a label held whole stand over a ship, a name or
+ * another label showing at up to 0.6 (the review of 15 November 2026).
+ */
+const CLEAR_TAKE = 0.9;
+const CLEAR_KEEP = 0.7;
+/**
+ * A move cut short by the next: the two drawings go out this much faster
+ * (both going out together, their sum falls by no more than 0.25 a frame
+ * at 60 frames a second: no jerk).
+ */
+const CLEAR_RATE = 1.5;
+/** The longest step of the labels' clock, seconds. */
+const STEP_MAX_S = 0.1;
 
 /** A place about a fleet: its side, how it lines up there, its gap. */
 interface Slot {
@@ -117,29 +282,54 @@ interface Slot {
    * of a meeting), as far as the host says (Head.aw).
    */
   own: boolean;
-  side: HeadSlot;
+  side: HeadSlot | "toward";
+  /** Toward the eye: which of its places (Head.toward: 3 per TOWARD_GAPS_EM, by TOWARD_REACHES). */
+  towardIndex: number;
   /** Above or below: centred on the fleet (0), reaching east of it (1) or west (-1). */
   reach: -1 | 0 | 1;
-  /** From the fleet to its nearest edge, ems. */
+  /** From the fleet to its nearest edge, ems: on the chart, or on screen (onScreen). */
   gap: number;
+  onScreen: boolean;
   /** Its outline on screen this frame, CSS px; NaN where it can't be seen. */
   quad: Float64Array;
-  /** How much of the label stands here this frame (soft first-fit). */
+  /** Its room this frame (roomAt; 0 where not read), and the frame it was read in. */
   weight: number;
+  stamp: number;
+  /** Since when (the labels' clock) it has had FALLBACK_ROOM unbroken, frame after frame (NaN: it hasn't). */
+  since: number;
   /**
    * Development: this frame's room and what made it (the frame's edge, the
-   * ground, the names and card, the labels before it, its line, its ships).
+   * ground, the names and card, the labels before it, its line, its ships,
+   * how well its ink reads on the ground, which the ground includes, and
+   * how tall it shows: READ_TALL).
    */
   why: Float64Array;
+  /** Development: how near the coast it came on screen this frame, CSS px (at sea, and inland). */
+  near: number;
+  inland: number;
+  /** Development: the coast's distance there (km) and its change per CSS px. */
+  nearKm: number;
+  nearPerPx: number;
+  /** Development: how tall it shows, of its height facing the eye (READ_TALL). */
+  tall: number;
+  /** This frame: the least of its clear factors (the names and card, the labels before it, the lines, the ships; CLEAR_KEEP). */
+  clear: number;
+  /** Development: the ground's luminance it was read against (ground.ts; NaN where not read): the brightest sea, the darkest land. */
+  seaL: number;
+  landL: number;
 }
 
 /** One drawing of a label: its name and each strength. */
 interface Copy {
   name: Text;
   counts: Text[];
-  /** The place it stands at this frame (-1 none), and how much shows. */
+  /** The place it stands at (-1 none), its share of the label there (0..1, by the labels' clock), and how much shows this frame. */
   slot: number;
+  w: number;
   opacity: number;
+  /** Where it last stood on the chart (its left middle, world km; NaN: nowhere yet). */
+  ox: number;
+  oy: number;
   /** Its outline this frame, for the lettering after it (screen). */
   quad: Float64Array;
   /** The strength it shows most of this frame (an index into its counts). */
@@ -150,6 +340,17 @@ interface Head {
   spec: HeadSpec;
   slots: Slot[];
   copies: [Copy, Copy];
+  /**
+   * Where the label stands (choose): the drawing that has it, coming in or
+   * whole (-1: none, the label going out); the place it is bound for while
+   * both drawings still show (-1: none); when it last moved, by the
+   * labels' clock; whether it is yet to come in (forget), when it takes
+   * the first place with room at once.
+   */
+  fresh: boolean;
+  lead: number;
+  pending: number;
+  since: number;
   /**
    * This frame: where the label stands by (world km), its line from the
    * head back (world x, y pairs; trailCount points), how much shows.
@@ -164,6 +365,18 @@ interface Head {
    */
   own: Float64Array;
   aw: number;
+  /** This frame: the chart's km per CSS px at the head, face on. */
+  kmPx: number;
+  /**
+   * This frame: how much an em on the chart east (x) and north (y) of the
+   * head shows on screen, of an em facing the eye (a screen gap's scale).
+   */
+  fx: number;
+  fy: number;
+  /** This frame: how far its head stands in the frame (1 in, 0 SCREEN_GAPS_OUT_PX or more out). */
+  inFrame: number;
+  /** This frame: the middles of its places toward the eye (world km, x and y pairs; NaN where the view finds no sea). */
+  toward: Float64Array;
   trail: Float64Array;
   trailCount: number;
   /** Its line on screen this frame, a quad a segment (lineQuads), and how many. */
@@ -199,7 +412,21 @@ export class HeadLabels implements ChartLayer {
   private readonly one = new Vector3(1, 1, 1);
   private keepClear: readonly ScreenText[] = [];
   private coast: CoastField | null = null;
+  private groundModel: ChartGround | null = null;
+  /** The inks' luminance this frame (pale on the sea, dark on the land). */
+  private inkPaleL = 1;
+  private inkDarkL = 0;
+  private readonly rgb: Rgb = [0, 0, 0];
+  /** A place's corners and middle on the chart (world km, x and y pairs), reused. */
+  private readonly readAt = new Float64Array(2 * READ_POINTS);
   private blocks: ((id: string, out: Float64Array) => number) | null = null;
+  /** The glyph layers whose ships every label keeps clear of (setGlyphs). */
+  private glyphs: readonly GlyphDrawn[] = [];
+  /** This frame's ships on screen: a quad and how firmly it holds each (ships), and their boxes (x0, y0, x1, y1). */
+  private ships: Float64Array[] = [];
+  private shipWeight = new Float64Array(0);
+  private shipBox = new Float64Array(0);
+  private shipCount = 0;
   private anchors: ((id: string, out: Float64Array) => number) | null = null;
   private handover: ((id: string) => number) | null = null;
   private readonly anchor = new Float64Array(8);
@@ -209,7 +436,21 @@ export class HeadLabels implements ChartLayer {
   private sized = false;
   private readonly trailPx = new Float64Array(2 * TRAIL_POINTS);
   private readonly block = new Float64Array(8);
+  /** Three points on screen (foreshortening), reused. */
+  private readonly probe = new Float64Array(6);
   private readonly v = new Vector3();
+  /** The labels' clock (seconds), the frame's time it last read, and a step a check holds it to (setClock). */
+  private clock = 0;
+  private lastTime = Number.NaN;
+  private fixedStep: number | null = null;
+  /** Frames updated (Slot.stamp). */
+  private frameNo = 0;
+  /**
+   * A head's places this frame (choose): the first with TAKE_ROOM, the
+   * first of those that hold; the roomiest with FALLBACK_ROOM, the
+   * roomiest of those that hold (-1: none).
+   */
+  private readonly chosen = new Int32Array(4);
 
   constructor(field: TerrainField, specs: readonly HeadSpec[]) {
     configureFonts();
@@ -235,7 +476,10 @@ export class HeadLabels implements ChartLayer {
       name: typeset(spec.name),
       counts: spec.counts.map(typeset),
       slot: -1,
+      w: 0,
       opacity: 0,
+      ox: Number.NaN,
+      oy: Number.NaN,
       quad: new Float64Array(8).fill(Number.NaN),
       count: 0,
     });
@@ -245,32 +489,71 @@ export class HeadLabels implements ChartLayer {
       // a line's label keeps to its side of the line; then those about its
       // head, nearest first.
       const slots: Slot[] = [];
-      const add = (own: boolean, side: HeadSlot, gap: number) => {
+      const add = (
+        own: boolean,
+        side: HeadSlot | "toward",
+        gap: number,
+        onScreen = false,
+      ) => {
         const reaches: readonly (-1 | 0 | 1)[] =
-          side === "above" || side === "below" ? [0, 1, -1] : [0];
+          side === "above" || side === "below" || side === "toward"
+            ? [0, 1, -1]
+            : [0];
         for (const reach of reaches)
           slots.push({
             own,
             side,
             reach,
             gap,
+            onScreen,
+            towardIndex:
+              side === "toward"
+                ? 3 * TOWARD_GAPS_EM.indexOf(gap) +
+                  TOWARD_REACHES.indexOf(reach)
+                : -1,
             quad: new Float64Array(8).fill(Number.NaN),
             weight: 0,
-            why: new Float64Array(7),
+            stamp: -1,
+            since: Number.NaN,
+            why: new Float64Array(9),
+            near: 0,
+            inland: 0,
+            nearKm: 0,
+            nearPerPx: 0,
+            tall: 1,
+            clear: 1,
+            seaL: Number.NaN,
+            landL: Number.NaN,
           });
       };
       for (const side of spec.slots)
         for (const gap of GAPS_EM) add(true, side, gap);
       for (const gap of GAPS_EM)
         for (const side of spec.slots) add(false, side, gap);
+      if (spec.judged)
+        for (const gap of SCREEN_GAPS_EM) {
+          add(false, "toward", gap, true);
+          for (const side of spec.slots) add(false, side, gap, true);
+        }
+      if (spec.judged)
+        for (const gap of TOWARD_FAR_EM) add(false, "toward", gap, true);
       const head: Head = {
         spec,
         slots,
         copies: [copy(spec), copy(spec)],
+        fresh: true,
+        lead: -1,
+        pending: -1,
+        since: 0,
         x: 0,
         y: 0,
         own: new Float64Array(8),
         aw: 0,
+        kmPx: 1,
+        fx: 1,
+        fy: 1,
+        inFrame: 0,
+        toward: new Float64Array(6 * TOWARD_GAPS_EM.length).fill(Number.NaN),
         trail: new Float64Array(2 * TRAIL_POINTS),
         trailCount: 0,
         lines: Array.from({ length: TRAIL_POINTS }, () => new Float64Array(8)),
@@ -312,6 +595,7 @@ export class HeadLabels implements ChartLayer {
   /** The chart's coast on the CPU: where the sea is clean and the land is. */
   setCoast(coast: CoastField | null): void {
     this.coast = coast;
+    this.groundModel = coast ? new ChartGround(coast) : null;
   }
 
   /**
@@ -322,6 +606,20 @@ export class HeadLabels implements ChartLayer {
    */
   setBlocks(blocks: ((id: string, out: Float64Array) => number) | null): void {
     this.blocks = blocks;
+  }
+
+  /**
+   * The ships every label keeps clear of, whosever they are: the glyph
+   * layers' ships as drawn this frame (Glyphs.drawn; their layout runs
+   * before the labels update).
+   */
+  setGlyphs(layers: readonly GlyphDrawn[]): void {
+    this.glyphs = layers;
+    let n = 0;
+    for (const d of layers) n += d.alpha.length;
+    this.ships = Array.from({ length: n }, () => new Float64Array(8));
+    this.shipWeight = new Float64Array(n);
+    this.shipBox = new Float64Array(4 * n);
   }
 
   /**
@@ -377,6 +675,16 @@ export class HeadLabels implements ChartLayer {
   }
 
   /**
+   * Development and the checks: the labels' clock steps `step` seconds a
+   * frame, whatever the frame's time (a reader's frames at 60 a second,
+   * 1/60), or makes every change at once (Infinity: each frame shows where
+   * the labels settle, as after a pause); null for the frame's own time.
+   */
+  setClock(step: number | null): void {
+    this.fixedStep = step;
+  }
+
+  /**
    * Development and the contrast check: the labels leave the frame (true)
    * or come back. They are still placed, and other lettering still keeps
    * clear of them, so the frame under them is the frame they were drawn on.
@@ -395,6 +703,24 @@ export class HeadLabels implements ChartLayer {
       .multiplyScalar(LIFT_PALE)
       .min(this.one);
     this.inkDark.copy(frame.light.ink);
+    // The inks' luminance, through the scratch colour (no allocation a frame).
+    const ink = this.rgb;
+    this.inkPale.toArray(ink);
+    this.inkPaleL = luminance(ink);
+    this.inkDark.toArray(ink);
+    this.inkDarkL = luminance(ink);
+    // The labels' own clock, seconds: the frame's time, a step at most
+    // STEP_MAX_S (after a stall a change goes on where it was), or the step
+    // a check holds it to (setClock; Infinity: every change made at once).
+    let step = this.fixedStep;
+    if (step === null)
+      step = Number.isFinite(this.lastTime)
+        ? Math.min(STEP_MAX_S, Math.max(0, frame.time - this.lastTime))
+        : 0;
+    this.lastTime = frame.time;
+    const settle = step === Number.POSITIVE_INFINITY;
+    if (!settle) this.clock += step;
+    this.frameNo++;
     const eye = frame.eye;
     const cssPerRadian = frame.pxPerRadian / frame.dpr;
     const cssH = frame.height / frame.dpr;
@@ -406,80 +732,98 @@ export class HeadLabels implements ChartLayer {
       h.lineCount = 0;
       if (this.sized && h.presence > 0.001) this.lineQuads(h, frame);
     }
+    this.shipQuads(frame);
     for (const h of this.heads) {
-      const dist = Math.hypot(h.x - eye.x, h.y - eye.y, eye.z);
+      const ex = h.x - eye.x;
+      const ey = h.y - eye.y;
+      const dist = Math.sqrt(ex * ex + ey * ey + eye.z * eye.z);
       // Lying on the chart, it fades as the chart does toward the horizon,
-      // and with the haze, as the names do.
+      // and with the haze, as the names do; each place by its own ground
+      // (room). As it gives way to its ships it fades by that or by the
+      // tilt, whichever is the less, not by both at once: where the view
+      // rises off the ships or comes down to them, the label and the ships
+      // together never dip to half.
       const tilt = smooth(0.1, 0.25, eye.z / dist);
       const hx = dist / frame.hazeVisibility;
-      const seen =
-        h.presence *
-        (this.handover ? 1 - this.handover(h.spec.id) : 1) *
-        tilt *
-        Math.exp(-hx * hx) *
-        (1 - smooth(HAZE_CLEAR[0], HAZE_CLEAR[1], hx));
+      const handover = this.handover ? 1 - this.handover(h.spec.id) : 1;
+      const seen = h.spec.judged
+        ? h.presence * Math.min(tilt, handover) * Math.exp(-hx * hx)
+        : h.presence *
+          handover *
+          tilt *
+          Math.exp(-hx * hx) *
+          (1 - smooth(HAZE_CLEAR[0], HAZE_CLEAR[1], hx));
       h.emPx = emPx;
-      for (const s of h.slots) s.weight = 0;
+      for (let i = 0; i < h.slots.length; i++) h.slots[i].weight = 0;
       if (!this.sized || seen <= 0.001) {
-        for (const c of h.copies) {
-          this.hide(c);
+        // Unseen, it starts afresh where it is next seen: its drawing comes
+        // in over MOVE_S of the labels' clock as well as with its presence,
+        // so that where its presence rises within a few frames (a fast
+        // scroll through a short window, a jump) it never pops in; on a
+        // slow scroll back to the ships' hand-over it lags the ships'
+        // fade by up to MOVE_S.
+        this.forget(h);
+        for (let k = 0; k < 2; k++) {
+          this.hide(h.copies[k]);
           this.screen.weights[n++] = 0;
         }
         continue;
       }
       const em = (emPx * dist) / cssPerRadian;
-      const kmPx = dist / cssPerRadian;
+      h.kmPx = dist / cssPerRadian;
+      if (h.spec.judged) this.foreshortening(h, frame, em, emPx);
       const blockWeight = this.blocks ? this.blocks(h.spec.id, this.block) : 0;
       h.aw = this.anchors ? this.anchors(h.spec.id, this.anchor) : 0;
       if (h.aw > 0.001) h.own.set(this.anchor);
-      // A soft first-fit over its places in order: once one has the whole
-      // label, those after it are not tried. The places by its own ships
-      // have room only as far as the host gives them.
-      let left = 1;
-      let best = -1;
-      let next = -1;
-      // The places by its own ships come first and share the host's weight
-      // among them, first-fit; those by its head share what is left.
       const aw = Math.min(1, h.aw);
-      let ownLeft = aw > 0.001 ? 1 : 0;
-      let headStarted = false;
+      // Each place's room in order, up to the first with room to take the
+      // label; with none, the roomiest of those with enough to fall back
+      // on. The places by its own ships come first and have room only as
+      // far as the host gives them (aw).
+      // Each the first such place (or the roomiest) of any, and of those
+      // that hold (with room for STEADY_S): the scan goes on to the first
+      // that holds. The places its drawings stand at, or are bound for,
+      // are read first, wherever they come in the order.
+      for (let k = 0; k < 2; k++)
+        if (h.copies[k].slot >= 0)
+          this.roomAt(h, h.copies[k].slot, em, frame, blockWeight, aw);
+      if (h.pending >= 0) this.roomAt(h, h.pending, em, frame, blockWeight, aw);
+      // A judged label's scan reads every place every frame (and any
+      // label's, while its own place weakens under TAKE_ROOM or it has
+      // none), so the places it may move to keep their time with room frame
+      // after frame and are known to hold when it must move. Stopping at
+      // the first that holds, the places past it were read only now and
+      // then, each read starting its time afresh: where the view swept the
+      // October fleets' places (the descent to Cádiz, the relay's low
+      // views) none held when the label lost its place, and on a reader's
+      // scroll it went out for up to DWELL_S though places with room stood
+      // by (scripts/dev/fleet-scroll.mjs).
+      const cur = h.lead >= 0 ? h.copies[h.lead].slot : h.pending;
+      const every =
+        h.spec.judged === true || cur < 0 || h.slots[cur].weight < TAKE_ROOM;
+      const c = this.chosen;
+      c.fill(-1);
       for (let i = 0; i < h.slots.length; i++) {
         const s = h.slots[i];
-        if (s.own) {
-          if (ownLeft <= 0.001) {
-            s.quad[0] = Number.NaN;
-            continue;
+        const r = this.roomAt(h, i, em, frame, blockWeight, aw);
+        // A place is taken only well clear of what it keeps clear of
+        // (CLEAR_TAKE), so that it keeps the label (CLEAR_KEEP).
+        if (s.clear < CLEAR_TAKE) continue;
+        const holds = settle || this.clock - s.since >= STEADY_S;
+        if (r >= TAKE_ROOM) {
+          if (c[0] < 0) c[0] = i;
+          if (holds && c[1] < 0) {
+            c[1] = i;
+            if (!every) break;
           }
-          const room = this.room(s, h, em, kmPx, frame, blockWeight);
-          s.weight = room * ownLeft * aw;
-          ownLeft *= 1 - room;
-        } else {
-          if (!headStarted) {
-            headStarted = true;
-            left = 1 - aw * (1 - ownLeft);
-          }
-          if (left <= 0.001) break;
-          const room = this.room(s, h, em, kmPx, frame, blockWeight);
-          s.weight = room * left;
-          left *= 1 - room;
+        } else if (r >= FALLBACK_ROOM) {
+          if (c[2] < 0 || r > h.slots[c[2]].weight) c[2] = i;
+          if (holds && (c[3] < 0 || r > h.slots[c[3]].weight)) c[3] = i;
         }
-        if (s.weight <= 0.001) continue;
-        if (best < 0 || s.weight > h.slots[best].weight) {
-          next = best;
-          best = i;
-        } else if (next < 0 || s.weight > h.slots[next].weight) next = i;
       }
-      // The place with the most of the label, and the next: the two
-      // drawings, each where it was the frame before if that is still one
-      // of the two, so a crossfade keeps each drawing in its place.
-      const [a, b] = h.copies;
-      if (b.slot === best || a.slot === next) {
-        this.draw(b, h, best, seen, em);
-        this.draw(a, h, next, seen, em);
-      } else {
-        this.draw(a, h, best, seen, em);
-        this.draw(b, h, next, seen, em);
-      }
+      this.choose(h, settle);
+      this.fade(h, step, settle);
+      for (let k = 0; k < 2; k++) this.draw(h.copies[k], h, seen, em, frame);
       for (const c of h.copies) {
         if (c.opacity > 0.001) anything = true;
         this.screen.weights[n++] = c.opacity > 0.001 ? c.opacity : 0;
@@ -492,26 +836,49 @@ export class HeadLabels implements ChartLayer {
   /** Development: each head's places tried this frame, their room and what made it (Slot.why). */
   explain(): {
     id: string;
+    index: number;
     own: boolean;
     side: string;
     reach: number;
     gap: number;
+    onScreen: boolean;
     weight: number;
     why: number[];
+    near: number;
+    inland: number;
+    nearKm: number;
+    nearPerPx: number;
+    tall: number;
+    clear: number;
+    seaL: number;
+    landL: number;
+    quad: number[];
   }[] {
     const out: ReturnType<HeadLabels["explain"]> = [];
     for (const h of this.heads) {
       if (h.presence <= 0.001) continue;
       for (const s of h.slots) {
-        if (s.own && h.aw <= 0.001) continue;
+        // Only the places read this frame (the rest hold an older frame's).
+        if ((s.own && h.aw <= 0.001) || s.stamp !== this.frameNo) continue;
         out.push({
           id: h.spec.id,
+          index: h.slots.indexOf(s),
           own: s.own,
           side: s.side,
           reach: s.reach,
           gap: s.gap,
+          onScreen: s.onScreen,
           weight: Math.round(s.weight * 1000) / 1000,
           why: Array.from(s.why, (v) => Math.round(v * 1000) / 1000),
+          near: Math.round(s.near * 10) / 10,
+          nearKm: Math.round(s.nearKm * 1000) / 1000,
+          nearPerPx: Math.round(s.nearPerPx * 1e5) / 1e5,
+          tall: Math.round(s.tall * 1000) / 1000,
+          clear: Math.round(s.clear * 1000) / 1000,
+          inland: Math.round(s.inland * 10) / 10,
+          seaL: Math.round(s.seaL * 1e4) / 1e4,
+          landL: Math.round(s.landL * 1e4) / 1e4,
+          quad: Array.from(s.quad, (v) => Math.round(v * 10) / 10),
         });
       }
     }
@@ -537,6 +904,9 @@ export class HeadLabels implements ChartLayer {
           quad: Array.from(c.quad, (v) => Math.round(v * 10) / 10),
           inkPale: rgb(this.inkPale),
           inkDark: rgb(this.inkDark),
+          slot: c.slot,
+          w: Math.round(c.w * 1000) / 1000,
+          share: Math.round((h.counts[c.count] ?? 0) * 1000) / 1000,
         });
       }
     }
@@ -581,6 +951,79 @@ export class HeadLabels implements ChartLayer {
     this.sized = true;
   }
 
+  /**
+   * How much an em on the chart east and north of a head shows on screen
+   * this frame, of an em facing the eye (Head.fx, fy): 1 looking straight
+   * down, less as the view meets the chart at a slant.
+   */
+  private foreshortening(
+    h: Head,
+    frame: FrameInfo,
+    em: number,
+    emPx: number,
+  ): void {
+    const q = this.probe;
+    h.fx = 1;
+    h.fy = 1;
+    h.inFrame = 0;
+    h.toward.fill(Number.NaN);
+    if (
+      !this.corner(q, 0, frame, h.x, h.y) ||
+      !this.corner(q, 1, frame, h.x + em, h.y) ||
+      !this.corner(q, 2, frame, h.x, h.y + em)
+    )
+      return;
+    const ax = q[2] - q[0];
+    const ay = q[3] - q[1];
+    const bx = q[4] - q[0];
+    const by = q[5] - q[1];
+    h.fx = Math.sqrt(ax * ax + ay * ay) / emPx;
+    h.fy = Math.sqrt(bx * bx + by * by) / emPx;
+    const W = frame.width / frame.dpr;
+    const H = frame.height / frame.dpr;
+    const out = Math.max(-q[0], q[0] - W, -q[1], q[1] - H);
+    h.inFrame = 1 - smooth(0, SCREEN_GAPS_OUT_PX, out);
+    // The places toward the eye: down the screen from the head by each
+    // gap and half the label's height, centred under it or reaching right
+    // or left of it as above and below do, back onto the sea's plane.
+    const half = 0.5 * (h.top - h.bottom) * emPx;
+    const shift = 0.5 * this.width(h) * emPx * h.fx + 0.6 * emPx;
+    for (let i = 0; i < TOWARD_GAPS_EM.length; i++)
+      for (let r = 0; r < 3; r++)
+        this.onSea(
+          frame,
+          q[0] + TOWARD_REACHES[r] * shift,
+          q[1] + TOWARD_GAPS_EM[i] * emPx + half,
+          h.toward,
+          3 * i + r,
+        );
+  }
+
+  /** The point on the sea's plane under a point on screen (CSS px), into out[2i..]: NaN where the view finds none. */
+  private onSea(
+    frame: FrameInfo,
+    sx: number,
+    sy: number,
+    out: Float64Array,
+    i: number,
+  ): void {
+    const W = frame.width / frame.dpr;
+    const H = frame.height / frame.dpr;
+    const v = this.v
+      .set((sx / W) * 2 - 1, 1 - (sy / H) * 2, 0.5)
+      .unproject(frame.camera);
+    const e = frame.eye;
+    const dz = v.z - e.z;
+    if (!(dz < -1e-9)) {
+      out[2 * i] = Number.NaN;
+      out[2 * i + 1] = Number.NaN;
+      return;
+    }
+    const t = -e.z / dz;
+    out[2 * i] = e.x + t * (v.x - e.x);
+    out[2 * i + 1] = e.y + t * (v.y - e.y);
+  }
+
   /** The label's width, ems: its name, a space, its widest strength. */
   private width(h: Head): number {
     let widest = 0;
@@ -593,7 +1036,14 @@ export class HeadLabels implements ChartLayer {
   private origin(s: Slot, h: Head, em: number): Float64Array {
     const o = this.at;
     const w = this.width(h) * em;
-    const gap = s.gap * em;
+    // A gap on screen: as long on the chart as its side shrinks it.
+    const gap = s.onScreen
+      ? (s.gap * em) /
+        Math.max(
+          FORESHORTEN_MIN,
+          s.side === "above" || s.side === "below" ? h.fy : h.fx,
+        )
+      : s.gap * em;
     // About its own ships (the middle of their box's edge on its side), or
     // its head.
     const k =
@@ -607,6 +1057,12 @@ export class HeadLabels implements ChartLayer {
     const hx = s.own ? h.own[k] : h.x;
     const hy = s.own ? h.own[k + 1] : h.y;
     switch (s.side) {
+      case "toward": {
+        const i = s.towardIndex;
+        o[0] = h.toward[2 * i] - 0.5 * w;
+        o[1] = h.toward[2 * i + 1];
+        return o;
+      }
       case "right":
         o[0] = hx + gap;
         o[1] = hy;
@@ -638,13 +1094,17 @@ export class HeadLabels implements ChartLayer {
     s: Slot,
     h: Head,
     em: number,
-    kmPx: number,
     frame: FrameInfo,
     blockWeight: number,
   ): number {
     const at = this.origin(s, h, em);
     const ox = at[0];
     const oy = at[1];
+    if (!Number.isFinite(ox) || !Number.isFinite(oy)) {
+      s.quad[0] = Number.NaN;
+      s.why.fill(0);
+      return 0;
+    }
     const w = this.width(h) * em;
     const y0 = oy + h.bottom * em;
     const y1 = oy + h.top * em;
@@ -676,8 +1136,25 @@ export class HeadLabels implements ChartLayer {
         y - (H - EDGE_PX),
       );
     }
-    why[1] = 1 - smooth(0, 6, out);
-    why[2] = this.ground(ox, w, 0.5 * (y0 + y1), y1 - y0, kmPx);
+    why[1] = (1 - smooth(0, 6, out)) * (s.onScreen ? h.inFrame : 1);
+    // Tall enough to be read (judged labels): its height across its line.
+    if (h.spec.judged) {
+      const bx = q[2] - q[0];
+      const by = q[3] - q[1];
+      const mx = 0.5 * (q[6] - q[0] + q[4] - q[2]);
+      const my = 0.5 * (q[7] - q[1] + q[5] - q[3]);
+      const base = Math.sqrt(bx * bx + by * by);
+      const tall =
+        base > 1e-6
+          ? Math.abs(bx * my - by * mx) / base / ((h.top - h.bottom) * h.emPx)
+          : 0;
+      s.tall = tall;
+      why[8] = smooth(READ_TALL[0], READ_TALL[1], tall);
+    }
+    // The room is the product of every factor, and none under ROOM_FROM:
+    // past one that leaves too little, the rest (the ground last, the
+    // dearest) are not read (why -1; every place is read every frame).
+    if (why[1] * why[8] <= ROOM_FROM) return this.unread(s, true);
     // Clear of the lettering before it: the names and the caption's card.
     for (const screen of this.keepClear)
       for (let j = 0; j < screen.count; j++) {
@@ -694,34 +1171,101 @@ export class HeadLabels implements ChartLayer {
       for (let i = 0; i < other.lineCount; i++)
         why[5] *= clearOf(q, other.lines[i], other === h ? 1 : other.presence);
     if (blockWeight > 0) why[6] = clearOf(q, this.block, blockWeight);
-    let room = 1;
-    for (let i = 1; i < 7; i++) room *= why[i];
+    // Every ship drawn, the near ones only (clearOf is 1 beyond YIELD_PX).
+    if (h.spec.judged && this.shipCount > 0) {
+      let qx0 = q[0];
+      let qx1 = q[0];
+      let qy0 = q[1];
+      let qy1 = q[1];
+      for (let i = 1; i < 4; i++) {
+        qx0 = Math.min(qx0, q[i * 2]);
+        qx1 = Math.max(qx1, q[i * 2]);
+        qy0 = Math.min(qy0, q[i * 2 + 1]);
+        qy1 = Math.max(qy1, q[i * 2 + 1]);
+      }
+      const m = YIELD_PX[1];
+      const b = this.shipBox;
+      for (let j = 0; j < this.shipCount; j++) {
+        if (
+          b[4 * j] > qx1 + m ||
+          b[4 * j + 2] < qx0 - m ||
+          b[4 * j + 1] > qy1 + m ||
+          b[4 * j + 3] < qy0 - m
+        )
+          continue;
+        why[6] *= clearOf(q, this.ships[j], this.shipWeight[j]);
+      }
+    }
+    // why[7] (how well its ink reads there) is inside why[2]; why[8] is how
+    // tall it shows.
+    let room = why[8];
+    for (let i = 1; i < 7; i++) if (i !== 2) room *= why[i];
+    if (room <= ROOM_FROM) return this.unread(s, false);
+    why[2] = h.spec.judged
+      ? this.ground(s, ox, w, y0, y1, frame)
+      : this.groundFaceOn(s, ox, w, y0, y1, h.kmPx);
+    room *= why[2];
     why[0] = room;
     // Decisively: a place has room or hasn't, but for a narrow band where it
     // passes from the one to the other, so a label stands in one place, not
     // in faint copies wherever there is some room.
-    return smooth(0.3, 0.7, room);
+    return smooth(ROOM_FROM, ROOM_TO, room);
   }
 
   /**
-   * How clean the ground under a label is (0..1): the sea beyond the inner
-   * waterlines, or the land well inland. The coast's distance (world km) is
-   * read at points along the label's middle line, each standing for its
-   * share of the box (less its reach, the half diagonal of that share; the
-   * distance is 1-Lipschitz), so a long label lying along a coast is judged
-   * by how near it comes, not by its whole length.
+   * A place with too little room for the rest to be read: no room, its
+   * ground unread (-1), and with `all` the lettering, lines and ships too.
    */
-  private ground(
+  private unread(s: Slot, all: boolean): number {
+    const why = s.why;
+    why[0] = 0;
+    why[2] = -1;
+    why[7] = -1;
+    if (all) for (let i = 3; i < 7; i++) why[i] = -1;
+    s.seaL = Number.NaN;
+    s.landL = Number.NaN;
+    return 0;
+  }
+
+  /**
+   * How clean the ground under a label is, and how well its ink reads on it
+   * (0..1): the sea beyond the inner waterlines, or the land well inland,
+   * where the ink holds READ_CONTRAST against the chart's colour there. The
+   * coast's distance (world km) is read at points along the label's middle
+   * line, each standing for its share of the box (less its reach, the half
+   * diagonal of that share; the distance is 1-Lipschitz), so a long label
+   * lying along a coast is judged by how near it comes, not by its whole
+   * length; and it is measured on screen as the shader's waterlines are,
+   * by the distance's change per pixel on screen (its gradient on the
+   * chart, through the chart's map to the screen at each point), so where the view
+   * meets the chart at a slant the waterlines' band, foreshortened, reaches
+   * farther out on the chart than it would face on. Its ink is read against
+   * the brightest of the sea (or the darkest of the land) at the label's
+   * corners and middle. Slot.why[7] holds the read share of the ground that
+   * wins.
+   */
+  /**
+   * How clean the ground under a label not judged is (0..1), as the chase
+   * was approved with: the sea beyond the inner waterlines or the land well
+   * inland, the coast's distance (world km) read at points along its middle
+   * line, each standing for its share of the box, turned into pixels at the
+   * chart's scale face on.
+   */
+  private groundFaceOn(
+    s: Slot,
     x0: number,
     w: number,
-    y: number,
-    h: number,
+    y0: number,
+    y1: number,
     kmPx: number,
   ): number {
+    s.why[7] = 1;
     const coast = this.coast;
     if (!coast) return 1;
+    const y = 0.5 * (y0 + y1);
+    const h = y1 - y0;
     const step = w / GROUND_SAMPLES;
-    const reach = 0.5 * Math.hypot(step, h);
+    const reach = 0.5 * Math.sqrt(step * step + h * h);
     let near = Number.POSITIVE_INFINITY;
     let inland = Number.POSITIVE_INFINITY;
     for (let i = 0; i < GROUND_SAMPLES; i++) {
@@ -729,11 +1273,174 @@ export class HeadLabels implements ChartLayer {
       near = Math.min(near, (d - reach) / kmPx);
       inland = Math.min(inland, (-d - reach) / kmPx);
     }
+    s.near = near;
+    s.inland = inland;
+    s.seaL = Number.NaN;
+    s.landL = Number.NaN;
     const clear = SEA_CLEAR_SHARE * WATERLINE_REACH_PX;
     return Math.max(
       smooth(clear, clear + CLEAR_RISE_PX, near),
       smooth(LAND_CLEAR_PX[0], LAND_CLEAR_PX[1], inland),
     );
+  }
+
+  private ground(
+    s: Slot,
+    x0: number,
+    w: number,
+    y0: number,
+    y1: number,
+    frame: FrameInfo,
+  ): number {
+    const coast = this.coast;
+    const model = this.groundModel;
+    s.why[7] = 1;
+    if (!coast || !model) return 1;
+    const h = y1 - y0;
+    const y = 0.5 * (y0 + y1);
+    const q = this.probe;
+    const e = 0.25 * h;
+    const step = w / GROUND_SAMPLES;
+    const reach = 0.5 * Math.sqrt(step * step + h * h);
+    let near = Number.POSITIVE_INFINITY;
+    let inland = Number.POSITIVE_INFINITY;
+    let nearPerPx = 0;
+    for (let i = 0; i < GROUND_SAMPLES; i++) {
+      const x = x0 + (i + 0.5) * step;
+      // The chart's map to the screen here: CSS px per km east (a) and
+      // north (b).
+      if (
+        !this.corner(q, 0, frame, x, y) ||
+        !this.corner(q, 1, frame, x + e, y) ||
+        !this.corner(q, 2, frame, x, y + e)
+      )
+        return 0;
+      const ax = (q[2] - q[0]) / e;
+      const ay = (q[3] - q[1]) / e;
+      const bx = (q[4] - q[0]) / e;
+      const by = (q[5] - q[1]) / e;
+      const det = ax * by - ay * bx;
+      if (!(Math.abs(det) > 1e-12)) return 0;
+      const d = coast.distance(x, y);
+      const gx = (coast.distance(x + GRADIENT_KM, y) - d) / GRADIENT_KM;
+      const gy = (coast.distance(x, y + GRADIENT_KM) - d) / GRADIENT_KM;
+      // The distance's change per CSS px on screen, as the shader's pxKm
+      // (the inverse transpose of the outline's map applied to its gradient
+      // on the chart, as it is: where a tile's distance is capped the field
+      // is flat and, as on the GPU, no waterline is drawn there).
+      const tx = by * gx - ay * gy;
+      const ty = ax * gy - bx * gx;
+      const perPx = Math.sqrt(tx * tx + ty * ty) / Math.abs(det);
+      if (!(perPx > 1e-9)) {
+        if (d < 0) near = Number.NEGATIVE_INFINITY;
+        else inland = Number.NEGATIVE_INFINITY;
+        continue;
+      }
+      const spread = reach * Math.sqrt(gx * gx + gy * gy);
+      const n = (d - spread) / perPx;
+      if (n < near) {
+        near = n;
+        nearPerPx = perPx;
+        s.nearKm = d;
+      }
+      inland = Math.min(inland, (-d - spread) / perPx);
+    }
+    s.near = near;
+    s.nearPerPx = nearPerPx;
+    s.inland = inland;
+    s.seaL = Number.NaN;
+    s.landL = Number.NaN;
+    const clear =
+      (s.onScreen ? SEA_CLEAR_SHARE_LAST : SEA_CLEAR_SHARE) *
+      WATERLINE_REACH_PX;
+    const seaClean = smooth(clear, clear + CLEAR_RISE_PX, near);
+    const landClean = smooth(LAND_CLEAR_PX[0], LAND_CLEAR_PX[1], inland);
+    if (seaClean <= 0.001 && landClean <= 0.001) return 0;
+    const at = this.readAt;
+    at[0] = x0;
+    at[1] = y0;
+    at[2] = x0 + w;
+    at[3] = y0;
+    at[4] = x0 + w;
+    at[5] = y1;
+    at[6] = x0;
+    at[7] = y1;
+    at[8] = x0 + 0.5 * w;
+    at[9] = y;
+    const c = this.rgb;
+    let seaRead = 0;
+    if (seaClean > 0.001) {
+      let bright = 0;
+      const water = waterlineInk(
+        near / WATERLINE_REACH_PX,
+        nearPerPx,
+        frame.dpr,
+      );
+      for (let i = 0; i < READ_POINTS; i++) {
+        model.sea(at[2 * i], at[2 * i + 1], frame, water, c);
+        bright = Math.max(bright, luminance(c));
+      }
+      s.seaL = bright;
+      seaRead = smooth(
+        READ_CONTRAST[0],
+        READ_CONTRAST[1],
+        contrast(this.inkPaleL, bright),
+      );
+    }
+    let landRead = 0;
+    if (landClean > 0.001) {
+      let dark = 1;
+      for (let i = 0; i < READ_POINTS; i++) {
+        model.land(at[2 * i], at[2 * i + 1], frame, c);
+        dark = Math.min(dark, luminance(c));
+      }
+      s.landL = dark;
+      landRead = smooth(
+        READ_CONTRAST[0],
+        READ_CONTRAST[1],
+        contrast(this.inkDarkL, dark),
+      );
+    }
+    const sea = seaClean * seaRead;
+    const land = landClean * landRead;
+    s.why[7] = sea >= land ? seaRead : landRead;
+    return Math.max(sea, land);
+  }
+
+  /** This frame's ships on screen (setGlyphs), the ones that show. */
+  private shipQuads(frame: FrameInfo): void {
+    let n = 0;
+    const dpr = frame.dpr;
+    const pt = this.probe;
+    for (const d of this.glyphs) {
+      for (let i = 0; i < d.alpha.length; i++) {
+        const a = d.alpha[i];
+        if (!(a >= SHIP_MIN) || !(d.height[i] > 0)) continue;
+        if (!this.corner(pt, 0, frame, d.x[i], d.y[i])) continue;
+        const h = d.height[i] / dpr;
+        const x0 = pt[0] - SHIP_HALF_WIDTH * h;
+        const x1 = pt[0] + SHIP_HALF_WIDTH * h;
+        const y0 = pt[1] - h;
+        const y1 = pt[1] + SHIP_BELOW * h;
+        const q = this.ships[n];
+        q[0] = x0;
+        q[1] = y1;
+        q[2] = x1;
+        q[3] = y1;
+        q[4] = x1;
+        q[5] = y0;
+        q[6] = x0;
+        q[7] = y0;
+        const b = this.shipBox;
+        b[4 * n] = x0;
+        b[4 * n + 1] = y0;
+        b[4 * n + 2] = x1;
+        b[4 * n + 3] = y1;
+        this.shipWeight[n] = Math.min(1, a);
+        n++;
+      }
+    }
+    this.shipCount = n;
   }
 
   /**
@@ -754,7 +1461,7 @@ export class HeadLabels implements ChartLayer {
       const ay = px[i * 2 + 1];
       const bx = px[i * 2 + 2];
       const by = px[i * 2 + 3];
-      const l = Math.hypot(bx - ax, by - ay);
+      const l = Math.sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay));
       if (l < 1e-3) continue;
       const nx = (-(by - ay) / l) * LINE_HALF_PX;
       const ny = ((bx - ax) / l) * LINE_HALF_PX;
@@ -772,19 +1479,207 @@ export class HeadLabels implements ChartLayer {
     }
   }
 
-  /** Draws one copy of a label at a place (-1: none) for the frame. */
-  private draw(c: Copy, h: Head, slot: number, seen: number, em: number): void {
-    const s = slot >= 0 ? h.slots[slot] : null;
-    if (!s || s.weight <= 0.001) {
+  /**
+   * A place's room this frame (Slot.weight), read once a frame however
+   * often it is asked: its own room (room), and for a place by its own
+   * ships only as far as the host gives them (aw).
+   */
+  private roomAt(
+    h: Head,
+    i: number,
+    em: number,
+    frame: FrameInfo,
+    blockWeight: number,
+    aw: number,
+  ): number {
+    const s = h.slots[i];
+    if (s.stamp === this.frameNo) return s.weight;
+    // Read the frame before too, or its time with room starts afresh.
+    const read = s.stamp === this.frameNo - 1;
+    s.stamp = this.frameNo;
+    if (s.own && aw <= 0.001) {
+      s.quad[0] = Number.NaN;
+      s.why.fill(0);
+      s.weight = 0;
+      s.clear = 0;
+    } else {
+      s.weight = this.room(s, h, em, frame, blockWeight) * (s.own ? aw : 1);
+      const why = s.why;
+      s.clear = Math.min(why[3], why[4], why[5], why[6]);
+    }
+    if (s.weight < FALLBACK_ROOM) s.since = Number.NaN;
+    else if (!read || Number.isNaN(s.since)) s.since = this.clock;
+    return s.weight;
+  }
+
+  /**
+   * Where the label is to stand (Head.lead's drawing), from this frame's
+   * places (chosen: the first with TAKE_ROOM, and the first of those that
+   * hold; the roomiest with FALLBACK_ROOM, and of those that hold). It
+   * keeps its place while the place keeps KEEP_ROOM. Losing it, it moves
+   * at once, in a crossfade, to the first place that holds, or failing one
+   * to the first with room; but where it moved less than DWELL_S before
+   * (the view sweeping its places across a coast one after another, each
+   * with room for a moment) only to a place that holds, and with none it
+   * goes out and comes back once, at a place that holds, instead of
+   * chasing them. It moves to a place before its own in the order (nearer
+   * its fleet) that holds, after DWELL_S at its own. A check settling every
+   * frame (setClock) waits for nothing.
+   */
+  private choose(h: Head, settle: boolean): void {
+    const c = this.chosen;
+    const cur = h.lead >= 0 ? h.copies[h.lead].slot : h.pending;
+    const dwelt = settle || h.fresh || this.clock - h.since >= DWELL_S;
+    let target = cur;
+    if (
+      cur < 0 ||
+      h.slots[cur].weight < KEEP_ROOM ||
+      h.slots[cur].clear < CLEAR_KEEP
+    ) {
+      // A place its drawing still shows at, going out, that has room again
+      // (a ship passed under it): the label comes back there, as from
+      // where it is, not out for want of a place that holds.
+      let back = -1;
+      for (let k = 0; k < 2; k++) {
+        const d = h.copies[k];
+        if (d.w <= 0 || d.slot < 0 || d.slot === cur) continue;
+        const s = h.slots[d.slot];
+        if (s.weight >= TAKE_ROOM && s.clear >= CLEAR_TAKE) back = d.slot;
+      }
+      if (c[1] >= 0) target = c[1];
+      else if (back >= 0) target = back;
+      else if (dwelt) target = c[0] >= 0 ? c[0] : c[3] >= 0 ? c[3] : c[2];
+      else target = c[3];
+    } else if (c[1] >= 0 && c[1] < cur && dwelt) target = c[1];
+    if (target === cur) return;
+    h.since = this.clock;
+    h.pending = -1;
+    if (target >= 0) h.fresh = false;
+    if (target < 0) {
+      h.lead = -1;
+      return;
+    }
+    if (settle) {
+      // Made at once: one drawing there, the other gone.
+      h.lead = 0;
+      this.place(h.copies[0], target);
+      h.copies[0].w = 1;
+      h.copies[1].slot = -1;
+      h.copies[1].w = 0;
+      return;
+    }
+    // A drawing there already, going out: it comes back from where it is.
+    for (let k = 0; k < 2; k++)
+      if (h.copies[k].slot === target && h.copies[k].w > 0) {
+        h.lead = k;
+        return;
+      }
+    // A drawing not shown goes there and comes in as the other goes out.
+    for (let k = 0; k < 2; k++)
+      if (h.copies[k].w <= 0) {
+        this.place(h.copies[k], target);
+        h.lead = k;
+        return;
+      }
+    // Both show (a change cut short): both go out, faster, and the label
+    // comes in there as soon as one has gone.
+    h.lead = -1;
+    h.pending = target;
+  }
+
+  /**
+   * Each drawing toward its share of the label (the lead's whole, the
+   * other's none) over MOVE_S, so a crossfade between two places keeps the
+   * label whole throughout. A place that can't be found this frame (behind
+   * the eye, or a place by its own ships once they have gone) has no room,
+   * so the label leaves it, its drawing going out where it last stood
+   * (draw).
+   */
+  private fade(h: Head, step: number, settle: boolean): void {
+    const rate = settle ? 1 : step / MOVE_S;
+    const out = h.pending >= 0 ? CLEAR_RATE * rate : rate;
+    for (let k = 0; k < 2; k++) {
+      const c = h.copies[k];
+      if (c.slot < 0) c.w = 0;
+      else if (k === h.lead) c.w = Math.min(1, c.w + rate);
+      else c.w = Math.max(0, c.w - out);
+    }
+    if (h.pending < 0) return;
+    for (let k = 0; k < 2; k++) {
+      const c = h.copies[k];
+      if (c.w > 0) continue;
+      this.place(c, h.pending);
+      h.lead = k;
+      h.pending = -1;
+      if (!Number.isNaN(h.slots[c.slot].quad[0])) c.w = Math.min(1, c.w + rate);
+      return;
+    }
+  }
+
+  /** A drawing sent to a place: where it stood before is not where it stands. */
+  private place(c: Copy, slot: number): void {
+    c.slot = slot;
+    c.ox = Number.NaN;
+    c.oy = Number.NaN;
+  }
+
+  /** A head's label starts afresh: no place, no drawing. */
+  private forget(h: Head): void {
+    h.fresh = true;
+    h.lead = -1;
+    h.pending = -1;
+    for (let k = 0; k < 2; k++) {
+      h.copies[k].slot = -1;
+      h.copies[k].w = 0;
+      h.copies[k].ox = Number.NaN;
+    }
+  }
+
+  /** Draws one copy of a label at its place for the frame, as much as it shows there. */
+  private draw(
+    c: Copy,
+    h: Head,
+    seen: number,
+    em: number,
+    frame: FrameInfo,
+  ): void {
+    const s = c.slot >= 0 && c.w > 0 ? h.slots[c.slot] : null;
+    // Eased, the two drawings of a crossfade still sum to the whole.
+    const shown = seen * smooth(0, 1, c.w);
+    if (!s || shown <= 0.001) {
       this.hide(c);
       return;
     }
-    c.slot = slot;
-    c.opacity = seen * s.weight;
-    c.quad.set(s.quad);
+    c.opacity = shown;
     const at = this.origin(s, h, em);
-    const ox = at[0];
-    const oy = at[1];
+    if (
+      Number.isFinite(at[0]) &&
+      Number.isFinite(at[1]) &&
+      !Number.isNaN(s.quad[0])
+    ) {
+      c.ox = at[0];
+      c.oy = at[1];
+      c.quad.set(s.quad);
+    } else if (!Number.isFinite(c.ox)) {
+      this.hide(c);
+      return;
+    } else {
+      // Its place lost this frame, it goes out where it last stood: its
+      // outline there this frame (what the lettering after it keeps clear
+      // of, and the checks measure).
+      const w = this.width(h) * em;
+      const y0 = c.oy + h.bottom * em;
+      const y1 = c.oy + h.top * em;
+      if (
+        !this.corner(c.quad, 0, frame, c.ox, y0) ||
+        !this.corner(c.quad, 1, frame, c.ox + w, y0) ||
+        !this.corner(c.quad, 2, frame, c.ox + w, y1) ||
+        !this.corner(c.quad, 3, frame, c.ox, y1)
+      )
+        c.quad[0] = Number.NaN;
+    }
+    const ox = c.ox;
+    const oy = c.oy;
     c.name.position.set(ox, oy, 0);
     c.name.scale.setScalar(em);
     c.name.fillOpacity = c.opacity;
@@ -792,28 +1687,29 @@ export class HeadLabels implements ChartLayer {
     c.count = 0;
     for (let k = 1; k < h.counts.length; k++)
       if (h.counts[k] > h.counts[c.count]) c.count = k;
-    c.counts.forEach((t, k) => {
+    for (let k = 0; k < c.counts.length; k++) {
+      const t = c.counts[k];
       const a = c.opacity * h.counts[k];
       if (a <= 0.001) {
         t.scale.setScalar(0);
         t.fillOpacity = 0;
-        return;
+        continue;
       }
       t.position.set(cx, oy, 0);
       t.scale.setScalar(em);
       t.fillOpacity = a;
-    });
+    }
   }
 
+  /** Draws none of a copy this frame (its place and share are kept: Head.lead). */
   private hide(c: Copy): void {
-    c.slot = -1;
     c.opacity = 0;
     c.quad[0] = Number.NaN;
     c.name.scale.setScalar(0);
     c.name.fillOpacity = 0;
-    for (const t of c.counts) {
-      t.scale.setScalar(0);
-      t.fillOpacity = 0;
+    for (let k = 0; k < c.counts.length; k++) {
+      c.counts[k].scale.setScalar(0);
+      c.counts[k].fillOpacity = 0;
     }
   }
 

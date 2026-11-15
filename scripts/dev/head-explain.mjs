@@ -2,7 +2,8 @@
 // given points of scene 2: each label drawn (its text, opacity, outline),
 // then every place each head tried, by its own ships or by its head, with
 // its room and what made it: the frame's edge, the ground, the names and
-// the card, the labels before it, its line, its ships
+// the card, the labels before it, its line, its ships, and how well its ink
+// reads on the ground there (inside the ground's figure)
 // (window.__road.routeLabels; HeadLabels.explain). Development only.
 //   WHO=calder,villeneuve node scripts/dev/head-explain.mjs 0.535 0.548
 // Points in the road tools' shared syntax (road-scroll.mjs): p, ranges of
@@ -64,7 +65,7 @@ for (const point of points) {
     if (who && !who.includes(t.id)) continue;
     if (process.env.ALL !== "1" && t.weight <= 0 && t.why[0] <= 0.01) continue;
     console.log(
-      `    ${t.id} ${t.own ? "own " : "head"} ${t.side} reach ${t.reach} gap ${t.gap}: weight ${t.weight} room ${t.why[0]} [edge ${t.why[1]} ground ${t.why[2]} names ${t.why[3]} labels ${t.why[4]} line ${t.why[5]} ships ${t.why[6]}]`,
+      `    ${t.id} ${t.own ? "own " : "head"} ${t.side} reach ${t.reach} gap ${t.gap}${t.onScreen ? " on screen" : ""}: weight ${t.weight} room ${t.why[0]} [edge ${t.why[1]} ground ${t.why[2]} names ${t.why[3]} labels ${t.why[4]} line ${t.why[5]} ships ${t.why[6]} reads ${t.why[7]} tall ${t.why[8]} (${t.tall})] near ${t.near} inland ${t.inland}`,
     );
   }
 }

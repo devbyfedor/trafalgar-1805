@@ -1,0 +1,88 @@
+// Do the fleets' head labels jerk? (development only) Over fine steps of
+// scene 2's progress, each head label's drawings (window.__road.routeLabels:
+// text, opacity, outline, place) are matched from one step to the next by
+// their place (slot), and a row is flagged where a head's opacity (all its
+// drawings) changes by more than JUMP (0.25) in one step, or a drawing that
+// shows at SHOWN (0.2) or more in both steps at the same place moves more
+// than SLIDE (24 CSS px) in a step (its outline's middle): a label
+// crossfades between places, it never pops. The chart's own drift under a
+// step (a few pixels, more in the fast descents) is within SLIDE; a
+// crossfade between two places is two drawings, not a move. Each p is
+// drawn by the page's own map at that p (window.__road.labels(p) draws the
+// scene there without scrolling; the labels' clock held, the page's own
+// loop draws nothing between the steps).
+//   node scripts/dev/label-steps.mjs 0.66 0.84 0.0005
+// Each step is a frame of the labels' own clock (1/60 s).
+// Environment: BASE (default http://127.0.0.1:3000), W, H, S, JUMP, SLIDE.
+import { chromium } from "@playwright/test";
+import { waitForRoad } from "./road-scroll.mjs";
+
+const base = process.env.BASE ?? "http://127.0.0.1:3000";
+const [from, to, step] = process.argv.slice(2).map(Number);
+const width = Number(process.env.W ?? 1280);
+const height = Number(process.env.H ?? 720);
+const scale = Number(process.env.S ?? 1.5);
+const JUMP = Number(process.env.JUMP ?? 0.25);
+const SLIDE = Number(process.env.SLIDE ?? 24);
+const SHOWN = 0.2;
+const browser = await chromium.launch({ channel: "chromium" });
+const page = await browser.newPage({
+  viewport: { width, height },
+  deviceScaleFactor: scale,
+});
+await page.goto(`${base}/?quality=0`);
+await waitForRoad(page, { timeout: 180_000 });
+// Each step a reader's frame: the labels' clock a sixtieth of a second a
+// step (HeadLabels.setClock), so a step of 0.0005 is a scroll of about
+// 650 px a second at 1280×720 (label-flicker.mjs plays other speeds).
+await page.evaluate(() => window.__road.labelClock?.(1 / 60));
+const mid = (q) => [(q[0] + q[4]) / 2, (q[1] + q[5]) / 2];
+let prev = null;
+let flagged = 0;
+let steps = 0;
+let worstJump = 0;
+for (let k = 0; ; k++) {
+  const p = Math.round((from + k * step) * 1e6) / 1e6;
+  if (p > to + 1e-9) break;
+  const labels = await page.evaluate((p) => {
+    window.__road.labels(p);
+    return window.__road.routeLabels(false);
+  }, p);
+  steps++;
+  if (prev) {
+    // Per head, the summed opacity and each drawing's move.
+    const ids = new Set([...labels, ...prev].map((l) => l.id));
+    for (const id of ids) {
+      const a = prev.filter((l) => l.id === id);
+      const b = labels.filter((l) => l.id === id);
+      const sa = a.reduce((n, l) => n + l.opacity, 0);
+      const sb = b.reduce((n, l) => n + l.opacity, 0);
+      const jump = Math.abs(sb - sa);
+      worstJump = Math.max(worstJump, jump);
+      const notes = [];
+      if (jump > JUMP)
+        notes.push(`opacity ${sa.toFixed(2)} -> ${sb.toFixed(2)}`);
+      for (const l of b) {
+        if (l.opacity < SHOWN) continue;
+        const m = a.find((d) => d.slot === l.slot && d.opacity >= SHOWN);
+        if (!m) continue;
+        const [x, y] = mid(l.quad);
+        const [px, py] = mid(m.quad);
+        const moved = Math.hypot(x - px, y - py);
+        if (moved > SLIDE)
+          notes.push(
+            `place ${l.slot} moved ${moved.toFixed(1)} px at ${l.opacity.toFixed(2)}`,
+          );
+      }
+      if (notes.length) {
+        flagged++;
+        console.log(`p ${p.toFixed(4)} ${id}: ${notes.join("; ")}`);
+      }
+    }
+  }
+  prev = labels;
+}
+console.log(
+  `${steps} steps, ${flagged} flagged; the largest step in a head's opacity ${worstJump.toFixed(3)}`,
+);
+await browser.close();

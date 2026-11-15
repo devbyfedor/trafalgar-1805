@@ -14,6 +14,7 @@ import {
   type TrackLabelState,
   TrackLabels,
 } from "../lettering/TrackLabels";
+import { landInk } from "../light/states";
 import type { TerrainField } from "../terrain/field";
 import { dateOf, dayAndMonth, dayNumeral } from "./dates";
 import { type RoutePoint, smoothPath } from "./Route";
@@ -75,6 +76,12 @@ export interface TrackPoint {
   label?: string;
   /** The side for this point's date, instead of the track's rule. */
   side?: LabelSide;
+  /**
+   * From the line to this point's date, ems, instead of the rule's: a key
+   * date at a town whose name and mark stand at the same point keeps clear
+   * of them (the march's dates).
+   */
+  clear?: number;
 }
 
 /** A short italic legend along a stretch of the line. */
@@ -393,6 +400,8 @@ export class Tracks implements ChartLayer {
   private readonly extent: Float32Array;
   private readonly wash: Vector3[];
   private readonly color = new Vector3();
+  /** The land's ink this frame (landInk). */
+  private readonly landInk = new Vector3();
   /** This frame's style of the line being set (Tracks.update). */
   private readonly lineStyle: LineStyle & { wash: [number, number] } = {
     pattern: "solid",
@@ -407,6 +416,13 @@ export class Tracks implements ChartLayer {
   /** Each mark's outline on screen and how much of it shows, this frame. */
   private readonly markQuads: Float64Array[];
   private readonly markShown: Float32Array;
+  /**
+   * Development: what each mark's opacity was made of in the last frame:
+   * in front, revealed, legible (tilt and haze), the track's opacity and
+   * emphasis, its room from the marks that outrank it, clear of the names
+   * and the card, its outline on screen, clear of other tracks' dates.
+   */
+  private readonly markWhy: Float32Array;
   private readonly v = new Vector3();
   private sized = false;
 
@@ -420,6 +436,7 @@ export class Tracks implements ChartLayer {
     this.circleAlpha = new Float32Array(this.circles.length);
     this.markQuads = this.marks.map(() => new Float64Array(8));
     this.markShown = new Float32Array(this.marks.length);
+    this.markWhy = new Float32Array(8 * this.marks.length);
     this.extent = new Float32Array(this.marks.length);
     rankNeighbours(this.circles);
     rankNeighbours(this.marks);
@@ -487,7 +504,7 @@ export class Tracks implements ChartLayer {
       );
       material.setInk(
         track.line,
-        style.ink === "pale" ? light.inkPale : light.ink,
+        style.ink === "pale" ? light.inkPale : landInk(light, this.landInk),
         mix(b.ink, a.ink, e),
       );
       // Pigment on the chart darkens with the night.
@@ -539,6 +556,12 @@ export class Tracks implements ChartLayer {
       const s = this.markSeen[i];
       const em = (EM_PX * s.dist) / cssPerRadian;
       // Day marks only on the line being sailed.
+      const why = this.markWhy;
+      why.fill(1, 8 * i, 8 * i + 8);
+      why[8 * i] = s.front;
+      why[8 * i + 1] = reveal(m);
+      why[8 * i + 2] = this.legible(frame, s.dist);
+      why[8 * i + 3] = m.track.opacity * m.track.emphasis;
       let alpha =
         s.front *
         reveal(m) *
@@ -557,14 +580,22 @@ export class Tracks implements ChartLayer {
         alpha *= smooth(0.85 * need, need, chord);
       } else {
         const need = (this.extent[i] + LABEL_GAP_EM) * EM_PX;
-        alpha *= smooth(0.8 * need, need, this.room(this.markSeen, m.above, s));
+        const roomy = smooth(
+          0.8 * need,
+          need,
+          this.room(this.markSeen, m.above, s),
+        );
+        why[8 * i + 4] = roomy;
+        alpha *= roomy;
         if (m.circle >= 0) alpha = Math.min(alpha, this.circleAlpha[m.circle]);
       }
       if (!this.sized) alpha = 0;
       this.labels.set(m.index, em, alpha);
       // Clear of the chart's names and the caption's card.
       if (alpha > 0.001 && this.keepClear.length > 0) {
-        alpha *= this.clearOf(m.index, frame);
+        const clear = this.clearOf(m.index, frame);
+        why[8 * i + 5] = clear;
+        alpha *= clear;
         this.labels.set(m.index, em, alpha);
       }
       // Clear of the dates of the tracks before this one (their marks come
@@ -579,11 +610,15 @@ export class Tracks implements ChartLayer {
           const apart = quadsApart(q, this.markQuads[j]);
           keep *= 1 - shown * (1 - smooth(YIELD_PX[0], YIELD_PX[1], apart));
         }
+        why[8 * i + 7] = keep;
         if (keep < 1) {
           alpha *= keep;
           this.labels.set(m.index, em, alpha);
         }
-      } else alpha = 0;
+      } else {
+        why[8 * i + 6] = 0;
+        alpha = 0;
+      }
       this.markShown[i] = alpha;
     }
     this.labels.update(frame);
@@ -618,6 +653,18 @@ export class Tracks implements ChartLayer {
   /** Every label's state in the last frame (development and tests). */
   snapshot(): TrackLabelState[] {
     return this.labels.snapshot();
+  }
+
+  /** Development: each mark's text and what its opacity was made of in the last frame (markWhy). */
+  explain(): { text: string; why: number[] }[] {
+    const texts = this.labels.snapshot();
+    return this.marks.map((m, i) => ({
+      text: texts[m.index]?.text ?? "",
+      why: Array.from(
+        this.markWhy.subarray(8 * i, 8 * i + 8),
+        (v) => Math.round(v * 1000) / 1000,
+      ),
+    }));
   }
 
   dispose(): void {
@@ -678,7 +725,7 @@ export class Tracks implements ChartLayer {
         angle: 0,
         dirX: nx,
         dirY: ny,
-        clear: p.noon ? CIRCLE_CLEAR_EM : LINE_CLEAR_EM,
+        clear: p.clear ?? (p.noon ? CIRCLE_CLEAR_EM : LINE_CLEAR_EM),
       });
       this.marks.push({
         ...site,

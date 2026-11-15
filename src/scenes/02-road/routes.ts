@@ -5,7 +5,7 @@ import { day } from "./dates";
 /**
  * The fleets' routes as dated waypoints, drawn on the chart as tracks that
  * draw themselves day by day. Sources and doubts: docs/history-notes.md,
- * "Scene 2", "Routes on the chart"; the tables are docs/research/scene-02
+ * "Scene 2: the road to Trafalgar", "Routes on the chart"; the tables are docs/research/scene-02
  * /routes-draft.json with the corrections of a-v-draft-h1.md (ruling 1:
  * the Vigo legs keep clear of the rocks off San Martiño).
  *

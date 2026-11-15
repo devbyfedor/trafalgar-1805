@@ -29,6 +29,7 @@ import {
   HeadLabels,
 } from "@/components/chart/lettering/HeadLabels";
 import type { LabelState } from "@/components/chart/lettering/Lettering";
+import type { TrackLabelState } from "@/components/chart/lettering/TrackLabels";
 import type { WaterLift } from "@/components/chart/terrain/liftProbe";
 import type { InterludePhase } from "../alive/interlude";
 import { CAPTIONS } from "./beats";
@@ -53,6 +54,7 @@ import {
 import { GAZETTEER } from "./gazetteer";
 import { interludeView } from "./interludeCamera";
 import { marksAt, SEA_EYE, type SeaPose } from "./interludes";
+import { ARMY_MARCH } from "./march";
 import { legTracks, NELSON, VILLENEUVE } from "./routes";
 import { SOUNDING_ANGLES } from "./soundings";
 
@@ -204,6 +206,16 @@ export interface RoadStage {
     explain?: boolean,
   ): HeadLabelState[] | ReturnType<HeadLabels["explain"]>;
   hideRouteLabels(hidden: boolean): void;
+  /**
+   * Development and the checks: the fleets' labels' clock held to a step a
+   * frame (1/60: a reader's frames; Infinity: every move made at once),
+   * or null for the frame's own time (HeadLabels.setClock).
+   */
+  labelClock(step: number | null): void;
+  /** Development: the tracks' dates and legends as they stood in the frame last drawn (Tracks.snapshot). */
+  trackLabels(
+    explain?: boolean,
+  ): TrackLabelState[] | ReturnType<Tracks["explain"]>;
   /** Development: a glyph's baked sizes by step (GlyphLayout.bakedSizes). */
   bakedSizes(layer: number, i: number, k0: number, k1: number): number[][];
   /** Development: the bake's sizes pass replayed at step k (GlyphLayout.traceBakeStep). */
@@ -300,6 +312,8 @@ export async function createRoadStage(
     const tracks = new Tracks(chart.field, [
       ...legTracks(VILLENEUVE),
       ...legTracks(NELSON),
+      // The army's march to Ulm, drawn by date like them (march.ts).
+      ARMY_MARCH,
     ]);
     // The fleets' labels at their heads: commander and strength.
     const heads = new HeadLabels(chart.field, roadHeads());
@@ -404,6 +418,8 @@ export async function createRoadStage(
     director.setLayout(layout);
     chart.add(layout);
     heads.setCoast(coast);
+    // Every label keeps clear of every ship drawn, whosever she is.
+    heads.setGlyphs([fleets.drawn, squadrons.drawn]);
     heads.setBlocks((id, out) => {
       const formation = director.formationOf(id);
       return formation ? layout.blockOf(formation, out) : 0;
@@ -724,6 +740,12 @@ export async function createRoadStage(
       },
       hideRouteLabels(hidden) {
         heads.setHidden(hidden);
+      },
+      labelClock(step) {
+        heads.setClock(step);
+      },
+      trackLabels(explain) {
+        return explain ? tracks.explain() : tracks.snapshot();
       },
       labels(p) {
         sampled = Number.NaN;

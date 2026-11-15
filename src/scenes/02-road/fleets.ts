@@ -19,8 +19,8 @@ import { day } from "./dates";
 /**
  * The ships on the chart: their glyph types, the two fleets ship by ship,
  * and where they stood at the moments the scene shows. Sources and doubts:
- * docs/history-notes.md, "Scene 2" ("Positions on the chart", "Fleet sizes
- * at each stage").
+ * docs/history-notes.md, "Scene 2: the road to Trafalgar" ("Positions on the chart",
+ * "Fleet sizes at each stage").
  */
 
 /** A type of scene 1's enemy line, at anchor (no sail set). */
@@ -239,8 +239,8 @@ export const BRITISH: readonly Ship[] = [
   ["Britannia", RIGS.firstRate, "nelson"],
   ["Conqueror", RIGS.british74, "nelson"],
   // The ships that joined Nelson off Cádiz in October, each from the day
-  // she did (history-notes.md, "Scene 2: the strengths lettered at the
-  // tracks' heads"); the Africa's joining, by the forenoon of the 14th, is
+  // she did (history-notes.md, "Scene 2: the road to Trafalgar", "Fleet sizes at each
+  // stage": "The British fleet off Cádiz, by date"); the Africa's joining, by the forenoon of the 14th, is
   // taken with the Prince of Wales's going on the evening of the 13th.
   ["Agamemnon", RIGS.british64, "nelson", false, { joins: day(10, 13, 10) }],
   ["Ajax", RIGS.british74, "nelson"],
@@ -1103,8 +1103,9 @@ export const ROUTE_SQUADRON: readonly ShipMark[] = [
 /**
  * The ships of the line with the fleet off Cádiz in the weeks before the
  * battle that were not at Trafalgar, each until the day she left it
- * (history-notes.md, "Scene 2: the strengths lettered at the tracks'
- * heads"; research/scene-02/session-21/strengths-by-date.md): Louis's five
+ * (history-notes.md, "Scene 2: the road to Trafalgar", "Fleet sizes at each stage",
+ * "The strengths lettered at the tracks' heads";
+ * research/scene-02/session-21/strengths-by-date.md): Louis's five
  * for Gibraltar and Tetuan on the evening of 2 October, the Prince of
  * Wales home with Calder on the evening of the 13th, the Donegal to
  * Gibraltar on the 17th. Counted in the fleet's strength while with it,

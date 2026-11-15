@@ -6,11 +6,12 @@ import { deg, lerp, type Vec } from "./vec";
  * of the line (hull, spars, sails, rigging), for the chart's glyph atlas:
  * the vessels under the frigates that sailed with the fleets in October
  * 1805 (a naval brig, the schooner Pickle, the cutter Entreprenante; their
- * sources in docs/history-notes.md, "Scene 2", "Fleet sizes at each
- * stage"), and the small craft of the invasion flotilla at Boulogne. The
+ * sources in docs/history-notes.md, "Scene 2: the road to Trafalgar", "Fleet sizes
+ * at each stage", "The fleets in the close views"), and the small craft of the invasion flotilla at Boulogne. The
  * flotilla's designs of 1803
  * (Desbrière, Projets III, p. 90 and its plate; James III, pp. 216–217; in
- * docs/history-notes.md, "Scene 2"):
+ * docs/history-notes.md, "Scene 2: Boulogne from the sea (beat 1)", "The
+ * flotilla in the roads and in the harbour"):
  *
  * - the prame: 110 × 25 × 8 French feet (about 36 × 8 × 2.6 m), three
  *   masts, ship-rigged ("gréement de corvette"), twelve 24-pounders;

@@ -18,7 +18,7 @@ import {
 /**
  * Where each ship of both fleets is from Nelson's arrival off Cádiz (28
  * September) to first light on 21 October, as keyframes by day, for beats
- * 0, 4 and 5 (docs/history-notes.md, "Scene 2": "Nelson off Cádiz",
+ * 0, 4 and 5 (docs/history-notes.md, "Scene 2: the road to Trafalgar": "Nelson off Cádiz",
  * "Orders, Rosily and the sortie", "The signal chain, 19 to 21 October",
  * "Positions on the chart"). Fixes are few: the anchorage, the station, the
  * chain and the frigates on 19 October, the combined fleet at nightfall and

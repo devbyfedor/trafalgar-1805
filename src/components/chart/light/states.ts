@@ -250,3 +250,23 @@ export class LightBlend {
     LightBlend.slot(bId, this.slotB);
   }
 }
+
+/**
+ * The ink of what is drawn over the land by day in the land's dark ink and
+ * must read at night as well: the army's march and its dates (the tracks'
+ * "dark" ink). By day the dark ink; at night the chart is drawn in pale ink
+ * on dark paper, and the dark ink on the night's paper reads only about
+ * 2.2:1, so the pale ink, lifted by this, reads 5.5:1 there (dates 4.5:1
+ * or more); between them, by the night's share.
+ */
+const NIGHT_LAND_LIFT = 1.4;
+
+export function landInk(light: LightBlend, out: Vector3): Vector3 {
+  const p = light.inkPale;
+  out.set(
+    Math.min(1, p.x * NIGHT_LAND_LIFT),
+    Math.min(1, p.y * NIGHT_LAND_LIFT),
+    Math.min(1, p.z * NIGHT_LAND_LIFT),
+  );
+  return out.lerpVectors(light.ink, out, light.night);
+}

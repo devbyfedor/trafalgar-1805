@@ -19,6 +19,8 @@ import {
   Tracks,
 } from "@/components/chart";
 import { type BenchResult, benchFrames } from "@/components/chart/engine/bench";
+import { ShipAnatomy } from "@/components/chart/fx/anatomy";
+import { Smoke } from "@/components/chart/fx/Smoke";
 import { mercatorScale, worldX, worldY } from "@/components/chart/geo/mercator";
 import type { ClashResult } from "@/components/chart/glyphs/clash";
 import { glyphPxAt } from "@/components/chart/glyphs/height";
@@ -56,6 +58,7 @@ import { interludeView } from "./interludeCamera";
 import { marksAt, SEA_EYE, type SeaPose } from "./interludes";
 import { ARMY_MARCH } from "./march";
 import { legTracks, NELSON, VILLENEUVE } from "./routes";
+import { BattleSmoke, smokeCapacity } from "./smoke";
 import { SOUNDING_ANGLES } from "./soundings";
 
 /** The soundings' ink (Soundings' own default strength). */
@@ -417,6 +420,19 @@ export async function createRoadStage(
     const layout = new GlyphLayout(coast, director.layoutGroups());
     director.setLayout(layout);
     chart.add(layout);
+    // The smoke of the action off Finisterre: set after the layout has drawn
+    // the two lines each frame, drawn under their ships (smoke.ts).
+    const upper = director.formationOf("villeneuve");
+    const lower = director.formationOf("calder");
+    if (!upper || !lower) throw new Error("road: no squadrons for the smoke");
+    const smoke = new Smoke(
+      new ShipAnatomy(atlas, GLYPH_TYPES),
+      smokeCapacity(upper, lower),
+    );
+    const battle = new BattleSmoke(smoke, upper, lower);
+    director.setSmoke(battle);
+    chart.add(battle);
+    chart.add(smoke, smoke.mesh);
     heads.setCoast(coast);
     // Every label keeps clear of every ship drawn, whosever she is.
     heads.setGlyphs([fleets.drawn, squadrons.drawn]);

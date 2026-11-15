@@ -40,6 +40,7 @@ import {
 import { ARMY_MARCH } from "./march";
 import { type ShipState, shipAt } from "./movements";
 import type { DatedWaypoint, Leg } from "./routes";
+import type { BattleSmoke } from "./smoke";
 import {
   COMMANDERS,
   SQUADRONS,
@@ -1702,6 +1703,7 @@ export class RoadDirector {
     this.applyTracks(p, d);
     this.applyHeads(p);
     this.layout?.setProgress(p);
+    this.smoke?.setProgress(p);
   }
 
   /**
@@ -1734,6 +1736,13 @@ export class RoadDirector {
   }
 
   private layout: GlyphLayout | null = null;
+
+  /** The smoke of the action off Finisterre (smoke.ts; it reads the scene's progress). */
+  setSmoke(smoke: BattleSmoke): void {
+    this.smoke = smoke;
+  }
+
+  private smoke: BattleSmoke | null = null;
 
   dispose(): void {
     this.restorePainted();

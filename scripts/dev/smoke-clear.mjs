@@ -134,7 +134,8 @@ for (const size of sizes) {
       }
     }
     most = Math.max(most, stepHits);
-    if (stepHits || land) bad.push(`${p.toFixed(4)} (${stepHits} overlaps, ${land} on land)`);
+    if (stepHits || land)
+      bad.push(`${p.toFixed(4)} (${stepHits} overlaps, ${land} on land)`);
     rows.push({ size: label, p, puffs: n, overlaps: stepHits, land });
   }
   failed += bad.length;

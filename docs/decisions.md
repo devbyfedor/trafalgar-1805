@@ -1002,3 +1002,15 @@ His second look is in the brief ("Second look, 13 November"); these are the deci
 ### The conflict, for the owner (stills in `docs/screenshots/scene-02/labels-low-views/`)
 
 - With every rule kept, the label in the lowest views stands on the open sea past the peninsula's tip, nearer the eye than the fleet (stills 2 and 4: one and a half to two of its widths from the fleet), and still dips for a fraction of a second when a frigate of the watch comes in under it on a fast or backward scroll (stills 5 and 6). The choices: the label may stand over a frigate for the moment she comes in; or the frigates of the watch come in a little earlier, so they are already there when the label chooses; or the dips at those scrolls are accepted. And whether the label's new ground past the tip is right at all.
+
+### The owner's answer of 15 November 2026 (session 33's order)
+
+- **The low views' branch is put off.** The labels in the lowest views off Cádiz stay as `main` has them. The branch `s32-label-low-views` is kept as it is (not deleted, not changed): its plan (more places toward the eye and past the peninsula's tip, the views ahead) and its failure (the dips where the inshore frigates come in under the label's new place, the extra moves) go into scene 2's final polish.
+
+## Scene 2, Stage B: the smoke at Finisterre (session 33, part one, 15 November 2026)
+
+### The owner's answers of 15 November 2026
+
+- **The smoke follows the battle's real time on the story's clock.** The fleets close without smoke. Smoke comes with the first guns (about 5.15 p.m. on 22 July: "Cape Finisterre, 22 and 23 July", "The action", in `history-notes.md`), grows while the firing goes on and drifts downwind (the light WNW breeze of that day, so toward the ESE). At the end of the camera's pause over the action it does not vanish at once: it thins and drifts off. This replaces branch 2's battle smoke, which was born over the first share of the fight and gone by its end.
+- **Session 33 is in two parts:** this one the smoke; the night lanterns the next, not touched here.
+- **Branch 2 is ported, not merged:** the branch `s33-smoke` is made from `main`, and what is useful of branch 2's smoke is ported onto `main`'s present ship engine (the CPU glyph layout, `Glyphs.drawn`); branch 2 itself is kept for the lanterns and the relay.

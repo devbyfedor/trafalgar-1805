@@ -576,6 +576,12 @@ export class Chart {
     // leaves the canvas alone, which presents a frame each time it is drawn.
     const target = new WebGLRenderTarget(4, 4, { samples: 4 });
     this.prepareFrame(0);
+    // What the layers' update just showed or hid is what the draws below
+    // give back: a layer that shows or hides itself only as its state
+    // changes (the smoke, fx/Smoke.ts) would otherwise keep a state its
+    // object no longer has, hidden for good once warmed inside its stretch
+    // of the scene (a reload there).
+    for (let i = 0; i < objects.length; i++) visible[i] = objects[i].visible;
     try {
       r.setRenderTarget(target);
       for (const object of objects) {

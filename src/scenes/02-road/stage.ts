@@ -453,9 +453,9 @@ export async function createRoadStage(
     const battle = new BattleSmoke(smoke, upper, lower);
     director.setSmoke(battle);
     chart.add(battle);
-    // It gives way to the names, the caption's card and the labels.
+    // It gives way to the names, the caption's card and the labels: added
+    // below, after the labels, so it reads their outlines of this frame.
     smoke.setKeepClear([lettering.screen, heads.screen]);
-    chart.add(smoke, smoke.mesh);
     heads.setCoast(coast);
     // Every label keeps clear of every ship drawn, whosever she is.
     heads.setGlyphs([fleets.drawn, squadrons.drawn]);
@@ -477,6 +477,9 @@ export async function createRoadStage(
           : 0,
     );
     chart.add(heads, ...heads.objects);
+    // The smoke, after the battle's puffs (BattleSmoke, after the layout)
+    // and the lettering it gives way to; drawn by its render order.
+    chart.add(smoke, smoke.mesh);
     chart.add(tracks, ...tracks.objects);
     chart.add(fleets, fleets.wakes, fleets.ships);
     chart.add(squadrons, squadrons.wakes, squadrons.ships);

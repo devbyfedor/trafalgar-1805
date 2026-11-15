@@ -38,7 +38,16 @@ import { day } from "./dates";
  * layout), and drawn by the engine's smoke (fx/Smoke.ts).
  */
 
-/** The wind off Finisterre that day: a light WNW breeze ("Fog", Corbett 1910, p. 196). */
+/**
+ * The wind off Finisterre that day: the light WNW breeze the allies had in
+ * the morning fog (Reille, in Desbrière 1907; history-notes "Fog"), a
+ * compass bearing read as true, as the action's course is (247°), and held
+ * through the evening's fight: a licence, by the owner's answer of 15
+ * November 2026 ("drifts downwind on the WNW breeze"). No source gives the
+ * wind of the evening; a line on the starboard tack heading 247° could not
+ * have lain within four points of a WNW wind, so the plan's course and
+ * this wind are each a convention, not a sailing reckoning.
+ */
 export const FINISTERRE_WIND = { fromDeg: 292.5, strength: 0.5 } as const;
 
 /** The p at which the story's clock shows a day (in the Finisterre beat). */

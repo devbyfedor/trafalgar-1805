@@ -13,7 +13,8 @@ import { FOOT, type GlyphAtlas, type GlyphType } from "../glyphs/atlas";
  * toward her bow (the atlas centres the hull in its cell), `up` in glyph
  * heights from the glyph's foot (her waterline is FOOT above it). A point
  * at (along, up) stands `along × narrowing × facing` and `up` glyph heights
- * from her foot on screen (fx/Smoke.ts, `place`), as her drawing does.
+ * from her foot on screen (fx/Smoke.ts, `update`: her facing and
+ * narrowing, as Glyphs.ts draws her), as her drawing does.
  */
 
 /** A point of a glyph: glyph heights toward her bow and up from her foot. */

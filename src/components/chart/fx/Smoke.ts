@@ -872,6 +872,10 @@ function clearOfText(
       const qx1 = Math.max(q[0], q[2], q[4], q[6]);
       const qy0 = Math.min(q[1], q[3], q[5], q[7]);
       const qy1 = Math.max(q[1], q[3], q[5], q[7]);
+      // An outline lost behind the eye (a label's copy still fading out
+      // where its last place had a corner there) keeps clear of nothing,
+      // as the lanterns' (Lights.ts, lightClear): a NaN would drop the bank.
+      if (!Number.isFinite(qx0 + qx1 + qy0 + qy1)) continue;
       const gx = Math.max(qx0 - x1, x0 - qx1, 0);
       const gy = Math.max(qy0 - y1, y0 - qy1, 0);
       const gap = Math.sqrt(gx * gx + gy * gy);

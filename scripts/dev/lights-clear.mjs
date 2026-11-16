@@ -8,10 +8,15 @@
 // frame, the night's share of the light and the outlines of the lettering.
 // The labels' clock makes every move at once (HeadLabels.setClock), and
 // each p is drawn twice, so they stand settled. A step fails where:
-//   - a lantern shows while the chart is not in the dark (night <= NIGHT),
-//     but the combined fleet's in the night beat (from p NIGHT_BEAT), which
-//     burn faintly into the scene's last frame (session 34: the owner's
-//     answer of 16 November 2026), or any before the night beat;
+//   - a lantern shows before the night beat (p under NIGHT_BEAT), whatever
+//     the light: the scene's opening reads the morning of the 21st, scene
+//     1's last moments, where they have gone out (every run takes in the
+//     points OPENING as well as its sweep);
+//   - a British lantern shows while the chart is not in the dark (night <=
+//     NIGHT); the combined fleet's burn faintly into the scene's last frame
+//     (session 34: the owner's answer of 16 November 2026);
+//   - from the camera's last hold (p LAST_HOLD) on, no lantern of the
+//     combined fleet shows (they burn there at FAINT: the same answer);
 //   - a lantern of the combined fleet shows brighter than the night lets it
 //     (lanterns.ts: whole while the chart's night share is DIM_FROM or
 //     more, down to FAINT as it falls to none; dim() below, written apart);
@@ -46,7 +51,9 @@
 // "1280x720@1.5,1920x1080@1,2560x1440@1,3440x1440@1"), SEEN (the least
 // intensity that counts, 0.02), NIGHT (0.002), LAND_KM (0.5), GAP (0.5),
 // TEXT (0.5), BRIGHT (0.5), SPACE (3.5), FAINT (0.55), DIM_FROM (0.35),
-// NIGHT_BEAT (0.82), POP (0.35), MOVE (2), JSON=<file>
+// NIGHT_BEAT (0.82), LAST_HOLD (0.978), OPENING (the points of the
+// scene's opening checked in every run, "0,0.02,0.05,0.085"; "" none),
+// POP (0.35), MOVE (2), JSON=<file>
 // for every step's counts. Exits with 1 if any step fails.
 import { writeFile } from "node:fs/promises";
 import { chromium } from "@playwright/test";
@@ -65,6 +72,11 @@ const SPACE = Number(process.env.SPACE ?? 3.5);
 const FAINT = Number(process.env.FAINT ?? 0.55);
 const DIM_FROM = Number(process.env.DIM_FROM ?? 0.35);
 const NIGHT_BEAT = Number(process.env.NIGHT_BEAT ?? 0.82);
+const LAST_HOLD = Number(process.env.LAST_HOLD ?? 0.978);
+const OPENING = (process.env.OPENING ?? "0,0.02,0.05,0.085")
+  .split(",")
+  .filter((v) => v.trim() !== "")
+  .map(Number);
 
 /**
  * How far the night lets a lantern of a side show (lanterns.ts,
@@ -93,6 +105,8 @@ for (let k = 0; ; k++) {
   if (p > to + 1e-9) break;
   ps.push(p);
 }
+// The scene's opening, before the sweep: no lantern there whatever the light.
+ps.unshift(...OPENING.filter((p) => p < from - 1e-9).sort((x, y) => x - y));
 const PLACES = ["stern", "top", "mizzen"];
 
 function pointToSegment(px, py, ax, ay, bx, by) {
@@ -213,12 +227,21 @@ for (const size of sizes) {
       lastLit = p;
     }
     let fails = 0;
-    const byDay = shown.filter(
-      (l) => r.ships[l.i].side !== "combined" || p < NIGHT_BEAT,
-    );
+    if (p < NIGHT_BEAT && shown.length) {
+      fails++;
+      note("early", p, "a lantern before the night beat");
+    }
+    const byDay = shown.filter((l) => r.ships[l.i].side !== "combined");
     if (r.night <= NIGHT && byDay.length) {
       fails++;
-      note("day", p, "a lantern while the chart is not in the dark");
+      note("day", p, "a British lantern while the chart is not in the dark");
+    }
+    if (
+      p >= LAST_HOLD &&
+      !shown.some((l) => r.ships[l.i].side === "combined")
+    ) {
+      fails++;
+      note("out", p, "no lantern of the combined fleet from the last hold on");
     }
     const lets = (l) => dim(r.ships[l.i].side, r.night);
     for (const l of shown)

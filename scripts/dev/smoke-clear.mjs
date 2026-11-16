@@ -2,9 +2,9 @@
 // name, the caption's card, the fleets' labels and the tracks' dates.
 // Sweeps scene 2 over the smoke's stretch in small steps of its progress,
 // at one or more viewport sizes; at each step the page draws the scene
-// (window.__road.smoke, RoadStage.smoke) and returns each puff's box as the
-// smoke's vertex shader lays it out (its lobes lie inside it, so the test
-// is on the safe side), the coast's distance under each puff, and the
+// (window.__road.smoke, RoadStage.smoke) and returns each puff's box as its
+// lobes are drawn (Smoke.bounds: their extent, puffExtent, and the soft
+// contour about them), the coast's distance under each puff, and the
 // outlines of the lettering. The labels' clock makes every move at once
 // (HeadLabels.setClock), and each p is drawn twice, so they stand settled.
 //   node scripts/dev/smoke-clear.mjs [from] [to] [step]
@@ -15,7 +15,8 @@
 // SIZES (default "1280x720@1.5,1920x1080@1,2560x1440@1,3440x1440@1"),
 // SEEN (the least product of a puff's and an outline's opacity that
 // counts, 0.02), LAND_KM (the least distance from the coast under a puff,
-// 2), JSON=<file> for every step's counts. Exits with 1 if any step fails.
+// 2), JSON=<file> for every step's counts. Exits with 1 if any step fails,
+// or if a sweep across the firing's heart (0.540 to 0.546) draws no puff.
 import { writeFile } from "node:fs/promises";
 import { chromium } from "@playwright/test";
 
@@ -25,6 +26,9 @@ const to = Number(process.argv[3] ?? 0.566);
 const step = Number(process.argv[4] ?? 0.0005);
 const seen = Number(process.env.SEEN ?? 0.02);
 const landKm = Number(process.env.LAND_KM ?? 2);
+// The firing's heart (the bank at its thickest, session 34: 0.540 to 0.546):
+// a sweep across it must draw smoke.
+const FIRING_HEART = [0.54, 0.546];
 const sizes = (
   process.env.SIZES ?? "1280x720@1.5,1920x1080@1,2560x1440@1,3440x1440@1"
 )
@@ -139,6 +143,10 @@ for (const size of sizes) {
       bad.push(`${p.toFixed(4)} (${stepHits} overlaps, ${land} on land)`);
     rows.push({ size: label, p, puffs: n, overlaps: stepHits, land });
   }
+  // A sweep across the heart of the firing with no puff drawn proves
+  // nothing: the smoke is gone, not clear (as lights-clear's empty night).
+  if (from <= FIRING_HEART[0] && to >= FIRING_HEART[1] && mostPuffs === 0)
+    bad.push(`no puff drawn over ${FIRING_HEART.join("..")}`);
   failed += bad.length;
   console.log(
     `${label}: ${ps.length} steps ${from}..${to}, at most ${mostPuffs} puffs; nearest coast under a puff ${nearest.toFixed(1)} km; steps failing ${bad.length}`,

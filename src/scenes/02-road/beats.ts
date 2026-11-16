@@ -183,9 +183,10 @@ function unbrokenKeys(): Keyframe[] {
  * so not a frame outside the hold changes; between them the firing (5.15
  * to 9.30 p.m.) takes FIRING_SHARE of the hold at an even pace, ending
  * where the unbroken clock ends it, and the lines close before it faster.
- * The unbroken curve slows through the hold's first half and runs ever
- * faster through its second, which had crowded the firing into the last
- * 205 px of the hold's 450 (session 33).
+ * The unbroken curve runs slowest at the hold's start and ever faster to
+ * its end (about 228 story hours a unit of p at 0.527, 601 at 0.548),
+ * which had crowded the firing into the last 205 px of the hold's 450
+ * (session 33).
  */
 function heldClock(clock: (p: number) => number): (p: number) => number {
   const [from, to] = FINISTERRE_HOLD;

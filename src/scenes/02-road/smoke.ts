@@ -114,6 +114,8 @@ export class BattleSmoke implements ChartLayer {
   private readonly along: Float32Array;
   /** The upper and lower lines' mean foot height on screen and their glyphs' mean height, this frame. */
   private readonly level = new Float64Array(3);
+  /** Each line's summed drawn opacity (measure): 0 where none is drawn. */
+  private readonly weight = new Float64Array(2);
   private readonly viewProjection = new Matrix4();
 
   /**
@@ -142,7 +144,15 @@ export class BattleSmoke implements ChartLayer {
     const p = this.p;
     if (!(p > FIRST_GUN_P && p < SMOKE_END_P)) return;
     this.measure(frame);
-    const both = this.level[0] > this.level[1] && this.level[2] > 0.5;
+    // Both lines drawn: a line with none has no foot to measure (its level
+    // 0, the screen's centre, would snap the band and the gap). Off
+    // Finisterre the two go together at about p 0.559, once the last puff
+    // has gone (0.5589), so this only keeps the band honest.
+    const both =
+      this.weight[0] > 0 &&
+      this.weight[1] > 0 &&
+      this.level[0] > this.level[1] &&
+      this.level[2] > 0.5;
     const gap = both ? this.gapOf() : GAP;
     // The smoke keeps to the lines' own band on screen, from the lower
     // line's feet to the upper line's mastheads: the lines' labels stand
@@ -187,6 +197,7 @@ export class BattleSmoke implements ChartLayer {
         n += a;
       }
       lv[l] = weight > 0 ? y / weight : 0;
+      this.weight[l] = weight;
     }
     lv[2] = n > 0 ? sumH / n : 0;
   }

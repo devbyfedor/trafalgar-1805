@@ -769,8 +769,10 @@ export class Lights implements ChartLayer {
   /**
    * Development: every lantern set in the last frame, in its order of
    * setting: its ship's mark and its place, whether it was placed, how much
-   * its ship's presence, the dark and the haze let it show, and what its
-   * spacing and the lettering left of that.
+   * its ship's presence and the haze let it show (`base`; the scene's
+   * timing, by its clock and the chart's night share, is in the intensity
+   * it passes, not here), and what its spacing and the lettering left of
+   * that.
    */
   explain(): {
     mark: number;

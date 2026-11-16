@@ -484,6 +484,24 @@ export class GlyphLayout implements ChartLayer {
     return out;
   }
 
+  /**
+   * Development: a glyph's baked visibility and nominal height by step
+   * (what its gate's readability is taken from: bakeReadable), as [p, vis,
+   * nom] rows.
+   */
+  bakedVis(layer: number, i: number, k0: number, k1: number): number[][] {
+    const b = this.baked;
+    if (!b) return [];
+    const out: number[][] = [];
+    for (let k = k0; k <= k1; k++)
+      out.push([
+        b.from + k * b.step,
+        b.vis[layer][i * b.steps + k],
+        b.nom[layer][i * b.steps + k],
+      ]);
+    return out;
+  }
+
   /** The scene's progress for this frame (the baked tables are read at it). */
   setProgress(p: number): void {
     this.p = p;

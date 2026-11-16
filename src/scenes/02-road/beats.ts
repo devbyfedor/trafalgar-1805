@@ -70,11 +70,25 @@ const FIRING_SHARE = 2 / 3;
 
 /**
  * The camera's hold over Cádiz harbour on the morning of 19 October
- * (camera.ts), about 320 px of scroll on the owner's screen: shortened by
- * the owner's answer of 16 November 2026 (it was 0.72-0.75), so the relay
- * gets about one and a half screens; the pin's length is unchanged.
+ * (camera.ts), about 650 px of scroll on the owner's screen: kept at its
+ * length (the owner's answer of 16 November 2026, in place of his earlier
+ * one; shorter, the anchored ships came in only as a flash or not at all),
+ * the relay's screen and a half taken from the high view after it.
  */
 export const HARBOUR_HOLD = [0.72, 0.75] as const;
+
+/**
+ * The camera's hold over Nelson's station at the relay's end (camera.ts):
+ * the Victory answers the Mars at 9.30 and the fleet makes sail for the
+ * Strait while the camera stands still over the body, long enough that its
+ * ships come in one by one (each glyph's size and showing eased over the
+ * scroll: they come about 0.009 of p after the camera stops and go about
+ * as long before it moves), so her answer shows on her own ship (the
+ * owner's answer of 16 November 2026: no flagship alone; the time taken
+ * from the start of the rise toward Ulm in beat 5, the pin's length
+ * unchanged). About 650 px of scroll on the owner's screen.
+ */
+export const STATION_HOLD = [0.802, 0.833] as const;
 
 /**
  * The relay of 19 October on the story's clock (docs/history-notes.md, "The
@@ -89,17 +103,19 @@ export const HARBOUR_HOLD = [0.72, 0.75] as const;
  */
 export const RELAY_CLOCK = {
   holdFrom: [HARBOUR_HOLD[0], 6.83, 5],
-  holdTo: [HARBOUR_HOLD[1], 6.93, 5],
-  sirius: [0.758, 7, 20],
-  euryalus: [0.766, 7 + 20 / 60, 50],
-  victory: [0.8, 9.5, 62],
+  holdTo: [HARBOUR_HOLD[1], 6.93, 3],
+  sirius: [0.766, 7, 6],
+  euryalus: [0.7705, 7 + 20 / 60, 50],
+  mars: [0.793, 9, 62],
+  victory: [0.816, 9.5, 12],
+  stationTo: [STATION_HOLD[1], 10, 15],
 } as const satisfies Record<string, readonly [number, number, number]>;
 
 /**
  * The stretch of p the relay's clock replaces (relayClock): from first
  * light on the 19th to the morning of the 20th, where beat 5 takes over.
  */
-const RELAY_SPAN = [0.7, 0.82] as const;
+const RELAY_SPAN = [0.7, 0.87] as const;
 
 /**
  * The story's clock: the day the chart shows, as a monotone curve through

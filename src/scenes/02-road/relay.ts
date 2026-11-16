@@ -1,4 +1,4 @@
-import { BEATS, dayAt, RELAY_CLOCK } from "./beats";
+import { BEATS, dayAt, RELAY_CLOCK, STATION_HOLD } from "./beats";
 import { day } from "./dates";
 
 /**
@@ -60,8 +60,10 @@ export const CHAIN_SHIPS: readonly string[] = [
 /** The progress p at which the story's clock reaches an hour of 19 October. */
 export function pOfRelayHour(hour: number): number {
   const d = day(10, 19, hour);
+  // From beat 4's start to the end of the hold over the station, where the
+  // relay's last moments fall (the beat itself ends at 0.82).
   let lo: number = BEATS.cadiz[0];
-  let hi: number = BEATS.cadiz[1];
+  let hi: number = STATION_HOLD[1];
   for (let i = 0; i < 50; i++) {
     const mid = (lo + hi) / 2;
     if (dayAt(mid) < d) lo = mid;

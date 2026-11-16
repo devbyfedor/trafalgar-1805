@@ -82,6 +82,18 @@ const COMBINED_TRACK = [
  */
 export const BRITISH_STATION = { lon: -7.4, lat: 36.575 } as const;
 
+/**
+ * The Africa with the fleet until the wear at 8 p.m. on the 20th, which
+ * she missed and held on north, out of touch (Corbett 1910, p. 340 n.;
+ * history notes, "The British track, 19–21 October"): until then at this
+ * share of her dawn offset from the Victory (13 nm north at dawn), at the
+ * north end of Nelson's body, about 3 km from her. Drawn at her dawn
+ * offset from the station on the 19th, she had stood 30 km north of the
+ * body as the Victory answered, too small to read, and held its gate shut.
+ */
+const AFRICA_IN_COMPANY = 0.12;
+const AFRICA_PARTED = day(10, 20, 20);
+
 const BRITISH_TRACK = [
   // At the station (BRITISH_STATION), the body in its dawn order.
   { day: day(10, 19, 9.5), ...BRITISH_STATION, spread: 1 },
@@ -372,22 +384,42 @@ function britishKeys(ship: Ship): Key[] {
     const [cx, cy] = at(chain[0], chain[1]);
     keys.push({ day: day(10, 19, 9.5), x: cx, y: cy, heading: 100 });
   } else {
+    // The Africa in company until she missed the fleet's wear at 8 p.m. on
+    // the 20th (AFRICA_PARTED); her dawn place, 13 nm north, is where she
+    // had got to by then.
+    const k = ship.name === "Africa" ? AFRICA_IN_COMPANY : 1;
     keys.push({
       day: SEPT_28,
-      x: station[0] + ox,
-      y: station[1] + oy,
+      x: station[0] + ox * k,
+      y: station[1] + oy * k,
       heading: 100,
     });
     keys.push({
       day: day(10, 19, 9.5),
-      x: station[0] + ox,
-      y: station[1] + oy,
+      x: station[0] + ox * k,
+      y: station[1] + oy * k,
       heading: 103,
     });
   }
-  for (const c of BRITISH_TRACK.slice(1)) {
+  const africa = ship.name === "Africa";
+  for (let n = 1; n < BRITISH_TRACK.length; n++) {
+    const c = BRITISH_TRACK[n];
     const [cx, cy] = at(c.lon, c.lat);
-    keys.push({ day: c.day, x: cx + ox * c.spread, y: cy + oy * c.spread });
+    if (africa && c.day > AFRICA_PARTED) {
+      // In company to the wear, the track's centre then (between its keys).
+      const b = BRITISH_TRACK[n - 1];
+      if (b.day < AFRICA_PARTED) {
+        const t = (AFRICA_PARTED - b.day) / (c.day - b.day);
+        const [bx, by] = at(b.lon, b.lat);
+        keys.push({
+          day: AFRICA_PARTED,
+          x: bx + (cx - bx) * t + ox * AFRICA_IN_COMPANY,
+          y: by + (cy - by) * t + oy * AFRICA_IN_COMPANY,
+        });
+      }
+    }
+    const k = africa && c.day <= AFRICA_PARTED ? AFRICA_IN_COMPANY : c.spread;
+    keys.push({ day: c.day, x: cx + ox * k, y: cy + oy * k });
   }
   // Bearing up at 6.50 by the Victory's clock: 047° true (the owner's
   // licence, for continuity with scene 1).
@@ -426,7 +458,13 @@ function frigateKeys(
       // About 6°23′ W at 8, interpolated; her latitude then the chart's,
       // half a mile north of the Sirius's, so she passes her rather than
       // sailing over her, and clear of the Weazle and the Pickle (the
-      // frigates off the port are drawn ship by ship).
+      // frigates off the port are drawn ship by ship). On her way there
+      // she stands north first, east of the Sirius, then west (a licence:
+      // her track between is not logged): the straight line from her place
+      // of 7.18 ran through the Sirius's at about 7.36, the two ran into
+      // one on screen, and the lesser yielded from before her repeat of
+      // No. 370 at 7.20 (each glyph's size eased over the scroll).
+      [day(10, 19, 7.65), -6.352, 36.483],
       [day(10, 19, 8), -6.383, 36.482],
       [day(10, 19, 12), -6.455, 36.472],
       [day(10, 20, 9), -6.48, 36.52],

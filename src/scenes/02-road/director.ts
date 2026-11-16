@@ -24,7 +24,7 @@ import type { Camps } from "@/components/chart/marks/Camps";
 import { monotoneCurve } from "@/lib/curve";
 import { METRE_VH, VICTORY_X } from "@/scenes/01-dawn/composition";
 import { VICTORY_BOX } from "@/scenes/01-dawn/layers/Victory";
-import { BEATS, type BeatId, dayAt } from "./beats";
+import { BEATS, type BeatId, dayAt, STATION_HOLD } from "./beats";
 import { FLOTILLA } from "./boulogne";
 import { day } from "./dates";
 import {
@@ -40,8 +40,9 @@ import {
 import type { NightLanterns } from "./lanterns";
 import { ARMY_MARCH } from "./march";
 import { CHAIN_ON_STATION, type ShipState, shipAt } from "./movements";
-import { CHAIN_SHIPS, RELAY_LINKS } from "./relay";
+import { CHAIN_SHIPS } from "./relay";
 import type { DatedWaypoint, Leg } from "./routes";
+import type { RelaySignals } from "./signals";
 import type { BattleSmoke } from "./smoke";
 import {
   COMMANDERS,
@@ -81,9 +82,9 @@ const LIGHT: readonly (readonly [
   [0.095, 0.15, "dawn", "campaign", 0, 1],
   [0.15, 0.66, "dawn", "campaign", 1, 1],
   [0.66, 0.7, "dawn", "campaign", 1, 0],
-  [0.7, 0.79, "dawn", "dawn", 0, 0],
-  [0.79, 0.83, "dawn", "night", 0, 1],
-  [0.83, 0.93, "dawn", "night", 1, 1],
+  [0.7, STATION_HOLD[1], "dawn", "dawn", 0, 0],
+  [STATION_HOLD[1], 0.86, "dawn", "night", 0, 1],
+  [0.86, 0.93, "dawn", "night", 1, 1],
   [0.93, 0.995, "dawn", "night", 1, 0],
   [0.995, 2, "dawn", "dawn", 0, 0],
 ];
@@ -878,7 +879,11 @@ const FLEET_BEATS: readonly BeatId[] = ["cadiz", "night"];
  */
 const CHAIN_APART: readonly [number, number, number, number] = (() => {
   const from = pOfDay(CHAIN_ON_STATION, FLEET_BEATS);
-  const back = pOfDay(day(10, 19, 9.75), FLEET_BEATS);
+  // Back with the fleet as the camera leaves the station (beats.ts,
+  // STATION_HOLD): it made sail at 9.45, inside the hold, and the Mars and
+  // the Colossus, under its gate there, would close it while the camera
+  // still stood over the body.
+  const back = STATION_HOLD[1];
   return [from, from + 0.003, back, back + 0.004];
 })();
 
@@ -911,9 +916,20 @@ const CHAIN_FREE: readonly [number, number, number, number] = [
  */
 function relayRank(ship: Ship): number {
   if (ship.side !== "british" || ship.group !== "frigates") return 0;
-  const k = RELAY_LINKS.findIndex((l) => l.name === ship.name);
-  return k < 0 ? RELAY_LINKS.length : k;
+  const k = FRIGATE_LINKS.indexOf(ship.name);
+  return k < 0 ? FRIGATE_LINKS.length : k;
 }
+
+/**
+ * The frigates among the relay's links in their rank (relayRank): the
+ * Euryalus before the Sirius (session 35, part two). As the camera draws
+ * back from the port the frigates run together on screen and the lesser
+ * yields, each glyph's size eased over the scroll from a little ahead: the
+ * Sirius, first in rank, had put out the Euryalus from before her repeat
+ * of No. 370 at 7.20. The Sirius makes it first, at 7.00, before they run
+ * together, so she shows at her own signal either way.
+ */
+const FRIGATE_LINKS: readonly string[] = ["Euryalus", "Sirius", "Phoebe"];
 
 /**
  * At the relay's end the British fleet's label stands by its body
@@ -1798,6 +1814,7 @@ export class RoadDirector {
     this.layout?.setProgress(p);
     this.smoke?.setProgress(p);
     this.lanterns?.setProgress(p);
+    this.signals?.setProgress(p);
   }
 
   /**
@@ -1844,6 +1861,13 @@ export class RoadDirector {
   }
 
   private lanterns: NightLanterns | null = null;
+
+  /** The relay's day signals of 19 October (signals.ts; they read the scene's progress). */
+  setSignals(signals: RelaySignals): void {
+    this.signals = signals;
+  }
+
+  private signals: RelaySignals | null = null;
 
   dispose(): void {
     this.restorePainted();

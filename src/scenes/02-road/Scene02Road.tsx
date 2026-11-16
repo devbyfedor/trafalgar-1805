@@ -461,6 +461,8 @@ export function Scene02Road() {
               sample: (p: number, mode?: number) => s.sample(p, mode),
               bakedSizes: (layer: number, i: number, k0: number, k1: number) =>
                 s.bakedSizes(layer, i, k0, k1),
+              bakedVis: (layer: number, i: number, k0: number, k1: number) =>
+                s.bakedVis(layer, i, k0, k1),
               labelChanges: () => s.labelChanges(),
               gates: (p: number) => {
                 drawn = -1;
@@ -493,6 +495,10 @@ export function Scene02Road() {
               lights: (p: number) => {
                 drawn = -1;
                 return s.lights(p);
+              },
+              signals: (p: number) => {
+                drawn = -1;
+                return s.signals(p);
               },
               glyphNames: () => s.glyphNames(),
               motion: (p: number) => {
@@ -726,6 +732,11 @@ declare global {
        * they keep clear of (RoadStage.lights).
        */
       lights: (p: number) => import("./stage").LightsCheck;
+      /**
+       * Development and checks: the relay's signals at p, its links and
+       * what the signals keep clear of (RoadStage.signals).
+       */
+      signals: (p: number) => import("./stage").SignalsCheck;
       /** Development: each glyph layer's ships by name, in mark order. */
       glyphNames: () => string[][];
       /** Development: each glyph's drawing and intended place at p (RoadStage.motion). */
@@ -773,6 +784,13 @@ declare global {
       layoutDebug: (p: number) => Record<string, unknown>[];
       /** Development: a glyph's baked sizes by step (RoadStage.bakedSizes). */
       bakedSizes: (
+        layer: number,
+        i: number,
+        k0: number,
+        k1: number,
+      ) => number[][];
+      /** Development: a glyph's baked visibility and nominal height by step. */
+      bakedVis: (
         layer: number,
         i: number,
         k0: number,

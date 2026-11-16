@@ -1,8 +1,12 @@
 import { aim, type Lla, offset } from "@/components/chart/camera/aim";
 import type { CameraKey } from "@/components/chart/camera/rig";
-import { FINISTERRE_HOLD, HARBOUR_HOLD, LAST_HOLD } from "./beats";
+import {
+  FINISTERRE_HOLD,
+  HARBOUR_HOLD,
+  LAST_HOLD,
+  STATION_HOLD,
+} from "./beats";
 import { VICTORY_AT_DAWN } from "./fleets";
-import { relayP } from "./relay";
 
 /**
  * The camera through scene 2 (docs/decisions.md, "Scene 2, Stage B",
@@ -88,6 +92,29 @@ const FINISTERRE_TARGET: Lla = [-11.6, 43.7, 0];
  */
 const RELAY_HEADING = 8;
 
+/**
+ * The hold over Nelson's station at the relay's end (STATION_HOLD; the
+ * owner's answer of 16 November 2026): his body as it lies at 9.30 on the
+ * 19th, in the dawn order about the Victory (fleets.ts, DAWN_EASE), his
+ * own ships about her and Collingwood's 5 to 10 km south, the whole about
+ * 5 km across and 12 km from north to south. Looked at from the
+ * south-west (45°), the bodies stand side by side across the frame and
+ * their ships, heading about 103°, show their sides (from the west, as the
+ * scene's last frame, they lay end on and in one another's way; from the
+ * south, the relay's heading, the bodies stood one behind the other); the
+ * rise toward Ulm leaves the same way, north-east; the morning sun (32° up
+ * in the south-east) on the right. Near enough, 6 km up, for every ship
+ * to read one by one, and the Victory's hoist with her.
+ */
+const STATION_TARGET: Lla = [-7.396, 36.552, 0];
+const STATION_EYE: Lla = offset(
+  STATION_TARGET[0],
+  STATION_TARGET[1],
+  225,
+  9,
+  6,
+);
+
 /** A view of a place on the chart from `distance` km back along the relay's heading, at an altitude. */
 function relayView(
   p: number,
@@ -121,20 +148,18 @@ function relayView(
  * as the camera came out of the bay, and stayed out for over a second.
  */
 const RELAY_VIEWS: readonly CameraKey[] = [
-  relayView(relayP("Sirius") + 0.006, -6.33, 36.505, 13, 9),
-  relayView(relayP("Euryalus") + 0.005, -6.4, 36.5, 22, 17),
-  relayView(relayP("Defence"), -6.72, 36.36, 52, 42),
-  relayView((relayP("Colossus") + relayP("Mars")) / 2, -6.98, 36.47, 56, 46),
-  // At 9.30 the whole chain from the south, the station on the left, from
-  // the eye that stood at 0.785 before the relay was built, a little
-  // before the answer: the camera then comes into beat 5 on the path it
-  // had (from a view over the station itself, 50 km off, it swung through
-  // the key at 0.82 twice as hard as it had).
-  {
-    p: relayP("Victory") - 0.005,
-    eye: [-6.96, 35.78, 58],
-    target: [-7.12, 36.53, 0],
-  },
+  // Placed where part one's clock had them (the Sirius's signal + 0.006,
+  // the Euryalus's + 0.005, the Defence's, between the Colossus's and the
+  // Mars's): part two moved the inshore signals to where the camera has
+  // come out over the frigates (beats.ts, RELAY_CLOCK), not the camera.
+  relayView(0.764, -6.33, 36.505, 13, 9),
+  relayView(0.771, -6.4, 36.5, 22, 17),
+  relayView(0.78252, -6.72, 36.36, 52, 42),
+  relayView(0.79048, -6.98, 36.47, 56, 46),
+  // Then down to Nelson's station and held there (STATION_HOLD) as the
+  // Victory answers at 9.30 and the fleet makes sail.
+  { p: STATION_HOLD[0], eye: STATION_EYE, target: STATION_TARGET },
+  { p: STATION_HOLD[1], eye: STATION_EYE, target: STATION_TARGET },
 ];
 
 /** Rising off the sea beside her, turning north and pitching down. */
@@ -249,7 +274,15 @@ export const ROAD_FLIGHT: readonly CameraKey[] = [
   // the Victory with the signal; then up and back over the Gulf as the
   // fleet makes sail for the Strait.
   ...RELAY_VIEWS,
-  { p: 0.82, eye: [-6.9, 35.72, 70], target: [-6.7, 36.42, 0] },
+  // Up and back from the station as the fleet makes sail, the body still
+  // in the middle of the frame, so its ships go as they grow small (led
+  // from the hold straight toward the next view, high over France, the
+  // view had swung over the body and through it within a step).
+  {
+    p: 0.843,
+    eye: offset(STATION_TARGET[0], STATION_TARGET[1], 225, 40, 45),
+    target: offset(STATION_TARGET[0], STATION_TARGET[1], 45, 25, 0),
+  },
   // 5. Night: up and east to Ulm, and back to the fleets closing.
   { p: 0.855, eye: [-1, 40, 1350], target: [5, 47, 0] },
   { p: 0.885, eye: [8.6, 46.6, 230], target: [10, 48.4, 0] },

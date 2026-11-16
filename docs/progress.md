@@ -2,6 +2,20 @@
 
 Live checklist. A later session picks up from here. The briefs are `docs/scene-01-brief.md` and `docs/scene-02-brief.md`; decisions and deviations are in `docs/decisions.md`.
 
+## Session 33, part two (16 November 2026): the lanterns at night
+
+**The owner's order** (complete; it ends "Конец сообщения"). Work on the branch `s33-smoke`. **The smoke at Finisterre is done (part one) and not touched in this part.** His answers on the smoke, **to be built in session 34 with his notes; this part only records them** (`decisions.md`, "The owner's answers of 16 November 2026"): (1) the smoke stays under the ships, its density as it is: the ships must read; (2) about 200 px of firing is too little: the time inside the camera's pause is shared anew, the closing without smoke runs faster and the fight gets about two thirds of the pause; the pause's whole length is unchanged and nothing else in the scene moves; the figures in the labels must still hold long enough to be read. Order of work:
+1. The lanterns at night: take from branch 2 what is useful, built on `main`'s present ship engine.
+2. The frame budget at night on the quiet machine, and the frames compared with the reference where nothing changed.
+3. Commit, this file, the report with the commands to see the branch on the preview; stop. **Not into `main`:** he looks first.
+If something doesn't come after a few tries: commit what there is, say what is in the way, stop. No helper runs during measurements. Never `npm run screenshots`. Commit after each step.
+
+**Plan and state** (branch `s33-smoke`, at `c4c995c` at the start):
+- [x] Step 0: oriented (clean tree at `c4c995c`; `main` untouched at `512f13b`; ports 3000, 4173, 4174, 4175 free; branch 2 at `51266cf` in `.claude/worktrees/wf_016f0c7a-068-2`; `main`'s build of `512f13b` still in `.claude/worktrees/s33-ref/out`). The owner's answers on the smoke recorded (this file, `decisions.md`).
+- [ ] Step 1: the lanterns at night.
+- [ ] Step 2: the frame budget in the night beat alone on the machine (this branch against `main`'s build in `.claude/worktrees/s33-ref`, A B A B); look-diff against `.claude/s32d/look-ref/` with a control of `main` where it differs; the lights' clearance.
+- [ ] Step 3: commit, this file, the report; stop.
+
 ## Session 33, part one (15 November 2026): the smoke at Finisterre
 
 **The owner's order** (complete; it ends "Конец сообщения"). His answers: (1) **the low views' branch is put off:** the labels in the lowest views off Cádiz stay as `main` has them; the branch `s32-label-low-views` is neither deleted nor touched: its plan and its failure at the start of the scene off Cádiz go into **scene 2's final polish** (below, "Scene 2's remaining plan"). (2) **Session 33 is split in two:** this part is the smoke at Finisterre; the night lanterns are part two's and are not touched here. (3) **The smoke follows the battle's real time:** the fleets close without smoke; smoke comes with the first guns, grows and drifts downwind; at the end of the camera's pause it does not vanish at once but thins and drifts off (`decisions.md`, session 33). Order of work:

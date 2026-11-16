@@ -1053,3 +1053,8 @@ His second look is in the brief ("Second look, 13 November"); these are the deci
 - **The smoke's clearance** (`smoke-clear.mjs` on the production build, the four sizes) and **contrast over it** (`contrast.mjs` 0.53–0.565 every 0.001, the four sizes): no puff within the give-way of any lettering, all over open sea; no readable text under 4.5:1 (labels 5.96:1 or more while the smoke shows).
 - **Not reproduced:** the warm-up case the review found (a reload inside the battle): headless Chromium's reload did not restore the scroll. The fix rests on the review's trace of the code.
 
+
+### The owner's answers of 16 November 2026 (session 33, part two's order; to be built in session 34)
+
+- **The smoke stays under the ships, as thick as it is.** The ships must read; drawn over them is not wanted, nor thinner.
+- **The firing gets about two thirds of the camera's pause.** About 200 px of scroll of firing is too little. The time inside the pause over the action is shared anew: the closing without smoke runs faster on the story's clock, and the fight (the first guns at 5.15 p.m. to the end of the firing) takes about two thirds of the pause. The pause's whole length is unchanged and nothing else in the scene moves (the camera's keys, the beats either side). The figures in the fleets' labels must still hold long enough to be read (`readableChanges`, 0.0075 of p at the least). Built in session 34 with his notes on the smoke, not in part two (which is the lanterns').

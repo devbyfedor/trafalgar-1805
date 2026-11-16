@@ -6,7 +6,7 @@ import {
   puffSpec,
   type Smoke,
 } from "@/components/chart/fx/Smoke";
-import { BEATS, dayAt } from "./beats";
+import { BEATS, dayAt, FIRING_HOURS } from "./beats";
 import { day } from "./dates";
 
 /**
@@ -30,7 +30,7 @@ import { day } from "./dates";
  *
  * Every puff is a pure function of p: born at a p, it lives LIFE_P of
  * scroll from there (about 260 px on the owner's screen). Its life is not
- * story time: the clock runs 0.6 to 1.7 story minutes a pixel through the
+ * story time: the clock runs 0.6 to 1.9 story minutes a pixel through the
  * camera's pause, so a puff's true half hour would pass in a few dozen
  * pixels, popping in and out; the smoke as a whole keeps the true hours.
  *
@@ -64,21 +64,33 @@ function pOfDay(d: number): number {
 
 const hour = (h: number) => pOfDay(day(7, 22, h));
 
-/** The vans' first guns, about 5.15 p.m. */
-export const FIRST_GUN_P = hour(17.25);
+/**
+ * The vans' first guns, about 5.15 p.m. The firing takes about two thirds
+ * of the camera's hold over the action (beats.ts, FIRING_SHARE: the
+ * owner's answer of 16 November 2026), p 0.5327 to 0.5467.
+ */
+export const FIRST_GUN_P = hour(FIRING_HOURS[0]);
 /** How long the fire takes to run from the vans to the rears, hours. */
 const FIRE_SPREAD_H = 0.5;
-const GENERAL_P = hour(17.25 + FIRE_SPREAD_H);
+const GENERAL_P = hour(FIRING_HOURS[0] + FIRE_SPREAD_H);
 /** The firing slackens as the two prizes strike (8 p.m.)… */
 const SLACKEN_P = hour(20);
 /** …and stops by 9.30 p.m.: no puff is born after it. */
-export const CEASE_P = hour(21.5);
+export const CEASE_P = hour(FIRING_HOURS[1]);
 
 /** A puff's life, of p (scroll), give or take LIFE_SPREAD. */
 const LIFE_P = 0.012;
 const LIFE_SPREAD = 0.3;
-/** One puff may be born at a ship in each such stretch of p while she fires. */
-const SLOT_P = 0.002;
+/**
+ * One puff may be born at a ship in each such stretch of p while she
+ * fires. The bank as thick at its thickest as the owner approved it (his
+ * answer of 16 November 2026: the smoke as thick as it is): since the
+ * firing was given two thirds of the camera's hold it outlasts a puff's
+ * life (0.014 of p against 0.012), so more of a ship's puffs live at once,
+ * and at the 0.002 of session 33 the bank held 40 % more at its thickest
+ * (174 puffs against 125, at 1280x720); at this, 129.
+ */
+const SLOT_P = 0.0026;
 /** How many slots a ship has, from her first gun to the cease. */
 const SLOTS = Math.ceil((CEASE_P - FIRST_GUN_P) / SLOT_P) + 1;
 /** The last puff is gone by here. */

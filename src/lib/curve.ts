@@ -68,6 +68,50 @@ export function monotoneCurve(
   };
 }
 
+/** A keyframe with the slope the value passes it at. */
+export type SlopedKeyframe = readonly [t: number, value: number, slope: number];
+
+/**
+ * Cubic Hermite interpolation through keyframes at slopes given, so a
+ * stretch set into another curve at that curve's own values and slopes
+ * joins it with no step in its value or its pace. Monotone where every
+ * interval's slopes keep within Fritsch and Carlson's circle of radius 3
+ * about its secant (checked: it throws otherwise). Holds the end values
+ * outside its keys.
+ */
+export function hermiteCurve(
+  points: readonly SlopedKeyframe[],
+): (t: number) => number {
+  const n = points.length;
+  for (let i = 0; i < n - 1; i++) {
+    const [x0, y0, m0] = points[i];
+    const [x1, y1, m1] = points[i + 1];
+    const d = (y1 - y0) / (x1 - x0);
+    const a = m0 / d;
+    const b = m1 / d;
+    if (!(x1 > x0) || !(d > 0) || a < 0 || b < 0 || a * a + b * b > 9)
+      throw new Error(`hermiteCurve: interval ${i} is not monotone`);
+  }
+  return (t: number) => {
+    if (t <= points[0][0]) return points[0][1];
+    if (t >= points[n - 1][0]) return points[n - 1][1];
+    let i = 0;
+    while (t > points[i + 1][0]) i++;
+    const [x0, y0, m0] = points[i];
+    const [x1, y1, m1] = points[i + 1];
+    const h = x1 - x0;
+    const u = (t - x0) / h;
+    const u2 = u * u;
+    const u3 = u2 * u;
+    return (
+      (2 * u3 - 3 * u2 + 1) * y0 +
+      (u3 - 2 * u2 + u) * h * m0 +
+      (-2 * u3 + 3 * u2) * y1 +
+      (u3 - u2) * h * m1
+    );
+  };
+}
+
 /**
  * A GSAP ease over a tween that runs from the first to the last keyframe's
  * time, mapping progress to the curve's normalised value.

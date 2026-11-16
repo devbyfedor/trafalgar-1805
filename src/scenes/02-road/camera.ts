@@ -1,6 +1,6 @@
 import { aim, type Lla, offset } from "@/components/chart/camera/aim";
 import type { CameraKey } from "@/components/chart/camera/rig";
-import { LAST_HOLD } from "./beats";
+import { FINISTERRE_HOLD, LAST_HOLD } from "./beats";
 import { VICTORY_AT_DAWN } from "./fleets";
 
 /**
@@ -125,8 +125,12 @@ export const ROAD_FLIGHT: readonly CameraKey[] = [
   // ships go as it rises, before the lines part (director.ts, MEETINGS).
   // Then up, south to Cádiz and the army's turn east.
   { p: 0.513, eye: [-13.4, 40.6, 560], target: [-11.5, 43.4, 0] },
-  { p: 0.527, eye: FINISTERRE_EYE, target: FINISTERRE_TARGET },
-  { p: 0.548, eye: [-11.34, 42.66, 79], target: [-11.18, 43.65, 0] },
+  { p: FINISTERRE_HOLD[0], eye: FINISTERRE_EYE, target: FINISTERRE_TARGET },
+  {
+    p: FINISTERRE_HOLD[1],
+    eye: [-11.34, 42.66, 79],
+    target: [-11.18, 43.65, 0],
+  },
   // The rise: up first, then away south-west, its pace across the chart
   // growing key by key (the rig's speed steps at a key by the square root
   // of the ratio of the legs either side, here about 2 to 2.6 at each,

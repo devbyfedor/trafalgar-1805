@@ -2,6 +2,34 @@
 
 Live checklist. A later session picks up from here. The briefs are `docs/scene-01-brief.md` and `docs/scene-02-brief.md`; decisions and deviations are in `docs/decisions.md`.
 
+## Session 35, part one (16 November 2026): the relay of 19 October, its groundwork
+
+**The owner's order** (complete; it ends "Конец сообщения"). Work from `main`. His answers: (1) **the harbour's hold off Cádiz is shortened** so the relay gets about one and a half screens of scroll; the pin's whole length unchanged; the harbour stays in the frame long enough to be looked at, and the figures in the labels still hold long enough to be read. (2) **`s33-smoke` and its comparison worktree deleted**, the branch checked wholly in `main` first, the `node_modules` link taken away by the rule. **His new plan** (shorter sessions; below, "Scene 2's remaining plan (updated in session 35)"). This part: the groundwork of the day relay of 19 October in beat 4; the signals themselves are part two's. The chain's four ships of the line show apart from the fleet (decided, `decisions.md`). The night signals are not touched. Order of work:
+1. The clean-up, as answer 2.
+2. A branch from `main`; take from branch 2 what is useful, built on `main`'s present engine.
+3. The harbour's hold, as answer 1.
+4. The relay's clock, the chain's ships, and the camera along the chain from the Sirius to the Victory.
+5. Checked on the production build with `served.mjs`: the labels in beat 4 (the figures read, no jerks or blinks); the chain's ships at the four sizes (not on land, not on each other, no jerks).
+6. Commit, this file, a short report; stop. **Not into `main`.**
+If something doesn't come after a few tries: commit what there is, say what is in the way, stop. Never `npm run screenshots`. Commit after each step.
+
+**Plan and state:**
+- [x] Step 0: oriented (clean `main` at `c197221`; `main`'s code is `db23401`'s, the commits after it docs only).
+- [x] Step 1: the clean-up. `s33-smoke` (`826e961`) checked an ancestor of `main` (`git merge-base --is-ancestor`, 0 commits not in `main`), deleted with `git branch -d`. The worktree `.claude/worktrees/s33-ref` (`main`'s old build of `512f13b`; its only change the local `turbopack.root` line): its one link, the top-level `node_modules` junction, taken away with `cmd /c rmdir` (no link deeper), the main tree's `node_modules` whole before and after (`next`, `.bin/serve` present), then `git worktree remove --force`.
+- [ ] Step 2: the branch `s35-relay` from `main`.
+- [ ] Step 3: the harbour's hold shortened.
+- [ ] Step 4: the relay's clock, the chain's ships, the camera along the chain.
+- [ ] Step 5: the checks on the production build.
+- [ ] Step 6: committed, this file, the report; stop.
+
+### Scene 2's remaining plan (updated in session 35, the owner's order)
+
+**Done and in `main`:** the Cádiz labels, the march to Ulm, the history section (session 32); the smoke at Finisterre and the lanterns at night (sessions 33–34, `db23401`). **Still open, in order** (every session opens as the deferred plan in session 31 says: `served.mjs --free`, the build, `served.mjs` OK, no helper while anything is timed, never `npm run screenshots`):
+1. **Session 35: the day relay of 19 October, in two parts, not merged.** Part one (this one): the harbour's hold shortened (about 1.5 screens to the relay, the pin's length unchanged), the relay's clock, the chain's four ships of the line apart from the fleet (and their moves before their stations, `backlog.md` K12), the camera along the chain from the Sirius to the Victory; checked on the production build. Part two: the signals themselves (branch 2's hoists and gun puffs and `SignalRelay`, ported onto the CPU glyph layout and `fx/` as the smoke and the lanterns were).
+2. **Session 36: the night signals of 20–21 October, not merged** (as the record has them: a short chain between the closing fleets, the four frigates and Defence, Colossus and Mars, not the Agamemnon; blue lights, rockets and guns on `fx/Lights.ts`).
+3. **Session 37: the owner's notes on both, the review, the full checks, the merge** into `main` (a true merge), new reference frames; branch 2 then deletable with his word.
+4. **Then:** scene 2's final polish (the labels in the lowest views off Cádiz, `s32-label-low-views`; the three label blinks at the start of the hold off Finisterre, `backlog.md`); the stills of all scene 2 (item 5); the final check and README (items 6 and 7).
+
 ## Session 34, part two (16 November 2026): the review, the full checks, the merge
 
 **The owner's order** (complete; it ends "Конец сообщения"). This part: the review, the full checks and the merge into `main`; **no new features**. His answers: (1) the combined fleet's lights in the last frame stay at 0.55 of their night strength; (2) the three old label blinks at the start of the hold off Finisterre are **not** fixed now: they go into **scene 2's final polish**, together with the deferred low views' branch (`s32-label-low-views`); recorded in the plan below and in `backlog.md`. Order of work:
@@ -31,7 +59,7 @@ Never `npm run screenshots`. Commit after each step.
 - **Questions for the owner:** none blocking. For session 35 (the relay), asked at its start: may the harbour's hold off Cádiz be shortened so the relay gets about one and a half screens.
 - **Next steps, in order:** the plan above ("Scene 2's remaining plan (updated in session 34, part two)"): session 35, the relay of 19 October, part one.
 
-### Scene 2's remaining plan (updated in session 34, part two)
+### Scene 2's remaining plan (updated in session 34, part two; superseded by the one in session 35 above)
 
 **Done and in `main`:** item 1, the Cádiz labels (session 32); the army's march to Ulm (session 32); item 4, the history section (session 32); **item 2, the smoke at Finisterre and the lanterns at night (sessions 33 and 34, merged `db23401`)**. The owner's standing answers that bear on what is left: each item into `main` as soon as its checks pass, his look at `main` on the preview afterwards; "readable" is opacity 0.5 or more; a blink of a label is a defect; the night signals of 20–21 October as the record has them (a short chain between the closing fleets: the four frigates and Defence, Colossus and Mars, not the Agamemnon); the chain's four ships of the line shown apart from the fleet.
 

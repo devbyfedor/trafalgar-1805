@@ -80,11 +80,16 @@ const NO_370: readonly FlagKind[] = ["blue", "yellow", "red"];
  */
 const CHASE_SE: readonly FlagKind[] = ["white"];
 
-/** The distant signal: a flag, a ball and a pendant, one at each masthead (Cumby 1899). */
-const DISTANT: readonly [MastId, FlagKind][] = [
-  ["fore", "dark-flag"],
-  ["main", "dark-ball"],
-  ["mizzen", "dark-pendant"],
+/**
+ * The distant signal: a flag, a ball and a pendant, one at each masthead
+ * (Cumby 1899), each with its hoist id's slot (the main's 3, apart from the
+ * colours' at the same truck); the one-flag hoists made once, not each
+ * frame.
+ */
+const DISTANT: readonly (readonly [MastId, readonly FlagKind[], number])[] = [
+  ["fore", ["dark-flag"], 0],
+  ["main", ["dark-ball"], 3],
+  ["mizzen", ["dark-pendant"], 2],
 ];
 
 /**
@@ -236,15 +241,11 @@ export class RelaySignals implements ChartLayer {
           smoothstep(l.distant - HOIST_P, l.distant, p) *
           (1 - smoothstep(l.down, l.down + HOIST_P, p)) *
           end;
-        for (const [mast, kind] of DISTANT)
-          hoists.hoist(
-            fleets,
-            l.mark,
-            [kind],
-            shapes,
-            id + (mast === "main" ? 3 : MAST_ID[mast]),
-            mast,
-          );
+        if (shapes > 0.001)
+          for (let d = 0; d < DISTANT.length; d++) {
+            const [mast, flags, slot] = DISTANT[d];
+            hoists.hoist(fleets, l.mark, flags, shapes, id + slot, mast);
+          }
       }
       for (let g = 0; g < l.guns.length; g++)
         this.gun(l, g, l.guns[g], GUN_LIFE_P, l.guns.length);

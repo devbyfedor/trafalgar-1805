@@ -118,7 +118,7 @@ export const RELAY_CLOCK = {
  * night of the 19th and the day of the 20th pass as the camera rises from
  * the station toward Ulm).
  */
-const RELAY_SPAN = [0.7, 0.87] as const;
+export const RELAY_SPAN = [0.7, 0.87] as const;
 
 /**
  * The story's clock: the day the chart shows, as a monotone curve through

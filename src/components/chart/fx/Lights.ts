@@ -297,6 +297,8 @@ export class Lights implements ChartLayer {
   private readonly clearNow: Float64Array;
   /** The height each lantern stands on her by now, device px, by its clock (HEIGHT_S). */
   private readonly heightNow: Float64Array;
+  /** Which lanterns were placed last frame. */
+  private readonly wasPlaced: Uint8Array;
   /** The lanterns set last frame (a change starts them afresh at where they stand). */
   private lastN = 0;
   /** The clock: the frame's time it last read, and a step a check holds it to (setClock). */
@@ -343,6 +345,7 @@ export class Lights implements ChartLayer {
     this.whyHeight = new Float64Array(capacity);
     this.clearNow = new Float64Array(capacity);
     this.heightNow = new Float64Array(capacity);
+    this.wasPlaced = new Uint8Array(capacity);
     this.drawnMark = new Int32Array(capacity);
     this.drawnLayer = new Int32Array(capacity);
     this.drawnPlace = new Int32Array(capacity);
@@ -417,8 +420,8 @@ export class Lights implements ChartLayer {
 
   /**
    * A lantern at mark `mark` of `glyphs`, at `place` on her drawing,
-   * `intensity` 0..1 (lanterns were shown all at once and held: the scene
-   * fades them only as they are lit and put out). `seed`, a whole number
+   * `intensity` 0..1 (a lantern burns steadily from when it is lit to when
+   * it is put out: the scene fades it only then). `seed`, a whole number
    * kept for its life, varies its strength and its reflection a little, so
    * a line of them never reads as a row of street lamps. `parentA` and
    * `parentB`: lanterns set before it this frame (by their order of
@@ -500,10 +503,16 @@ export class Lights implements ChartLayer {
     this.lastN = n;
     const reach = fresh ? 1 : step / GIVE_WAY_S;
     const follow = fresh ? 1 : 1 - Math.exp(-step / HEIGHT_S);
-    // Placed, each where its ship stands this frame.
+    // Placed, each where its ship stands this frame. A lantern placed for
+    // the first time (or again after frames unplaced) starts where it
+    // stands, not from its clocks' last values.
     for (let i = 0; i < n; i++) {
       this.placed[i] = 0;
       this.seen[i] = 0;
+      this.whySpace[i] = Number.NaN;
+      this.whyText[i] = Number.NaN;
+      this.whyHeight[i] = Number.NaN;
+      const first = fresh || !this.wasPlaced[i];
       const glyphs = this.layers[i];
       if (!glyphs || !(dark > 0)) continue;
       const m = this.marks[i];
@@ -521,7 +530,9 @@ export class Lights implements ChartLayer {
       const y = laid ? d.y[m] : it.y[m];
       const drawnShare = laid ? Math.min(1, d.alpha[m]) : 0;
       const target = laid ? d.height[m] : 0;
-      const hs = this.heightNow[i] + (target - this.heightNow[i]) * follow;
+      const hs = first
+        ? target
+        : this.heightNow[i] + (target - this.heightNow[i]) * follow;
       this.heightNow[i] = hs;
       const heading = laid ? d.heading[m] : it.heading[m];
       this.project(vp, x, y, halfW, halfH);
@@ -554,25 +565,35 @@ export class Lights implements ChartLayer {
       const across = facing + (drawing - facing) * drawnShare;
       const px = at.x + along * across * ha;
       const py = at.y + FOOT * hs + (up - FOOT) * ha;
-      // Off the frame by more than a halo: nothing to draw or give way to.
-      if (Math.abs(px) > halfW + 40 * dpr || Math.abs(py) > halfH + 40 * dpr)
+      // Its size: a little larger as glyphs grow (1 at a 28 CSS px glyph).
+      const seed = v[q + 2];
+      const hn = laid ? d.nominal[m] : altitudePx;
+      const scale = Math.min(1.6, Math.max(0.75, hn / (28 * dpr)));
+      const rc = 0.8 * dpr * scale * (0.92 + 0.16 * rand(seed, 1));
+      const drop = Math.max(0, (up - FOOT) * ha);
+      // Off the frame, its halo and reflection and all, by more than a
+      // margin for its neighbours: nothing to draw or give way to.
+      const R = HALO * rc + dpr;
+      const margin = 40 * dpr;
+      if (
+        px + R < -halfW - margin ||
+        px - R > halfW + margin ||
+        py + R < -halfH - margin ||
+        py - drop * (1 + REFLECT) - R > halfH + margin
+      )
         continue;
       const ex = x - eye.x;
       const ey = y - eye.y;
       const dist = Math.sqrt(ex * ex + ey * ey + eye.z * eye.z);
       // Lights carry farther through the haze than the chart's ink.
       const hz = dist / visibility;
-      // Its size: a little larger as glyphs grow (1 at a 28 CSS px glyph).
-      const seed = v[q + 2];
-      const hn = laid ? d.nominal[m] : altitudePx;
-      const scale = Math.min(1.6, Math.max(0.75, hn / (28 * dpr)));
       this.placed[i] = 1;
       this.px[i] = px;
       this.py[i] = py;
       this.sx[i] = (px + halfW) / dpr;
       this.sy[i] = (halfH - py) / dpr;
-      this.core[i] = 0.8 * dpr * scale * (0.92 + 0.16 * rand(seed, 1));
-      this.drop[i] = Math.max(0, (up - FOOT) * ha);
+      this.core[i] = rc;
+      this.drop[i] = drop;
       this.seen[i] = presence * dark * Math.exp(-0.5 * hz * hz);
     }
     // How much each shows: given way to its lanterns of a higher rank where
@@ -622,7 +643,7 @@ export class Lights implements ChartLayer {
       const target = spaced * clearOf;
       const was = this.clearNow[i];
       const given =
-        reach >= 1
+        reach >= 1 || !this.wasPlaced[i]
           ? target
           : was + Math.max(-reach, Math.min(reach, target - was));
       this.clearNow[i] = given;
@@ -646,6 +667,10 @@ export class Lights implements ChartLayer {
       this.drawnPlace[k] = v[q];
       k++;
     }
+
+    // Which were placed, for the next frame's (a lantern placed again after
+    // frames unplaced starts afresh).
+    this.wasPlaced.set(this.placed);
 
     // Shown only while there are lanterns; set as the count crosses zero,
     // so a timing that hides it by name on alternate frames (Chart.showNamed,
@@ -800,6 +825,9 @@ export function lightClear(
       const qx1 = Math.max(q[0], q[2], q[4], q[6]);
       const qy0 = Math.min(q[1], q[3], q[5], q[7]);
       const qy1 = Math.max(q[1], q[3], q[5], q[7]);
+      // An outline a label lost (a corner behind the eye: HeadLabels sets
+      // it NaN) keeps clear of nothing.
+      if (!Number.isFinite(qx0 + qx1 + qy0 + qy1)) continue;
       if (qx0 - cx > far || cx - qx1 > far || qy0 - y1 > far || y0 - qy1 > far)
         continue;
       const gap = quadToColumn(q, cx, y0, y1) - r;
@@ -856,6 +884,8 @@ function quadToColumn(
       if (y >= y0 && y <= y1) return 0;
     }
   }
+  // A quad with no area (all its corners at one point) holds nothing.
+  if (sign === 0) return best;
   return inside0 || inside1 ? 0 : best;
 }
 

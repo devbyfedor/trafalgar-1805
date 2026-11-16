@@ -13,38 +13,43 @@ import { BRITISH, COMBINED, DAWN, type Ship } from "./fleets";
 /**
  * The fleets' lanterns on the night of 20 to 21 October 1805
  * (docs/decisions.md, "Scene 2, Stage B: the lanterns at night";
- * docs/history-notes.md, "Dark and light", "Lanterns and the dark"):
+ * docs/history-notes.md, "Dark and light", "Lanterns and the dark", and
+ * "Assumptions and licences", 19):
  *
  * - the combined fleet's line lit, "like a well lit up street" some six
- *   miles long (an officer of the Defence, Fraser 1906, p. 95): at
- *   nightfall it lit its stern lights and the top light (Prigny, of the
- *   Bucentaure, Desbrière 1907, annexes p. 139). Every ship of the line
- *   her stern lanterns (one point on the chart: lights a few metres apart
- *   part to the eye only within two to four miles); a top light at the
- *   flagships only (the Bucentaure's is Prigny's own; the other admirals'
- *   a licence: his "nous" may be the fleet or the flagship); and from 8
- *   p.m. Gravina's light at his mizzen, as he led the line of battle to
- *   mark his place (Desbrière p. 165). Its frigates and brigs dark (no
- *   source names their lights);
+ *   miles long (Fraser 1906, p. 95, unattributed): at nightfall it lit its
+ *   stern lights and the top light (Prigny, of the Bucentaure, Desbrière
+ *   1907, annexes p. 139). Every ship of the line her stern lanterns, one
+ *   point on the chart (a chart's convention: her two or three poop
+ *   lanterns, a few metres apart, are one mark at the glyphs' scale); a
+ *   top light at the flagships only (the Bucentaure's is Prigny's own; the
+ *   other admirals' a licence: his "nous" may be the fleet or the
+ *   flagship); and from 8 p.m. Gravina's light at his mizzen, as he led
+ *   the line of battle to mark his place (Desbrière pp. 164-165). Its
+ *   frigates and brigs dark (no source names their lights);
  * - the British dark but for "the light of the English fleet" (the
- *   Euryalus at midnight): the Admiral's, the Victory's stern and top
- *   lights; and the Royal Sovereign's, by the Sirius's "our Admirals" at
- *   7.40 p.m. (an inference). The watching ships, the frigates and the
- *   chain's ships of the line, hid theirs;
- * - lit at nightfall, about 5.35 p.m. on the 20th, and put out with the
- *   daylight of the 21st (the logs' "daylight", 5.30 to 6.10; sunrise
- *   6.27): no record says when, so out between 5.45 and 6.20, before the
- *   camera's last hold (beats.ts, LAST_HOLD), where scene 1's dawn opens
- *   on the same fleet.
+ *   Euryalus at midnight): the Admiral's, the Victory's stern lights and a
+ *   top light (a licence, as an admiral's ship carried one: no British log
+ *   names it); and the Royal Sovereign's, by the Sirius's "our Admirals"
+ *   at 7.40 p.m. (an inference, read as the two columns' admirals: the
+ *   Britannia, Northesk's, left dark). The private ships' order to carry a
+ *   light, of the night before, had lapsed at sunset on the 20th (Corbett
+ *   1910, p. 339); the watching ships, the frigates and the chain's ships
+ *   of the line, hid theirs ("we concealed every light");
+ * - lit after sunset (about 5.35 p.m. on the 20th), by nightfall (about
+ *   6), and put out with the daylight of the 21st (the logs' "daylight",
+ *   5.30 to 6.10; sunrise 6.27): no record says when, so out between 5.45
+ *   and 6.20, before the camera's last hold (beats.ts, LAST_HOLD).
  *
- * The night's signals (the blue lights, rockets and guns of the chain, the
- * answers, the lights the fleet showed as it wore) are the relay's,
- * built with it (the owner's answer of 14 November 2026).
+ * The night's signals (the blue lights, rockets and guns of the chain and
+ * of the combined fleet, the answers, the lights the fleet showed as it
+ * wore) are the relay's, built with it (the owner's answer of 14 November
+ * 2026).
  *
- * The lanterns are set each frame in their order of precedence (Lights:
- * each gives way to those before it on screen): the four leads' stern
- * lights, then each line's in the ruler order along it from its lead (so
- * a receding line keeps every other light, then every fourth, and so on),
+ * The lanterns are set each frame in an order where each comes after
+ * those it gives way to (Lights.lantern): the four leads' stern lights,
+ * then each line's in the ruler order along it from its lead (so a
+ * receding line keeps every other light, then every fourth, and so on),
  * then the top and mizzen lights.
  */
 
@@ -73,7 +78,12 @@ const FLAGSHIPS: ReadonlySet<string> = new Set([
   "Algésiras", // Magon
 ]);
 
-/** The British admirals' ships, their lights the fleet's only ones. */
+/**
+ * The British admirals' ships, their lights the fleet's only ones: Nelson's
+ * and Collingwood's, at the heads of the two columns (the Sirius's "our
+ * Admirals"); Northesk's Britannia left dark, so the British side shows as
+ * little as the record has it.
+ */
 const ADMIRALS: ReadonlySet<string> = new Set(["Victory", "Royal Sovereign"]);
 
 interface LanternSpec {

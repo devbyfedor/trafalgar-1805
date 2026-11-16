@@ -92,6 +92,13 @@ export interface RoadStage {
   chart: Chart;
   director: RoadDirector;
   /**
+   * Sets the chart's state for progress p as a frame of `draw` does (the
+   * director's state and the caption's card), without drawing: for the
+   * warm-up (Chart.warm draws one frame of it; the lanterns, which give
+   * way to the card, had read none there and started under it).
+   */
+  apply(p: number): void;
+  /**
    * Draws the scene at p and reads back every glyph as drawn (GlyphProbe),
    * both fleets ship by ship, then the squadrons: for tests and tuning.
    */
@@ -403,6 +410,15 @@ export async function createRoadStage(
     // caption shows (Lettering.setKeepOut). Its box on the canvas, measured
     // at each resize; how much a caption shows, from its run over p.
     const card = { x0: 0, y0: 0, x1: 0, y1: 0 };
+    // The same card for the night's lanterns, which fade under it as
+    // under its scrim (fx/Lights.ts, LIGHT_REGION_PX): its corners written
+    // as it is measured, its weight with the caption's.
+    const cardQuad = new Float64Array(8);
+    const cardScreen = {
+      quads: [cardQuad],
+      weights: new Float64Array(1),
+      count: 1,
+    };
     const measureCard = () => {
       const host = options.labels;
       const el =
@@ -414,31 +430,21 @@ export async function createRoadStage(
       card.y0 = c.top - h.top;
       card.x1 = c.right - h.left;
       card.y1 = c.bottom - h.top;
+      cardQuad[0] = card.x0;
+      cardQuad[1] = card.y0;
+      cardQuad[2] = card.x1;
+      cardQuad[3] = card.y0;
+      cardQuad[4] = card.x1;
+      cardQuad[5] = card.y1;
+      cardQuad[6] = card.x0;
+      cardQuad[7] = card.y1;
     };
     measureCard();
-    // The same card for the night's lanterns, which fade under it as
-    // under its scrim (fx/Lights.ts, LIGHT_REGION_PX).
-    const cardQuad = new Float64Array(8);
-    const cardScreen = {
-      quads: [cardQuad],
-      weights: new Float64Array(1),
-      count: 1,
-    };
     const keepCard = (p: number) => {
       let shows = 0;
       for (const [a, b, c, d] of Object.values(CAPTIONS))
         shows = Math.max(shows, rise(a, b, p) * (1 - rise(c, d, p)));
       lettering.setKeepOut(card.x0, card.y0, card.x1, card.y1, shows);
-      cardQuad.set([
-        card.x0,
-        card.y0,
-        card.x1,
-        card.y0,
-        card.x1,
-        card.y1,
-        card.x0,
-        card.y1,
-      ]);
       cardScreen.weights[0] = shows;
     };
     chart.add(lettering, lettering.batch, lettering.marks.mesh);
@@ -611,6 +617,11 @@ export async function createRoadStage(
         const read = (probe: GlyphProbe) =>
           probe.read(chart.renderer, chart.camera, mode).values.slice();
         return { fleets: read(probes[0]), squadrons: read(probes[1]) };
+      },
+      apply(p) {
+        sampled = Number.NaN;
+        director.apply(p);
+        keepCard(p);
       },
       draw(p, time, view) {
         sampled = Number.NaN;

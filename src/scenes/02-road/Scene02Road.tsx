@@ -352,7 +352,7 @@ export function Scene02Road() {
             size = sizeKey();
             stage.resize(canvasHost.clientWidth, canvasHost.clientHeight);
             const warmed = state.p;
-            stage.director.apply(warmed);
+            stage.apply(warmed);
             await stage.chart.warm(controller.signal);
             if (controller.signal.aborted) return;
             // Nothing to draw for this p while the chart is hidden: the first

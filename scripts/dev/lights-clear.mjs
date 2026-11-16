@@ -11,13 +11,19 @@
 //   - a lantern shows while the chart is not in the dark (night <= NIGHT);
 //   - a lantern's centre lies over land or within LAND_KM of it;
 //   - a lantern, its halo or its reflection, comes within GAP CSS px of a
-//     name, label, date or the caption's card shown at TEXT (0.15) or more
-//     (Lights.ts, lightClear: they give way wholly from there);
+//     name, label or the caption's card shown at TEXT (0.5, the readable
+//     half) or more (Lights.ts, lightClear: they give way wholly from
+//     there), or of a track's date (the lights do not give way to dates:
+//     one standing on a light would be a clash of the choreography);
 //   - a lantern stands off its ship: where the layout drew her, its centre
 //     outside her glyph's box (her foot, her height, as wide as tall
 //     either side) by more than 2 px;
-//   - two lanterns shown at BRIGHT or more stand nearer than SPACE CSS px
-//     (Lights.ts, SPACE_PX: a line never runs together).
+//   - two lanterns shown at BRIGHT or more stand nearer than SPACE CSS px,
+//     whatever thins them (Lights.ts, SPACE_PX: a light gives way only to
+//     its line's lights of a higher rank, a top or mizzen light to every
+//     one; two of other lines or fleets meeting would be a defect too);
+//   - no lantern is drawn at all over a sweep that takes in 0.93 to 0.95,
+//     the heart of the night.
 // Reported, not failed: lanterns placed while their fleet is not laid out
 // (far off, at their ships' places in the story); a lantern's intensity
 // changing by more than POP from one step to the next; a lantern moving
@@ -29,7 +35,7 @@
 // the production preview is http://127.0.0.1:4173), SIZES (default
 // "1280x720@1.5,1920x1080@1,2560x1440@1,3440x1440@1"), SEEN (the least
 // intensity that counts, 0.02), NIGHT (0.002), LAND_KM (0.5), GAP (0.5),
-// TEXT (0.15), BRIGHT (0.5), SPACE (3.5), POP (0.35), MOVE (2), JSON=<file>
+// TEXT (0.5), BRIGHT (0.5), SPACE (3.5), POP (0.35), MOVE (2), JSON=<file>
 // for every step's counts. Exits with 1 if any step fails.
 import { writeFile } from "node:fs/promises";
 import { chromium } from "@playwright/test";
@@ -42,7 +48,7 @@ const SEEN = Number(process.env.SEEN ?? 0.02);
 const NIGHT = Number(process.env.NIGHT ?? 0.002);
 const LAND_KM = Number(process.env.LAND_KM ?? 0.5);
 const GAP = Number(process.env.GAP ?? 0.5);
-const TEXT = Number(process.env.TEXT ?? 0.15);
+const TEXT = Number(process.env.TEXT ?? 0.5);
 const BRIGHT = Number(process.env.BRIGHT ?? 0.5);
 const SPACE = Number(process.env.SPACE ?? 3.5);
 const POP = Number(process.env.POP ?? 0.35);
@@ -101,6 +107,7 @@ function quadToColumn(q, cx, y0, y1) {
       if (y >= y0 && y <= y1) return 0;
     }
   }
+  if (sign === 0) return best;
   return in0 || in1 ? 0 : best;
 }
 
@@ -158,7 +165,20 @@ for (const size of sizes) {
         i * S,
         i * S + S,
       );
-      lights.push({ x0, y0, x1, y1, I, cx, cy, mark, layer, place, i });
+      lights.push({
+        x0,
+        y0,
+        x1,
+        y1,
+        I,
+        cx,
+        cy,
+        mark,
+        layer,
+        place,
+        i,
+        name: `${r.ships[i].name} ${PLACES[place]}`,
+      });
     }
     const shown = lights.filter((l) => l.I > SEEN);
     most = Math.max(most, shown.length);
@@ -183,6 +203,8 @@ for (const size of sizes) {
       const R = (l.x1 - l.x0) / 2;
       for (const t of r.text) {
         if (!(t.weight >= TEXT)) continue;
+        // A label's outline lost behind the eye (NaN) stands nowhere.
+        if (t.quad.some((v) => !Number.isFinite(v))) continue;
         const gap = quadToColumn(t.quad, l.cx, l.cy, l.y1 - R) - R;
         if (gap < GAP) {
           fails++;
@@ -238,7 +260,7 @@ for (const size of sizes) {
         const ib = b?.I ?? 0;
         if (Math.abs(ib - ia) > POP)
           pops.push(
-            `${p.toFixed(4)} ${r.ships[b?.i ?? 0]?.name ?? k} ${ia.toFixed(2)}->${ib.toFixed(2)}`,
+            `${p.toFixed(4)} ${(b ?? a)?.name ?? k} ${ia.toFixed(2)}->${ib.toFixed(2)}`,
           );
         if (a && b && a.I > SEEN && b.I > SEEN) {
           dx.push(b.cx - a.cx);
@@ -265,6 +287,10 @@ for (const size of sizes) {
       lanterns: shown.length,
       fails,
     });
+  }
+  if (from <= 0.93 && to >= 0.95 && most === 0) {
+    bad.push("no lantern drawn over the night");
+    kinds.set("none", { n: 1, from, to, text: "no lantern drawn at all" });
   }
   failed += bad.length;
   console.log(

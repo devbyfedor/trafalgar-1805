@@ -37,9 +37,11 @@ import {
   VICTORY_AT_DAWN,
   withFleet,
 } from "./fleets";
+import type { NightLanterns } from "./lanterns";
 import { ARMY_MARCH } from "./march";
 import { type ShipState, shipAt } from "./movements";
 import type { DatedWaypoint, Leg } from "./routes";
+import type { BattleSmoke } from "./smoke";
 import {
   COMMANDERS,
   SQUADRONS,
@@ -1070,6 +1072,11 @@ export function fleetNames(): string[] {
   return [...BRITISH, ...COMBINED].map((ship) => ship.name);
 }
 
+/** The October fleets' glyphs' sides, in mark order (development). */
+export function fleetSides(): Ship["side"][] {
+  return [...BRITISH, ...COMBINED].map((ship) => ship.side);
+}
+
 /** The squadrons' glyphs as "squadron:place", in mark order (development). */
 export function squadronNames(): string[] {
   return SQUADRONS.flatMap((s) =>
@@ -1702,6 +1709,8 @@ export class RoadDirector {
     this.applyTracks(p, d);
     this.applyHeads(p);
     this.layout?.setProgress(p);
+    this.smoke?.setProgress(p);
+    this.lanterns?.setProgress(p);
   }
 
   /**
@@ -1734,6 +1743,20 @@ export class RoadDirector {
   }
 
   private layout: GlyphLayout | null = null;
+
+  /** The smoke of the action off Finisterre (smoke.ts; it reads the scene's progress). */
+  setSmoke(smoke: BattleSmoke): void {
+    this.smoke = smoke;
+  }
+
+  private smoke: BattleSmoke | null = null;
+
+  /** The fleets' lanterns at night (lanterns.ts; they read the scene's progress). */
+  setLanterns(lanterns: NightLanterns): void {
+    this.lanterns = lanterns;
+  }
+
+  private lanterns: NightLanterns | null = null;
 
   dispose(): void {
     this.restorePainted();

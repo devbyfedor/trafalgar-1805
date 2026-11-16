@@ -352,7 +352,7 @@ export function Scene02Road() {
             size = sizeKey();
             stage.resize(canvasHost.clientWidth, canvasHost.clientHeight);
             const warmed = state.p;
-            stage.director.apply(warmed);
+            stage.apply(warmed);
             await stage.chart.warm(controller.signal);
             if (controller.signal.aborted) return;
             // Nothing to draw for this p while the chart is hidden: the first
@@ -485,6 +485,14 @@ export function Scene02Road() {
               clash: (p: number, ink?: number) => {
                 drawn = -1;
                 return s.clash(p, ink);
+              },
+              smoke: (p: number) => {
+                drawn = -1;
+                return s.smoke(p);
+              },
+              lights: (p: number) => {
+                drawn = -1;
+                return s.lights(p);
               },
               glyphNames: () => s.glyphNames(),
               motion: (p: number) => {
@@ -704,6 +712,16 @@ declare global {
         p: number,
         ink?: number,
       ) => import("@/components/chart/glyphs/clash").ClashResult;
+      /**
+       * Development and checks: the smoke's puffs at p and what they keep
+       * clear of (RoadStage.smoke).
+       */
+      smoke: (p: number) => import("./stage").SmokeCheck;
+      /**
+       * Development and checks: the lanterns at p, their ships and what
+       * they keep clear of (RoadStage.lights).
+       */
+      lights: (p: number) => import("./stage").LightsCheck;
       /** Development: each glyph layer's ships by name, in mark order. */
       glyphNames: () => string[][];
       /** Development: each glyph's drawing and intended place at p (RoadStage.motion). */

@@ -1,4 +1,4 @@
-import { type Keyframe, monotoneCurve } from "@/lib/curve";
+import { hermiteCurve, type Keyframe, monotoneCurve } from "@/lib/curve";
 import { roadContent } from "./content";
 import { day, formatDay } from "./dates";
 
@@ -47,6 +47,28 @@ export const CAPTIONS: Record<
 export const LAST_HOLD = 0.978;
 
 /**
+ * The camera's hold over the action off Finisterre on 22 July (camera.ts):
+ * it comes down onto the two lines at the first p and pushes in a little
+ * to the second, about 450 px of scroll on the owner's screen.
+ */
+export const FINISTERRE_HOLD = [0.527, 0.548] as const;
+
+/**
+ * The action's firing, hours of 22 July: the vans' first guns, about 5.15
+ * p.m., and the end of the firing, 9.30 p.m. (smoke.ts; history-notes.md,
+ * "Cape Finisterre, 22 and 23 July").
+ */
+export const FIRING_HOURS = [17.25, 21.5] as const;
+
+/**
+ * The firing's share of the hold (the owner's answer of 16 November 2026:
+ * about two thirds; the closing without smoke runs faster). The end of the
+ * firing stays where the unbroken clock has it, so the smoke thins and
+ * drifts off as before; the first guns come earlier.
+ */
+const FIRING_SHARE = 2 / 3;
+
+/**
  * The story's clock: the day the chart shows, as a monotone curve through
  * (p, day) keys within each beat. Between the first beats the clock jumps
  * (the scene opens on 21 October, goes back to Boulogne and the spring),
@@ -78,7 +100,8 @@ const CLOCK: Record<BeatId, readonly Keyframe[]> = {
   finisterre: [
     [0.5, day(7, 21)],
     // The 22nd of July spread over the plan of the action (director.ts,
-    // MEETINGS), so the date line reads it all through.
+    // MEETINGS), so the date line reads it all through. Inside the camera's
+    // hold the hours are shared anew (FINISTERRE_HOLD, heldClock).
     [0.516, day(7, 22)],
     [0.55, day(7, 22, 23.5)],
     [0.56, day(7, 24)],
@@ -154,7 +177,48 @@ function unbrokenKeys(): Keyframe[] {
   return keys;
 }
 
-const unbroken = monotoneCurve(unbrokenKeys());
+/**
+ * The clock through the camera's hold over the action off Finisterre: the
+ * unbroken curve's own hours at the hold's two ends, and its pace there,
+ * so not a frame outside the hold changes; between them the firing (5.15
+ * to 9.30 p.m.) takes FIRING_SHARE of the hold at an even pace, ending
+ * where the unbroken clock ends it, and the lines close before it faster.
+ * The unbroken curve runs slowest at the hold's start and ever faster to
+ * its end (about 228 story hours a unit of p at 0.527, 601 at 0.548),
+ * which had crowded the firing into the last 205 px of the hold's 450
+ * (session 33).
+ */
+function heldClock(clock: (p: number) => number): (p: number) => number {
+  const [from, to] = FINISTERRE_HOLD;
+  const at = (hour: number) => {
+    const d = day(7, 22, hour);
+    let lo: number = from;
+    let hi: number = to;
+    for (let i = 0; i < 60; i++) {
+      const mid = (lo + hi) / 2;
+      if (clock(mid) < d) lo = mid;
+      else hi = mid;
+    }
+    return hi;
+  };
+  // The unbroken curve's pace at a point inside one of its intervals, where
+  // it is smooth (both hold ends lie inside 0.516-0.55).
+  const pace = (p: number) => (clock(p + 1e-7) - clock(p - 1e-7)) / 2e-7;
+  const [firstHour, ceaseHour] = FIRING_HOURS;
+  const cease = at(ceaseHour);
+  const first = cease - FIRING_SHARE * (to - from);
+  const fight =
+    (day(7, 22, ceaseHour) - day(7, 22, firstHour)) / (cease - first);
+  const held = hermiteCurve([
+    [from, clock(from), pace(from)],
+    [first, day(7, 22, firstHour), fight],
+    [cease, day(7, 22, ceaseHour), fight],
+    [to, clock(to), pace(to)],
+  ]);
+  return (p) => (p > from && p < to ? held(p) : clock(p));
+}
+
+const unbroken = heldClock(monotoneCurve(unbrokenKeys()));
 const curves = Object.fromEntries(
   Object.entries(CLOCK).map(([id, keys]) => [
     id,

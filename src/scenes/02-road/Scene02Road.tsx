@@ -533,6 +533,10 @@ export function Scene02Road() {
                 drawn = -1;
                 return s.fleetAt(p);
               },
+              apartAt: (p: number) => {
+                drawn = -1;
+                return s.apartAt(p);
+              },
               cameraAt: (p: number) => {
                 drawn = -1;
                 return s.cameraAt(p);
@@ -759,6 +763,8 @@ declare global {
       dawnFleet: () => ReturnType<import("./stage").RoadStage["dawnFleet"]>;
       /** Development: each fleet ship's intended place at p (RoadStage.fleetAt). */
       fleetAt: (p: number) => number[];
+      /** Development: how far each fleet ship stands apart from her gate at p (RoadStage.apartAt). */
+      apartAt: (p: number) => number[];
       /** Development: the camera at p (RoadStage.cameraAt). */
       cameraAt: (
         p: number,

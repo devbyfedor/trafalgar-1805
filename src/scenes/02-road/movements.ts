@@ -76,10 +76,15 @@ const COMBINED_TRACK = [
   { day: day(10, 21, 0), lon: -6.35, lat: 36.3, spread: 0.9 },
 ] as const;
 
+/**
+ * The station, 15–20 leagues west of Cádiz: the Victory at 9.30 a.m. on
+ * the 19th about 36°34.5′ N 7°24′ W.
+ */
+export const BRITISH_STATION = { lon: -7.4, lat: 36.575 } as const;
+
 const BRITISH_TRACK = [
-  // The station, 15–20 leagues west of Cádiz; the Victory at 9.30 a.m. on
-  // the 19th about 36°34.5′ N 7°24′ W.
-  { day: day(10, 19, 9.5), lon: -7.4, lat: 36.575, spread: 1 },
+  // At the station (BRITISH_STATION), the body in its dawn order.
+  { day: day(10, 19, 9.5), ...BRITISH_STATION, spread: 1 },
   // The general chase for the Strait, hove to at 1 a.m. on the 20th.
   { day: day(10, 20, 1), lon: -6.12, lat: 36.05, spread: 0.4 },
   // Daybreak on the 20th, between Trafalgar and Cape Spartel.
@@ -167,13 +172,66 @@ const WEIGH = new Map<string, number>();
 /** The passes between Las Puercas and El Diamante, the harbour mouth. */
 const MOUTH = at(-6.29, 36.558);
 
-/** The chain on 19 October (history notes, "Positions, 19 October"). */
+/**
+ * The chain on 19 October (history notes, "Positions, 19 October"). The
+ * Colossus, "with the Mars" (about 36°32′ N 7°04′ W there, low), is drawn
+ * abeam of her, two miles east of her on her parallel: from the relay's camera,
+ * looking a little east of north, the two had stood one behind the other
+ * and she was squeezed out of sight beside the Mars.
+ */
 const CHAIN: Record<string, readonly [number, number]> = {
   Defence: [-6.85, 36.367],
   Agamemnon: [-6.875, 36.375],
-  Colossus: [-7.067, 36.533],
+  Colossus: [-7.035, 36.548],
   Mars: [-7.083, 36.55],
 };
+
+/**
+ * How the chain came to its places of the 19th (history notes, "The
+ * chain"; backlog K12): with the fleet at Nelson's arrival; from 4 October
+ * the Mars, Defence and Colossus (Duff's squadron) about four leagues east
+ * of it, toward Cádiz, "as near as possible in the latitude"; on 14
+ * October the Mars and Colossus at five leagues east of the fleet, their
+ * places of the 19th; and, by the order to the Defence's captain of the
+ * 15th, the Defence and the Agamemnon (with the fleet from the 13th) seven
+ * to ten leagues west of Cádiz. Each move is drawn over a few hours of the
+ * day it was ordered (the hours are the chart's). The Defence's place
+ * while with the Mars and Colossus is the chart's, a mile south of them.
+ * Every place, the 19th's included, from `CHAIN` and the station.
+ */
+const CHAIN_MOVES: Record<
+  string,
+  readonly (readonly [day: number, lon: number, lat: number])[]
+> = {
+  Mars: [
+    [day(10, 4, 8), Number.NaN, Number.NaN],
+    [day(10, 4, 16), -7.15, 36.56],
+    [day(10, 14, 8), -7.15, 36.56],
+    [day(10, 14, 12), ...CHAIN.Mars],
+  ],
+  Colossus: [
+    [day(10, 4, 8), Number.NaN, Number.NaN],
+    [day(10, 4, 16), -7.117, 36.558],
+    [day(10, 14, 8), -7.135, 36.543],
+    [day(10, 14, 12), ...CHAIN.Colossus],
+  ],
+  Defence: [
+    [day(10, 4, 8), Number.NaN, Number.NaN],
+    [day(10, 4, 16), -7.14, 36.528],
+    [day(10, 15, 8), -7.14, 36.528],
+    [day(10, 15, 16), ...CHAIN.Defence],
+  ],
+  Agamemnon: [
+    [day(10, 15, 8), Number.NaN, Number.NaN],
+    [day(10, 15, 16), ...CHAIN.Agamemnon],
+  ],
+};
+
+/**
+ * When the chain had taken its stations of the 19th (CHAIN_MOVES): from
+ * here the four are drawn apart from the fleet (director.ts).
+ */
+export const CHAIN_ON_STATION = day(10, 15, 16);
 
 function centroid(ships: readonly Ship[], berths: ReadonlyMap<Ship, Berth>) {
   let x = 0;
@@ -290,8 +348,21 @@ function britishKeys(ship: Ship): Key[] {
   // At the station, lying to in loose order, the Victory at its centre.
   const station = at(BRITISH_TRACK[0].lon, BRITISH_TRACK[0].lat);
   if (chain) {
+    // With the fleet until detached, then to her places (CHAIN_MOVES;
+    // NaN: her place in the fleet), lying to at each.
+    keys.push({
+      day: SEPT_28,
+      x: station[0] + ox,
+      y: station[1] + oy,
+      heading: 100,
+    });
+    for (const [d, lon, lat] of CHAIN_MOVES[ship.name]) {
+      const [x, y] = Number.isNaN(lon)
+        ? [station[0] + ox, station[1] + oy]
+        : at(lon, lat);
+      keys.push({ day: d, x, y, heading: 100 });
+    }
     const [cx, cy] = at(chain[0], chain[1]);
-    keys.push({ day: SEPT_28, x: cx, y: cy, heading: 100 });
     keys.push({ day: day(10, 19, 9.5), x: cx, y: cy, heading: 100 });
   } else {
     keys.push({

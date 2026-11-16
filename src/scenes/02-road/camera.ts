@@ -1,7 +1,8 @@
 import { aim, type Lla, offset } from "@/components/chart/camera/aim";
 import type { CameraKey } from "@/components/chart/camera/rig";
-import { FINISTERRE_HOLD, LAST_HOLD } from "./beats";
+import { FINISTERRE_HOLD, HARBOUR_HOLD, LAST_HOLD } from "./beats";
 import { VICTORY_AT_DAWN } from "./fleets";
+import { relayP } from "./relay";
 
 /**
  * The camera through scene 2 (docs/decisions.md, "Scene 2, Stage B",
@@ -63,6 +64,60 @@ const HARBOUR_EYE: Lla = offset(
  */
 const FINISTERRE_EYE: Lla = [-11.75, 42.62, 85];
 const FINISTERRE_TARGET: Lla = [-11.6, 43.7, 0];
+
+/**
+ * The relay of 19 October (relay.ts): the camera follows No. 370 down the
+ * chain from the frigates off Cádiz to the Victory, about 50 nm west,
+ * coming to each link about as her signal goes up. It looks a little east
+ * of north (RELAY_HEADING), across the chain's line, which runs about due
+ * west, and trucks west with the signal: the ships lying to on station
+ * (heading about 100°) show their sides, facing right; the signal runs
+ * from right to left across the frame; the coast of the Gulf between the
+ * Guadalquivir and the Guadiana lies along the top of it, and the morning
+ * sun (07.00 in the ESE, 9.30 in the SE) is behind the right shoulder.
+ * Close over the frigates off the port, with the city and its harbour
+ * beside them; then high over the long run west (about 30 km up), so two
+ * links stand in the frame at once (low over it the frame held one at a
+ * time, and open sea between); at 9.30 over the station, Nelson's body
+ * there lettered with its strength (its ships, in their close order about
+ * the Victory, read one by one only from a view held over them, which the
+ * beat has no room for). Looked at along the chain (east-north-east, as
+ * the scene's last frame), the links had come in from under the frame and
+ * gone at once.
+ */
+const RELAY_HEADING = 8;
+
+/** A view of a place on the chart from `distance` km back along the relay's heading, at an altitude. */
+function relayView(
+  p: number,
+  lon: number,
+  lat: number,
+  distance: number,
+  altitudeKm: number,
+): CameraKey {
+  return {
+    p,
+    eye: offset(lon, lat, RELAY_HEADING + 180, distance, altitudeKm),
+    target: [lon, lat, 0],
+  };
+}
+
+/**
+ * The relay's views, in order (the places from history-notes.md,
+ * "Positions, 19 October"; movements.ts): the inshore frigates off San
+ * Sebastián as the Sirius makes the signal at 7.00 and the Euryalus sends
+ * the Phoebe west with it at 7.20 (close, and slow: the inshore steps
+ * within twenty minutes); the Phoebe running west and the Defence with the
+ * Agamemnon about 8.20; the Colossus and the Mars from about 8.45 to 9;
+ * the station at 9.30, the Mars on the right.
+ */
+const RELAY_VIEWS: readonly CameraKey[] = [
+  relayView(relayP("Sirius"), -6.375, 36.48, 12, 10),
+  relayView(relayP("Euryalus"), -6.43, 36.49, 22, 17),
+  relayView(relayP("Defence"), -6.72, 36.36, 52, 42),
+  relayView((relayP("Colossus") + relayP("Mars")) / 2, -6.98, 36.47, 56, 46),
+  relayView(relayP("Victory"), -7.2, 36.51, 60, 50),
+];
 
 /** Rising off the sea beside her, turning north and pitching down. */
 const RISING_EYE: Lla = offset(
@@ -157,27 +212,25 @@ export const ROAD_FLIGHT: readonly CameraKey[] = [
     eye: [-6.52, 36.21, 15],
     target: [ANCHORAGE_CENTRE[0], ANCHORAGE_CENTRE[1], 0],
   },
-  // Held over the harbour from a little before 7 a.m. on the 19th, as the
-  // first ships weigh and the frigates off the port make the first signal,
-  // so every ship at anchor comes in: their sizes and how much of each
-  // shows are eased over about 0.015 of p either way (glyphs/layout.ts),
-  // and a view still on its way down or up had kept the lines small.
+  // Held over the harbour at first light on the 19th, a little before 7
+  // (HARBOUR_HOLD), the fleet at anchor before the first ships weigh, so
+  // every ship at anchor comes in: their sizes and how much of each shows
+  // are eased over the scroll (glyphs/layout.ts), and a view still on its
+  // way down or up had kept the lines small.
   {
-    p: 0.72,
+    p: HARBOUR_HOLD[0],
     eye: HARBOUR_EYE,
     target: [ANCHORAGE_CENTRE[0], ANCHORAGE_CENTRE[1], 0],
   },
   {
-    p: 0.75,
+    p: HARBOUR_HOLD[1],
     eye: HARBOUR_EYE,
     target: [ANCHORAGE_CENTRE[0], ANCHORAGE_CENTRE[1], 0],
   },
-  {
-    p: 0.764,
-    eye: [-6.55, 36.22, 15],
-    target: [ANCHORAGE_CENTRE[0], ANCHORAGE_CENTRE[1], 0],
-  },
-  { p: 0.785, eye: [-6.96, 35.78, 58], target: [-6.86, 36.5, 0] },
+  // Out of the bay to the frigates off the port, and along the chain to
+  // the Victory with the signal; then up and back over the Gulf as the
+  // fleet makes sail for the Strait.
+  ...RELAY_VIEWS,
   { p: 0.82, eye: [-6.9, 35.72, 70], target: [-6.7, 36.42, 0] },
   // 5. Night: up and east to Ulm, and back to the fleets closing.
   { p: 0.855, eye: [-1, 40, 1350], target: [5, 47, 0] },

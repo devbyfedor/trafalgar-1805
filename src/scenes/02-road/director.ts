@@ -39,7 +39,8 @@ import {
 } from "./fleets";
 import type { NightLanterns } from "./lanterns";
 import { ARMY_MARCH } from "./march";
-import { type ShipState, shipAt } from "./movements";
+import { CHAIN_ON_STATION, type ShipState, shipAt } from "./movements";
+import { CHAIN_SHIPS } from "./relay";
 import type { DatedWaypoint, Leg } from "./routes";
 import type { BattleSmoke } from "./smoke";
 import {
@@ -860,6 +861,39 @@ function readableChanges(
 const FLEET_BEATS: readonly BeatId[] = ["cadiz", "night"];
 
 /**
+ * The chain's four ships of the line apart from the British fleet (relay.ts,
+ * CHAIN_SHIPS; GlyphIntent.apart): from the day they had taken their
+ * stations of the 19th (movements.ts, CHAIN_ON_STATION), as the repeating
+ * ships they were, by the owner's answer of 14 November 2026, an exception
+ * to "a label or all its ships": they show as they read where Nelson's
+ * body shows as its label. Until they are back with the fleet, which they
+ * join on the general chase from 9.30 (movements.ts: in its order, drawn
+ * closer, by 1 a.m. on the 20th): from midnight they come and go with it
+ * again, so they go into its label as they reach it. Before their stations
+ * (their moves from the fleet, CHAIN_MOVES) they come and go with the
+ * fleet, whose ships don't come in before the 17th. The night and the dawn
+ * are as they were.
+ */
+const CHAIN_APART: readonly [number, number, number, number] = (() => {
+  const from = pOfDay(CHAIN_ON_STATION, FLEET_BEATS);
+  const back = pOfDay(day(10, 20, 0), FLEET_BEATS);
+  return [from, from + 0.003, back, back + 0.004];
+})();
+
+/**
+ * Off Cádiz the British fleet's label stands by its body (applyHeads):
+ * Blackwood's frigates watching the port, some 50 nm east of it, don't
+ * count toward its place, nor do the chain's ships as far as they stand
+ * apart. Counted, the frigates had drawn the label's place 15 km and more
+ * east of the body, off the frame of a view of it. In the night and at
+ * the dawn the frigates lie between the fleets and count as before; the
+ * window's ends fall where the fleets are out of the story (no label).
+ */
+const BRITISH_HEAD_BODY: readonly [number, number, number, number] = [
+  0.6, 0.62, 0.86, 0.87,
+];
+
+/**
  * A fleet's strength over the scroll (FLEET_HEADS): from the start of beat
  * 4, every day its ships of the line come or go (fleets.ts, strengthDays),
  * at its p and over its window.
@@ -1148,6 +1182,17 @@ export class RoadDirector {
   );
   private readonly ndc = new Vector3();
   private victoryIndex: number;
+  /** Whether each ship is one of Blackwood's squadron watching the port (BRITISH_HEAD_BODY). */
+  private readonly watching: boolean[] = this.ships.map(
+    (s) =>
+      s.side === "british" &&
+      s.group === "frigates" &&
+      s.name !== "Entreprenante",
+  );
+  /** Whether each ship is one of the chain's four (CHAIN_APART). */
+  private readonly chain: boolean[] = this.ships.map(
+    (s) => s.side === "british" && CHAIN_SHIPS.includes(s.name),
+  );
   /** Each squadron's eased heading by step of p from the start of the chase (prepare). */
   private squadHeadings: Float32Array[] = [];
   /**
@@ -1803,6 +1848,7 @@ export class RoadDirector {
         glyphs.setType(i, ship.rig.sail, anchor, k);
       else glyphs.setType(i, ship.rig.sail);
       glyphs.setUnderWay(i, 1 - k);
+      glyphs.setApart(i, this.chain[i] ? fade(p, CHAIN_APART) : 0);
       let opacity = Math.min(1, shown);
       // A ship leaving the story (the Weazle, bound for Gibraltar) fades
       // out over its last few hours, out at sea.
@@ -2124,15 +2170,19 @@ export class RoadDirector {
         }
       }
       // Among its ships, each counting as far as she is there, so a ship
-      // coming or going (fleetPresence) moves the label smoothly.
+      // coming or going (fleetPresence) moves the label smoothly; the
+      // chain's ships as far as they are with the fleet (CHAIN_APART).
       let x = 0;
       let y = 0;
       let weight = 0;
+      const body = fade(p, BRITISH_HEAD_BODY);
       this.ships.forEach((ship, i) => {
-        if (ship.side !== fleet.side || it.opacity[i] <= 0) return;
-        x += it.x[i] * it.opacity[i];
-        y += it.y[i] * it.opacity[i];
-        weight += it.opacity[i];
+        let v = it.opacity[i] * (1 - it.apart[i]);
+        if (this.watching[i]) v *= 1 - body;
+        if (ship.side !== fleet.side || v <= 0) return;
+        x += it.x[i] * v;
+        y += it.y[i] * v;
+        weight += v;
       });
       const there = weight > 1e-6;
       const presence = there ? inStory : 0;

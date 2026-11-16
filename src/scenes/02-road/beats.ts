@@ -69,6 +69,39 @@ export const FIRING_HOURS = [17.25, 21.5] as const;
 const FIRING_SHARE = 2 / 3;
 
 /**
+ * The camera's hold over Cádiz harbour on the morning of 19 October
+ * (camera.ts), about 320 px of scroll on the owner's screen: shortened by
+ * the owner's answer of 16 November 2026 (it was 0.72-0.75), so the relay
+ * gets about one and a half screens; the pin's length is unchanged.
+ */
+export const HARBOUR_HOLD = [0.72, 0.75] as const;
+
+/**
+ * The relay of 19 October on the story's clock (docs/history-notes.md, "The
+ * signal chain, 19 to 21 October"): the harbour at first light through the
+ * hold, a little before 7; the Sirius's No. 370 at 7.00 as the camera comes
+ * out to her; the Euryalus sending the Phoebe west with it at 7.20 (the
+ * inshore steps within twenty minutes); then the long run west down the
+ * chain at an even pace, to the Victory's answer at 9.30. From the hold's
+ * end to the Victory, 0.05 of p: one and a half screens. Each key is a
+ * place on the clock, an hour of the 19th, and the clock's pace there
+ * (hours a unit of p).
+ */
+export const RELAY_CLOCK = {
+  holdFrom: [HARBOUR_HOLD[0], 6.83, 5],
+  holdTo: [HARBOUR_HOLD[1], 6.93, 5],
+  sirius: [0.758, 7, 20],
+  euryalus: [0.766, 7 + 20 / 60, 50],
+  victory: [0.8, 9.5, 62],
+} as const satisfies Record<string, readonly [number, number, number]>;
+
+/**
+ * The stretch of p the relay's clock replaces (relayClock): from first
+ * light on the 19th to the morning of the 20th, where beat 5 takes over.
+ */
+const RELAY_SPAN = [0.7, 0.82] as const;
+
+/**
  * The story's clock: the day the chart shows, as a monotone curve through
  * (p, day) keys within each beat. Between the first beats the clock jumps
  * (the scene opens on 21 October, goes back to Boulogne and the spring),
@@ -139,6 +172,9 @@ const CLOCK: Record<BeatId, readonly Keyframe[]> = {
     [0.664, day(10, 6, 12)],
     [0.6705, day(10, 8, 16)],
     [0.69, day(10, 18)],
+    // From 6 a.m. on the 19th to 9 a.m. on the 20th the relay's clock
+    // stands in (RELAY_CLOCK, relayClock); the key at 0.78 still shapes
+    // the curve's pace at 0.82, where beat 5 takes over.
     [0.7, day(10, 19, 6)],
     [0.78, day(10, 19, 9.6)],
     [0.82, day(10, 20, 9)],
@@ -218,7 +254,29 @@ function heldClock(clock: (p: number) => number): (p: number) => number {
   return (p) => (p > from && p < to ? held(p) : clock(p));
 }
 
-const unbroken = heldClock(monotoneCurve(unbrokenKeys()));
+/**
+ * The clock through the harbour's hold and the relay (RELAY_CLOCK): a
+ * Hermite curve through the relay's keys, joined to the unbroken curve at
+ * RELAY_SPAN's ends at its own hours and pace, so no frame outside the
+ * span changes (the descent before 6 a.m. on the 19th, beat 5 from 9 a.m.
+ * on the 20th). The unbroken curve alone had put 7.00 at p 0.7095, in the
+ * descent, and held the harbour from 7.45 to 8.40.
+ */
+function relayClock(clock: (p: number) => number): (p: number) => number {
+  const [from, to] = RELAY_SPAN;
+  const pace = (p: number) => (clock(p + 1e-7) - clock(p - 1e-7)) / 2e-7;
+  const keys = Object.values(RELAY_CLOCK).map(
+    ([p, hour, perP]) => [p, day(10, 19, hour), perP / 24] as const,
+  );
+  const held = hermiteCurve([
+    [from, clock(from), pace(from + 1e-6)],
+    ...keys,
+    [to, clock(to), pace(to - 1e-6)],
+  ]);
+  return (p) => (p > from && p < to ? held(p) : clock(p));
+}
+
+const unbroken = relayClock(heldClock(monotoneCurve(unbrokenKeys())));
 const curves = Object.fromEntries(
   Object.entries(CLOCK).map(([id, keys]) => [
     id,

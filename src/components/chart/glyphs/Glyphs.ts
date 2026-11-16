@@ -351,6 +351,15 @@ export interface GlyphIntent {
   cell: Float32Array;
   cell2: Float32Array;
   turn: Float32Array;
+  /**
+   * How far she stands apart from her group's gate, 0..1 (layout.ts,
+   * FreeGroup.gate): 0, she comes and goes with her fleet; 1, she shows as
+   * she reads, as an ungated group's ships do, and neither holds her
+   * fleet's gate nor counts in its hand-over to the label (gateShown). The
+   * chain's ships of the line on 19 October, repeating ships apart from
+   * the fleet (scenes/02-road/director.ts).
+   */
+  apart: Float32Array;
 }
 
 /** What the layout decided for each mark this frame (layout.ts). */
@@ -412,6 +421,7 @@ export class Glyphs implements ChartLayer {
       cell: f32(),
       cell2: f32(),
       turn: f32(),
+      apart: f32(),
     };
     this.drawn = {
       x: f32(),
@@ -635,6 +645,11 @@ export class Glyphs implements ChartLayer {
     this.intent.cell[index] = cell;
     this.intent.cell2[index] = next === undefined ? cell : this.cellOf(next);
     this.intent.turn[index] = next === undefined ? 0 : t;
+  }
+
+  /** How far a mark stands apart from her group's gate, 0..1 (GlyphIntent.apart). */
+  setApart(index: number, apart: number): void {
+    this.intent.apart[index] = apart;
   }
 
   /** How much of her wake shows (0 at anchor, 1 under way). */

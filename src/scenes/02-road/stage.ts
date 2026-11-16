@@ -200,6 +200,12 @@ export interface RoadStage {
   /** Development: each fleet ship's intended place at p (world km) and her opacity: [x, y, opacity] each. */
   fleetAt(p: number): number[];
   /**
+   * Development: how far each fleet ship stands apart from her fleet's gate
+   * at p (GlyphIntent.apart; the chain's ships of the line on 19 October),
+   * for the checks of the owner's rule "a label or all its ships".
+   */
+  apartAt(p: number): number[];
+  /**
    * Development: the camera at p, for laying out the dawn fleets off the
    * page (scripts/dev/fleet-ease.mjs): its view and projection matrices
    * (column-major), the canvas in device px, the device pixel ratio, the
@@ -1039,6 +1045,11 @@ export async function createRoadStage(
         for (let i = 0; i < fleets.markCount; i++)
           out.push(it.x[i], it.y[i], it.opacity[i]);
         return out;
+      },
+      apartAt(p) {
+        sampled = Number.NaN;
+        director.applyState(p);
+        return Array.from(fleets.intent.apart);
       },
       cameraAt(p) {
         sampled = Number.NaN;

@@ -42,6 +42,7 @@ import {
   FLOTILLA_GATE,
   fleetMarks,
   fleetNames,
+  fleetSides,
   type InterludeView,
   RoadDirector,
   roadHeads,
@@ -340,6 +341,8 @@ export interface LightsCheck {
     height: number;
     alpha: number;
     name: string;
+    /** Her fleet. */
+    side: string;
   }[];
   /** As SmokeCheck's. */
   text: { kind: string; quad: number[]; weight: number }[];
@@ -780,6 +783,7 @@ export async function createRoadStage(
           );
         };
         const names = fleetNames();
+        const sides = fleetSides();
         const d = fleets.drawn;
         const coastUnder: number[] = [];
         const seaUnder: number[] = [];
@@ -806,6 +810,7 @@ export async function createRoadStage(
             height: d.height[m] / dpr,
             alpha: d.alpha[m],
             name: names[m] ?? String(m),
+            side: sides[m] ?? "",
           });
         }
         const text: LightsCheck["text"] = [];

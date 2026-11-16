@@ -8,7 +8,13 @@
 // frame, the night's share of the light and the outlines of the lettering.
 // The labels' clock makes every move at once (HeadLabels.setClock), and
 // each p is drawn twice, so they stand settled. A step fails where:
-//   - a lantern shows while the chart is not in the dark (night <= NIGHT);
+//   - a lantern shows while the chart is not in the dark (night <= NIGHT),
+//     but the combined fleet's in the night beat (from p NIGHT_BEAT), which
+//     burn faintly into the scene's last frame (session 34: the owner's
+//     answer of 16 November 2026), or any before the night beat;
+//   - a lantern of the combined fleet shows brighter than the night lets it
+//     (lanterns.ts: whole while the chart's night share is DIM_FROM or
+//     more, down to FAINT as it falls to none; dim() below, written apart);
 //   - a lantern's centre lies over land or within LAND_KM of it;
 //   - a lantern, its halo or its reflection, comes within GAP CSS px of a
 //     name, label or the caption's card shown at TEXT (0.5, the readable
@@ -18,7 +24,10 @@
 //   - a lantern stands off its ship: where the layout drew her, its centre
 //     outside her glyph's box (her foot, her height, as wide as tall
 //     either side) by more than 2 px;
-//   - two lanterns shown at BRIGHT or more stand nearer than SPACE CSS px,
+//   - two lanterns shown at BRIGHT or more of what the night lets them
+//     (dim) stand nearer than SPACE px of a 720 px tall screen (the
+//     lanterns' sizes and spacing are set by the screen's height:
+//     Lights.ts, LIGHT_SCREEN_H; SPACE CSS px times height / 720),
 //     whatever thins them (Lights.ts, SPACE_PX: a light gives way only to
 //     its line's lights of a higher rank, a top or mizzen light to every
 //     one; two of other lines or fleets meeting would be a defect too);
@@ -31,11 +40,13 @@
 // move of the lanterns of its layer (its ship's point jumping on her).
 //   node scripts/dev/lights-clear.mjs [from] [to] [step]
 // Defaults: 0.78 to 1 every 0.0005 (the night's light comes in from 0.79
-// and is gone at 0.995). Environment: BASE (default http://127.0.0.1:3000;
+// and is gone at 0.995; the combined fleet's lights burn faintly to 1).
+// Environment: BASE (default http://127.0.0.1:3000;
 // the production preview is http://127.0.0.1:4173), SIZES (default
 // "1280x720@1.5,1920x1080@1,2560x1440@1,3440x1440@1"), SEEN (the least
 // intensity that counts, 0.02), NIGHT (0.002), LAND_KM (0.5), GAP (0.5),
-// TEXT (0.5), BRIGHT (0.5), SPACE (3.5), POP (0.35), MOVE (2), JSON=<file>
+// TEXT (0.5), BRIGHT (0.5), SPACE (3.5), FAINT (0.55), DIM_FROM (0.35),
+// NIGHT_BEAT (0.82), POP (0.35), MOVE (2), JSON=<file>
 // for every step's counts. Exits with 1 if any step fails.
 import { writeFile } from "node:fs/promises";
 import { chromium } from "@playwright/test";
@@ -51,6 +62,20 @@ const GAP = Number(process.env.GAP ?? 0.5);
 const TEXT = Number(process.env.TEXT ?? 0.5);
 const BRIGHT = Number(process.env.BRIGHT ?? 0.5);
 const SPACE = Number(process.env.SPACE ?? 3.5);
+const FAINT = Number(process.env.FAINT ?? 0.55);
+const DIM_FROM = Number(process.env.DIM_FROM ?? 0.35);
+const NIGHT_BEAT = Number(process.env.NIGHT_BEAT ?? 0.82);
+
+/**
+ * How far the night lets a lantern of a side show (lanterns.ts,
+ * lanternsLit, by the chart's light): the British whole (they are out by
+ * day), the combined fleet's dimmed to FAINT.
+ */
+function dim(side, night) {
+  if (side !== "combined") return 1;
+  const t = Math.min(1, Math.max(0, night / DIM_FROM));
+  return FAINT + (1 - FAINT) * t * t * (3 - 2 * t);
+}
 const POP = Number(process.env.POP ?? 0.35);
 const MOVE = Number(process.env.MOVE ?? 2);
 const sizes = (
@@ -135,6 +160,7 @@ for (const size of sizes) {
     window.__road.labelClock?.(Number.POSITIVE_INFINITY),
   );
   const label = `${size.width}x${size.height}@${size.scale}`;
+  const space = (SPACE * size.height) / 720;
   let most = 0;
   let nearest = Number.POSITIVE_INFINITY;
   let closest = Number.POSITIVE_INFINITY;
@@ -187,10 +213,23 @@ for (const size of sizes) {
       lastLit = p;
     }
     let fails = 0;
-    if (r.night <= NIGHT && shown.length) {
+    const byDay = shown.filter(
+      (l) => r.ships[l.i].side !== "combined" || p < NIGHT_BEAT,
+    );
+    if (r.night <= NIGHT && byDay.length) {
       fails++;
       note("day", p, "a lantern while the chart is not in the dark");
     }
+    const lets = (l) => dim(r.ships[l.i].side, r.night);
+    for (const l of shown)
+      if (l.I > lets(l) + 0.005) {
+        fails++;
+        note(
+          `dawn:${r.ships[l.i].name}`,
+          p,
+          `${r.ships[l.i].name}'s lantern brighter than the night lets it (${l.I.toFixed(2)} against ${lets(l).toFixed(2)})`,
+        );
+      }
     for (const l of shown) {
       const ship = r.ships[l.i];
       const c = r.coast[l.i];
@@ -228,7 +267,7 @@ for (const size of sizes) {
         }
       } else unlaid++;
     }
-    const bright = shown.filter((l) => l.I >= BRIGHT);
+    const bright = shown.filter((l) => l.I >= BRIGHT * lets(l));
     for (let a = 0; a < bright.length; a++)
       for (let b = a + 1; b < bright.length; b++) {
         const d = Math.hypot(
@@ -236,7 +275,7 @@ for (const size of sizes) {
           bright[a].cy - bright[b].cy,
         );
         closest = Math.min(closest, d);
-        if (d < SPACE) {
+        if (d < space) {
           fails++;
           const pair = [bright[a], bright[b]]
             .map((l) => `${r.ships[l.i].name} ${PLACES[l.place]}`)

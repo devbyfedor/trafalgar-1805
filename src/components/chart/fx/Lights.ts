@@ -75,9 +75,29 @@ const PALETTE = {
 };
 
 /**
- * On screen, CSS px: a lantern gives way to the ones it is told to (its
- * line's next of a higher rank, or her own stern light) within the first
- * distance, whole beyond the second (their halos never touch).
+ * The screen height (CSS px) a lantern's drawing is sized for: the owner's
+ * laptop's. On a taller screen it is as large against the frame as there,
+ * its brightness the same (the owner's answer of 16 November 2026: on the
+ * large monitors the points show as on his laptop). The chart's lens is
+ * set by the frame's height, so the chart itself grows with the screen's
+ * height, while a lantern drawn a fixed number of CSS px shrank against it
+ * (at 2560x1440 to half, its soft edge eating most of its core). Every size
+ * of its drawing below (its core, halo, edge, reflection's sway and breaks,
+ * its spacing, its fading under the caption's card) is in px of this
+ * screen, `unit` device px each (frame.height / LIGHT_SCREEN_H): 1.5 at
+ * 1280x720 at 1.5 and at 1920x1080 at 1 (drawn pixel for pixel alike), 2
+ * at 1440 tall. Not its height on her (her glyph's, which the glyphs keep
+ * at its CSS size on every screen) nor its giving way to a label's outline
+ * (measured from its halo's edge, which grows with it).
+ */
+export const LIGHT_SCREEN_H = 720;
+
+/**
+ * On screen, px of LIGHT_SCREEN_H: a lantern gives way to the ones it is
+ * told to (its line's next of a higher rank, or her own stern light)
+ * within the first distance, whole beyond the second (their halos never
+ * touch). On a taller screen the ships stand as much farther apart as the
+ * halos grow, so a line thins out as on the laptop.
  */
 export const SPACE_PX: readonly [number, number] = [4, 8];
 
@@ -111,9 +131,10 @@ export const LIGHT_YIELD_PX: readonly [number, number] = [2, 5];
 
 /**
  * The same for the regions fixed on screen the chart moves under (the
- * caption's card): a lantern fades as it nears one over these, CSS px,
- * as under its scrim; at the narrow range it went out within a frame or
- * two of a reader's scroll as the sea slid under the card.
+ * caption's card): a lantern fades as it nears one over these, px of
+ * LIGHT_SCREEN_H (the card is sized by the screen's height too), as under
+ * its scrim; at the narrow range it went out within a frame or two of a
+ * reader's scroll as the sea slid under the card.
  */
 export const LIGHT_REGION_PX: readonly [number, number] = [6, 40];
 
@@ -167,7 +188,8 @@ in vec4 iAt;
 // Intensity (0..1, all it is made of), seed.
 in vec4 iLight;
 uniform vec2 uViewport;
-uniform float uDpr;
+// Device px a px of the screen its sizes are set for (LIGHT_SCREEN_H).
+uniform float uUnit;
 out vec2 vLocal;
 flat out float vCore;
 flat out float vDrop;
@@ -182,7 +204,7 @@ void main() {
     gl_Position = FX_NOWHERE;
     return;
   }
-  float R = ${HALO.toFixed(1)} * rc + uDpr;
+  float R = ${HALO.toFixed(1)} * rc + uUnit;
   float sea = iAt.w * (1.0 + ${REFLECT.toFixed(2)});
   vec2 corner = mix(vec2(-R, -sea - R), vec2(R, R), position.xy);
   gl_Position = vec4((iAt.xy + corner) / (0.5 * uViewport), 0.0, 1.0);
@@ -197,7 +219,7 @@ void main() {
 const FRAGMENT = /* glsl */ `
 precision highp float;
 ${GLSL_FX}
-uniform float uDpr;
+uniform float uUnit;
 in vec2 vLocal;
 flat in float vCore;
 flat in float vDrop;
@@ -221,9 +243,9 @@ float fxNoise(float x, float seed) {
 }
 
 // A painted point: a disc of radius r (device px), its edge soft over
-// about a pixel.
+// about a pixel of the screen its sizes are set for.
 float disc(vec2 p, float r) {
-  return 1.0 - smoothstep(r - 0.6 * uDpr, r + 0.6 * uDpr, length(p));
+  return 1.0 - smoothstep(r - 0.6 * uUnit, r + 0.6 * uUnit, length(p));
 }
 
 // A tight halo: full at the light, ending at R, with no long tail.
@@ -236,15 +258,15 @@ float halo(vec2 p, float R) {
 // waterline down, swaying a little, fading with depth; width device px.
 // The swell's pattern is the lantern's own, still: no clock moves it.
 float reflection(vec2 p, float width) {
-  if (vDrop <= 0.5 * uDpr) return 0.0;
+  if (vDrop <= 0.5 * uUnit) return 0.0;
   float below = -p.y - vDrop;
   float reach = ${REFLECT.toFixed(2)} * vDrop;
   if (below < 0.0 || below > reach) return 0.0;
   float t = below / reach;
-  float sway = (fxNoise(below / (2.5 * uDpr), vSeed + 3.0) - 0.5) * 1.2 * uDpr * t;
-  float across = 1.0 - smoothstep(0.5 * width, 0.5 * width + uDpr, abs(p.x - sway));
-  float dash = smoothstep(0.35, 0.65, fxNoise(below / (1.4 * uDpr), vSeed + 11.0));
-  return across * dash * (1.0 - t) * (1.0 - t) * smoothstep(0.0, 1.5 * uDpr, below);
+  float sway = (fxNoise(below / (2.5 * uUnit), vSeed + 3.0) - 0.5) * 1.2 * uUnit * t;
+  float across = 1.0 - smoothstep(0.5 * width, 0.5 * width + uUnit, abs(p.x - sway));
+  float dash = smoothstep(0.35, 0.65, fxNoise(below / (1.4 * uUnit), vSeed + 11.0));
+  return across * dash * (1.0 - t) * (1.0 - t) * smoothstep(0.0, 1.5 * uUnit, below);
 }
 
 void main() {
@@ -319,6 +341,8 @@ export class Lights implements ChartLayer {
   /** The lettering and the regions the lanterns give way to (setKeepClear). */
   private keepClear: readonly ScreenText[] = [];
   private keepOff: readonly ScreenText[] = [];
+  /** LIGHT_REGION_PX in CSS px on this screen, this frame. */
+  private readonly region: [number, number] = [0, 0];
 
   /**
    * `anatomy` from the glyphs' atlas and types; `capacity` lanterns at
@@ -369,7 +393,7 @@ export class Lights implements ChartLayer {
         depthTest: false,
         uniforms: {
           uViewport: { value: new Vector2(1, 1) },
-          uDpr: { value: 1 },
+          uUnit: { value: 1 },
         },
       }),
     );
@@ -420,8 +444,10 @@ export class Lights implements ChartLayer {
 
   /**
    * A lantern at mark `mark` of `glyphs`, at `place` on her drawing,
-   * `intensity` 0..1 (a lantern burns steadily from when it is lit to when
-   * it is put out: the scene fades it only then). `seed`, a whole number
+   * `intensity` 0..1: all of how far it is lit, the scene's to time by its
+   * clock and the chart's light (a lantern burns steadily from when it is
+   * lit; the scene fades it as it is put out, or as the day comes over
+   * it); drawn as given, by night or by day. `seed`, a whole number
    * kept for its life, varies its strength and its reflection a little, so
    * a line of them never reads as a row of street lamps. `parentA` and
    * `parentB`: lanterns set before it this frame (by their order of
@@ -461,10 +487,13 @@ export class Lights implements ChartLayer {
     const n = this.n;
     const u = this.mesh.material.uniforms;
     u.uViewport.value.set(frame.width, frame.height);
-    u.uDpr.value = frame.dpr;
-    // Lights only in the dark (the scene times them; this keeps any off a
-    // chart in daylight).
-    const dark = smoothstep(0.02, 0.2, frame.light.night);
+    // Device px a px of the screen the lanterns are sized for, and that px
+    // in CSS px (LIGHT_SCREEN_H).
+    const unit = frame.height / LIGHT_SCREEN_H;
+    const grow = unit / frame.dpr;
+    u.uUnit.value = unit;
+    // The scene times them, by its clock and the chart's light (a lantern's
+    // intensity: Lights.lantern).
 
     const camera = frame.camera;
     const vp = this.viewProjection.multiplyMatrices(
@@ -514,7 +543,7 @@ export class Lights implements ChartLayer {
       this.whyHeight[i] = Number.NaN;
       const first = fresh || !this.wasPlaced[i];
       const glyphs = this.layers[i];
-      if (!glyphs || !(dark > 0)) continue;
+      if (!glyphs) continue;
       const m = this.marks[i];
       const it = glyphs.intent;
       const presence = it.opacity[m];
@@ -565,16 +594,17 @@ export class Lights implements ChartLayer {
       const across = facing + (drawing - facing) * drawnShare;
       const px = at.x + along * across * ha;
       const py = at.y + FOOT * hs + (up - FOOT) * ha;
-      // Its size: a little larger as glyphs grow (1 at a 28 CSS px glyph).
+      // Its size: by the screen's height (LIGHT_SCREEN_H), and a little
+      // larger as glyphs grow (1 at a 28 CSS px glyph).
       const seed = v[q + 2];
       const hn = laid ? d.nominal[m] : altitudePx;
       const scale = Math.min(1.6, Math.max(0.75, hn / (28 * dpr)));
-      const rc = 0.8 * dpr * scale * (0.92 + 0.16 * rand(seed, 1));
+      const rc = 0.8 * unit * scale * (0.92 + 0.16 * rand(seed, 1));
       const drop = Math.max(0, (up - FOOT) * ha);
       // Off the frame, its halo and reflection and all, by more than a
       // margin for its neighbours: nothing to draw or give way to.
-      const R = HALO * rc + dpr;
-      const margin = 40 * dpr;
+      const R = HALO * rc + unit;
+      const margin = 40 * unit;
       if (
         px + R < -halfW - margin ||
         px - R > halfW + margin ||
@@ -594,13 +624,16 @@ export class Lights implements ChartLayer {
       this.sy[i] = (halfH - py) / dpr;
       this.core[i] = rc;
       this.drop[i] = drop;
-      this.seen[i] = presence * dark * Math.exp(-0.5 * hz * hz);
+      this.seen[i] = presence * Math.exp(-0.5 * hz * hz);
     }
     // How much each shows: given way to its lanterns of a higher rank where
     // they stand too near (by where they stand, not by how much they show,
     // so no light's showing hangs on another's), and to the lettering.
-    const space0 = SPACE_PX[0];
-    const space1 = SPACE_PX[1];
+    const space0 = SPACE_PX[0] * grow;
+    const space1 = SPACE_PX[1] * grow;
+    const region = this.region;
+    region[0] = LIGHT_REGION_PX[0] * grow;
+    region[1] = LIGHT_REGION_PX[1] * grow;
     let k = 0;
     for (let i = 0; i < n; i++) {
       if (!this.placed[i]) continue;
@@ -630,11 +663,11 @@ export class Lights implements ChartLayer {
       // square to the screen took in lights well clear of its letters).
       let clearOf = 1;
       if (this.keepClear.length || this.keepOff.length) {
-        const R = (HALO * rc + dpr) / dpr;
+        const R = (HALO * rc + unit) / dpr;
         const sea = (drop * (1 + REFLECT)) / dpr;
         clearOf =
           lightClear(this.keepClear, cx, cy, cy + sea, R, LIGHT_YIELD_PX) *
-          lightClear(this.keepOff, cx, cy, cy + sea, R, LIGHT_REGION_PX);
+          lightClear(this.keepOff, cx, cy, cy + sea, R, region);
       }
       this.whyText[i] = clearOf;
       // Both by the lanterns' clock, toward this frame's at GIVE_WAY_S: on
@@ -707,13 +740,14 @@ export class Lights implements ChartLayer {
   bounds(dpr: number, width: number, height: number): number[] {
     const out: number[] = [];
     const rows = this.data.array;
+    const unit = height / LIGHT_SCREEN_H;
     for (let i = 0; i < this.drawnCount; i++) {
       const r = i * this.stride;
       const rc = rows[r + 2];
       const drop = rows[r + 3];
       const I = rows[r + 4];
       if (!(I > 0.002) || !(rc > 0)) continue;
-      const R = HALO * rc + dpr;
+      const R = HALO * rc + unit;
       const x = rows[r];
       const y = rows[r + 1];
       out.push(

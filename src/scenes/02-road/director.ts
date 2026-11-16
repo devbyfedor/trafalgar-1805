@@ -1072,6 +1072,11 @@ export function fleetNames(): string[] {
   return [...BRITISH, ...COMBINED].map((ship) => ship.name);
 }
 
+/** The October fleets' glyphs' sides, in mark order (development). */
+export function fleetSides(): Ship["side"][] {
+  return [...BRITISH, ...COMBINED].map((ship) => ship.side);
+}
+
 /** The squadrons' glyphs as "squadron:place", in mark order (development). */
 export function squadronNames(): string[] {
   return SQUADRONS.flatMap((s) =>

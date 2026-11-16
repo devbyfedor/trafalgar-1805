@@ -6,7 +6,7 @@ import {
   type Lights,
 } from "@/components/chart/fx/Lights";
 import type { Glyphs } from "@/components/chart/glyphs/Glyphs";
-import { dayAt } from "./beats";
+import { BEATS, dayAt } from "./beats";
 import { day } from "./dates";
 import { BRITISH, COMBINED, DAWN, type Ship } from "./fleets";
 
@@ -37,9 +37,19 @@ import { BRITISH, COMBINED, DAWN, type Ship } from "./fleets";
  *   1910, p. 339); the watching ships, the frigates and the chain's ships
  *   of the line, hid theirs ("we concealed every light");
  * - lit after sunset (about 5.35 p.m. on the 20th), by nightfall (about
- *   6), and put out with the daylight of the 21st (the logs' "daylight",
- *   5.30 to 6.10; sunrise 6.27): no record says when, so out between 5.45
- *   and 6.20, before the camera's last hold (beats.ts, LAST_HOLD).
+ *   6); the British admirals' put out with the daylight of the 21st (the
+ *   logs' "daylight", 5.30 to 6.10; sunrise 6.27): no record says when, so
+ *   out between 5.45 and 6.20, before the camera's last hold (beats.ts,
+ *   LAST_HOLD); the combined fleet's dimmed with the night as the day comes
+ *   over the chart, and burning faintly into the scene's last frame, so it
+ *   ends as scene 1 opens, on that fleet's lights still burning at dawn
+ *   (the owner's answer of 16 November 2026; a licence: no record says when
+ *   they were put out).
+ *
+ * Lights are not ships: they show while a fleet shows only as its label,
+ * as by night only the lights were seen from the sea, not the hulls; the
+ * rule "a label or its ships" is not theirs (the owner's answer of 16
+ * November 2026).
  *
  * The night's signals (the blue lights, rockets and guns of the chain and
  * of the combined fleet, the answers, the lights the fleet showed as it
@@ -53,15 +63,30 @@ import { BRITISH, COMBINED, DAWN, type Ship } from "./fleets";
  * then the top and mizzen lights.
  */
 
-/** Lit over these hours of 20 October and put out over these of the 21st (story days). */
+/** Lit over these hours of 20 October (story days)… */
 const LIT_FROM: readonly [number, number] = [
   day(10, 20, 17.5),
   day(10, 20, 18.25),
 ];
+/** …and the British admirals' put out over these of the 21st. */
 const OUT_BY: readonly [number, number] = [
   day(10, 21, 5.75),
   day(10, 21, 6.33),
 ];
+/**
+ * The British lights show only in the dark, by the chart's night share
+ * (light.night): gone as it falls from the second value to the first.
+ */
+const DARK: readonly [number, number] = [0.02, 0.2];
+/**
+ * The combined fleet's lights dim with the night: whole while the chart's
+ * night share is DIM_FROM or more, down to FAINT as it falls to none (by
+ * the light, which runs ahead of the clock: from about p 0.965, over the
+ * camera's descent and its last hold, to the day at 0.995), and burning
+ * so to the scene's end.
+ */
+const DIM_FROM = 0.35;
+const FAINT = 0.55;
 /** Gravina's light at his mizzen, from about 8 p.m. as the line formed. */
 const MIZZEN_FROM: readonly [number, number] = [
   day(10, 20, 19.75),
@@ -89,6 +114,8 @@ const ADMIRALS: ReadonlySet<string> = new Set(["Victory", "Royal Sovereign"]);
 interface LanternSpec {
   mark: number;
   place: LanternPlace;
+  /** A British admiral's (put out by the clock) or the combined fleet's (dimmed with the night). */
+  british: boolean;
   intensity: number;
   /** Lit only from this time (story days), as MIZZEN_FROM; else always while the fleet's are. */
   from: readonly [number, number] | null;
@@ -117,19 +144,26 @@ export class NightLanterns implements ChartLayer {
     this.p = p;
   }
 
-  update(_frame: FrameInfo): void {
+  update(frame: FrameInfo): void {
     const lights = this.lights;
     lights.clear();
+    // The night beat's: the scene's opening, whose clock reads the same
+    // morning, is scene 1's last moments, where they have gone out.
+    if (this.p < BEATS.night[0]) return;
     const d = dayAt(this.p);
-    const lit = lanternsLit(d);
-    if (!(lit > 0)) return;
+    const night = frame.light.night;
+    const british = lanternsLit("british", d, night);
+    const combined = lanternsLit("combined", d, night);
+    if (!(british > 0) && !(combined > 0)) return;
+    // Every lantern set while any is lit, the British at none once theirs
+    // are out (their order is the spacing's: Lights.lantern).
     for (const s of this.specs) {
       const from = s.from ? smoothstep(s.from[0], s.from[1], d) : 1;
       lights.lantern(
         this.fleets,
         s.mark,
         s.place,
-        lit * from * s.intensity,
+        (s.british ? british : combined) * from * s.intensity,
         s.seed,
         s.parentA,
         s.parentB,
@@ -140,12 +174,26 @@ export class NightLanterns implements ChartLayer {
   dispose(): void {}
 }
 
-/** How far the fleets' lanterns are lit on story day d, 0..1. */
-export function lanternsLit(d: number): number {
-  return (
-    smoothstep(LIT_FROM[0], LIT_FROM[1], d) *
-    (1 - smoothstep(OUT_BY[0], OUT_BY[1], d))
-  );
+/**
+ * How far a fleet's lanterns are lit, 0..1, on story day d in the night
+ * beat, the chart's night share (light.night) `night`: the British
+ * admirals' from nightfall on the 20th to the daylight of the 21st, in the
+ * dark only; the combined fleet's from nightfall to the scene's end, dimmed
+ * to FAINT with the night.
+ */
+export function lanternsLit(
+  fleet: "british" | "combined",
+  d: number,
+  night: number,
+): number {
+  const lit = smoothstep(LIT_FROM[0], LIT_FROM[1], d);
+  if (fleet === "british")
+    return (
+      lit *
+      (1 - smoothstep(OUT_BY[0], OUT_BY[1], d)) *
+      smoothstep(DARK[0], DARK[1], night)
+    );
+  return lit * (FAINT + (1 - FAINT) * smoothstep(0, DIM_FROM, night));
 }
 
 /** How many lanterns the night may set at once. */
@@ -173,6 +221,7 @@ function lanternSpecs(): LanternSpec[] {
     out.push({
       mark: mark(s),
       place,
+      british: s.side === "british",
       intensity,
       from,
       seed: mark(s) * 8 + (place === "stern" ? 0 : place === "top" ? 1 : 2),

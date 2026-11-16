@@ -9,7 +9,8 @@
 // of its height, of its height GROW of it, or of its opacity FADE
 // (defaults 0.5, 0.15, 0.15 at steps of 0.0005, about 11 px of scroll on
 // the owner's screen). Environment: BASE (default
-// http://127.0.0.1:3000), W, H, S. Exits with 1 if any step flags.
+// http://127.0.0.1:3000), W, H, S; ONLY=Name,Name to judge only those
+// glyphs (the relay's chain, session 35). Exits with 1 if any step flags.
 import { chromium } from "@playwright/test";
 
 const base = process.env.BASE ?? "http://127.0.0.1:3000";
@@ -22,6 +23,7 @@ const scale = Number(process.env.S ?? 1.5);
 const MOVE = Number(process.env.MOVE ?? 0.5);
 const GROW = Number(process.env.GROW ?? 0.15);
 const FADE = Number(process.env.FADE ?? 0.15);
+const ONLY = process.env.ONLY ? new Set(process.env.ONLY.split(",")) : null;
 
 const browser = await chromium.launch({ channel: "chromium" });
 const page = await browser.newPage({
@@ -102,6 +104,7 @@ for (let k = 1; k + 1 < frames.length; k++) {
     const c = frames[k + 1][layer];
     for (let i = 0; i < b.length / 6; i++) {
       const o = i * 6;
+      if (ONLY && !ONLY.has(names[layer][i])) continue;
       // A place, size or opacity that isn't a number is a fault, shown or
       // not (comparisons with NaN are all false, so it would pass unseen).
       if (b.slice(o, o + 6).some((v) => v === null || Number.isNaN(v))) {

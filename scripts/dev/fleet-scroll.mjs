@@ -85,9 +85,12 @@ const { frames, pxPerP } = await page.evaluate(
       const labels = road.routeLabels(false);
       const cam = road.cameraAt(p);
       const present = road.fleetAt(p);
+      // The chain's ships apart from the fleet (the owner's exception).
+      const apart = road.apartAt ? road.apartAt(p) : [];
       const inFrame = [0, 0];
       for (let i = 0; i < names.length; i++) {
         if (small.has(names[i])) continue;
+        if ((apart[i] ?? 0) >= 0.5) continue;
         const o = present[i * 3 + 2];
         if (!(o > 0.5)) continue;
         const side = i < BRITISH_COUNT ? 0 : 1;

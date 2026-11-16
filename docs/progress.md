@@ -13,7 +13,7 @@ Never `npm run screenshots`. Commit after each step.
 
 **Plan and state** (branch `s33-smoke`, at `660d43a` at the start; `main` untouched at `512f13b`):
 - [x] Step 0: oriented (clean tree at `660d43a`; ports 3000, 4173, 4174, 4175 free; `main`'s build of `512f13b` still in `.claude/worktrees/s33-ref/out`; the reference frames in `.claude/s32d/look-ref/`).
-- [ ] Step 1: the review (one read-only helper), the fixes.
+- [x] Step 1: the review (workflow `s34b-code-review`, run `wf_2bfc8199-90f`, one read-only reviewer over `main...s33-smoke`, session 34's commits first; it ended before any measurement): 9 findings (1 medium: `smoke-clear` passed a sweep with no smoke), all fixed in `0d4d09f` (`decisions.md`, "session 34, part two"). On the dev server after the fixes: `smoke-clear` 0.527–0.566 at the four sizes 0 steps failing (at most 135–139 puffs) and its new empty-sweep rule tried (fails as it should); `lights-clear` 0.78–1 and the opening at the four sizes 0 steps failing; lint (the two old infos), typecheck.
 - [ ] Step 2: the checks on the production build.
 - [ ] Step 3: the merge, the new reference frames, this file's plan, the report.
 

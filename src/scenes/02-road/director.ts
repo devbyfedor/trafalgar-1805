@@ -275,8 +275,18 @@ const ARROW_HAND_P = 0.002;
  * Cádiz (beat 4) and in the night and at dawn again (beat 5, after the
  * cut-away to Ulm).
  */
-/** The October fleets in the story off Cádiz (fleetsShownAt): in over the first two, out over the last two. */
-const FLEETS_OFF_CADIZ = [0.655, 0.675, 0.835, 0.85] as const;
+/**
+ * The October fleets in the story off Cádiz (fleetsShownAt): in over the
+ * first two, out over the last two: before the camera leaves the hold over
+ * the station (beats.ts, STATION_HOLD), its ships and labels gone while it
+ * stands still over Nelson's body (session 35 part two). Out over 0.835 to
+ * 0.85, the rise had carried the body out of the frame at 0.8402 and his
+ * label had gone from half its ink to none in a frame; out over 0.832 to
+ * 0.839, on the wide screens (where his ships still showed as the camera
+ * set off and the story's clock ran on) they had run across the frame by
+ * nearly four of their heights a step.
+ */
+const FLEETS_OFF_CADIZ = [0.655, 0.675, 0.826, 0.833] as const;
 
 /**
  * Where the October fleets' labels first read off Cádiz (readableChanges):

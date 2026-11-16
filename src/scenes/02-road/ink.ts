@@ -138,6 +138,14 @@ export const DEEP_SCRIM: readonly ScrimRun[] = [
   // Coming down into the harbour, the city's peninsula passes under the
   // caption's right half for a moment.
   [0.703, 0.711, 0.718, 0.726],
+  // And again going out of the bay to the frigates (`main`'s own at 0.754,
+  // 2.0:1; the caption at 1.8:1 at 0.756 here; found by session 35's
+  // sweep every 0.002).
+  [0.749, 0.7525, 0.759, 0.763],
+  // The rise from the station toward Ulm by day over Andalusia, the date
+  // line alone between the captions (session 35 part two: 2.8:1 at 0.842,
+  // where `main`'s rise was already in the night).
+  [0.835, 0.839, 0.849, 0.856],
 ];
 
 /**

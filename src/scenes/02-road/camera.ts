@@ -76,9 +76,10 @@ const FINISTERRE_TARGET: Lla = [-11.6, 43.7, 0];
  * Guadalquivir and the Guadiana lies along the top of it, and the morning
  * sun (07.00 in the ESE, 9.30 in the SE) is behind the right shoulder.
  * Close over the frigates off the port, with the city and its harbour
- * beside them; then high over the long run west (about 30 km up), so two
+ * beside them; then high over the long run west (40 to 50 km up), so two
  * links stand in the frame at once (low over it the frame held one at a
- * time, and open sea between); at 9.30 over the station, Nelson's body
+ * time, and open sea between), the chain above the caption's card; at
+ * 9.30 over the station, Nelson's body
  * there lettered with its strength (its ships, in their close order about
  * the Victory, read one by one only from a view held over them, which the
  * beat has no room for). Looked at along the chain (east-north-east, as
@@ -109,14 +110,28 @@ function relayView(
  * the Phoebe west with it at 7.20 (close, and slow: the inshore steps
  * within twenty minutes); the Phoebe running west and the Defence with the
  * Agamemnon about 8.20; the Colossus and the Mars from about 8.45 to 9;
- * the station at 9.30, the Mars on the right.
+ * the station at 9.30, the Mars on the right. The inshore views come a
+ * little after their signals (the frigates are in the frame from 7.00 as
+ * the camera comes out to them): reached at the signals' own p, the swing
+ * out of the bay settled so fast that the frigates' places on the screen
+ * turned by twice a glyph's height in a step (glyph-paths.mjs; now 1.3,
+ * the descent to the harbour 1.25).
  */
 const RELAY_VIEWS: readonly CameraKey[] = [
-  relayView(relayP("Sirius"), -6.375, 36.48, 12, 10),
-  relayView(relayP("Euryalus"), -6.43, 36.49, 22, 17),
+  relayView(relayP("Sirius") + 0.006, -6.36, 36.49, 11, 8),
+  relayView(relayP("Euryalus") + 0.005, -6.43, 36.49, 22, 17),
   relayView(relayP("Defence"), -6.72, 36.36, 52, 42),
   relayView((relayP("Colossus") + relayP("Mars")) / 2, -6.98, 36.47, 56, 46),
-  relayView(relayP("Victory"), -7.2, 36.51, 60, 50),
+  // At 9.30 the whole chain from the south, the station on the left, from
+  // the eye that stood at 0.785 before the relay was built, a little
+  // before the answer: the camera then comes into beat 5 on the path it
+  // had (from a view over the station itself, 50 km off, it swung through
+  // the key at 0.82 twice as hard as it had).
+  {
+    p: relayP("Victory") - 0.005,
+    eye: [-6.96, 35.78, 58],
+    target: [-7.12, 36.53, 0],
+  },
 ];
 
 /** Rising off the sea beside her, turning north and pitching down. */

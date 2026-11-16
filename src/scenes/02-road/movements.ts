@@ -175,14 +175,16 @@ const MOUTH = at(-6.29, 36.558);
 /**
  * The chain on 19 October (history notes, "Positions, 19 October"). The
  * Colossus, "with the Mars" (about 36°32′ N 7°04′ W there, low), is drawn
- * abeam of her, two miles east of her on her parallel: from the relay's camera,
- * looking a little east of north, the two had stood one behind the other
- * and she was squeezed out of sight beside the Mars.
+ * abeam of her, three miles east of her on her parallel, and the
+ * Agamemnon, stationed with the Defence (her place not logged), three
+ * miles west of her: from the relay's camera, looking a little east of
+ * north, each pair had stood one behind the other or run together, and
+ * the lesser of each was squeezed out of sight beside the other.
  */
 const CHAIN: Record<string, readonly [number, number]> = {
   Defence: [-6.85, 36.367],
-  Agamemnon: [-6.875, 36.375],
-  Colossus: [-7.035, 36.548],
+  Agamemnon: [-6.912, 36.37],
+  Colossus: [-7.02, 36.548],
   Mars: [-7.083, 36.55],
 };
 
@@ -362,6 +364,11 @@ function britishKeys(ship: Ship): Key[] {
         : at(lon, lat);
       keys.push({ day: d, x, y, heading: 100 });
     }
+    // On station through the relay, then after the fleet on its chase
+    // (kept on station into the afternoon, when the Colossus and the Mars
+    // passed a second signal, the fleet's body sailed through them and
+    // they were squeezed out of sight as the Victory answered: each
+    // glyph's size is eased over the scroll).
     const [cx, cy] = at(chain[0], chain[1]);
     keys.push({ day: day(10, 19, 9.5), x: cx, y: cy, heading: 100 });
   } else {

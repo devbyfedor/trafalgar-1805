@@ -360,6 +360,14 @@ export interface GlyphIntent {
    * the fleet (scenes/02-road/director.ts).
    */
   apart: Float32Array;
+  /**
+   * How far she is free of her group's common scale, 0..1 (layout.ts,
+   * commonOf): free, she neither sets it nor is held to it, as a ship far
+   * from her group's body; a ship apart from the gate is free while she
+   * is, and may stay free after she has come back under the gate, so her
+   * size doesn't change while she is seen.
+   */
+  free: Float32Array;
 }
 
 /** What the layout decided for each mark this frame (layout.ts). */
@@ -422,6 +430,7 @@ export class Glyphs implements ChartLayer {
       cell2: f32(),
       turn: f32(),
       apart: f32(),
+      free: f32(),
     };
     this.drawn = {
       x: f32(),
@@ -650,6 +659,11 @@ export class Glyphs implements ChartLayer {
   /** How far a mark stands apart from her group's gate, 0..1 (GlyphIntent.apart). */
   setApart(index: number, apart: number): void {
     this.intent.apart[index] = apart;
+  }
+
+  /** How far a mark is free of her group's common scale, 0..1 (GlyphIntent.free). */
+  setFree(index: number, free: number): void {
+    this.intent.free[index] = free;
   }
 
   /** How much of her wake shows (0 at anchor, 1 under way). */

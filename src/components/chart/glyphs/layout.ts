@@ -1276,13 +1276,13 @@ export class GlyphLayout implements ChartLayer {
     const total = measured ?? this.measureFree(g);
     const n = g.members.length;
     if (total <= 0) return 1;
-    // A ship standing apart from the gate (GlyphIntent.apart) is not her
+    // A ship free of the group's scale (GlyphIntent.free) is not her
     // group's companion: she neither sets its common scale nor is held to
     // it (layoutFree). The chain's ships, 25 to 60 km from the British
     // body, had been drawn at the body's crowded scale, specks.
-    const apart = g.layer.intent.apart;
+    const free = g.layer.intent.free;
     for (let a = 0; a < n; a++)
-      this.wc[a] = this.wt[a] * (1 - apart[g.members[a]]);
+      this.wc[a] = this.wt[a] * (1 - free[g.members[a]]);
     for (let a = 0; a < n; a++) {
       this.near[a] = 1;
       if (this.wc[a] <= 0) continue;
@@ -1329,9 +1329,9 @@ export class GlyphLayout implements ChartLayer {
       const l = this.bl[k];
       const r = this.br[k];
       const t = this.bt[k];
-      // Held to the group's common scale but as far as she stands apart
-      // from its gate (commonOf).
-      const own = k === 0 ? 1 : common + (1 - common) * it.apart[i];
+      // Held to the group's common scale but as far as she is free of it
+      // (GlyphIntent.free; commonOf).
+      const own = k === 0 ? 1 : common + (1 - common) * it.free[i];
       const limit = Math.min(own, this.bakedRatio(layer, i));
       this.sweepFor(layer, i, fx, fy);
       let s = this.obstacleFit(fx, fy, -l, r, 0, t, limit);

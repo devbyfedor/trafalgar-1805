@@ -866,19 +866,37 @@ const FLEET_BEATS: readonly BeatId[] = ["cadiz", "night"];
  * stations of the 19th (movements.ts, CHAIN_ON_STATION), as the repeating
  * ships they were, by the owner's answer of 14 November 2026, an exception
  * to "a label or all its ships": they show as they read where Nelson's
- * body shows as its label. Until they are back with the fleet, which they
- * join on the general chase from 9.30 (movements.ts: in its order, drawn
- * closer, by 1 a.m. on the 20th): from midnight they come and go with it
- * again, so they go into its label as they reach it. Before their stations
+ * body shows as its label. Until the Victory has answered and the fleet
+ * makes sail for the Strait, about 9.45, when they join its chase
+ * (movements.ts): from then they come and go with it again, and go into
+ * its label (left apart, they had raced across the frame with the story's
+ * clock through the night of the 19th, apart from a label of the same
+ * fleet). Before their stations
  * (their moves from the fleet, CHAIN_MOVES) they come and go with the
  * fleet, whose ships don't come in before the 17th. The night and the dawn
  * are as they were.
  */
 const CHAIN_APART: readonly [number, number, number, number] = (() => {
   const from = pOfDay(CHAIN_ON_STATION, FLEET_BEATS);
-  const back = pOfDay(day(10, 20, 0), FLEET_BEATS);
+  const back = pOfDay(day(10, 19, 9.75), FLEET_BEATS);
   return [from, from + 0.003, back, back + 0.004];
 })();
+
+/**
+ * The chain's ships free of their groups' common scale (GlyphIntent.free):
+ * as long as they are apart and then while they lie on station and follow
+ * the fleet out of sight under its label, so their size doesn't change
+ * while they are seen. Held to it as they came back under the gate, they
+ * shrank to specks in the frames before it (each glyph's size is eased
+ * over the scroll), as the Victory answered. Back to the fleet's scale
+ * while the fleets are out of the story for the cut-away to Ulm.
+ */
+const CHAIN_FREE: readonly [number, number, number, number] = [
+  CHAIN_APART[0],
+  CHAIN_APART[1],
+  0.86,
+  0.87,
+];
 
 /**
  * Off Cádiz the British fleet's label stands by its body (applyHeads):
@@ -1849,6 +1867,7 @@ export class RoadDirector {
       else glyphs.setType(i, ship.rig.sail);
       glyphs.setUnderWay(i, 1 - k);
       glyphs.setApart(i, this.chain[i] ? fade(p, CHAIN_APART) : 0);
+      glyphs.setFree(i, this.chain[i] ? fade(p, CHAIN_FREE) : 0);
       let opacity = Math.min(1, shown);
       // A ship leaving the story (the Weazle, bound for Gibraltar) fades
       // out over its last few hours, out at sea.

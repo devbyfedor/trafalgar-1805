@@ -423,7 +423,10 @@ function frigateKeys(
     Euryalus: [
       [SEPT_28, -6.35, 36.467],
       [day(10, 19, 7.3), -6.35, 36.467],
-      [day(10, 19, 8), -6.383, 36.47],
+      // About 6°23′ W at 8, interpolated; her latitude then the chart's, a
+      // mile south of the Sirius, so she passes her rather than sailing
+      // over her (the frigates off the port are drawn ship by ship).
+      [day(10, 19, 8), -6.383, 36.458],
       [day(10, 19, 12), -6.455, 36.472],
       [day(10, 20, 9), -6.48, 36.52],
       [day(10, 21, 0), -6.4, 36.333],

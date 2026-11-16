@@ -40,7 +40,7 @@ import {
 import type { NightLanterns } from "./lanterns";
 import { ARMY_MARCH } from "./march";
 import { CHAIN_ON_STATION, type ShipState, shipAt } from "./movements";
-import { CHAIN_SHIPS } from "./relay";
+import { CHAIN_SHIPS, RELAY_LINKS } from "./relay";
 import type { DatedWaypoint, Leg } from "./routes";
 import type { BattleSmoke } from "./smoke";
 import {
@@ -907,6 +907,21 @@ const CHAIN_FREE: readonly [number, number, number, number] = [
  * the dawn the frigates lie between the fleets and count as before; the
  * window's ends fall where the fleets are out of the story (no label).
  */
+/**
+ * Among Blackwood's frigates and small craft off the port, the relay's
+ * links first in the glyph layout's order (layoutGroups): in a crowd the
+ * lesser ship yields, and the Sirius, the Euryalus and the Phoebe, within
+ * a mile or two of each other with the Naiad, the Pickle and the Weazle
+ * as No. 370 went on, had been squeezed out of sight as the camera came
+ * out to them (the brig, a little larger, had led them). The Sirius, the
+ * first link, now leads Blackwood's squadron in the layout.
+ */
+function relayRank(ship: Ship): number {
+  if (ship.side !== "british" || ship.group !== "frigates") return 0;
+  const k = RELAY_LINKS.findIndex((l) => l.name === ship.name);
+  return k < 0 ? RELAY_LINKS.length : k;
+}
+
 const BRITISH_HEAD_BODY: readonly [number, number, number, number] = [
   0.6, 0.62, 0.86, 0.87,
 ];
@@ -1206,6 +1221,10 @@ export class RoadDirector {
       s.side === "british" &&
       s.group === "frigates" &&
       s.name !== "Entreprenante",
+  );
+  /** Where each ship leaves the story on the scroll (Ship.until; NaN for none). */
+  private readonly untilP: number[] = this.ships.map((s) =>
+    s.until === undefined ? Number.NaN : pOfDay(s.until, FLEET_BEATS),
   );
   /** Whether each ship is one of the chain's four (CHAIN_APART). */
   private readonly chain: boolean[] = this.ships.map(
@@ -1656,6 +1675,7 @@ export class RoadDirector {
         .sort(
           (a, b) =>
             Number(b.ship.lead) - Number(a.ship.lead) ||
+            relayRank(a.ship) - relayRank(b.ship) ||
             (b.ship.rig.size ?? 1) - (a.ship.rig.size ?? 1) ||
             a.i - b.i,
         )
@@ -1870,9 +1890,11 @@ export class RoadDirector {
       glyphs.setFree(i, this.chain[i] ? fade(p, CHAIN_FREE) : 0);
       let opacity = Math.min(1, shown);
       // A ship leaving the story (the Weazle, bound for Gibraltar) fades
-      // out over its last few hours, out at sea.
-      if (ship.until !== undefined)
-        opacity *= 1 - smooth(ship.until - 0.12, ship.until, d);
+      // out, out at sea, over a stretch of scroll ending on her day: over
+      // her last few hours she had gone within two steps of p once the
+      // clock ran fast after the relay.
+      const gone = this.untilP[i];
+      if (!Number.isNaN(gone)) opacity *= 1 - smooth(gone - CHANGE_P, gone, p);
       // With the fleet by date (fleets.ts, withFleet): she comes and goes
       // as its label's figure changes (fleetPresence).
       opacity *= this.fleetPresence(i, p);

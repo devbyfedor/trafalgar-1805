@@ -37,6 +37,7 @@ import {
   VICTORY_AT_DAWN,
   withFleet,
 } from "./fleets";
+import type { NightLanterns } from "./lanterns";
 import { ARMY_MARCH } from "./march";
 import { type ShipState, shipAt } from "./movements";
 import type { DatedWaypoint, Leg } from "./routes";
@@ -1704,6 +1705,7 @@ export class RoadDirector {
     this.applyHeads(p);
     this.layout?.setProgress(p);
     this.smoke?.setProgress(p);
+    this.lanterns?.setProgress(p);
   }
 
   /**
@@ -1743,6 +1745,13 @@ export class RoadDirector {
   }
 
   private smoke: BattleSmoke | null = null;
+
+  /** The fleets' lanterns at night (lanterns.ts; they read the scene's progress). */
+  setLanterns(lanterns: NightLanterns): void {
+    this.lanterns = lanterns;
+  }
+
+  private lanterns: NightLanterns | null = null;
 
   dispose(): void {
     this.restorePainted();

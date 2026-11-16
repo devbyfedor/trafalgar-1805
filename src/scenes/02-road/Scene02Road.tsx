@@ -490,6 +490,10 @@ export function Scene02Road() {
                 drawn = -1;
                 return s.smoke(p);
               },
+              lights: (p: number) => {
+                drawn = -1;
+                return s.lights(p);
+              },
               glyphNames: () => s.glyphNames(),
               motion: (p: number) => {
                 drawn = -1;
@@ -713,6 +717,11 @@ declare global {
        * clear of (RoadStage.smoke).
        */
       smoke: (p: number) => import("./stage").SmokeCheck;
+      /**
+       * Development and checks: the lanterns at p, their ships and what
+       * they keep clear of (RoadStage.lights).
+       */
+      lights: (p: number) => import("./stage").LightsCheck;
       /** Development: each glyph layer's ships by name, in mark order. */
       glyphNames: () => string[][];
       /** Development: each glyph's drawing and intended place at p (RoadStage.motion). */

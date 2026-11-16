@@ -7,8 +7,8 @@ import {
 } from "three";
 
 /**
- * What the chart's effects share (fx/Smoke.ts now; the night lights and the
- * signal hoists after it): the hashes their shapes come from, the quad each
+ * What the chart's effects share (fx/Smoke.ts, fx/Lights.ts; the signal
+ * hoists after them): the hashes their shapes come from, the quad each
  * instance is drawn on and the buffer its values are written to each frame.
  *
  * Ported from the signals branch (`worktree-wf_016f0c7a-068-2`, fx/common.ts)
@@ -115,4 +115,10 @@ export class InstanceData {
     this.buffer.updateRanges.push(this.range);
     this.buffer.needsUpdate = true;
   }
+}
+
+/** A smooth step from 0 at `e0` to 1 at `e1`. */
+export function smoothstep(e0: number, e1: number, x: number): number {
+  const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
+  return t * t * (3 - 2 * t);
 }

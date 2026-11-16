@@ -20,6 +20,7 @@ import {
 } from "@/components/chart";
 import { type BenchResult, benchFrames } from "@/components/chart/engine/bench";
 import { ShipAnatomy } from "@/components/chart/fx/anatomy";
+import { LIGHT_BOUNDS, Lights } from "@/components/chart/fx/Lights";
 import { Smoke } from "@/components/chart/fx/Smoke";
 import { mercatorScale, worldX, worldY } from "@/components/chart/geo/mercator";
 import type { ClashResult } from "@/components/chart/glyphs/clash";
@@ -56,6 +57,7 @@ import {
 import { GAZETTEER } from "./gazetteer";
 import { interludeView } from "./interludeCamera";
 import { marksAt, SEA_EYE, type SeaPose } from "./interludes";
+import { lanternCapacity, NightLanterns } from "./lanterns";
 import { ARMY_MARCH } from "./march";
 import { legTracks, NELSON, VILLENEUVE } from "./routes";
 import { BattleSmoke, smokeCapacity } from "./smoke";
@@ -136,6 +138,15 @@ export interface RoadStage {
    * names and the caption's card, the fleets' labels, the tracks' dates.
    */
   smoke(p: number): SmokeCheck;
+  /**
+   * Development and checks: draws the scene at p and returns the lanterns
+   * as drawn (Lights.bounds), the coast's distance under each lantern and
+   * under the foot of its reflection (km; positive at sea), each one's ship
+   * as the layout drew her (her foot, height and drawn opacity), the
+   * night's share of the light, and the outlines the lanterns keep clear
+   * of (as `smoke`).
+   */
+  lights(p: number): LightsCheck;
   /**
    * Development and tests: draws the scene at p and finds every glyph whose
    * ink touches land or another glyph's (Chart.probeClash): the fleets are
@@ -294,6 +305,39 @@ export interface SmokeCheck {
   text: { kind: string; quad: number[]; weight: number }[];
 }
 
+/** What `RoadStage.lights` returns. */
+export interface LightsCheck {
+  /** The canvas, CSS px. */
+  width: number;
+  height: number;
+  /** The night's share of the light. */
+  night: number;
+  /** Lights.bounds: x0, y0, x1, y1, intensity, cx, cy, mark, layer, place (LIGHT_BOUNDS a lantern). */
+  lights: number[];
+  stride: number;
+  /** Development: every lantern set, drawn or not, and what made its showing (Lights.explain). */
+  why: (ReturnType<Lights["explain"]>[number] & { name: string })[];
+  /** The coast's distance under each lantern's centre and under its reflection's foot, km. */
+  coast: number[];
+  sea: number[];
+  /**
+   * Each lantern's ship as the layout drew her this frame: her foot (CSS
+   * px; NaN if not laid out), her height (CSS px) and her drawn opacity.
+   */
+  ships: {
+    x: number;
+    y: number;
+    /** Her place in the story, projected (CSS px). */
+    fx: number;
+    fy: number;
+    height: number;
+    alpha: number;
+    name: string;
+  }[];
+  /** As SmokeCheck's. */
+  text: { kind: string; quad: number[]; weight: number }[];
+}
+
 export interface RoadStageOptions {
   canvas: HTMLCanvasElement;
   /** The canvas's context, made while the page loaded (engine/context.ts). */
@@ -372,11 +416,30 @@ export async function createRoadStage(
       card.y1 = c.bottom - h.top;
     };
     measureCard();
+    // The same card for the night's lanterns, which fade under it as
+    // under its scrim (fx/Lights.ts, LIGHT_REGION_PX).
+    const cardQuad = new Float64Array(8);
+    const cardScreen = {
+      quads: [cardQuad],
+      weights: new Float64Array(1),
+      count: 1,
+    };
     const keepCard = (p: number) => {
       let shows = 0;
       for (const [a, b, c, d] of Object.values(CAPTIONS))
         shows = Math.max(shows, rise(a, b, p) * (1 - rise(c, d, p)));
       lettering.setKeepOut(card.x0, card.y0, card.x1, card.y1, shows);
+      cardQuad.set([
+        card.x0,
+        card.y0,
+        card.x1,
+        card.y0,
+        card.x1,
+        card.y1,
+        card.x0,
+        card.y1,
+      ]);
+      cardScreen.weights[0] = shows;
     };
     chart.add(lettering, lettering.batch, lettering.marks.mesh);
     await lettering.ready;
@@ -446,18 +509,28 @@ export async function createRoadStage(
     const upper = director.formationOf("villeneuve");
     const lower = director.formationOf("calder");
     if (!upper || !lower) throw new Error("road: no squadrons for the smoke");
-    const smoke = new Smoke(
-      new ShipAnatomy(atlas, GLYPH_TYPES),
-      smokeCapacity(upper, lower),
-    );
+    const anatomy = new ShipAnatomy(atlas, GLYPH_TYPES);
+    const smoke = new Smoke(anatomy, smokeCapacity(upper, lower));
     const battle = new BattleSmoke(smoke, upper, lower);
     director.setSmoke(battle);
     chart.add(battle);
     // It gives way to the names, the caption's card and the labels: added
     // below, after the labels, so it reads their outlines of this frame.
     smoke.setKeepClear([lettering.screen, heads.screen]);
+    // The fleets' lanterns at night: set after the layout has laid out the
+    // fleets (or left them too far off to lay out), drawn over their ships
+    // (lanterns.ts); they give way to the lettering as the smoke does, so
+    // they too are added after the labels.
+    const lights = new Lights(anatomy, lanternCapacity());
+    const lanterns = new NightLanterns(lights, fleets);
+    director.setLanterns(lanterns);
+    chart.add(lanterns);
+    lights.setKeepClear([lettering.screen, heads.screen], [cardScreen]);
     heads.setCoast(coast);
-    // Every label keeps clear of every ship drawn, whosever she is.
+    // Every label keeps clear of every ship drawn, whosever she is. Not of
+    // the lanterns: kept clear of them too, a fleet's label found no lasting
+    // room beside its long line of lights and moved about or went out (the
+    // lights give way to it instead; decisions.md, the lanterns at night).
     heads.setGlyphs([fleets.drawn, squadrons.drawn]);
     heads.setBlocks((id, out) => {
       const formation = director.formationOf(id);
@@ -480,6 +553,8 @@ export async function createRoadStage(
     // The smoke, after the battle's puffs (BattleSmoke, after the layout)
     // and the lettering it gives way to; drawn by its render order.
     chart.add(smoke, smoke.mesh);
+    // The lanterns likewise, after the lettering they give way to.
+    chart.add(lights, lights.mesh);
     chart.add(tracks, ...tracks.objects);
     chart.add(fleets, fleets.wakes, fleets.ships);
     chart.add(squadrons, squadrons.wakes, squadrons.ships);
@@ -672,6 +747,85 @@ export async function createRoadStage(
           text,
         };
       },
+      lights(p) {
+        sampled = Number.NaN;
+        director.apply(p);
+        keepCard(p);
+        chart.frame(performance.now() / 1000);
+        const dpr = chart.renderer.getPixelRatio();
+        const w = chart.renderer.domElement.width;
+        const h = chart.renderer.domElement.height;
+        const found = lights.bounds(dpr, w, h);
+        const camera = chart.camera;
+        const v = new Vector3();
+        const seaAt = (cssX: number, cssY: number): number => {
+          v.set((2 * cssX * dpr) / w - 1, 1 - (2 * cssY * dpr) / h, 0.5);
+          v.unproject(camera).sub(camera.position);
+          if (v.z >= 0) return Number.NaN;
+          const t = -camera.position.z / v.z;
+          return coast.distance(
+            camera.position.x + v.x * t,
+            camera.position.y + v.y * t,
+          );
+        };
+        const names = fleetNames();
+        const d = fleets.drawn;
+        const coastUnder: number[] = [];
+        const seaUnder: number[] = [];
+        const ships: LightsCheck["ships"] = [];
+        for (let i = 0; i < found.length; i += LIGHT_BOUNDS) {
+          const [x0, , x1, y1, , cx, cy, m] = found.slice(i, i + LIGHT_BOUNDS);
+          coastUnder.push(seaAt(cx, cy));
+          seaUnder.push(seaAt((x0 + x1) / 2, y1));
+          let x = Number.NaN;
+          let y = Number.NaN;
+          if (d.nominal[m] > 0) {
+            v.set(d.x[m], d.y[m], 0).project(camera);
+            x = ((v.x + 1) * w) / 2 / dpr;
+            y = ((1 - v.y) * h) / 2 / dpr;
+          }
+          // Her place in the story, projected (the lights' own while her
+          // fleet is not laid out).
+          v.set(fleets.intent.x[m], fleets.intent.y[m], 0).project(camera);
+          ships.push({
+            x,
+            y,
+            fx: ((v.x + 1) * w) / 2 / dpr,
+            fy: ((1 - v.y) * h) / 2 / dpr,
+            height: d.height[m] / dpr,
+            alpha: d.alpha[m],
+            name: names[m] ?? String(m),
+          });
+        }
+        const text: LightsCheck["text"] = [];
+        for (const [kind, screen] of [
+          ["name", lettering.screen],
+          ["label", heads.screen],
+        ] as const)
+          for (let i = 0; i < screen.count; i++)
+            text.push({
+              kind,
+              quad: Array.from(screen.quads[i]),
+              weight: screen.weights[i],
+            });
+        for (const m of tracks.screenMarks())
+          text.push({ kind: "date", quad: m.quad, weight: m.shown });
+        return {
+          width: w / dpr,
+          height: h / dpr,
+          night: chart.light.night,
+          lights: found,
+          stride: LIGHT_BOUNDS,
+          why: lights.explain().map((e) => ({
+            ...e,
+            name: names[e.mark] ?? String(e.mark),
+          })),
+          coast: coastUnder,
+          sea: seaUnder,
+          ships,
+          text,
+        };
+      },
       waterLift(p) {
         sampled = Number.NaN;
         director.apply(p);
@@ -840,6 +994,7 @@ export async function createRoadStage(
       },
       labelClock(step) {
         heads.setClock(step);
+        lights.setClock(step);
       },
       trackLabels(explain) {
         return explain ? tracks.explain() : tracks.snapshot();

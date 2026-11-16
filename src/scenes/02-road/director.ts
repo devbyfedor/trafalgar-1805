@@ -899,22 +899,15 @@ const CHAIN_FREE: readonly [number, number, number, number] = [
 ];
 
 /**
- * Off Cádiz the British fleet's label stands by its body (applyHeads):
- * Blackwood's frigates watching the port, some 50 nm east of it, don't
- * count toward its place, nor do the chain's ships as far as they stand
- * apart. Counted, the frigates had drawn the label's place 15 km and more
- * east of the body, off the frame of a view of it. In the night and at
- * the dawn the frigates lie between the fleets and count as before; the
- * window's ends fall where the fleets are out of the story (no label).
- */
-/**
  * Among Blackwood's frigates and small craft off the port, the relay's
- * links first in the glyph layout's order (layoutGroups): in a crowd the
- * lesser ship yields, and the Sirius, the Euryalus and the Phoebe, within
- * a mile or two of each other with the Naiad, the Pickle and the Weazle
- * as No. 370 went on, had been squeezed out of sight as the camera came
- * out to them (the brig, a little larger, had led them). The Sirius, the
- * first link, now leads Blackwood's squadron in the layout.
+ * links next after the brig in the glyph layout's order (layoutGroups):
+ * in a crowd the lesser ship yields, and the Sirius and the Phoebe, within
+ * a mile or two of the Euryalus, the Naiad, the Pickle and the Weazle as
+ * No. 370 went on, had been squeezed out of sight as the camera came out
+ * to them. The brig, a little larger, still leads the squadron: the lead
+ * stands at her full size where her group crowds, and the Sirius leading
+ * it had cost the combined fleet's label its room in the descent to the
+ * harbour.
  */
 function relayRank(ship: Ship): number {
   if (ship.side !== "british" || ship.group !== "frigates") return 0;
@@ -922,8 +915,19 @@ function relayRank(ship: Ship): number {
   return k < 0 ? RELAY_LINKS.length : k;
 }
 
+/**
+ * At the relay's end the British fleet's label stands by its body
+ * (applyHeads): Blackwood's frigates watching the port, some 50 nm east
+ * of it, don't count toward its place, nor do the chain's ships as far as
+ * they stand apart. Counted, the frigates had drawn the label's place 15
+ * km and more east of the body, off the frame of the view at 9.30. Only
+ * from the camera's coming to the station: from the fleets' coming in, it
+ * had moved the label in the descent to the harbour and the combined
+ * fleet's label, keeping clear of it, blinked. Back before the fleets
+ * return in the night, where the frigates lie between them and count.
+ */
 const BRITISH_HEAD_BODY: readonly [number, number, number, number] = [
-  0.6, 0.62, 0.86, 0.87,
+  0.772, 0.782, 0.86, 0.87,
 ];
 
 /**
@@ -1675,8 +1679,8 @@ export class RoadDirector {
         .sort(
           (a, b) =>
             Number(b.ship.lead) - Number(a.ship.lead) ||
-            relayRank(a.ship) - relayRank(b.ship) ||
             (b.ship.rig.size ?? 1) - (a.ship.rig.size ?? 1) ||
+            relayRank(a.ship) - relayRank(b.ship) ||
             a.i - b.i,
         )
         .map(({ i }) => i);

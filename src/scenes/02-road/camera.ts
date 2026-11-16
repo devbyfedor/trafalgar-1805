@@ -114,12 +114,15 @@ function relayView(
  * little after their signals (the frigates are in the frame from 7.00 as
  * the camera comes out to them): reached at the signals' own p, the swing
  * out of the bay settled so fast that the frigates' places on the screen
- * turned by twice a glyph's height in a step (glyph-paths.mjs; now 1.3,
- * the descent to the harbour 1.25).
+ * turned by twice a glyph's height in a step (glyph-paths.mjs; now 1.2,
+ * the descent to the harbour 1.25). They hold the harbour nearer the
+ * frame's middle, between the frigates and the anchorage: at its top
+ * right edge the combined fleet's label lost its places one after another
+ * as the camera came out of the bay, and stayed out for over a second.
  */
 const RELAY_VIEWS: readonly CameraKey[] = [
-  relayView(relayP("Sirius") + 0.006, -6.36, 36.49, 11, 8),
-  relayView(relayP("Euryalus") + 0.005, -6.43, 36.49, 22, 17),
+  relayView(relayP("Sirius") + 0.006, -6.33, 36.505, 13, 9),
+  relayView(relayP("Euryalus") + 0.005, -6.4, 36.5, 22, 17),
   relayView(relayP("Defence"), -6.72, 36.36, 52, 42),
   relayView((relayP("Colossus") + relayP("Mars")) / 2, -6.98, 36.47, 56, 46),
   // At 9.30 the whole chain from the south, the station on the left, from

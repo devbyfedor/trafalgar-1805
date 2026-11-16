@@ -82,13 +82,12 @@ const FINISTERRE_TARGET: Lla = [-11.6, 43.7, 0];
  * Close over the frigates off the port, with the city and its harbour
  * beside them; then high over the long run west (40 to 50 km up), so two
  * links stand in the frame at once (low over it the frame held one at a
- * time, and open sea between), the chain above the caption's card; at
- * 9.30 over the station, Nelson's body
- * there lettered with its strength (its ships, in their close order about
- * the Victory, read one by one only from a view held over them, which the
- * beat has no room for). Looked at along the chain (east-north-east, as
- * the scene's last frame), the links had come in from under the frame and
- * gone at once.
+ * time, and open sea between), the chain above the caption's card; then
+ * down to the station and held there as the Victory answers at 9.30, so
+ * Nelson's body shows ship by ship (STATION_HOLD; its ships, in their
+ * close order about her, read one by one only from a view held over
+ * them). Looked at along the chain (east-north-east, as the scene's last
+ * frame), the links had come in from under the frame and gone at once.
  */
 const RELAY_HEADING = 8;
 
@@ -161,6 +160,32 @@ const RELAY_VIEWS: readonly CameraKey[] = [
   { p: STATION_HOLD[0], eye: STATION_EYE, target: STATION_TARGET },
   { p: STATION_HOLD[1], eye: STATION_EYE, target: STATION_TARGET },
 ];
+
+/** High over France on the way to Ulm (beat 5's first view). */
+const ULM_RISE_EYE: Lla = [-1, 40, 1350];
+const ULM_RISE_TARGET: Lla = [5, 47, 0];
+
+/**
+ * A key of the rise from the station toward Ulm: `share` of the way from
+ * the station's view to the view over France (the eye's and the target's
+ * places alike), the eye `altitude` km up.
+ */
+function riseKey(p: number, share: number, altitude: number): CameraKey {
+  const lerp = (a: number, b: number) => a + (b - a) * share;
+  return {
+    p,
+    eye: [
+      lerp(STATION_EYE[0], ULM_RISE_EYE[0]),
+      lerp(STATION_EYE[1], ULM_RISE_EYE[1]),
+      altitude,
+    ],
+    target: [
+      lerp(STATION_TARGET[0], ULM_RISE_TARGET[0]),
+      lerp(STATION_TARGET[1], ULM_RISE_TARGET[1]),
+      0,
+    ],
+  };
+}
 
 /** Rising off the sea beside her, turning north and pitching down. */
 const RISING_EYE: Lla = offset(
@@ -274,17 +299,17 @@ export const ROAD_FLIGHT: readonly CameraKey[] = [
   // the Victory with the signal; then up and back over the Gulf as the
   // fleet makes sail for the Strait.
   ...RELAY_VIEWS,
-  // Up and back from the station as the fleet makes sail, the body still
-  // in the middle of the frame, so its ships go as they grow small (led
-  // from the hold straight toward the next view, high over France, the
-  // view had swung over the body and through it within a step).
-  {
-    p: 0.843,
-    eye: offset(STATION_TARGET[0], STATION_TARGET[1], 225, 40, 45),
-    target: offset(STATION_TARGET[0], STATION_TARGET[1], 45, 25, 0),
-  },
+  // Up from the station as the fleet makes sail, then away north-east, the
+  // pace across the chart growing key by key, each key a share of the way
+  // along the straight line from the hold's end to the view high over
+  // France (as the rise from Finisterre): led from the hold straight to
+  // that view, the camera had swung over the body and through it within a
+  // step; held up and back over it, it turned through the key by over five
+  // glyph heights a step (glyph-paths.mjs).
+  riseKey(0.838, 0.012, 24),
+  riseKey(0.846, 0.14, 210),
   // 5. Night: up and east to Ulm, and back to the fleets closing.
-  { p: 0.855, eye: [-1, 40, 1350], target: [5, 47, 0] },
+  { p: 0.855, eye: ULM_RISE_EYE, target: ULM_RISE_TARGET },
   { p: 0.885, eye: [8.6, 46.6, 230], target: [10, 48.4, 0] },
   { p: 0.915, eye: [-3, 37, 950], target: [-6.3, 36.3, 0] },
   { p: 0.95, eye: [-6.74, 35.94, 38], target: [-6.37, 36.17, 0] },

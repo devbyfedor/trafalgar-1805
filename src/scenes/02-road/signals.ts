@@ -94,8 +94,12 @@ const DISTANT: readonly [MastId, FlagKind][] = [
  */
 export const RELAY_WIND = { fromDeg: 90, strength: 0.18 } as const;
 
-/** A hoist goes up (and comes down) over this much p before its hour (after). */
-const HOIST_P = 0.0016;
+/**
+ * A hoist goes up (and comes down) over this much p before its hour
+ * (after): about 65 px of scroll on the owner's screen (at 0.0016 a hoist
+ * came in within a few frames of a reader's scroll, a pop).
+ */
+const HOIST_P = 0.003;
 /** A link's first gun this long after her hoist is up, the next every GUN_EVERY_P. */
 const GUN_DELAY_P = 0.0003;
 const GUN_EVERY_P = 0.0022;
@@ -113,7 +117,7 @@ const MINUTE_LIFE_P = 0.0045;
  * the fleet, then the shapes; Cumby): one hoist going up as the other
  * comes down, so she is never without a signal.
  */
-const MARS_DISTANT_H = 9 + 4 / 60;
+const MARS_DISTANT_H = 9 + 6 / 60;
 /** Each link's hoist comes down this many story hours after the next one's, as the answer runs back. */
 const ANSWER_BACK_H = 0.1;
 /**

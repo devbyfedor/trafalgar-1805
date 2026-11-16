@@ -96,10 +96,11 @@ export const STATION_HOLD = [0.802, 0.833] as const;
  * hold, a little before 7; the Sirius's No. 370 at 7.00 as the camera comes
  * out to her; the Euryalus sending the Phoebe west with it at 7.20 (the
  * inshore steps within twenty minutes); then the long run west down the
- * chain at an even pace, to the Victory's answer at 9.30. From the hold's
- * end to the Victory, 0.05 of p: one and a half screens. Each key is a
- * place on the clock, an hour of the 19th, and the clock's pace there
- * (hours a unit of p).
+ * chain at an even pace to the Mars at 9; the Victory's answer at 9.30 in
+ * the camera's hold over the station (STATION_HOLD) and the general chase
+ * at 9.45, ten o'clock at its end. From the harbour's hold to the station,
+ * 0.05 of p: one and a half screens. Each key is a place on the clock, an
+ * hour of the 19th, and the clock's pace there (hours a unit of p).
  */
 export const RELAY_CLOCK = {
   holdFrom: [HARBOUR_HOLD[0], 6.83, 5],
@@ -113,7 +114,9 @@ export const RELAY_CLOCK = {
 
 /**
  * The stretch of p the relay's clock replaces (relayClock): from first
- * light on the 19th to the morning of the 20th, where beat 5 takes over.
+ * light on the 19th to the evening of the 20th, beat 5's from there (the
+ * night of the 19th and the day of the 20th pass as the camera rises from
+ * the station toward Ulm).
  */
 const RELAY_SPAN = [0.7, 0.87] as const;
 

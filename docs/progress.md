@@ -2,6 +2,22 @@
 
 Live checklist. A later session picks up from here. The briefs are `docs/scene-01-brief.md` and `docs/scene-02-brief.md`; decisions and deviations are in `docs/decisions.md`.
 
+## Session 34, part one (16 November 2026): the owner's notes on the smoke and the lanterns
+
+**The owner's order** (complete; it ends "Конец сообщения"). Session 34 is in two parts; this one is the changes to the smoke and the lights. **The review, the full checks and the merge into `main` are part two's, not this part's.** His answers on the lanterns (`decisions.md`, "The owner's answers of 16 November 2026 on the lanterns"): (1) the lanterns may show while a fleet shows only as its label: lights are not ships (by night only the lights were seen from the sea, not the hulls); the rule "a label or its ships" does not apply to them; recorded in `decisions.md`. (2) The combined fleet's lights burn faintly in the last frame and go out with the night, so the end of scene 2 meets the start of scene 1, where the enemy's lights still burn. (3) On large monitors the points must show as they do on his laptop: their size from the size of the screen; their brightness as it is. Order of work:
+1. The smoke, as recorded after session 33: the fight about two thirds of the camera's pause, the pause's whole length unchanged.
+2. The lanterns, by answers 2 and 3.
+3. What changed, checked on the production build with `served.mjs`: the frame budget at Finisterre and at night on the quiet machine; the labels in the pause at Finisterre (the figures still read, no jerks or blinks); the lanterns at the four sizes (at their ships, clear of the lettering).
+4. Commit, this file, the report with the commands to see the branch on the preview; stop. **Not into `main`.**
+If something doesn't come after a few tries: commit what there is, say what is in the way, stop. No helper runs during measurements. Never `npm run screenshots`. Commit after each step.
+
+**Plan and state** (branch `s33-smoke`, at `31a061b` at the start):
+- [x] Step 0: oriented (clean tree at `31a061b`; `main` untouched at `512f13b`; ports 3000, 4173, 4174, 4175 free; `main`'s build of `512f13b` still in `.claude/worktrees/s33-ref/out`). A read-only workflow (`s34-understand`, run `wf_cc47b801-8a3`, three readers) maps the clock in the pause, the lanterns' size and their going out, and the checks.
+- [x] Step 1: the fight two thirds of the pause (`f84c5b8`; `decisions.md`, "Scene 2, Stage B: session 34, part one"). Inside the camera's hold (0.527–0.548) the clock is a Hermite curve through the unbroken clock's own hour and pace at the hold's ends, the first guns (5.15 p.m., now p 0.5327, was 0.5372) and the end of the firing (9.30 p.m., kept at 0.5467): the firing two thirds of the hold at an even pace, the closing faster; outside the hold every p gives the same day bit for bit (two million values checked). A puff is born every 0.0026 of p (was 0.002) so the bank at its thickest holds as many puffs as approved (129 against 125; at 0.002 it held 174). On the dev server: `label-changes` nothing flagged (Villeneuve's 20 to 18 at 0.5434, shown whole 485 px); `smoke-clear` 0.527–0.566 at the four sizes 0 steps failing; stills of the hold against the old build looked at (`.claude/s34a/look/`, local: the lines run up to about 50 px ahead of their old place in the closing and are back by 0.552).
+- [ ] Step 2: the lanterns (answers 1 to 3).
+- [ ] Step 3: the checks on the production build.
+- [ ] Step 4: commit, this file, the report; stop.
+
 ## Session 33, part two (16 November 2026): the lanterns at night
 
 **The owner's order** (complete; it ends "Конец сообщения"). Work on the branch `s33-smoke`. **The smoke at Finisterre is done (part one) and not touched in this part.** His answers on the smoke, **to be built in session 34 with his notes; this part only records them** (`decisions.md`, "The owner's answers of 16 November 2026"): (1) the smoke stays under the ships, its density as it is: the ships must read; (2) about 200 px of firing is too little: the time inside the camera's pause is shared anew, the closing without smoke runs faster and the fight gets about two thirds of the pause; the pause's whole length is unchanged and nothing else in the scene moves; the figures in the labels must still hold long enough to be read. Order of work:

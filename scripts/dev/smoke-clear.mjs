@@ -8,7 +8,8 @@
 // outlines of the lettering. The labels' clock makes every move at once
 // (HeadLabels.setClock), and each p is drawn twice, so they stand settled.
 //   node scripts/dev/smoke-clear.mjs [from] [to] [step]
-// Defaults: 0.536 to 0.564 every 0.0005 (the first guns at 0.5372, the last
+// Defaults: 0.527 to 0.566 every 0.0005 (the camera's hold over the action
+// from 0.527, the first guns at 0.5327 since session 34, the last
 // puff gone by about 0.5607). Environment: BASE (default
 // http://127.0.0.1:3000; the production preview is http://127.0.0.1:4173),
 // SIZES (default "1280x720@1.5,1920x1080@1,2560x1440@1,3440x1440@1"),
@@ -19,8 +20,8 @@ import { writeFile } from "node:fs/promises";
 import { chromium } from "@playwright/test";
 
 const base = process.env.BASE ?? "http://127.0.0.1:3000";
-const from = Number(process.argv[2] ?? 0.536);
-const to = Number(process.argv[3] ?? 0.564);
+const from = Number(process.argv[2] ?? 0.527);
+const to = Number(process.argv[3] ?? 0.566);
 const step = Number(process.argv[4] ?? 0.0005);
 const seen = Number(process.env.SEEN ?? 0.02);
 const landKm = Number(process.env.LAND_KM ?? 2);

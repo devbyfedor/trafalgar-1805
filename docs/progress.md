@@ -2,6 +2,22 @@
 
 Live checklist. A later session picks up from here. The briefs are `docs/scene-01-brief.md` and `docs/scene-02-brief.md`; decisions and deviations are in `docs/decisions.md`.
 
+## Session 35, part two (16 November 2026): the day relay's signals
+
+**The owner's order** (complete; it ends "Конец сообщения"). Branch `s35-relay`; part one's groundwork changed only where the signals truly need it; the night signals not touched. His answers to part one's questions: (1) **yes**: the harbour's hold keeps its length, the relay's screen and a half comes from the high view after it (recorded in `decisions.md` in place of his earlier answer); (2) **the Victory is not shown alone** (a lone flagship breaks the rule "a fleet shows as its label or as its ships"): the camera holds over Nelson's station, the time taken from the start of the rise toward Ulm in beat 5, so the fleet shows as ships and the Victory's answer shows on her own ship; the pin's whole length unchanged. **The blinks of "Villeneuve, 33 sail"** on the wide screens and at the junction with beat 5 are not fixed in this part, but they are **not** deferred to the final polish: they come from the new camera, not from `main`; in session 37, before the merge, the branch must be no worse than `main` on blinks, trying the camera's framing first, not the labels' logic (in the plan below). Order of work:
+1. The signals: flags and gun puffs, the message running down the chain from the Sirius to the Victory; from branch 2 what is useful.
+2. The camera's hold over the station, as answer 2.
+3. Checked on the production build with `served.mjs`: the frame budget in beat 4 on the quiet machine; the signals and the chain's ships at the four sizes (not over the lettering, no jerks); the figures in beat 5's labels after the shift (still read); contrast in beats 4 and 5 at the four sizes; the frames against the reference where nothing changed.
+4. Commit, this file, the report with the commands to see the branch on the preview; stop. **Not into `main`.**
+If something doesn't come after a few tries: commit what there is, say what is in the way, stop. No helper runs during measurements. Never `npm run screenshots`. Commit after each step.
+
+**Plan and state:**
+- [x] Step 0: oriented (clean tree at `3363d2f`, the branch as part one left it; `main` at `122ec57`). The owner's answer 1 into `decisions.md`; the blinks' item into the plan below. A read-only workflow (`s35b-understand-signals`, run `wf_b70711c7-655`, four readers: branch 2's signals, the fx wiring, the station and beat 5's start, the checks) maps the work.
+- [ ] Step 1: the signals.
+- [ ] Step 2: the camera's hold over the station.
+- [ ] Step 3: the checks on the production build.
+- [ ] Step 4: commit, this file, the report; stop.
+
 ## Session 35, part one (16 November 2026): the relay of 19 October, its groundwork
 
 **The owner's order** (complete; it ends "Конец сообщения"). Work from `main`. His answers: (1) **the harbour's hold off Cádiz is shortened** so the relay gets about one and a half screens of scroll; the pin's whole length unchanged; the harbour stays in the frame long enough to be looked at, and the figures in the labels still hold long enough to be read. (2) **`s33-smoke` and its comparison worktree deleted**, the branch checked wholly in `main` first, the `node_modules` link taken away by the rule. **His new plan** (shorter sessions; below, "Scene 2's remaining plan (updated in session 35)"). This part: the groundwork of the day relay of 19 October in beat 4; the signals themselves are part two's. The chain's four ships of the line show apart from the fleet (decided, `decisions.md`). The night signals are not touched. Order of work:
@@ -42,7 +58,7 @@ If something doesn't come after a few tries: commit what there is, say what is i
 **Done and in `main`:** the Cádiz labels, the march to Ulm, the history section (session 32); the smoke at Finisterre and the lanterns at night (sessions 33–34, `db23401`). **Still open, in order** (every session opens as the deferred plan in session 31 says: `served.mjs --free`, the build, `served.mjs` OK, no helper while anything is timed, never `npm run screenshots`):
 1. **Session 35: the day relay of 19 October, in two parts, not merged.** Part one (this one): the harbour's hold shortened (about 1.5 screens to the relay, the pin's length unchanged), the relay's clock, the chain's four ships of the line apart from the fleet (and their moves before their stations, `backlog.md` K12), the camera along the chain from the Sirius to the Victory; checked on the production build. Part two: the signals themselves (branch 2's hoists and gun puffs and `SignalRelay`, ported onto the CPU glyph layout and `fx/` as the smoke and the lanterns were).
 2. **Session 36: the night signals of 20–21 October, not merged** (as the record has them: a short chain between the closing fleets, the four frigates and Defence, Colossus and Mars, not the Agamemnon; blue lights, rockets and guns on `fx/Lights.ts`).
-3. **Session 37: the owner's notes on both, the review, the full checks, the merge** into `main` (a true merge), new reference frames; branch 2 then deletable with his word.
+3. **Session 37: the owner's notes on both, the review, the full checks, the merge** into `main` (a true merge), new reference frames; branch 2 then deletable with his word. **Before the merge (the owner's order of 16 November 2026, session 35 part two):** the blinks of the combined fleet's label ("Villeneuve, 33 sail") on the wide screens as the camera comes out of the bay and starts the long run, and at the junction with beat 5, come from the relay's new camera, not from `main`: the branch must be no worse than `main` on blinks (`label-flicker` at the four sizes, both ways, 300 and 800 px/s, branch against `main`). **First the camera's framing** (the views out of the bay, the long run's, the key into beat 5), **not the labels' logic.** Not deferred to the final polish.
 4. **Then:** scene 2's final polish (the labels in the lowest views off Cádiz, `s32-label-low-views`; the three label blinks at the start of the hold off Finisterre, `backlog.md`); the stills of all scene 2 (item 5); the final check and README (items 6 and 7).
 
 ## Session 34, part two (16 November 2026): the review, the full checks, the merge

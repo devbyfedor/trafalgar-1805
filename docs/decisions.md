@@ -1184,7 +1184,9 @@ The owner's order: the review of sessions 33 and 34 (one pass, at most one backg
 
 ## Scene 2, Stage B: the relay of 19 October, part one (session 35, 16 November 2026): its clock, the chain apart, the camera along the chain
 
-The owner's order: the groundwork of the day relay in beat 4 (the signals themselves are part two's); his answer 1, shorten the harbour's hold so the relay gets about one and a half screens, the pin's length unchanged, the harbour in the frame long enough to be looked at, the figures still read; the chain's four ships of the line apart from the fleet (his answer of 14 November 2026). Not merged (session 37 merges).
+The owner's order: the groundwork of the day relay in beat 4 (the signals themselves are part two's); the relay about one and a half screens of scroll, the pin's length unchanged, the harbour in the frame long enough to be looked at, the figures still read; the chain's four ships of the line apart from the fleet (his answer of 14 November 2026). Not merged (session 37 merges).
+
+**The owner's answer of 16 November 2026 (session 35, part two's order), in place of his earlier one:** the harbour's hold keeps its length (0.72–0.75), and the relay's screen and a half comes from the high view after it, as built below. (His earlier answer, to shorten the hold, is withdrawn.)
 
 ### The harbour's hold kept at 0.72–0.75; the relay's screen and a half taken from after it
 

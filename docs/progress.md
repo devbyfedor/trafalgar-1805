@@ -2,6 +2,21 @@
 
 Live checklist. A later session picks up from here. The briefs are `docs/scene-01-brief.md` and `docs/scene-02-brief.md`; decisions and deviations are in `docs/decisions.md`.
 
+## Session 34, part two (16 November 2026): the review, the full checks, the merge
+
+**The owner's order** (complete; it ends "Конец сообщения"). This part: the review, the full checks and the merge into `main`; **no new features**. His answers: (1) the combined fleet's lights in the last frame stay at 0.55 of their night strength; (2) the three old label blinks at the start of the hold off Finisterre are **not** fixed now: they go into **scene 2's final polish**, together with the deferred low views' branch (`s32-label-low-views`); recorded in the plan below and in `backlog.md`. Order of work:
+1. The code review of sessions 33 and 34: one pass, at most one background helper, finished before any measurement; fix what it finds.
+2. Every check on the production build, checked with `served.mjs`; no background helper during the measurements: the frame budget at Finisterre and at night; contrast at the four sizes; clash and jerks; the frames against the reference; `npm run check` whole, scene 1's regression in it. A check may be run again once, and only if its failure looks like the machine's noise (as the hold over Boulogne was).
+3. All passed: into `main` by a true merge (not a squash); new reference frames with my own look-diff script; the plan in this file; the report with the commands to see `main` on the preview; stop.
+4. A check failed for real: no merge and no fixing in circles: commit, say in the report what failed, stop.
+Never `npm run screenshots`. Commit after each step.
+
+**Plan and state** (branch `s33-smoke`, at `660d43a` at the start; `main` untouched at `512f13b`):
+- [x] Step 0: oriented (clean tree at `660d43a`; ports 3000, 4173, 4174, 4175 free; `main`'s build of `512f13b` still in `.claude/worktrees/s33-ref/out`; the reference frames in `.claude/s32d/look-ref/`).
+- [ ] Step 1: the review (one read-only helper), the fixes.
+- [ ] Step 2: the checks on the production build.
+- [ ] Step 3: the merge, the new reference frames, this file's plan, the report.
+
 ## Session 34, part one (16 November 2026): the owner's notes on the smoke and the lanterns
 
 **The owner's order** (complete; it ends "Конец сообщения"). Session 34 is in two parts; this one is the changes to the smoke and the lights. **The review, the full checks and the merge into `main` are part two's, not this part's.** His answers on the lanterns (`decisions.md`, "The owner's answers of 16 November 2026 on the lanterns"): (1) the lanterns may show while a fleet shows only as its label: lights are not ships (by night only the lights were seen from the sea, not the hulls); the rule "a label or its ships" does not apply to them; recorded in `decisions.md`. (2) The combined fleet's lights burn faintly in the last frame and go out with the night, so the end of scene 2 meets the start of scene 1, where the enemy's lights still burn. (3) On large monitors the points must show as they do on his laptop: their size from the size of the screen; their brightness as it is. Order of work:

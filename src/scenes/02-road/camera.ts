@@ -145,13 +145,18 @@ function relayView(
  * frame's middle, between the frigates and the anchorage: at its top
  * right edge the combined fleet's label lost its places one after another
  * as the camera came out of the bay, and stayed out for over a second.
+ * The Sirius's view looks down on the bay steeply enough (10 km back and
+ * 11 up; it was 13 and 9) that the label's places by the anchorage keep
+ * their height (HeadLabels, READ_TALL) all the way out of the bay: seen at
+ * a slant they lost it one after another, the label hopped from place to
+ * place within a second, and on the wide screens it blinked (p 0.759).
  */
 const RELAY_VIEWS: readonly CameraKey[] = [
   // Placed where part one's clock had them (the Sirius's signal + 0.006,
   // the Euryalus's + 0.005, the Defence's, between the Colossus's and the
   // Mars's): part two moved the inshore signals to where the camera has
   // come out over the frigates (beats.ts, RELAY_CLOCK), not the camera.
-  relayView(0.764, -6.33, 36.505, 13, 9),
+  relayView(0.764, -6.33, 36.505, 10, 11),
   relayView(0.771, -6.4, 36.5, 22, 17),
   relayView(0.78252, -6.72, 36.36, 52, 42),
   relayView(0.79048, -6.98, 36.47, 56, 46),

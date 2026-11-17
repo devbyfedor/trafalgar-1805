@@ -2,6 +2,22 @@
 
 Live checklist. A later session picks up from here. The briefs are `docs/scene-01-brief.md` and `docs/scene-02-brief.md`; decisions and deviations are in `docs/decisions.md`.
 
+## Session 37, part two (17 November 2026): the full checks, the merge of the relay
+
+**The owner's order** (complete; it ends "Конец сообщения"). Branch `s35-relay`. This part: the full checks and the merge into `main`; **no new features**. Order of work:
+1. Every check on the production build, checked with `served.mjs`; no background helper during the measurements: the frame budget in beats 4 and 5; contrast at the four sizes; clashes and jerks; the frames against the reference; `npm run check` whole, scene 1's regression in it. A check may be run again once, and only if its failure looks like the machine's noise (as the pause over Boulogne was).
+2. All passed: into `main` by a true merge (not a squash); new reference frames with my own comparison script; the plan in this file; the report with the commands to see `main` on the preview; stop.
+3. A check failed for real: no merge and no fixing in circles: commit, say in the report what failed, stop.
+Never `npm run screenshots`. Commit after each step.
+
+**Plan and state** (branch `s35-relay` at `e44c3e7` at the start, clean; `main` untouched at `122ec57`; ports 3000, 4173, 4174, 4175 free; on mains; `main`'s build `HGvBdUXKA-ykJDaVB_AIp` of `122ec57` still in `.claude/worktrees/s35-ref/out`; the reference frames in `.claude/s34b/look-ref/`). Beats 4 and 5 are p 0.65–1 (Cádiz 0.65–0.82, the night 0.82–1). Local aids and output in `.claude/s37b/` (git-ignored).
+- [ ] Step 0: oriented; this record; the branch built (production) at this commit.
+- [ ] Step 1a: the frame budget in beats 4 and 5, alone on the machine (branch 4173 and `main` 4175, A B A B; `AT=0.65..1:0.005`, a reader's scroll `REAL=1` 0.65–1 and back; the hoists' and the guns' shares).
+- [ ] Step 1b: clashes and jerks over beats 4 and 5 at the four sizes (`glyph-clash`, `glyph-ashore`, `glyph-motion`, `glyph-paths`, `label-flicker` with `main`, `label-steps`, `label-ships`, `fleet-frame`, `fleet-scroll`, `label-changes`, `signals-clear`, `lights-clear`); untimed.
+- [ ] Step 1c: contrast at the four sizes (the whole scene every 0.01, beats 4 and 5 densely); the frames against `.claude/s34b/look-ref/` (road, road-text, lab at the 147 points and the four sizes), with a control of `main`'s own build where the branch differs outside what it changed.
+- [ ] Step 1d: `npm run check` whole (scene 1's regression in it), my servers stopped, the tests' server checked with `served.mjs`.
+- [ ] Step 2: all passed: `git merge --no-ff s35-relay` into `main`; `main`'s build; new reference frames (`look-diff.mjs` `REF=1`) into `.claude/s37b/look-ref/`; the plan below; the report; stop.
+
 ## Session 37, part one (17 November 2026): the label's blinks out of the bay, the review
 
 **The owner's order** (complete; it ends "Конец сообщения"). Branch `s35-relay`. His answers to session 35's questions: (1) the frigates off the port stay as they are (their signal reads by the puffs); (2) Next.js is upgraded to 16.4.6 on a short branch of its own right after the merge (the known advisories concern server functions, which a static site doesn't have). **He cut the rest of scene 2 to the essentials** (`decisions.md`, "Scene 2's rest cut to the essentials"; the plan below). This part: the blinks and the review; **the full checks and the merge are part two's, not this part's.** Order of work:

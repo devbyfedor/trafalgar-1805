@@ -19,7 +19,22 @@ No background helpers. Never `npm run screenshots`.
   - `npm audit` after the install: 5 findings, **none in `next`**: `serve` 14.2.6 (its `compression`, a denial of service; fix `serve` 14.2.8) and `wrangler` 4.152.0 (its `miniflare`'s `undici`; fix `wrangler` 4.164.0). Both are dev tools (the local preview and the deploy command), not in the site. Not upgraded, by the order ("nothing else").
 - [x] Step 3: **`npm run build` went through on the first run** (18:57:14–18:57:25, `.claude/s38/build1.log`): Next.js 16.4.6 (Turbopack), compiled in 5.3 s, TypeScript 749 ms, 8 static pages; **no upgrade notice, no warning** in the log. Build `cNQwxWEl9sSiaa20lVMfO` of `9d6e545`, source `a90626599029`. Served with the main tree's `node_modules/.bin/serve` on 4173: `served.mjs` OK (that build, of `9d6e545`, source unchanged); the server stopped before step 4.
 - [x] Step 4: **`npm run check` whole: 37 of 37 pass, first run** (`.claude/s38/chain-check.sh`, 18:58–19:08, `.claude/s38/checks/npm-check-9d6e545.txt`; my server stopped first, every port free, the CPU at 7 % before the start, on mains; no helper). **Its own `next build` went straight through too** (Next.js 16.4.6, no notice, no warning): build `RA2okZSHYFVVVl34_uRKq` of `9d6e545`, source `a90626599029`; **the tests' server on 4174 checked with `served.mjs` during the run: OK** (that build, of `9d6e545`, source unchanged). Lint (306 files, the two old infos), typecheck, lettering (82 names and 11 figures). **Scene 1's regression passes**: moved p 0 0.0015 %, p 0.5 0.145 %, p 0.75 0.209 % (the limit 0.6; across sessions 30–37 p 0.5 has read 0.037–0.44 % and p 0.75 0.030–0.199 %, its idle loops); block median at most 0.98 (limit 1.2), p99 at most 17.8 (limit 28). The lab's flight GPU p95 at worst 8.12 ms, CPU 3.1 (session 37 8.51 and 3.2); Boulogne's interlude GPU p95 at worst 8.34, CPU 1.9 (8.74 and 2.2); the hold at rest the main thread p95 4.3–4.7 ms, 0 late of 92–94, the chart's GPU 0.35–0.48; both wheel tests without a long task. `perf` (report only): 11 long tasks over 50 ms scrolling into the road beside the other tests, the longest 99 ms (session 37: 13 and 124).
-- [ ] Step 5: the merge, this file, the report.
+- **Every check passed:** into `main`.
+- [x] Step 5: **merged into `main`** (`e3e2c46`, `git merge --no-ff s38-next-16.4.6`; `main` was still at `dd1f107`, an ancestor of the branch; no conflicts; the merge's tree is the branch head's `4c17c3c` exactly, the source `a90626599029` the one the build and the check used). This file; the report; stopped.
+
+**Where we stopped (the owner's planned end of session 38, 17 November 2026, about 19:15).** On `main` (`e3e2c46` and this record), all committed and clean: **Next.js 16.4.6 in `main`**. Nothing runs: no server (3000, 4173, 4174, 4175 free), no check, no helper. The main tree's `out/` is the check's build `RA2okZSHYFVVVl34_uRKq` of `9d6e545`, the same source as `main`'s head (`served.mjs` reads it as OK, "moved on, same source").
+- **To see `main`:** `npm run build` (it no longer stops on the upgrade notice: one run is enough), `npm run preview`, then http://127.0.0.1:4173/; `?debug` for the frame readouts. Nothing on the screen changes in this session: the same site on the new Next.js.
+- **Not done, by the order:** no look-diff against the reference frames, no frame bench of beats 4 and 5 (`npm run check`'s frame tests ran: the lab and Boulogne's interlude). `npm audit`'s five findings in `serve` and `wrangler` (dev tools, not the site) left as they are ("nothing else upgraded").
+- **Questions for the owner:** none blocking.
+- **Next steps, in order:** session 39 (the plan below).
+
+### Scene 2's remaining plan (updated in session 38, 17 November 2026)
+
+**Done and in `main`:** everything in session 37's list, and **Next.js 16.4.6 (session 38, `e3e2c46`)**. **Still open:**
+1. **Session 39: the stills, the dip at the start of scene 2 off Cádiz (one try; it stays if that fails), the final check and README.** Scene 2 is then closed.
+Every session opens as before: `served.mjs --free`, `npm run build` of `main`'s head (one run, no notice now), `served.mjs` OK; every later look-diff of scene 2 compares with `.claude/s37b/look-ref/` (taken from `main`'s build on Next.js 16.4.3; the upgrade touched no code of ours, but **if session 39's look-diff shows differences outside what it changed, diff `main`'s own build of `e3e2c46` against the reference first**, to tell the framework's share from the session's); no helper while anything is timed; never `npm run screenshots`.
+
+**Branches now:** `s35-relay` deleted (session 38). `s38-next-16.4.6` is wholly in `main` (deletable with `git branch -d` when the owner says). Kept as before: branch 2 (`worktree-wf_016f0c7a-068-2`: deletable with his word), `s32-label-low-views` (deferred), `s23-history`, `s21-load-wip`, `s21-perf` and the others (his word at scene 2's end).
 
 ## Session 37, part two (17 November 2026): the full checks, the merge of the relay
 
@@ -56,7 +71,7 @@ Never `npm run screenshots`. Commit after each step.
 - **Questions for the owner:** none blocking.
 - **Next steps, in order:** the plan below: session 38, Next.js 16.4.6 on its own branch; session 39, the stills, the dip at the start, the final check and README.
 
-### Scene 2's remaining plan (updated in session 37, part two, 17 November 2026)
+### Scene 2's remaining plan (updated in session 37, part two, 17 November 2026; superseded by the one in session 38 above)
 
 **Done and in `main`:** the Cádiz labels, the march to Ulm, the history section (session 32); the smoke at Finisterre and the lanterns at night (sessions 33–34, `db23401`); **the signal relay of 19 October (sessions 35 and 37, `7fc2382`)**. Cut by the owner (`decisions.md`, "Scene 2's rest cut to the essentials"): the night signals; `s32-label-low-views` (deferred, the old fast-scroll blinks accepted); the point 0.70. **Still open, in order:**
 1. **Session 38: Next.js upgraded to 16.4.6** on a short branch of its own from `main` (the owner's answer: the known advisories against 16.4.3 concern server functions, which a static export doesn't have; until then every other `next build` stops once on the upgrade notice and the retry goes through). Its own checks on the production build, then merged.

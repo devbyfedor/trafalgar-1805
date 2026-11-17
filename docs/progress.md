@@ -2,7 +2,7 @@
 
 Live checklist. A later session picks up from here. The briefs are `docs/scene-01-brief.md` and `docs/scene-02-brief.md`; decisions and deviations are in `docs/decisions.md`.
 
-## Session 40 (17 November 2026): the final check on a rested machine; scene 2 closed
+## Session 40 (17 November 2026): the final check on a rested machine; scene 2 closed, in `main`
 
 **The owner's order** (complete; it ends "Конец сообщения"). The laptop restarted, nothing open but VS Code. Branch `s39-stills-readme`:
 1. The production build and `npm run check` whole, the build checked with `served.mjs`. One run.
@@ -15,7 +15,14 @@ No background helpers. Never `npm run screenshots`.
 - [x] Step 1: **the production build:** `npm run build` went through on the first run (21:19:25–21:19:35, `.claude/s40/build1.log`; Next.js 16.4.6, no notice, no warning): build `8l8YJvPLdZ2YAEmHLFSp_` of `06f7c77`, source `262b27cbab71`; served on 4173 with `node_modules/.bin/serve`, **`served.mjs` OK**; the server stopped before the check, every port free.
 - [x] Step 1: **`npm run check` whole: 37 of 37 pass, one run** (`.claude/s40/chain-check.sh`, 21:20:00–21:29:58, `.claude/s40/checks/npm-check-06f7c77.txt`; no helper). Lint (306 files, the two old infos), typecheck, lettering (82 names and 11 figures); the check's own build `Ps6j8m6IlQnvwMfEv6JiI` of `06f7c77`, source `262b27cbab71`, no notice or warning; **the tests' server on 4174 checked with `served.mjs` during the run (21:20:38): OK.** **Boulogne's hold at rest passes:** the main thread p95 4.5, 5.1, 5.6, 5.4 ms at hold 0.25, 0.5, 0.75, 1 (the limit 8; medians 3.4–4.5; 0 late of 94–96), the chart's GPU 0.41–0.59 p95: back to session 38's level (4.3–4.7), so session 39's 8.2–8.5 was the machine's state, as read then. **Scene 1's regression passes:** moved p 0 0.0017 %, p 0.5 0.055 %, p 0.75 0.070 % (the limit 0.6); block median at most 0.98, p99 at most 16.8. The lab's flight GPU p95 at worst 8.33 ms, CPU 3.3; the interlude's dive and rise 8.88, CPU 2.3; both wheel tests without a long task. `perf` (report only): 4 long tasks over 50 ms scrolling, the longest 102 ms (session 38: 11 and 99; session 39's re-run: 172 and 1125).
 - **Every check passed:** into `main` (the order's case 2).
-- [ ] Step 2: `git merge --no-ff s39-stills-readme` into `main`; scene 2 marked closed in this file on `main`; the report; stop.
+- [x] Step 2: **merged into `main`** (`2411a31`, `git merge --no-ff s39-stills-readme`; `main` was still at `fc061d4`, an ancestor of the branch; no conflicts; the merge's tree is the branch head's `623a134` exactly, the source `262b27cbab71` the one the build and the check used). In `main` now: scene 2's stills by the beat's substance (`9489151`), README (`cf762f7`), the owner's last decisions (`decisions.md`, `backlog.md`), sessions 39 and 40's records. This file; the report; stopped.
+
+**SCENE 2 IS CLOSED** (17 November 2026, `main` at `2411a31`): its six beats, Boulogne's interlude, the stills for reduced motion and no WebGL, README; every check passed on `main`'s source (`npm run check` 37 of 37, scene 1's regression in it). What stays open is in `backlog.md` (the "Before publication" items among them: `npm audit`'s findings in `serve` and `wrangler`).
+
+**Where we stopped (the owner's planned end of session 40, 17 November 2026, about 21:35).** On `main` (`2411a31` and this record), all committed and clean. Nothing runs: no server (3000, 4173, 4174, 4175 free), no check, no helper. The main tree's `out/` is the check's build `Ps6j8m6IlQnvwMfEv6JiI` of `06f7c77`, the same source as `main`'s head.
+- **To see `main`:** `npm run build`, `npm run preview`, then http://127.0.0.1:4173/; `?debug` for the frame readouts; the stills: `public/stills/scene-02/`, or in the page with the browser's reduced-motion setting.
+- **Branches:** `s39-stills-readme` is wholly in `main` (deletable with `git branch -d` on the owner's word). The older ones as before (`worktree-wf_016f0c7a-068-*`, `s32-label-low-views`, `s23-history`, `s21-load-wip`, `s21-perf`, `wip/*` and the rest): kept until his word.
+- **Next steps, in order:** (1) scene 3, once the owner gives its brief (no `docs/scene-03-brief.md` yet); every session opens as before: `served.mjs --free`, `npm run build` of `main`'s head, `served.mjs` OK.
 
 ## Session 39 (17 November 2026): scene 2's stills, README, the final check; scene 2 closed
 

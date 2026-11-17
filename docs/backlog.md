@@ -57,5 +57,16 @@ Points the four independent reviews of the history section left for the code (`d
 
 ## Before publication (the owner's order of 17 November 2026, session 39)
 
-- **`npm audit`'s findings in the development tools.** `serve` 14.2.6 (its `compression`: a denial of service; fixed in `serve` 14.2.8) and `wrangler` 4.152.0 (its `miniflare`'s `undici`; fixed in `wrangler` 4.164.0). Neither reaches the site (the local preview and the deploy command). Upgrade both, pinned exactly, on a branch of their own before the first deploy, and run `npm run preview` and `npm run check` after (`decisions.md`, "Scene 2 closed: the owner's last decisions").
+- **Done (session 42): `npm audit`'s findings in the development tools.** `serve` 14.2.8 and `wrangler` 4.164.0 (the latest of their majors), pinned exactly (`98d3c13`); `npm audit`: 0 left. `npm run preview` and `wrangler dev` checked on the build.
 - **The dip of about a second at the start of scene 2 off Cádiz** is left as it is by the owner's order; no further work planned unless he reopens it.
+
+## Before publication: the second part (found in session 42, 17 November 2026)
+
+The first chapter (scenes 1 and 2, "to be continued") goes out after the second part of the preparation, which changes the site. Found by session 42's audit (`decisions.md`, "Publication, part one: the audit"; `progress.md`, session 42):
+
+- **A third-party notices file served with the site** (for example `public/third-party-notices.txt`, linked from the page's credits line). The minifier strips every licence comment, so the deployed chunks carry none: the MIT notices of Next.js (and the React canary it vendors, Scheduler, core-js, whatwg-fetch, object-assign), three.js, the troika packages, bidi-js, webgl-sdf-generator, Typr.ts, @unicode-font-resolver/client, fflate and Lenis; the Apache-2.0 text for woff2otf.js and `@swc/helpers`; GSAP's proprietary notice and licence URL; and pointers to the fonts' OFL texts already served at `/fonts/3d/`. Regenerate it whenever a dependency changes. Needed before the deploy.
+- **The page's credits line** (`Credits.tsx`): by the cautious reading of ETOPO 2022's upstream terms (FABDEM and the Copernicus DEM ask for their notice when adapted data reaches the public), add a short line such as "Land heights from FABDEM, built on the Copernicus DEM (© DLR e.V., © Airbus); depths from GEBCO and GMRT" and "Type: Bodoni Moda; Baskervville by ANRT, Nancy" with a link to the notices file. The README carries the full wording.
+- **The lab pages** (`/lab/chart/`, `/lab/craft/`, `/lab/sea/`, `/lab/ship/`) are in `out/` and would be public on workers.dev: keep them, or leave them out of the deploy (an `.assetsignore` in `out/`, or a build without them). The owner's decision.
+- **"To be continued"** where the scene 3 placeholder stands (the owner's decision of session 41).
+- **Optional:** a `_headers` file marking `/_next/static/*` immutable for a year (Cloudflare serves static assets with `max-age=0, must-revalidate` by default).
+- **Before the first push** (the owner's decision): every commit of `main` carries his personal e-mail as author and committer; see `decisions.md`.

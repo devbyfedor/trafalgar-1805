@@ -50,7 +50,9 @@ npm run preview                   # then open http://127.0.0.1:4173/?debug
 | `npm run screenshots:chart` | The chart lab's frames in `docs/screenshots/scene-02/` (on `build:labs`, like `screenshots` and `stills`) |
 | `npm run stills` | A fresh build, then scene 2's stills in `public/stills/scene-02/`. To re-render only the chart's six: `npx playwright test --project=stills -g "one still per beat"` after a build |
 | `npm run data:download`, `data:build` | The chart's raw data into `data/raw/` (git-ignored), then its assets in `public/chart/` |
-| `npm run deploy` | Build, then `wrangler deploy` to Cloudflare Workers: `out/` as static assets on workers.dev, configured in `wrangler.jsonc` (needs `wrangler login` first) |
+| `npm run deploy` | The production build; `scripts/deploy-check.mjs` (refuses a build whose link preview is not on an https address, one with the lab pages, or a stale notices file); then `wrangler deploy` to Cloudflare Workers: `out/` as static assets on workers.dev, configured in `wrangler.jsonc` (needs `wrangler login` first, and `SITE_URL`: see below) |
+
+**The site's address.** The link preview (`og:image`, `og:url`) and the canonical link need the public address, read at build time from `SITE_URL` (`src/lib/site.ts`): put the line `SITE_URL=https://<the site's address>` in a file `.env.production.local` in the project folder (git-ignored; Next.js reads it during `next build`), or set it in the environment. Without it a build points at the local preview, and `npm run deploy` stops before uploading.
 
 All scripts work in PowerShell. The test server binds to 127.0.0.1:4174, so a running preview doesn't get in the way.
 
@@ -62,7 +64,7 @@ All scripts work in PowerShell. The test server binds to 127.0.0.1:4174, so a ru
 
 ### Development aids
 
-`scripts/dev/` holds tools for working on the scenes, not part of the site or the tests. Most need a server (`npm run dev`, or the preview with `BASE=http://127.0.0.1:4173`, built with `npm run build:labs` for the lab pages); `W`, `H` and `S` set the viewport and device scale (1280, 720 and 1.5 by default: the owner's laptop). Among them: `road.mjs` (screenshots of scene 2 at any p or interlude point), `sheet.mjs` (contact sheets and crops), `contrast.mjs` (the text's contrast over the scene, `NOWEBGL=1` over the stills), `road-bench.mjs` (scene 2's frames timed on the GPU), `look-diff.mjs` (frames against reference frames), and the checks for ships, labels and effects (`glyph-clash.mjs`, `glyph-motion.mjs`, `label-flicker.mjs`, `signals-clear.mjs`, `lights-clear.mjs` and others). Each file's head says how to use it.
+`scripts/dev/` holds tools for working on the scenes, not part of the site or the tests. Most need a server (`npm run dev`, or the preview with `BASE=http://127.0.0.1:4173`, built with `npm run build:labs` for the lab pages); `W`, `H` and `S` set the viewport and device scale (1280, 720 and 1.5 by default: the owner's laptop). Among them: `og-image.mjs` (the link preview from scene 1's hero frame, `public/link-preview.jpg`), `icons.mjs` (the favicon and the Apple touch icon from Victory's silhouette in the ship lab), `road.mjs` (screenshots of scene 2 at any p or interlude point), `sheet.mjs` (contact sheets and crops), `contrast.mjs` (the text's contrast over the scene, `NOWEBGL=1` over the stills), `road-bench.mjs` (scene 2's frames timed on the GPU), `look-diff.mjs` (frames against reference frames), and the checks for ships, labels and effects (`glyph-clash.mjs`, `glyph-motion.mjs`, `label-flicker.mjs`, `signals-clear.mjs`, `lights-clear.mjs` and others). Each file's head says how to use it.
 
 ## Tests
 
@@ -80,7 +82,8 @@ Playwright, in Chromium, against the served export; `npm run test:e2e` runs the 
 
 ```
 src/
-  app/                    layout, page, globals.css, lab/ (chart, sea, craft, ship: page.lab.tsx,
+  app/                    layout, page, not-found (the 404 page), favicon.ico and apple-icon.png,
+                          globals.css, lab/ (chart, sea, craft, ship: page.lab.tsx,
                           in development and build:labs only)
   fonts/                  Bodoni Moda and Baskervville (OFL) and their next/font setup
   components/
@@ -90,7 +93,8 @@ src/
     chart/                the chart engine: engine, terrain, sky, light, lines, lettering,
                           glyphs (the ships), marks, fx (smoke, lanterns, signal flags), camera
     fx/                   haze and glitter canvases
-  lib/                    gsap registration, media queries, seeded random, curves, debug channel
+  lib/                    gsap registration, media queries, seeded random, curves, debug channel,
+                          site (name, description, address, link preview)
   scenes/
     registry.ts           the scenes in story order
     handoff.ts            scene 1's pin overlapping scene 2's
@@ -103,10 +107,14 @@ public/
   chart/                  the chart's data (npm run data:build)
   stills/scene-02/        scene 2's stills (npm run stills)
   fonts/3d/               WOFF fonts for the lettering on the chart
+  link-preview.jpg        the link preview (scripts/dev/og-image.mjs)
+  third-party-notices.txt the credits and every notice and licence (npm run notices)
 scripts/
   data/                   the chart's data pipeline
   dev/                    development aids
   check-lettering.ts      the lettering check
+  notices.mjs             the notices file
+  deploy-check.mjs        what npm run deploy checks before uploading
 tests/e2e/                Playwright specs
 docs/                     briefs, progress, decisions, history notes and research, fonts, screenshots
 ```

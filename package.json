@@ -27,7 +27,7 @@
     "data:download": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/data/download.ts",
     "data:build": "npm run data:download && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/data/build.ts",
     "data:soundings": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/data/soundings.ts",
-    "deploy": "npm run build && wrangler deploy",
+    "deploy": "npm run build && node scripts/deploy-check.mjs && wrangler deploy",
     "stills": "npm run build:labs && playwright test --project=stills"
   },
   "dependencies": {

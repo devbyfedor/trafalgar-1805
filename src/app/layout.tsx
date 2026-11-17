@@ -1,12 +1,17 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { displayFace, textFace } from "@/fonts";
+import { SITE } from "@/lib/site";
 import "./globals.css";
 
+// The icons are files beside this one: favicon.ico and apple-icon.png
+// (scripts/dev/icons.mjs), linked by Next.js. The home page adds the link
+// preview and the canonical address (page.tsx).
 export const metadata: Metadata = {
-  title: "Trafalgar 1805",
-  description:
-    "Dawn on 21 October 1805 off Cape Trafalgar: a scroll-driven story of the battle, told in scenes.",
+  metadataBase: new URL(SITE.url),
+  title: SITE.name,
+  description: SITE.description,
+  applicationName: SITE.name,
 };
 
 export const viewport: Viewport = {

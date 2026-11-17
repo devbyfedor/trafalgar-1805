@@ -11,14 +11,15 @@
     "dev": "next dev --hostname 127.0.0.1",
     "build": "next build",
     "postbuild": "node scripts/dev/build-stamp.mjs",
+    "build:labs": "node scripts/dev/build-labs.mjs",
     "preview": "serve out --listen tcp://127.0.0.1:4173 --no-clipboard --no-port-switching",
     "lint": "biome check",
     "lint:fix": "biome check --write",
     "format": "biome format --write",
     "typecheck": "next typegen && tsc --noEmit",
-    "test:e2e": "npm run build && playwright test --project=laptop --project=desktop-1080 --project=phone --project=perf --project=chart --project=chart-gpu --project=road --project=regression --project=chart-frames",
-    "screenshots": "npm run build && playwright test --project=docs",
-    "screenshots:chart": "npm run build && playwright test --project=docs-chart",
+    "test:e2e": "node scripts/dev/test-e2e.mjs",
+    "screenshots": "npm run build:labs && playwright test --project=docs",
+    "screenshots:chart": "npm run build:labs && playwright test --project=docs-chart",
     "check:lettering": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-lettering.ts",
     "notices": "node scripts/notices.mjs",
     "check:notices": "node scripts/notices.mjs --check",
@@ -27,7 +28,7 @@
     "data:build": "npm run data:download && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/data/build.ts",
     "data:soundings": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/data/soundings.ts",
     "deploy": "npm run build && wrangler deploy",
-    "stills": "npm run build && playwright test --project=stills"
+    "stills": "npm run build:labs && playwright test --project=stills"
   },
   "dependencies": {
     "@gsap/react": "2.1.2",

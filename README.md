@@ -30,30 +30,31 @@ npm run build
 npm run preview                   # then open http://127.0.0.1:4173/?debug
 ```
 
-`?debug` adds the readouts: FPS, the scroll progress, the chart's draw calls, triangles, quality level and GPU memory, and ScrollTrigger's markers. The lab pages (not indexed): `/lab/chart/` (the chart engine on one flight; `?p=`, `?light=`, `?eye=…&look=…` and more, in `src/app/lab/chart/`), `/lab/sea/` (Boulogne's painting; `?phase=hold&t=0.38`), `/lab/craft/` (the flotilla's craft) and `/lab/ship/` (Victory large).
+`?debug` adds the readouts: FPS, the scroll progress, the chart's draw calls, triangles, quality level and GPU memory, and ScrollTrigger's markers. The lab pages are development tools, not part of the published site: they exist under `npm run dev` and in `npm run build:labs`, never in `npm run build`. They are `/lab/chart/` (the chart engine on one flight; `?p=`, `?light=`, `?eye=…&look=…` and more, in `src/app/lab/chart/`), `/lab/sea/` (Boulogne's painting; `?phase=hold&t=0.38`), `/lab/craft/` (the flotilla's craft) and `/lab/ship/` (Victory large).
 
 ## Scripts
 
 | Script | What it does |
 | --- | --- |
 | `npm run dev` | Development server on 127.0.0.1:3000 |
-| `npm run build` | Static export to `out/`, stamped with its commit (`.next/build-stamp.json`, read by `served.mjs`) |
+| `npm run build` | The production build, the site that is deployed: static export to `out/`, without the lab pages, stamped with its commit (`.next/build-stamp.json`, read by `served.mjs`) |
+| `npm run build:labs` | The same with the lab pages (`TRAFALGAR_LABS=1`; `page.lab.tsx` is a page extension only then), for the tests and scripts that drive them |
 | `npm run preview` | Serves `out/` on http://127.0.0.1:4173 |
 | `npm run lint`, `lint:fix`, `format` | Biome |
 | `npm run typecheck` | Route types, then `tsc --noEmit` |
 | `npm run check:lettering` | Every character on the chart is in its font (troika would otherwise fetch a fallback from a CDN) |
-| `npm run test:e2e` | A fresh build, then the Playwright projects below |
+| `npm run test:e2e` | The production build and the home page's tests, then a build with the labs and the lab's tests (`scripts/dev/test-e2e.mjs`) |
 | `npm run notices`, `check:notices` | Writes `public/third-party-notices.txt` from the installed packages; checks it is up to date |
 | `npm run check` | Lint, typecheck, the lettering check, the notices check and the end-to-end tests |
 | `npm run screenshots` | Scene 1's approved frames in `docs/screenshots/scene-01/`, which the regression tests hold it to: run only to approve a new look |
-| `npm run screenshots:chart` | The chart lab's frames in `docs/screenshots/scene-02/` |
+| `npm run screenshots:chart` | The chart lab's frames in `docs/screenshots/scene-02/` (on `build:labs`, like `screenshots` and `stills`) |
 | `npm run stills` | A fresh build, then scene 2's stills in `public/stills/scene-02/`. To re-render only the chart's six: `npx playwright test --project=stills -g "one still per beat"` after a build |
 | `npm run data:download`, `data:build` | The chart's raw data into `data/raw/` (git-ignored), then its assets in `public/chart/` |
 | `npm run deploy` | Build, then `wrangler deploy` to Cloudflare Workers: `out/` as static assets on workers.dev, configured in `wrangler.jsonc` (needs `wrangler login` first) |
 
 All scripts work in PowerShell. The test server binds to 127.0.0.1:4174, so a running preview doesn't get in the way.
 
-**Before measuring anything**, make sure the server answers with the build you mean: `node scripts/dev/served.mjs --free <port>` before starting one; `npm run build` in the folder you measure; serve its `out/` with `node_modules/.bin/serve` (not `npx serve`); then `node scripts/dev/served.mjs <port> <folder>` must print OK (that build, of the expected commit, no source changed since).
+**Before measuring anything**, make sure the server answers with the build you mean: `node scripts/dev/served.mjs --free <port>` before starting one; `npm run build` in the folder you measure (`npm run build:labs` when it is a lab page); serve its `out/` with `node_modules/.bin/serve` (not `npx serve`); then `node scripts/dev/served.mjs <port> <folder>` must print OK (that build, of the expected commit, no source changed since).
 
 ### The chart's data
 
@@ -61,11 +62,11 @@ All scripts work in PowerShell. The test server binds to 127.0.0.1:4174, so a ru
 
 ### Development aids
 
-`scripts/dev/` holds tools for working on the scenes, not part of the site or the tests. Most need a server (`npm run dev`, or the preview with `BASE=http://127.0.0.1:4173`); `W`, `H` and `S` set the viewport and device scale (1280, 720 and 1.5 by default: the owner's laptop). Among them: `road.mjs` (screenshots of scene 2 at any p or interlude point), `sheet.mjs` (contact sheets and crops), `contrast.mjs` (the text's contrast over the scene, `NOWEBGL=1` over the stills), `road-bench.mjs` (scene 2's frames timed on the GPU), `look-diff.mjs` (frames against reference frames), and the checks for ships, labels and effects (`glyph-clash.mjs`, `glyph-motion.mjs`, `label-flicker.mjs`, `signals-clear.mjs`, `lights-clear.mjs` and others). Each file's head says how to use it.
+`scripts/dev/` holds tools for working on the scenes, not part of the site or the tests. Most need a server (`npm run dev`, or the preview with `BASE=http://127.0.0.1:4173`, built with `npm run build:labs` for the lab pages); `W`, `H` and `S` set the viewport and device scale (1280, 720 and 1.5 by default: the owner's laptop). Among them: `road.mjs` (screenshots of scene 2 at any p or interlude point), `sheet.mjs` (contact sheets and crops), `contrast.mjs` (the text's contrast over the scene, `NOWEBGL=1` over the stills), `road-bench.mjs` (scene 2's frames timed on the GPU), `look-diff.mjs` (frames against reference frames), and the checks for ships, labels and effects (`glyph-clash.mjs`, `glyph-motion.mjs`, `label-flicker.mjs`, `signals-clear.mjs`, `lights-clear.mjs` and others). Each file's head says how to use it.
 
 ## Tests
 
-Playwright, in Chromium, against the served export:
+Playwright, in Chromium, against the served export; `npm run test:e2e` runs the home page's projects on the production build and the chart lab's on a build with the labs:
 
 - `laptop` (1280×720 at 1.5) and `desktop-1080`: scene 1, its fonts, reduced motion and the `?debug` overlay;
 - `phone`: the fallback screen, loading nothing of scene 2;
@@ -73,13 +74,14 @@ Playwright, in Chromium, against the served export:
 - `chart` and `chart-gpu`: the chart lab's flight in software WebGL and on the GPU, same-origin requests only, a lost context coming back;
 - `road`: scene 2 on the home page (its beats, its pin, Boulogne's interlude, the page's width with classic scroll bars, the stills without WebGL);
 - `regression`: scene 1 at p = 0, 0.5 and 0.75 against its approved frames;
-- `chart-frames`, last, so nothing else uses the GPU: the chart lab's and scene 2's frames timed on the GPU (each under 11 ms at the 95th percentile on the owner's Intel Arc graphics) and no long tasks while scrolling with the wheel. Alone: `npx playwright test --project=chart-frames --no-deps` after a build.
+- `chart-frames`, after the others of its build, so nothing else uses the GPU: scene 2's frames (on the production build) and the chart lab's (on the build with the labs) timed on the GPU (each under 11 ms at the 95th percentile on the owner's Intel Arc graphics) and no long tasks while scrolling with the wheel. Alone: `npx playwright test --project=chart-frames --no-deps` after `npm run build:labs`.
 
 ## Structure
 
 ```
 src/
-  app/                    layout, page, globals.css, lab/ (chart, sea, craft, ship)
+  app/                    layout, page, globals.css, lab/ (chart, sea, craft, ship: page.lab.tsx,
+                          in development and build:labs only)
   fonts/                  Bodoni Moda and Baskervville (OFL) and their next/font setup
   components/
     experience/           Experience (scenes in order, fallback), Fallback, Credits, DebugOverlay

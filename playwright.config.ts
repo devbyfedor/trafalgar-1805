@@ -4,7 +4,12 @@ import { defineConfig, devices } from "@playwright/test";
  * End-to-end tests run against the static export in `out/`, served on
  * 127.0.0.1 (no firewall prompts on Windows) on a port of their own, so a
  * running `npm run preview` does not get in the way. `npm run test:e2e`
- * builds first, so the export is never stale.
+ * (scripts/dev/test-e2e.mjs) builds first, so the export is never stale,
+ * and runs each project on the build it is about: the home page's on the
+ * production build (`npm run build`, no lab pages: what is deployed), the
+ * chart lab's on `npm run build:labs`. The projects that open a lab page
+ * (chart, chart-gpu, the lab's half of chart-frames, docs, docs-chart,
+ * stills) need a build with the labs.
  *
  * Projects:
  * - laptop: the owner's machine, 1280×720 CSS px at device scale 1.5

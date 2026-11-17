@@ -43,7 +43,8 @@ npm run preview                   # then open http://127.0.0.1:4173/?debug
 | `npm run typecheck` | Route types, then `tsc --noEmit` |
 | `npm run check:lettering` | Every character on the chart is in its font (troika would otherwise fetch a fallback from a CDN) |
 | `npm run test:e2e` | A fresh build, then the Playwright projects below |
-| `npm run check` | Lint, typecheck, the lettering check and the end-to-end tests |
+| `npm run notices`, `check:notices` | Writes `public/third-party-notices.txt` from the installed packages; checks it is up to date |
+| `npm run check` | Lint, typecheck, the lettering check, the notices check and the end-to-end tests |
 | `npm run screenshots` | Scene 1's approved frames in `docs/screenshots/scene-01/`, which the regression tests hold it to: run only to approve a new look |
 | `npm run screenshots:chart` | The chart lab's frames in `docs/screenshots/scene-02/` |
 | `npm run stills` | A fresh build, then scene 2's stills in `public/stills/scene-02/`. To re-render only the chart's six: `npx playwright test --project=stills -g "one still per beat"` after a build |
@@ -128,7 +129,7 @@ To add a scene, create `src/scenes/0n-…/`, then replace the placeholder entry 
 - **Land, coastlines and rivers:** Made with Natural Earth. Free vector and raster map data @ naturalearthdata.com. Version 5.1.2: `ne_10m_land`, `ne_10m_minor_islands`, `ne_10m_rivers_lake_centerlines` and `ne_10m_rivers_europe` (whose European rivers derive from the European Commission JRC's CCM 2.1 database). Public domain.
 - The chart's tiles in `public/chart/` are derived from these datasets and carry their sources' terms, not this project's reservation of rights below.
 - Consulted for the history notes only, nothing of them shipped: OpenStreetMap (© OpenStreetMap contributors, ODbL), EMODnet Bathymetry, TICON-3 tidal constants (Hart-Davis, Dettmering and Seitz 2022, CC BY 4.0) and NOAA's historical magnetic declination. The notes in `docs/` cite every source they rely on.
-- The site's own credit line, after the scenes, reads "Relief: NOAA NCEI ETOPO 2022. Coastlines and rivers: Natural Earth." No agency or publisher named here endorses this project.
+- The site's own credits, after the scenes, name ETOPO 2022 with its land heights (FABDEM on the Copernicus DEM, with its copyright holders) and depths (GEBCO, GMRT), Natural Earth, and the two typefaces with ANRT's mention, and link to the notices file below. No agency or publisher named here endorses this project.
 
 ### Type
 
@@ -147,7 +148,7 @@ The site's JavaScript includes:
 - Lenis, © darkroom.engineering, MIT.
 - GSAP 3.15 with ScrollTrigger and SplitText, and `@gsap/react`: Copyright 2008–2026 GreenSock (Webflow), all rights reserved; used under the GSAP Standard "No Charge" License, https://gsap.com/standard-license.
 
-Each package's full notice and licence text is in its folder under `node_modules/`. The build strips them from the minified files, so a notices file served with the site is due before publication (`docs/backlog.md`).
+The build strips every licence comment from the minified files, so the site serves the notices itself: `public/third-party-notices.txt` (at `/third-party-notices.txt`, linked from the credits) has each package's version, notice and licence text, GSAP's notices, the Apache License 2.0, and the data and type credits above. `npm run notices` regenerates it from `node_modules`; `npm run check:notices` (part of `npm run check`) fails when it is stale.
 
 ## Licence
 

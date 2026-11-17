@@ -2,6 +2,7 @@
   "name": "trafalgar-1805",
   "version": "0.1.0",
   "private": true,
+  "license": "UNLICENSED",
   "description": "A scroll-driven, cinematic telling of the Battle of Trafalgar, 21 October 1805.",
   "engines": {
     "node": ">=24"

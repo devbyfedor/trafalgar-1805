@@ -11,7 +11,7 @@ Desktop only: below 1024 px wide, or with a coarse pointer, visitors get a singl
 
 Built with Next.js 16 (static export), React 19, GSAP 3.15 (ScrollTrigger, SplitText), Lenis 1.3, Tailwind CSS 4 and TypeScript 7. The chart is three.js r186 (`WebGLRenderer`, WebGL 2, our own GLSL) with troika-three-text for the lettering; it loads as its own chunk. One clock, `gsap.ticker`, drives Lenis, ScrollTrigger and every render loop. Biome lints and formats; Playwright tests the exported site. Everything loads from the site's own origin. Type is Bodoni Moda (the title) and Baskervville, both under the SIL Open Font License and self-hosted.
 
-Relief: NOAA NCEI ETOPO 2022. Coastlines and rivers: Natural Earth.
+The data, type and software it is built with are credited under [Credits](#credits); the project's own code, text and images are not licensed for reuse ([Licence](#licence)).
 
 ## Running it
 
@@ -48,7 +48,7 @@ npm run preview                   # then open http://127.0.0.1:4173/?debug
 | `npm run screenshots:chart` | The chart lab's frames in `docs/screenshots/scene-02/` |
 | `npm run stills` | A fresh build, then scene 2's stills in `public/stills/scene-02/`. To re-render only the chart's six: `npx playwright test --project=stills -g "one still per beat"` after a build |
 | `npm run data:download`, `data:build` | The chart's raw data into `data/raw/` (git-ignored), then its assets in `public/chart/` |
-| `npm run deploy` | Build, then `wrangler deploy` to Cloudflare Workers (static assets) |
+| `npm run deploy` | Build, then `wrangler deploy` to Cloudflare Workers: `out/` as static assets on workers.dev, configured in `wrangler.jsonc` (needs `wrangler login` first) |
 
 All scripts work in PowerShell. The test server binds to 127.0.0.1:4174, so a running preview doesn't get in the way.
 
@@ -118,3 +118,37 @@ To add a scene, create `src/scenes/0n-…/`, then replace the placeholder entry 
 - `docs/history-notes.md`: the historical facts used, with sources and doubts; research notes in `docs/research/`.
 - `docs/fonts.md`: the typefaces and how they are wired.
 - `docs/backlog.md`: work deferred to later scenes or to before publication.
+
+## Credits
+
+### Data
+
+- **Relief and depths:** NOAA National Centers for Environmental Information (2022), *ETOPO 2022 15 Arc-Second Global Relief Model*, https://doi.org/10.25921/fd45-gt74, described in MacFerrin et al. (2025), *Earth System Science Data* 17, 1835–1849, https://doi.org/10.5194/essd-17-1835-2025. Subset through NOAA's CoastWatch ERDDAP (dataset `ETOPO_2022_v1_15s`). A US government work, dedicated to the public domain worldwide under CC0 1.0. Not for navigation.
+- **ETOPO 2022's own sources,** credited as their publishers ask. Land heights in the chart's region come from FABDEM v1.0 (Hawker et al. 2022, *Environmental Research Letters*, https://doi.org/10.1088/1748-9326/ac4d4f), built on the Copernicus DEM: produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved. The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30. Depths come from sources among them the GEBCO_2022 Grid (GEBCO Compilation Group 2022, https://doi.org/10.5285/e0f0bb80-ab44-2739-e053-6c86abc0289c) and GMRT (Ryan et al. 2009, https://doi.org/10.1029/2008GC002332, CC BY 4.0).
+- **Land, coastlines and rivers:** Made with Natural Earth. Free vector and raster map data @ naturalearthdata.com. Version 5.1.2: `ne_10m_land`, `ne_10m_minor_islands`, `ne_10m_rivers_lake_centerlines` and `ne_10m_rivers_europe` (whose European rivers derive from the European Commission JRC's CCM 2.1 database). Public domain.
+- The chart's tiles in `public/chart/` are derived from these datasets and carry their sources' terms, not this project's reservation of rights below.
+- Consulted for the history notes only, nothing of them shipped: OpenStreetMap (© OpenStreetMap contributors, ODbL), EMODnet Bathymetry, TICON-3 tidal constants (Hart-Davis, Dettmering and Seitz 2022, CC BY 4.0) and NOAA's historical magnetic declination. The notes in `docs/` cite every source they rely on.
+- The site's own credit line, after the scenes, reads "Relief: NOAA NCEI ETOPO 2022. Coastlines and rivers: Natural Earth." No agency or publisher named here endorses this project.
+
+### Type
+
+- **Bodoni Moda** by Owen Earl (indestructible type*). Copyright 2020 The Bodoni Moda Project Authors (https://github.com/indestructible-type/Bodoni).
+- **Baskervville** by ANRT (Atelier National de Recherche typographique), Nancy: Thomas Huot-Marchand (director) with Alexis Faudot, Rémi Forte, Morgane Pierson, Rafael Ribas, Tanguy Vanlæys and Rosalie Wagner. Copyright 2018 The Baskervville Project Authors (https://github.com/anrt-type/ANRT-Baskervville).
+
+Both under the SIL Open Font License 1.1 (https://openfontlicense.org), converted from Google Fonts' files to WOFF2 and WOFF without other changes; each file keeps its copyright and licence in its own metadata, and the licence texts are in `src/fonts/` and `public/fonts/3d/`.
+
+### Software
+
+The site's JavaScript includes:
+
+- Next.js, © Vercel, Inc., MIT; with React, React DOM and Scheduler, © Meta Platforms, Inc. and affiliates, MIT; `@swc/helpers`, © SWC contributors, Apache-2.0; and its polyfill for old browsers: core-js (© Denis Pushkarev), whatwg-fetch (© GitHub, Inc.) and object-assign (© Sindre Sorhus), MIT.
+- three.js, © three.js authors, MIT.
+- troika-three-text, troika-three-utils and troika-worker-utils, © ProtectWise and Jason Johnston, MIT; bidi-js and webgl-sdf-generator, © Jason Johnston, MIT; and, inside troika-three-text, Typr.ts (© Photopea, MIT), @unicode-font-resolver/client (© Jason Johnston, MIT), fflate (© Arjun Barrett, MIT) and woff2otf.js (© Steffen Hanikel, Apache-2.0).
+- Lenis, © darkroom.engineering, MIT.
+- GSAP 3.15 with ScrollTrigger and SplitText, and `@gsap/react`: Copyright 2008–2026 GreenSock (Webflow), all rights reserved; used under the GSAP Standard "No Charge" License, https://gsap.com/standard-license.
+
+Each package's full notice and licence text is in its folder under `node_modules/`. The build strips them from the minified files, so a notices file served with the site is due before publication (`docs/backlog.md`).
+
+## Licence
+
+No licence is granted for this project's own code, text and images: © 2026 the project's author, all rights reserved. The data, type and software credited above stay under their own licences, and the chart's tiles keep their sources' terms. The research notes in `docs/` paraphrase their sources in our own words and link to them; verbatim quotations are short, and nearly all come from period sources in the public domain.

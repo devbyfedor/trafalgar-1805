@@ -21,8 +21,6 @@ export const roadContent = {
   },
   /** The date line's label while the scene is at Boulogne. */
   boulogneDate: "August 1805",
-  /** The placeholder that follows the scene. */
-  next: "Chapter III follows",
 } as const;
 
 export type RoadCaption = keyof typeof roadContent.captions;

@@ -5,7 +5,7 @@ A scroll-driven, cinematic telling of the Battle of Trafalgar, 21 October 1805, 
 - **I. Dawn.** Dawn breaks off Cape Trafalgar, the haze lifts, HMS Victory comes in under full sail, the title assembles, and the enemy fleet appears on the eastern horizon.
 - **II. The road to Trafalgar.** A three-dimensional sea chart in the manner of 1805 (waterlined coasts, soundings, relief under a low sun, lettering lying on the chart, small ships), filmed by a camera the scroll drives, follows the campaign in six beats: up from the battle's sea to Europe; Boulogne, where the invasion army waits, with an interlude that dives into a painted view of the flotilla from the sea at dusk; the chase to the West Indies and back; the action off Finisterre, in its smoke; Cádiz, where the signal runs down the chain of frigates on 19 October; and the night of 20 to 21 October, the fleets closing with their lanterns lit, to the dawn of the battle.
 
-A placeholder stands for chapter III.
+They are published as part one, closed by a card: "To be continued", the battle itself coming next.
 
 Desktop only: below 1024 px wide, or with a coarse pointer, visitors get a single static screen instead. With reduced motion, scene 1 shows its hero frame without a pin and scene 2 shows one still per beat with its caption; where WebGL is unavailable, or its context is lost for good, scene 2's stills crossfade in the pinned stage under the captions.
 
@@ -98,7 +98,7 @@ src/
     02-road/              scene 2: beats, camera, director, fleets and movements, the relay and
                           its signals, smoke, lanterns, the march to Ulm, content (the copy),
                           layers/ (text, stills), boulogne-sea/ (the interlude's painting)
-    ChapterPlaceholder    stands in for chapter III
+    ToBeContinued         the closing card after the last scene
 public/
   chart/                  the chart's data (npm run data:build)
   stills/scene-02/        scene 2's stills (npm run stills)
@@ -111,7 +111,7 @@ tests/e2e/                Playwright specs
 docs/                     briefs, progress, decisions, history notes and research, fonts, screenshots
 ```
 
-To add a scene, create `src/scenes/0n-…/`, then replace the placeholder entry in `src/scenes/registry.ts`.
+To add a scene, create `src/scenes/0n-…/`, then add its entry after scene 2's in `src/scenes/registry.ts`; the closing card follows the last scene.
 
 ## Documentation
 

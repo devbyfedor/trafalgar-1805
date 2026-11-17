@@ -8,7 +8,7 @@
  */
 export function Credits() {
   return (
-    <footer className="bg-deep-sea px-[6vw] pt-[2vh] pb-[7vh]">
+    <footer className="bg-deep-sea px-[4.6vw] pt-[2vh] pb-[6.2vh]">
       <div className="max-w-[56em] space-y-[0.5em] font-text text-[clamp(13px,1.75vh,17px)] leading-[1.5] text-ink">
         <p>
           Relief: NOAA NCEI ETOPO 2022, with land heights from FABDEM on the

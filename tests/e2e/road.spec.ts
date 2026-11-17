@@ -21,7 +21,7 @@ import {
  * Scene 2 on the home page (docs/scene-02-brief.md, stage B, item 7): no
  * console errors over a full scroll and back, same-origin requests only
  * (troika's glyph worker runs from a blob: URL, the page's own), the canvas
- * renders at its beats, and the pin releases into the scene 3 placeholder.
+ * renders at its beats, and the pin releases into the closing card.
  * Boulogne's interlude (docs/scene-02-boulogne-brief.md): the pin's map
  * holds the story at its p for the dive, the hold and the rise; the
  * painting covers the chart through the hold with the text back over it;
@@ -188,14 +188,14 @@ test.describe("scene 2", () => {
     expect(errors).toEqual([]);
   });
 
-  test("holds its pin to the end and releases into the scene 3 placeholder", async ({
+  test("holds its pin to the end and releases into the closing card", async ({
     page,
   }) => {
     test.setTimeout(120_000);
     const errors = collectErrors(page);
     await openRoad(page);
     const road = page.locator("#road");
-    const next = page.getByText("Chapter III follows");
+    const next = page.getByRole("heading", { name: "To be continued" });
 
     await scrollToRoad(page, 0.5);
     await settleFrames(page, 4);
@@ -207,12 +207,27 @@ test.describe("scene 2", () => {
 
     // A viewport height and a bit past the pin's end (p 1, where the
     // page's own map puts it, its interludes counted): scene 2 scrolls
-    // away and the placeholder comes up.
+    // away and the closing card comes up.
     const vh = page.viewportSize()?.height ?? 720;
     await scrollToY(page, (await roadScrollFor(page, 1)) + 1.2 * vh);
     await settleFrames(page, 4);
     expect((await road.boundingBox())?.y ?? 0).toBeLessThan(-10);
     await expect(next).toBeInViewport();
+    // At the page's end the card is whole: every letter of its title and
+    // both its lines drawn in (ToBeContinued.tsx, scrubbed by the scroll).
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          Math.min(
+            ...[
+              ...document.querySelectorAll(
+                "#continued .title-char, #continued [data-el=line]",
+              ),
+            ].map((el) => Number(getComputedStyle(el).opacity)),
+          ),
+        ),
+      )
+      .toBe(1);
 
     // And back into the pin.
     await scrollToRoad(page, 0.9);

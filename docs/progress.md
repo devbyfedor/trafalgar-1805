@@ -2,6 +2,25 @@
 
 Live checklist. A later session picks up from here. The briefs are `docs/scene-01-brief.md` and `docs/scene-02-brief.md`; decisions and deviations are in `docs/decisions.md`.
 
+## Session 38 (17 November 2026): Next.js 16.4.6, only what's needed
+
+**The owner's order** (complete; it ends "Конец сообщения"). From `main`:
+1. Delete `s35-relay`, after checking it is wholly in `main`.
+2. A branch from `main`; `next` to the latest 16.4.x (16.4.6 or later), and the packages that ship with `next` to the same version. **Nothing else upgraded.**
+3. The production build goes through on the first run, without stopping on the upgrade notice.
+4. `npm run check` whole, scene 1's regression in it, the build checked with `served.mjs`. One re-run allowed, only if a failure looks like the machine's noise.
+5. All passed: into `main` by a true merge (not a squash); this file; a short report; stop.
+6. A check failed for real: no merge, no fixing in circles: commit, say in the report what failed, stop.
+No background helpers. Never `npm run screenshots`.
+
+**Plan and state** (`main` at `dd1f107` at the start, clean; ports 3000, 4173, 4174, 4175 free; local aids and output in `.claude/s38/`, git-ignored):
+- [x] Step 1: `s35-relay` deleted (`git branch -d`; it was `46a5e8f`: 0 commits not in `main`, an ancestor of `main`, the merge `7fc2382`'s tree equal to it; no worktree on it).
+- [x] Step 2: branch `s38-next-16.4.6` from `main` (`64376e6` this record); **`next` 16.4.3 → 16.4.6** (`9d6e545`; the latest 16.4.x and `latest` on npm, 9 November; `npm install next@16.4.6 --save-exact`). What ships with `next`: `@next/env` and the `@next/swc-*` binaries, pinned by `next` itself to its own version (no direct dependency in `package.json`; no `eslint-config-next` or other `@next/*` package here). The lock file compared entry by entry against the old one: only `next`, `@next/env` and the eight `@next/swc-*` changed, each 16.4.3 → 16.4.6; React 19.3.1 and everything else as they were (16.4.6's peer range for React unchanged). 16.4.4 and 16.4.6 are backported fixes (Turbopack, the analyzer, route handlers' compression), 16.4.5 the November security fixes (`use cache`, Edge cookies, image optimization: none of them in a static export).
+  - `npm audit` after the install: 5 findings, **none in `next`**: `serve` 14.2.6 (its `compression`, a denial of service; fix `serve` 14.2.8) and `wrangler` 4.152.0 (its `miniflare`'s `undici`; fix `wrangler` 4.164.0). Both are dev tools (the local preview and the deploy command), not in the site. Not upgraded, by the order ("nothing else").
+- [x] Step 3: **`npm run build` went through on the first run** (18:57:14–18:57:25, `.claude/s38/build1.log`): Next.js 16.4.6 (Turbopack), compiled in 5.3 s, TypeScript 749 ms, 8 static pages; **no upgrade notice, no warning** in the log. Build `cNQwxWEl9sSiaa20lVMfO` of `9d6e545`, source `a90626599029`. Served with the main tree's `node_modules/.bin/serve` on 4173: `served.mjs` OK (that build, of `9d6e545`, source unchanged); the server stopped before step 4.
+- [x] Step 4: **`npm run check` whole: 37 of 37 pass, first run** (`.claude/s38/chain-check.sh`, 18:58–19:08, `.claude/s38/checks/npm-check-9d6e545.txt`; my server stopped first, every port free, the CPU at 7 % before the start, on mains; no helper). **Its own `next build` went straight through too** (Next.js 16.4.6, no notice, no warning): build `RA2okZSHYFVVVl34_uRKq` of `9d6e545`, source `a90626599029`; **the tests' server on 4174 checked with `served.mjs` during the run: OK** (that build, of `9d6e545`, source unchanged). Lint (306 files, the two old infos), typecheck, lettering (82 names and 11 figures). **Scene 1's regression passes**: moved p 0 0.0015 %, p 0.5 0.145 %, p 0.75 0.209 % (the limit 0.6; across sessions 30–37 p 0.5 has read 0.037–0.44 % and p 0.75 0.030–0.199 %, its idle loops); block median at most 0.98 (limit 1.2), p99 at most 17.8 (limit 28). The lab's flight GPU p95 at worst 8.12 ms, CPU 3.1 (session 37 8.51 and 3.2); Boulogne's interlude GPU p95 at worst 8.34, CPU 1.9 (8.74 and 2.2); the hold at rest the main thread p95 4.3–4.7 ms, 0 late of 92–94, the chart's GPU 0.35–0.48; both wheel tests without a long task. `perf` (report only): 11 long tasks over 50 ms scrolling into the road beside the other tests, the longest 99 ms (session 37: 13 and 124).
+- [ ] Step 5: the merge, this file, the report.
+
 ## Session 37, part two (17 November 2026): the full checks, the merge of the relay
 
 **The owner's order** (complete; it ends "Конец сообщения"). Branch `s35-relay`. This part: the full checks and the merge into `main`; **no new features**. Order of work:

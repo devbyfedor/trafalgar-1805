@@ -109,7 +109,9 @@ test.describe("fonts", () => {
   }) => {
     await openAtHero(page);
     await page.evaluate(() => {
-      document.querySelector(".title-char")?.setAttribute("data-old", "");
+      document
+        .querySelector("#dawn-title .title-char")
+        ?.setAttribute("data-old", "");
     });
     // Load one more face, so document.fonts fires loadingdone.
     await page.evaluate(async () => {
@@ -121,8 +123,10 @@ test.describe("fonts", () => {
       await face.load();
     });
     await settleFrames(page, 4);
-    await expect(page.locator(".title-char[data-old]")).toHaveCount(0);
-    await expect(page.locator(".title-char")).toHaveCount(9);
+    await expect(page.locator("#dawn-title .title-char[data-old]")).toHaveCount(
+      0,
+    );
+    await expect(page.locator("#dawn-title .title-char")).toHaveCount(9);
     await page.waitForTimeout(SCRUB_SETTLE_MS);
     const report = await readTitle(page);
     expect(report.kerningError).toBeLessThan(0.5);

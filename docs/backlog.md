@@ -70,3 +70,4 @@ The first chapter (scenes 1 and 2, "to be continued") goes out after the second 
 - **"To be continued"** where the scene 3 placeholder stands (the owner's decision of session 41).
 - **Optional:** a `_headers` file marking `/_next/static/*` immutable for a year (Cloudflare serves static assets with `max-age=0, must-revalidate` by default).
 - **Before the first push** (the owner's decision): every commit of `main` carries his personal e-mail as author and committer; see `decisions.md`.
+- **FABDEM's licence, to be read and named** (session 43's review): the credits cite FABDEM v1.0 without its licence; it is reportedly CC BY-NC-SA 4.0, but neither session 42 nor 43 could open its record at the University of Bristol's data repository. Once read: the licence's name and URL in `scripts/notices.mjs` (DATA) and the README's Credits, `npm run notices`.

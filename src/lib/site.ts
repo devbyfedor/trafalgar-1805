@@ -15,7 +15,7 @@ export const SITE = {
   name: "Trafalgar 1805",
   url: process.env.SITE_URL ?? "http://127.0.0.1:4173",
   description:
-    "Dawn off Cape Trafalgar on 21 October 1805, and the campaign that brought the fleets there: part one of the battle's story, told in scenes you scroll through.",
+    "Dawn off Cape Trafalgar, 21 October 1805, and the campaign that brought the fleets there: part one of the battle's story, in scenes you scroll through.",
   /** public/link-preview.jpg, rendered by scripts/dev/og-image.mjs. */
   preview: {
     url: "/link-preview.jpg",

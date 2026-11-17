@@ -8,7 +8,7 @@ import { defineConfig, devices } from "@playwright/test";
  * and runs each project on the build it is about: the home page's on the
  * production build (`npm run build`, no lab pages: what is deployed), the
  * chart lab's on `npm run build:labs`. The projects that open a lab page
- * (chart, chart-gpu, the lab's half of chart-frames, docs, docs-chart,
+ * (chart, chart-gpu, chart-frames, docs, docs-chart,
  * stills) need a build with the labs.
  *
  * Projects:
@@ -24,9 +24,12 @@ import { defineConfig, devices } from "@playwright/test";
  * - road: scene 2 on the home page (its beats, its pin and Boulogne's
  *   interlude), the page's width with classic scroll bars, and the scene
  *   as its stills where WebGL is unavailable
- * - chart-frames: the chart's frames timed on the GPU and long tasks while
- *   the flight is scrolled, and scene 2's through Boulogne's interlude,
- *   after every other project, so nothing else uses the GPU meanwhile
+ * - road-frames and chart-frames (tests/e2e/chart-frames.spec.ts, split by
+ *   its two describes): scene 2's frames through Boulogne's interlude, and
+ *   the chart lab's along its flight, timed on the GPU, with the long tasks
+ *   while each is scrolled; after every other project, so nothing else uses
+ *   the GPU meanwhile (road-frames on the production build, chart-frames on
+ *   build:labs)
  * - regression: scene 1's frames against its approved screenshots, rendered
  *   as they were (the new headless mode, on the GPU)
  * - docs: scene 1's screenshots, docs/screenshots/scene-01 (`npm run
@@ -152,10 +155,12 @@ export default defineConfig({
       },
     },
     {
-      // Last and alone: the GPU must be the chart's only work while its
-      // frames are timed. Run it by itself with --no-deps.
-      name: "chart-frames",
+      // Last and alone: the GPU must be the scene's only work while its
+      // frames are timed. Scene 2's half of chart-frames.spec.ts, on the
+      // production build; run it by itself with --no-deps.
+      name: "road-frames",
       testMatch: /[\\/]chart-frames\.spec\.ts$/,
+      grep: /scene 2's frame budget/,
       dependencies: [
         "laptop",
         "desktop-1080",
@@ -165,6 +170,30 @@ export default defineConfig({
         "chart-gpu",
         "road",
         "regression",
+      ],
+      use: {
+        ...desktop,
+        channel: "chromium",
+        viewport: { width: 1280, height: 720 },
+        deviceScaleFactor: 1.5,
+      },
+    },
+    {
+      // The chart lab's half, on build:labs, after road-frames when both
+      // run in one go; by itself with --no-deps.
+      name: "chart-frames",
+      testMatch: /[\\/]chart-frames\.spec\.ts$/,
+      grep: /the chart's frame budget/,
+      dependencies: [
+        "laptop",
+        "desktop-1080",
+        "phone",
+        "perf",
+        "chart",
+        "chart-gpu",
+        "road",
+        "regression",
+        "road-frames",
       ],
       use: {
         ...desktop,

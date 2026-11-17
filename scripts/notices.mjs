@@ -63,6 +63,19 @@ const file = (...p) => ({ file: nm(...p) });
  * and nothing here is missing from it (the libraries inside Next.js'
  * polyfill and troika-three-text's own builds are inside those files).
  */
+/** core-js's version in Next.js' polyfill, which its copyright line belongs to. */
+function nextCoreJs() {
+  const src = read(
+    nm("next", "dist", "build", "polyfills", "polyfill-nomodule.js"),
+  );
+  const v = src.match(/version:"(3\.\d+\.\d+)"/)?.[1];
+  if (v !== "3.38.1")
+    throw new Error(
+      `Next.js' polyfill now bundles core-js ${v}: check its copyright line upstream and update notices.mjs`,
+    );
+  return v;
+}
+
 function software() {
   const react = nextReact();
   return [
@@ -96,7 +109,7 @@ function software() {
     },
     {
       name: "core-js (inside Next.js' polyfill for old browsers)",
-      version: "3.38.1",
+      version: nextCoreJs(),
       url: "https://github.com/zloirock/core-js",
       licence: "MIT",
       copyright: ["Copyright (c) 2014-2024 Denis Pushkarev"],
@@ -192,6 +205,13 @@ function software() {
       notice: file("webgl-sdf-generator", "LICENSE.txt"),
     },
     {
+      name: "Tailwind CSS (its base styles, in the site's CSS)",
+      version: version(nm("tailwindcss")),
+      url: "https://github.com/tailwindlabs/tailwindcss",
+      licence: "MIT",
+      notice: file("tailwindcss", "LICENSE"),
+    },
+    {
       name: "Lenis",
       version: version(nm("lenis")),
       url: "https://github.com/darkroomengineering/lenis",
@@ -201,22 +221,40 @@ function software() {
   ];
 }
 
-/** GSAP is not open source: its notices, word for word from its files. */
+/**
+ * The GSAP files the bundle carries (gsap's index brings in CSSPlugin,
+ * ScrollTrigger brings in Observer; @gsap/react's `module` entry is
+ * src/index.js): read in session 43's source maps.
+ */
+const GSAP_FILES = [
+  ["gsap", "gsap-core.js"],
+  ["gsap", "CSSPlugin.js"],
+  ["gsap", "Observer.js"],
+  ["gsap", "ScrollTrigger.js"],
+  ["gsap", "SplitText.js"],
+  ["@gsap/react", "src/index.js"],
+];
+
+/**
+ * GSAP is not open source: its notices word for word, each file's own
+ * banner (the lines after the opening, without the author's line), so an
+ * upgrade that changes them changes this file.
+ */
 function gsapNotices() {
-  const v = version(nm("gsap"));
-  const r = version(nm("@gsap", "react"));
-  return `GSAP ${v}, with ScrollTrigger and SplitText, and @gsap/react ${r}
+  const banners = GSAP_FILES.map(([pkg, path]) => {
+    const text = read(nm(...pkg.split("/"), ...path.split("/")));
+    const banner = text.match(/\/\*!([\s\S]*?)\*\//)?.[1];
+    if (!banner) throw new Error(`no licence banner in ${pkg}/${path}`);
+    return banner
+      .split("\n")
+      .map((line) => line.replace(/^\s*\*\s?/, "").trimEnd())
+      .filter((line) => line && !line.startsWith("@author"))
+      .join("\n");
+  });
+  return `GSAP ${version(nm("gsap"))}, with CSSPlugin, Observer, ScrollTrigger and SplitText, and @gsap/react ${version(nm("@gsap", "react"))}
 https://gsap.com
 
-GSAP ${v}: Copyright 2008-2026, GreenSock. All rights reserved.
-Subject to the terms at https://gsap.com/standard-license
-ScrollTrigger ${v}: Copyright 2008-2026, GreenSock. All rights reserved.
-Subject to the terms at https://gsap.com/standard-license
-SplitText ${v}: Copyright 2026, GreenSock. All rights reserved. Subject to
-the terms at https://gsap.com/standard-license.
-@gsap/react ${r}: Copyright 2025, GreenSock. All rights reserved.
-Subject to the terms at https://gsap.com/standard-license or for Club GSAP
-members, the agreement issued with that membership.
+${banners.join("\n\n")}
 
 Used under the GSAP Standard "No Charge" License,
 https://gsap.com/standard-license. GSAP is not open-source software.`;
@@ -284,7 +322,8 @@ ${"=".repeat(47)}
 
 This site is made with data, type and software by others. This file credits
 them and carries the software's copyright notices and licences: the site's
-JavaScript is minified, and minifying removed the comments that held them.
+JavaScript and CSS are minified, and minifying removed the comments that
+held them.
 
 1. Data
 2. Type
@@ -309,7 +348,7 @@ ${RULE}
 3. SOFTWARE
 ${RULE}
 
-The site's JavaScript includes the following software.
+The site's JavaScript and CSS include the following software.
 
 ${[...entries, gsapNotices()].join(`\n\n${RULE}\n\n`)}
 

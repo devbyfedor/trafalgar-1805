@@ -5,15 +5,18 @@
 // with the labs in, Turbopack splits the home page's code into other chunks
 // (session 43: not one chunk the same), so a build with the labs is not the
 // site that ships. Hence two stages:
-//   1. `npm run build`, the production build: every test of the home page
+//   1. `npm run build:labs`: the chart lab's tests (chart, chart-gpu), then
+//      the lab's frames (chart-frames), alone on the GPU;
+//   2. `npm run build`, the production build: every test of the home page
 //      (laptop, desktop-1080, phone, perf, road, regression), then scene 2's
-//      frames in chart-frames, alone on the GPU;
-//   2. `npm run build:labs`: the chart lab's tests (chart, chart-gpu), then
-//      the lab's frames in chart-frames, alone on the GPU.
-// Every step runs even when one before it failed (a build that fails skips
-// its own stage), each with its own results and report folder
-// (test-results/<step>/, playwright-report/<step>/), and the exit code is 1
-// if anything failed. Arguments after `--` go to every `playwright test`.
+//      frames (road-frames), alone on the GPU.
+// The production build comes last, so a run leaves the site that ships in
+// out/ (and its stamp for served.mjs), as before the split. Every step runs
+// even when one before it failed (a build that fails skips its own stage),
+// each with its own results and report folder (test-results/<step>/,
+// playwright-report/<step>/), and the exit code is 1 if anything failed.
+// Arguments after `--` go to every `playwright test` (a `-g` narrows each
+// step's projects; a step it leaves empty passes).
 
 import { spawnSync } from "node:child_process";
 import { join, resolve } from "node:path";
@@ -24,6 +27,13 @@ const npm = process.platform === "win32" ? "npm.cmd" : "npm";
 const playwright = join(root, "node_modules", "@playwright", "test", "cli.js");
 
 const STAGES = [
+  {
+    build: ["run", "build:labs"],
+    steps: [
+      { name: "labs", args: ["--project=chart", "--project=chart-gpu"] },
+      { name: "labs-frames", args: ["--project=chart-frames", "--no-deps"] },
+    ],
+  },
   {
     build: ["run", "build"],
     steps: [
@@ -38,30 +48,7 @@ const STAGES = [
           "--project=regression",
         ],
       },
-      {
-        name: "site-frames",
-        args: [
-          "--project=chart-frames",
-          "--no-deps",
-          "--grep",
-          "scene 2's frame budget",
-        ],
-      },
-    ],
-  },
-  {
-    build: ["run", "build:labs"],
-    steps: [
-      { name: "labs", args: ["--project=chart", "--project=chart-gpu"] },
-      {
-        name: "labs-frames",
-        args: [
-          "--project=chart-frames",
-          "--no-deps",
-          "--grep",
-          "the chart's frame budget",
-        ],
-      },
+      { name: "site-frames", args: ["--project=road-frames", "--no-deps"] },
     ],
   },
 ];
@@ -90,7 +77,7 @@ for (const stage of STAGES) {
         "test",
         ...step.args,
         `--output=${join("test-results", step.name)}`,
-        ...extra,
+        ...(extra.length ? ["--pass-with-no-tests", ...extra] : []),
       ],
       {
         cwd: root,

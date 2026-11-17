@@ -76,7 +76,7 @@ Playwright, in Chromium, against the served export; `npm run test:e2e` runs the 
 - `chart` and `chart-gpu`: the chart lab's flight in software WebGL and on the GPU, same-origin requests only, a lost context coming back;
 - `road`: scene 2 on the home page (its beats, its pin, Boulogne's interlude, the page's width with classic scroll bars, the stills without WebGL);
 - `regression`: scene 1 at p = 0, 0.5 and 0.75 against its approved frames;
-- `chart-frames`, after the others of its build, so nothing else uses the GPU: scene 2's frames (on the production build) and the chart lab's (on the build with the labs) timed on the GPU (each under 11 ms at the 95th percentile on the owner's Intel Arc graphics) and no long tasks while scrolling with the wheel. Alone: `npx playwright test --project=chart-frames --no-deps` after `npm run build:labs`.
+- `road-frames` and `chart-frames` (the two halves of `chart-frames.spec.ts`), each after the others of its build, so nothing else uses the GPU: scene 2's frames through Boulogne's interlude (on the production build) and the chart lab's along its flight (on the build with the labs), timed on the GPU (each under 11 ms at the 95th percentile on the owner's Intel Arc graphics), and no long tasks while scrolling with the wheel. Alone: `npx playwright test --project=road-frames --no-deps` after `npm run build`, `--project=chart-frames --no-deps` after `npm run build:labs`.
 
 ## Structure
 
@@ -150,13 +150,14 @@ Both under the SIL Open Font License 1.1 (https://openfontlicense.org), converte
 
 ### Software
 
-The site's JavaScript includes:
+The site's JavaScript and CSS include:
 
 - Next.js with its Turbopack runtime, © Vercel, Inc., MIT; with React, React DOM, Scheduler and the React Server Components client, © Meta Platforms, Inc. and affiliates, MIT; `@swc/helpers`, © SWC contributors, Apache-2.0; the `process` shim, © Roman Shtylman, MIT; and its polyfill for old browsers: core-js (© Denis Pushkarev), whatwg-fetch (© GitHub, Inc.) and object-assign (© Sindre Sorhus), MIT.
 - three.js, © three.js authors, MIT.
 - troika-three-text, troika-three-utils and troika-worker-utils, © ProtectWise and Jason Johnston, MIT; bidi-js and webgl-sdf-generator, © Jason Johnston, MIT; and, inside troika-three-text, Typr.ts (© Photopea, MIT), @unicode-font-resolver/client (© Jason Johnston, MIT), fflate (© Arjun Barrett, MIT) and woff2otf.js (© Steffen Hanikel, Apache-2.0).
+- Tailwind CSS's base styles, © Tailwind Labs, Inc., MIT.
 - Lenis, © darkroom.engineering, MIT.
-- GSAP 3.15 with ScrollTrigger and SplitText, and `@gsap/react`: Copyright 2008–2026 GreenSock (Webflow), all rights reserved; used under the GSAP Standard "No Charge" License, https://gsap.com/standard-license.
+- GSAP 3.15 with CSSPlugin, Observer, ScrollTrigger and SplitText, and `@gsap/react`: Copyright 2008–2026 GreenSock (Webflow), all rights reserved; used under the GSAP Standard "No Charge" License, https://gsap.com/standard-license.
 
 The build strips every licence comment from the minified files, so the site serves the notices itself: `public/third-party-notices.txt` (at `/third-party-notices.txt`, linked from the credits) has each package's version, notice and licence text, GSAP's notices, the Apache License 2.0, and the data and type credits above. `npm run notices` regenerates it from `node_modules`; `npm run check:notices` (part of `npm run check`) fails when it is stale.
 

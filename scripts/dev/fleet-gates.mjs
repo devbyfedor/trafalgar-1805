@@ -74,13 +74,18 @@ for (let s = 0; s <= steps; s++) {
     const labels = window.__road.routeLabels(false);
     const v = Array.from(window.__road.sample(p, 0).fleets);
     const present = Array.from(window.__road.fleetAt(p));
-    return { g, labels, v, present };
+    // The chain's ships apart from the fleet (the owner's exception).
+    const apart = window.__road.apartAt
+      ? Array.from(window.__road.apartAt(p))
+      : [];
+    return { g, labels, v, present, apart };
   }, p);
   const drawn = [0, 0];
   const present = [0, 0];
   const most = [0, 0];
   for (let i = 0; i < names.length; i++) {
     if (SMALL.has(names[i])) continue;
+    if ((row.apart[i] ?? 0) >= 0.5) continue;
     const [x, y, , a] = row.v.slice(i * 4, i * 4 + 4);
     const on = x >= 0 && y >= 0 && x <= width * scale && y <= height * scale;
     if (a >= 0.5 && on) drawn[i < BRITISH_COUNT ? 0 : 1]++;

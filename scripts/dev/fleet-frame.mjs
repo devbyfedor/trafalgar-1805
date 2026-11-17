@@ -100,8 +100,13 @@ for (const p of ps) {
     const labels = window.__road.routeLabels(false);
     const explain = window.__road.routeLabels(true);
     const present = Array.from(window.__road.fleetAt(p));
+    // The owner's exception (14 November 2026): the chain's ships of the
+    // line on 19 October stand apart from the fleet (GlyphIntent.apart).
+    const apart = window.__road.apartAt
+      ? Array.from(window.__road.apartAt(p))
+      : [];
     const cam = window.__road.cameraAt(p);
-    return { g, v, labels, explain, present, cam };
+    return { g, v, labels, explain, present, apart, cam };
   }, p);
   const out = [];
   let flag = false;
@@ -116,6 +121,7 @@ for (const p of ps) {
     let cy = 0;
     for (let i = 0; i < names.length; i++) {
       if (SMALL.has(names[i]) || (i < BRITISH_COUNT ? 0 : 1) !== side) continue;
+      if ((row.apart[i] ?? 0) >= 0.5) continue;
       const [x, y, o] = row.present.slice(i * 3, i * 3 + 3);
       if (!(o > 0.5)) continue;
       present++;

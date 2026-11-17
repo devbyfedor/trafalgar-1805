@@ -20,6 +20,7 @@ import {
 } from "@/components/chart";
 import { type BenchResult, benchFrames } from "@/components/chart/engine/bench";
 import { ShipAnatomy } from "@/components/chart/fx/anatomy";
+import { HOIST_BOUNDS, Hoists } from "@/components/chart/fx/Hoists";
 import { LIGHT_BOUNDS, Lights } from "@/components/chart/fx/Lights";
 import { Smoke } from "@/components/chart/fx/Smoke";
 import { mercatorScale, worldX, worldY } from "@/components/chart/geo/mercator";
@@ -60,7 +61,14 @@ import { interludeView } from "./interludeCamera";
 import { marksAt, SEA_EYE, type SeaPose } from "./interludes";
 import { lanternCapacity, NightLanterns } from "./lanterns";
 import { ARMY_MARCH } from "./march";
+import { RELAY_LINKS } from "./relay";
 import { legTracks, NELSON, VILLENEUVE } from "./routes";
+import {
+  RelaySignals,
+  SIGNAL_HOIST_IDS,
+  signalHoistCapacity,
+  signalPuffCapacity,
+} from "./signals";
 import { BattleSmoke, smokeCapacity } from "./smoke";
 import { SOUNDING_ANGLES } from "./soundings";
 
@@ -156,6 +164,15 @@ export interface RoadStage {
    */
   lights(p: number): LightsCheck;
   /**
+   * Development and checks: draws the scene at p and returns the relay's
+   * signals as drawn: each flag of a hoist (Hoists.bounds) and each gun's
+   * puff (Smoke.bounds), the coast's distance under each (km; positive at
+   * sea), each link as the layout drew her (her foot, height, drawn
+   * opacity, whether she stands apart), and the outlines the signals keep
+   * clear of (as `smoke`, and the caption's card).
+   */
+  signals(p: number): SignalsCheck;
+  /**
    * Development and tests: draws the scene at p and finds every glyph whose
    * ink touches land or another glyph's (Chart.probeClash): the fleets are
    * layer 0, the squadrons layer 1, Boulogne's flotilla layer 2. `ink`: the
@@ -199,6 +216,12 @@ export interface RoadStage {
   dawnFleet(): ReturnType<typeof dawnFleet>;
   /** Development: each fleet ship's intended place at p (world km) and her opacity: [x, y, opacity] each. */
   fleetAt(p: number): number[];
+  /**
+   * Development: how far each fleet ship stands apart from her fleet's gate
+   * at p (GlyphIntent.apart; the chain's ships of the line on 19 October),
+   * for the checks of the owner's rule "a label or all its ships".
+   */
+  apartAt(p: number): number[];
   /**
    * Development: the camera at p, for laying out the dawn fleets off the
    * page (scripts/dev/fleet-ease.mjs): its view and projection matrices
@@ -248,6 +271,8 @@ export interface RoadStage {
   ): TrackLabelState[] | ReturnType<Tracks["explain"]>;
   /** Development: a glyph's baked sizes by step (GlyphLayout.bakedSizes). */
   bakedSizes(layer: number, i: number, k0: number, k1: number): number[][];
+  /** Development: a glyph's baked visibility and nominal height by step (GlyphLayout.bakedVis). */
+  bakedVis(layer: number, i: number, k0: number, k1: number): number[][];
   /** Development: the bake's sizes pass replayed at step k (GlyphLayout.traceBakeStep). */
   bakeTrace(k: number): Record<string, unknown>[];
   /**
@@ -345,6 +370,39 @@ export interface LightsCheck {
     side: string;
   }[];
   /** As SmokeCheck's. */
+  text: { kind: string; quad: number[]; weight: number }[];
+}
+
+/** What `RoadStage.signals` returns. */
+export interface SignalsCheck {
+  /** The canvas, CSS px. */
+  width: number;
+  height: number;
+  /** Hoists.bounds: x0, y0, x1, y1, opacity, mark, layer, kind, id (HOIST_BOUNDS a flag). */
+  flags: number[];
+  stride: number;
+  /** Smoke.bounds of the relay's own smoke: x0, y0, x1, y1, opacity, five numbers a puff. */
+  puffs: number[];
+  /** The coast's distance under each flag's centre and each puff (least of its middle and corners), km. */
+  flagCoast: number[];
+  puffCoast: number[];
+  /** Each British ship by mark: her name (for a flag's mark). */
+  names: string[];
+  /**
+   * Each link as the layout drew her this frame: her foot (CSS px; NaN if
+   * not laid out), her height (CSS px), her drawn opacity, how far she
+   * stands apart from her fleet's gate.
+   */
+  links: {
+    name: string;
+    mark: number;
+    x: number;
+    y: number;
+    height: number;
+    alpha: number;
+    apart: number;
+  }[];
+  /** As SmokeCheck's, with the caption's card (kind "card"). */
   text: { kind: string; quad: number[]; weight: number }[];
 }
 
@@ -535,6 +593,19 @@ export async function createRoadStage(
     director.setLanterns(lanterns);
     chart.add(lanterns);
     lights.setKeepClear([lettering.screen, heads.screen], [cardScreen]);
+    // The relay's day signals of 19 October: hoists at the links' trucks
+    // and their counted guns' smoke (a smoke of its own: the day's wind,
+    // named apart so a timing can show and hide it alone), set after the
+    // layout has drawn the links each frame (signals.ts); both give way to
+    // the lettering and the card, so they too are added after the labels.
+    const hoists = new Hoists(anatomy, signalHoistCapacity(), SIGNAL_HOIST_IDS);
+    const signalSmoke = new Smoke(anatomy, signalPuffCapacity());
+    signalSmoke.mesh.name = "signal-smoke";
+    const signals = new RelaySignals(hoists, signalSmoke, fleets);
+    director.setSignals(signals);
+    chart.add(signals);
+    hoists.setKeepClear([lettering.screen, heads.screen], [cardScreen]);
+    signalSmoke.setKeepClear([lettering.screen, heads.screen]);
     heads.setCoast(coast);
     // Every label keeps clear of every ship drawn, whosever she is. Not of
     // the lanterns: kept clear of them too, a fleet's label found no lasting
@@ -564,6 +635,9 @@ export async function createRoadStage(
     chart.add(smoke, smoke.mesh);
     // The lanterns likewise, after the lettering they give way to.
     chart.add(lights, lights.mesh);
+    // The relay's hoists and gun smoke likewise.
+    chart.add(signalSmoke, signalSmoke.mesh);
+    chart.add(hoists, hoists.mesh);
     chart.add(tracks, ...tracks.objects);
     chart.add(fleets, fleets.wakes, fleets.ships);
     chart.add(squadrons, squadrons.wakes, squadrons.ships);
@@ -842,6 +916,101 @@ export async function createRoadStage(
           text,
         };
       },
+      signals(p) {
+        sampled = Number.NaN;
+        director.apply(p);
+        keepCard(p);
+        chart.frame(performance.now() / 1000);
+        const dpr = chart.renderer.getPixelRatio();
+        const w = chart.renderer.domElement.width;
+        const h = chart.renderer.domElement.height;
+        const flags = hoists.bounds();
+        const puffs = signalSmoke.bounds(dpr, w, h);
+        const camera = chart.camera;
+        const v = new Vector3();
+        const seaAt = (cssX: number, cssY: number): number => {
+          v.set((2 * cssX * dpr) / w - 1, 1 - (2 * cssY * dpr) / h, 0.5);
+          v.unproject(camera).sub(camera.position);
+          if (v.z >= 0) return Number.NaN;
+          const t = -camera.position.z / v.z;
+          return coast.distance(
+            camera.position.x + v.x * t,
+            camera.position.y + v.y * t,
+          );
+        };
+        const flagCoast: number[] = [];
+        for (let i = 0; i < flags.length; i += HOIST_BOUNDS) {
+          const [x0, y0, x1, y1] = flags.slice(i, i + 4);
+          flagCoast.push(seaAt((x0 + x1) / 2, (y0 + y1) / 2));
+        }
+        const puffCoast: number[] = [];
+        for (let i = 0; i < puffs.length; i += 5) {
+          const [x0, y0, x1, y1] = puffs.slice(i, i + 4);
+          puffCoast.push(
+            Math.min(
+              seaAt((x0 + x1) / 2, (y0 + y1) / 2),
+              seaAt(x0, y0),
+              seaAt(x1, y0),
+              seaAt(x1, y1),
+              seaAt(x0, y1),
+            ),
+          );
+        }
+        const names = fleetNames();
+        const sides = fleetSides();
+        const d = fleets.drawn;
+        const links: SignalsCheck["links"] = RELAY_LINKS.map((l) => {
+          const m = names.findIndex(
+            (n, i) => n === l.name && sides[i] === "british",
+          );
+          let x = Number.NaN;
+          let y = Number.NaN;
+          if (m >= 0 && d.nominal[m] > 0) {
+            v.set(d.x[m], d.y[m], 0).project(camera);
+            x = ((v.x + 1) * w) / 2 / dpr;
+            y = ((1 - v.y) * h) / 2 / dpr;
+          }
+          return {
+            name: l.name,
+            mark: m,
+            x,
+            y,
+            height: m >= 0 ? d.height[m] / dpr : 0,
+            alpha: m >= 0 && d.nominal[m] > 0 ? d.alpha[m] : 0,
+            apart: m >= 0 ? fleets.intent.apart[m] : 0,
+          };
+        });
+        const text: SignalsCheck["text"] = [];
+        for (const [kind, screen] of [
+          ["name", lettering.screen],
+          ["label", heads.screen],
+        ] as const)
+          for (let i = 0; i < screen.count; i++)
+            text.push({
+              kind,
+              quad: Array.from(screen.quads[i]),
+              weight: screen.weights[i],
+            });
+        for (const m of tracks.screenMarks())
+          text.push({ kind: "date", quad: m.quad, weight: m.shown });
+        text.push({
+          kind: "card",
+          quad: Array.from(cardQuad),
+          weight: cardScreen.weights[0],
+        });
+        return {
+          width: w / dpr,
+          height: h / dpr,
+          flags,
+          stride: HOIST_BOUNDS,
+          puffs,
+          flagCoast,
+          puffCoast,
+          names,
+          links,
+          text,
+        };
+      },
       waterLift(p) {
         sampled = Number.NaN;
         director.apply(p);
@@ -859,6 +1028,9 @@ export async function createRoadStage(
       },
       bakedSizes(layer, i, k0, k1) {
         return layout.bakedSizes(layer, i, k0, k1);
+      },
+      bakedVis(layer, i, k0, k1) {
+        return layout.bakedVis(layer, i, k0, k1);
       },
       labelChanges() {
         return director.labelChanges();
@@ -1011,6 +1183,7 @@ export async function createRoadStage(
       labelClock(step) {
         heads.setClock(step);
         lights.setClock(step);
+        hoists.setClock(step);
       },
       trackLabels(explain) {
         return explain ? tracks.explain() : tracks.snapshot();
@@ -1039,6 +1212,11 @@ export async function createRoadStage(
         for (let i = 0; i < fleets.markCount; i++)
           out.push(it.x[i], it.y[i], it.opacity[i]);
         return out;
+      },
+      apartAt(p) {
+        sampled = Number.NaN;
+        director.applyState(p);
+        return Array.from(fleets.intent.apart);
       },
       cameraAt(p) {
         sampled = Number.NaN;

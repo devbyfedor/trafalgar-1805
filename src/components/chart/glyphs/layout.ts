@@ -345,6 +345,8 @@ export class GlyphLayout implements ChartLayer {
   private readonly bt: Float64Array;
   private readonly h0: Float64Array;
   private readonly wt: Float64Array;
+  /** Each member's weight toward her group's common scale (commonOf): wt, but nothing for a ship apart from the gate. */
+  private readonly wc: Float64Array;
   private readonly near: Float64Array;
   private readonly order: Int32Array;
   /** Points pulling a shape off the coast (pushPoints): centres and radii. */
@@ -460,6 +462,7 @@ export class GlyphLayout implements ChartLayer {
     this.bt = f64(largest);
     this.h0 = f64(largest);
     this.wt = f64(largest);
+    this.wc = f64(largest);
     this.near = f64(largest);
     this.order = new Int32Array(Math.max(1, largest));
     this.sx = f64(2 * largest);
@@ -477,6 +480,24 @@ export class GlyphLayout implements ChartLayer {
         b.from + k * b.step,
         b.raw[layer]?.[i * b.steps + k] ?? Number.NaN,
         b.ratio[layer][i * b.steps + k],
+      ]);
+    return out;
+  }
+
+  /**
+   * Development: a glyph's baked visibility and nominal height by step
+   * (what its gate's readability is taken from: bakeReadable), as [p, vis,
+   * nom] rows.
+   */
+  bakedVis(layer: number, i: number, k0: number, k1: number): number[][] {
+    const b = this.baked;
+    if (!b) return [];
+    const out: number[][] = [];
+    for (let k = k0; k <= k1; k++)
+      out.push([
+        b.from + k * b.step,
+        b.vis[layer][i * b.steps + k],
+        b.nom[layer][i * b.steps + k],
       ]);
     return out;
   }
@@ -574,8 +595,11 @@ export class GlyphLayout implements ChartLayer {
       const d = g.layer.drawn;
       for (const i of g.members) {
         if (it.opacity[i] <= 0.05 || !(d.nominal[i] > 0)) continue;
-        sum += Math.min(1, d.alpha[i] / it.opacity[i]);
-        count++;
+        // A ship apart from the gate (GlyphIntent.apart) is not the
+        // fleet the label stands for.
+        const w = 1 - it.apart[i];
+        sum += w * Math.min(1, d.alpha[i] / it.opacity[i]);
+        count += w;
       }
     }
     return count > 0 ? sum / count : 0;
@@ -594,7 +618,10 @@ export class GlyphLayout implements ChartLayer {
       if (this.wt[k] <= 0.05 || this.offScreen(this.fx[k], this.fy[k]))
         continue;
       const s = k === 0 ? 1 : Math.min(common, this.near[k]);
-      r = Math.min(r, this.readsAt(s * this.h0[k]));
+      // A ship apart from the gate holds it as far as she is not.
+      const reads = this.readsAt(s * this.h0[k]);
+      const apart = g.layer.intent.apart[g.members[k]];
+      r = Math.min(r, reads + (1 - reads) * apart);
     }
     return r;
   }
@@ -728,6 +755,8 @@ export class GlyphLayout implements ChartLayer {
           : 1;
         // And her nominal, to judge how much of her shows once eased.
         bake.nom[li][i * bake.steps + k] = laid ? d.nominal[i] : 0;
+        // How far she stands apart from her gate here (bakeEnd).
+        bake.apart[li][i * bake.steps + k] = layer.intent.apart[i];
         // Her foot on the chart and on screen, for the next step's sweeps.
         this.sweepOk[li][i] = laid ? 1 : 0;
         this.sweepX[li][i] = d.x[i];
@@ -876,11 +905,14 @@ export class GlyphLayout implements ChartLayer {
       const li = this.layerIndex.get(g.layer) ?? 0;
       const vis = bake.vis[li];
       const nom = bake.nom[li];
+      const apart = bake.apart[li];
       for (let k = 0; k < bake.steps; k++) {
         let low = Number.NaN;
         for (const m of g.members) {
           const o = m * bake.steps + k;
-          if (nom[o] > 0 && !(vis[o] >= low)) low = vis[o];
+          // A ship apart from the gate holds it as far as she is not.
+          const v = vis[o] + (1 - vis[o]) * apart[o];
+          if (nom[o] > 0 && !(v >= low)) low = v;
         }
         r[k] = Number.isNaN(low) ? Number.NaN : 1 - tilt[k] * (1 - low);
       }
@@ -1262,12 +1294,19 @@ export class GlyphLayout implements ChartLayer {
     const total = measured ?? this.measureFree(g);
     const n = g.members.length;
     if (total <= 0) return 1;
+    // A ship free of the group's scale (GlyphIntent.free) is not her
+    // group's companion: she neither sets its common scale nor is held to
+    // it (layoutFree). The chain's ships, 25 to 60 km from the British
+    // body, had been drawn at the body's crowded scale, specks.
+    const free = g.layer.intent.free;
+    for (let a = 0; a < n; a++)
+      this.wc[a] = this.wt[a] * (1 - free[g.members[a]]);
     for (let a = 0; a < n; a++) {
       this.near[a] = 1;
-      if (this.wt[a] <= 0) continue;
+      if (this.wc[a] <= 0) continue;
       let best = 1;
       for (let c = 0; c < n; c++) {
-        if (c === a || this.wt[c] <= 0) continue;
+        if (c === a || this.wc[c] <= 0) continue;
         const s = mutual(
           this.fx[c] - this.fx[a],
           this.fy[c] - this.fy[a],
@@ -1279,12 +1318,12 @@ export class GlyphLayout implements ChartLayer {
           this.bt[c],
           this.glyphGap,
         );
-        const relaxed = Math.max(s, 1 - Math.min(1, this.wt[c]));
+        const relaxed = Math.max(s, 1 - Math.min(1, this.wc[c]));
         if (relaxed < best) best = relaxed;
       }
       this.near[a] = best;
     }
-    return Math.min(1, weightedMedian(this.near, this.wt, this.order, n));
+    return Math.min(1, weightedMedian(this.near, this.wc, this.order, n));
   }
 
   private layoutFree(g: FreeGroup, baked: number | null): void {
@@ -1308,7 +1347,10 @@ export class GlyphLayout implements ChartLayer {
       const l = this.bl[k];
       const r = this.br[k];
       const t = this.bt[k];
-      const limit = Math.min(k === 0 ? 1 : common, this.bakedRatio(layer, i));
+      // Held to the group's common scale but as far as she is free of it
+      // (GlyphIntent.free; commonOf).
+      const own = k === 0 ? 1 : common + (1 - common) * it.free[i];
+      const limit = Math.min(own, this.bakedRatio(layer, i));
       this.sweepFor(layer, i, fx, fy);
       let s = this.obstacleFit(fx, fy, -l, r, 0, t, limit);
       s = this.landFit(fx, fy, -l, r, 0, t, s, this.swX, this.swY);
@@ -1321,10 +1363,14 @@ export class GlyphLayout implements ChartLayer {
       // estimate of it) and the frames agree.
       const shows = this.shownAt(layer, i, h);
       const ungated = it.opacity[i] * shown * shows;
-      const alpha =
-        g.gate === undefined
-          ? ungated
-          : it.opacity[i] * shown * Math.min(shows, this.gateValue[g.gate]);
+      let alpha = ungated;
+      if (g.gate !== undefined) {
+        // A ship standing apart from her gate (GlyphIntent.apart) shows as
+        // an ungated group's do, as far as she stands apart.
+        const gated =
+          it.opacity[i] * shown * Math.min(shows, this.gateValue[g.gate]);
+        alpha = gated + (ungated - gated) * it.apart[i];
+      }
       this.draw(layer, i, fx, fy, it.heading[i], h, this.h0[k], alpha, 1);
       this.addObstacle(
         fx,
@@ -2317,6 +2363,8 @@ class Bake {
   readonly vis: Float32Array[];
   /** Per layer, per glyph (steps apart), its nominal height (0: not laid out). */
   readonly nom: Float32Array[];
+  /** Per layer, per glyph (steps apart), how far she stands apart from her gate (GlyphIntent.apart). */
+  readonly apart: Float32Array[];
   private readonly out: BakedSquad = {
     fit: 1,
     offX: 0,
@@ -2351,6 +2399,7 @@ class Bake {
     this.ratio = marks.map((n) => new Float32Array(n * steps).fill(1));
     this.vis = marks.map((n) => new Float32Array(n * steps).fill(1));
     this.nom = marks.map((n) => new Float32Array(n * steps));
+    this.apart = marks.map((n) => new Float32Array(n * steps));
   }
 
   /** The decisions' tables eased, a step a squadron or a group (see bakeEnd). */

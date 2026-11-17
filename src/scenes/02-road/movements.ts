@@ -76,10 +76,27 @@ const COMBINED_TRACK = [
   { day: day(10, 21, 0), lon: -6.35, lat: 36.3, spread: 0.9 },
 ] as const;
 
+/**
+ * The station, 15–20 leagues west of Cádiz: the Victory at 9.30 a.m. on
+ * the 19th about 36°34.5′ N 7°24′ W.
+ */
+export const BRITISH_STATION = { lon: -7.4, lat: 36.575 } as const;
+
+/**
+ * The Africa with the fleet until the wear at 8 p.m. on the 20th, which
+ * she missed and held on north, out of touch (Corbett 1910, p. 340 n.;
+ * history notes, "The British track, 19–21 October"): until then at this
+ * share of her dawn offset from the Victory (13 nm north at dawn), at the
+ * north end of Nelson's body, about 3 km from her. Drawn at her dawn
+ * offset from the station on the 19th, she had stood 30 km north of the
+ * body as the Victory answered, too small to read, and held its gate shut.
+ */
+const AFRICA_IN_COMPANY = 0.12;
+const AFRICA_PARTED = day(10, 20, 20);
+
 const BRITISH_TRACK = [
-  // The station, 15–20 leagues west of Cádiz; the Victory at 9.30 a.m. on
-  // the 19th about 36°34.5′ N 7°24′ W.
-  { day: day(10, 19, 9.5), lon: -7.4, lat: 36.575, spread: 1 },
+  // At the station (BRITISH_STATION), the body in its dawn order.
+  { day: day(10, 19, 9.5), ...BRITISH_STATION, spread: 1 },
   // The general chase for the Strait, hove to at 1 a.m. on the 20th.
   { day: day(10, 20, 1), lon: -6.12, lat: 36.05, spread: 0.4 },
   // Daybreak on the 20th, between Trafalgar and Cape Spartel.
@@ -167,13 +184,68 @@ const WEIGH = new Map<string, number>();
 /** The passes between Las Puercas and El Diamante, the harbour mouth. */
 const MOUTH = at(-6.29, 36.558);
 
-/** The chain on 19 October (history notes, "Positions, 19 October"). */
+/**
+ * The chain on 19 October (history notes, "Positions, 19 October"). The
+ * Colossus, "with the Mars" (about 36°32′ N 7°04′ W there, low), is drawn
+ * abeam of her, three miles east of her on her parallel, and the
+ * Agamemnon, stationed with the Defence (her place not logged), three
+ * miles west of her: from the relay's camera, looking a little east of
+ * north, each pair had stood one behind the other or run together, and
+ * the lesser of each was squeezed out of sight beside the other.
+ */
 const CHAIN: Record<string, readonly [number, number]> = {
   Defence: [-6.85, 36.367],
-  Agamemnon: [-6.875, 36.375],
-  Colossus: [-7.067, 36.533],
+  Agamemnon: [-6.912, 36.37],
+  Colossus: [-7.02, 36.548],
   Mars: [-7.083, 36.55],
 };
+
+/**
+ * How the chain came to its places of the 19th (history notes, "The
+ * chain"; backlog K12): with the fleet at Nelson's arrival; from 4 October
+ * the Mars, Defence and Colossus (Duff's squadron) about four leagues east
+ * of it, toward Cádiz, "as near as possible in the latitude"; on 14
+ * October the Mars and Colossus at five leagues east of the fleet, their
+ * places of the 19th; and, by the order to the Defence's captain of the
+ * 15th, the Defence and the Agamemnon (with the fleet from the 13th) seven
+ * to ten leagues west of Cádiz. Each move is drawn over a few hours of the
+ * day it was ordered (the hours are the chart's). The Defence's place
+ * while with the Mars and Colossus is the chart's, a mile south of them.
+ * Every place, the 19th's included, from `CHAIN` and the station.
+ */
+const CHAIN_MOVES: Record<
+  string,
+  readonly (readonly [day: number, lon: number, lat: number])[]
+> = {
+  Mars: [
+    [day(10, 4, 8), Number.NaN, Number.NaN],
+    [day(10, 4, 16), -7.15, 36.56],
+    [day(10, 14, 8), -7.15, 36.56],
+    [day(10, 14, 12), ...CHAIN.Mars],
+  ],
+  Colossus: [
+    [day(10, 4, 8), Number.NaN, Number.NaN],
+    [day(10, 4, 16), -7.117, 36.558],
+    [day(10, 14, 8), -7.135, 36.543],
+    [day(10, 14, 12), ...CHAIN.Colossus],
+  ],
+  Defence: [
+    [day(10, 4, 8), Number.NaN, Number.NaN],
+    [day(10, 4, 16), -7.14, 36.528],
+    [day(10, 15, 8), -7.14, 36.528],
+    [day(10, 15, 16), ...CHAIN.Defence],
+  ],
+  Agamemnon: [
+    [day(10, 15, 8), Number.NaN, Number.NaN],
+    [day(10, 15, 16), ...CHAIN.Agamemnon],
+  ],
+};
+
+/**
+ * When the chain had taken its stations of the 19th (CHAIN_MOVES): from
+ * here the four are drawn apart from the fleet (director.ts).
+ */
+export const CHAIN_ON_STATION = day(10, 15, 16);
 
 function centroid(ships: readonly Ship[], berths: ReadonlyMap<Ship, Berth>) {
   let x = 0;
@@ -290,26 +362,64 @@ function britishKeys(ship: Ship): Key[] {
   // At the station, lying to in loose order, the Victory at its centre.
   const station = at(BRITISH_TRACK[0].lon, BRITISH_TRACK[0].lat);
   if (chain) {
-    const [cx, cy] = at(chain[0], chain[1]);
-    keys.push({ day: SEPT_28, x: cx, y: cy, heading: 100 });
-    keys.push({ day: day(10, 19, 9.5), x: cx, y: cy, heading: 100 });
-  } else {
+    // With the fleet until detached, then to her places (CHAIN_MOVES;
+    // NaN: her place in the fleet), lying to at each.
     keys.push({
       day: SEPT_28,
       x: station[0] + ox,
       y: station[1] + oy,
       heading: 100,
     });
+    for (const [d, lon, lat] of CHAIN_MOVES[ship.name]) {
+      const [x, y] = Number.isNaN(lon)
+        ? [station[0] + ox, station[1] + oy]
+        : at(lon, lat);
+      keys.push({ day: d, x, y, heading: 100 });
+    }
+    // On station through the relay, then after the fleet on its chase
+    // (kept on station into the afternoon, when the Colossus and the Mars
+    // passed a second signal, the fleet's body sailed through them and
+    // they were squeezed out of sight as the Victory answered: each
+    // glyph's size is eased over the scroll).
+    const [cx, cy] = at(chain[0], chain[1]);
+    keys.push({ day: day(10, 19, 9.5), x: cx, y: cy, heading: 100 });
+  } else {
+    // The Africa in company until she missed the fleet's wear at 8 p.m. on
+    // the 20th (AFRICA_PARTED); her dawn place, 13 nm north, is where she
+    // had got to by then.
+    const k = ship.name === "Africa" ? AFRICA_IN_COMPANY : 1;
+    keys.push({
+      day: SEPT_28,
+      x: station[0] + ox * k,
+      y: station[1] + oy * k,
+      heading: 100,
+    });
     keys.push({
       day: day(10, 19, 9.5),
-      x: station[0] + ox,
-      y: station[1] + oy,
+      x: station[0] + ox * k,
+      y: station[1] + oy * k,
       heading: 103,
     });
   }
-  for (const c of BRITISH_TRACK.slice(1)) {
+  const africa = ship.name === "Africa";
+  for (let n = 1; n < BRITISH_TRACK.length; n++) {
+    const c = BRITISH_TRACK[n];
     const [cx, cy] = at(c.lon, c.lat);
-    keys.push({ day: c.day, x: cx + ox * c.spread, y: cy + oy * c.spread });
+    if (africa && c.day > AFRICA_PARTED) {
+      // In company to the wear, the track's centre then (between its keys).
+      const b = BRITISH_TRACK[n - 1];
+      if (b.day < AFRICA_PARTED) {
+        const t = (AFRICA_PARTED - b.day) / (c.day - b.day);
+        const [bx, by] = at(b.lon, b.lat);
+        keys.push({
+          day: AFRICA_PARTED,
+          x: bx + (cx - bx) * t + ox * AFRICA_IN_COMPANY,
+          y: by + (cy - by) * t + oy * AFRICA_IN_COMPANY,
+        });
+      }
+    }
+    const k = africa && c.day <= AFRICA_PARTED ? AFRICA_IN_COMPANY : c.spread;
+    keys.push({ day: c.day, x: cx + ox * k, y: cy + oy * k });
   }
   // Bearing up at 6.50 by the Victory's clock: 047° true (the owner's
   // licence, for continuity with scene 1).
@@ -345,7 +455,17 @@ function frigateKeys(
     Euryalus: [
       [SEPT_28, -6.35, 36.467],
       [day(10, 19, 7.3), -6.35, 36.467],
-      [day(10, 19, 8), -6.383, 36.47],
+      // About 6°23′ W at 8, interpolated; her latitude then the chart's,
+      // half a mile north of the Sirius's, so she passes her rather than
+      // sailing over her, and clear of the Weazle and the Pickle (the
+      // frigates off the port are drawn ship by ship). On her way there
+      // she stands north first, east of the Sirius, then west (a licence:
+      // her track between is not logged): the straight line from her place
+      // of 7.18 ran through the Sirius's at about 7.36, the two ran into
+      // one on screen, and the lesser yielded from before her repeat of
+      // No. 370 at 7.20 (each glyph's size eased over the scroll).
+      [day(10, 19, 7.65), -6.352, 36.483],
+      [day(10, 19, 8), -6.383, 36.482],
       [day(10, 19, 12), -6.455, 36.472],
       [day(10, 20, 9), -6.48, 36.52],
       [day(10, 21, 0), -6.4, 36.333],

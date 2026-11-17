@@ -24,7 +24,7 @@ import type { Camps } from "@/components/chart/marks/Camps";
 import { monotoneCurve } from "@/lib/curve";
 import { METRE_VH, VICTORY_X } from "@/scenes/01-dawn/composition";
 import { VICTORY_BOX } from "@/scenes/01-dawn/layers/Victory";
-import { BEATS, type BeatId, dayAt } from "./beats";
+import { BEATS, type BeatId, dayAt, STATION_HOLD } from "./beats";
 import { FLOTILLA } from "./boulogne";
 import { day } from "./dates";
 import {
@@ -39,8 +39,10 @@ import {
 } from "./fleets";
 import type { NightLanterns } from "./lanterns";
 import { ARMY_MARCH } from "./march";
-import { type ShipState, shipAt } from "./movements";
+import { CHAIN_ON_STATION, type ShipState, shipAt } from "./movements";
+import { CHAIN_SHIPS } from "./relay";
 import type { DatedWaypoint, Leg } from "./routes";
+import type { RelaySignals } from "./signals";
 import type { BattleSmoke } from "./smoke";
 import {
   COMMANDERS,
@@ -80,9 +82,9 @@ const LIGHT: readonly (readonly [
   [0.095, 0.15, "dawn", "campaign", 0, 1],
   [0.15, 0.66, "dawn", "campaign", 1, 1],
   [0.66, 0.7, "dawn", "campaign", 1, 0],
-  [0.7, 0.79, "dawn", "dawn", 0, 0],
-  [0.79, 0.83, "dawn", "night", 0, 1],
-  [0.83, 0.93, "dawn", "night", 1, 1],
+  [0.7, STATION_HOLD[1], "dawn", "dawn", 0, 0],
+  [STATION_HOLD[1], 0.86, "dawn", "night", 0, 1],
+  [0.86, 0.93, "dawn", "night", 1, 1],
   [0.93, 0.995, "dawn", "night", 1, 0],
   [0.995, 2, "dawn", "dawn", 0, 0],
 ];
@@ -273,8 +275,18 @@ const ARROW_HAND_P = 0.002;
  * Cádiz (beat 4) and in the night and at dawn again (beat 5, after the
  * cut-away to Ulm).
  */
-/** The October fleets in the story off Cádiz (fleetsShownAt): in over the first two, out over the last two. */
-const FLEETS_OFF_CADIZ = [0.655, 0.675, 0.835, 0.85] as const;
+/**
+ * The October fleets in the story off Cádiz (fleetsShownAt): in over the
+ * first two, out over the last two: before the camera leaves the hold over
+ * the station (beats.ts, STATION_HOLD), its ships and labels gone while it
+ * stands still over Nelson's body (session 35 part two). Out over 0.835 to
+ * 0.85, the rise had carried the body out of the frame at 0.8402 and his
+ * label had gone from half its ink to none in a frame; out over 0.832 to
+ * 0.839, on the wide screens (where his ships still showed as the camera
+ * set off and the story's clock ran on) they had run across the frame by
+ * nearly four of their heights a step.
+ */
+export const FLEETS_OFF_CADIZ = [0.655, 0.675, 0.826, 0.833] as const;
 
 /**
  * Where the October fleets' labels first read off Cádiz (readableChanges):
@@ -860,6 +872,91 @@ function readableChanges(
 const FLEET_BEATS: readonly BeatId[] = ["cadiz", "night"];
 
 /**
+ * The chain's four ships of the line apart from the British fleet (relay.ts,
+ * CHAIN_SHIPS; GlyphIntent.apart): from the day they had taken their
+ * stations of the 19th (movements.ts, CHAIN_ON_STATION), as the repeating
+ * ships they were, by the owner's answer of 14 November 2026, an exception
+ * to "a label or all its ships": they show as they read where Nelson's
+ * body shows as its label. Until the Victory has answered and the fleet
+ * makes sail for the Strait, about 9.45, when they join its chase
+ * (movements.ts): from then they come and go with it again, and go into
+ * its label (left apart, they had raced across the frame with the story's
+ * clock through the night of the 19th, apart from a label of the same
+ * fleet). Before their stations
+ * (their moves from the fleet, CHAIN_MOVES) they come and go with the
+ * fleet, whose ships don't come in before the 17th. The night and the dawn
+ * are as they were.
+ */
+const CHAIN_APART: readonly [number, number, number, number] = (() => {
+  const from = pOfDay(CHAIN_ON_STATION, FLEET_BEATS);
+  // Back with the fleet as the camera leaves the station (beats.ts,
+  // STATION_HOLD): it made sail at 9.45, inside the hold, and the Mars and
+  // the Colossus, under its gate there, would close it while the camera
+  // still stood over the body.
+  const back = STATION_HOLD[1];
+  return [from, from + 0.003, back, back + 0.004];
+})();
+
+/**
+ * The chain's ships free of their groups' common scale (GlyphIntent.free):
+ * as long as they are apart and then while they lie on station and follow
+ * the fleet out of sight under its label, so their size doesn't change
+ * while they are seen. Held to it as they came back under the gate, they
+ * shrank to specks in the frames before it (each glyph's size is eased
+ * over the scroll), as the Victory answered. Back to the fleet's scale
+ * while the fleets are out of the story for the cut-away to Ulm.
+ */
+const CHAIN_FREE: readonly [number, number, number, number] = [
+  CHAIN_APART[0],
+  CHAIN_APART[1],
+  0.86,
+  0.87,
+];
+
+/**
+ * Among Blackwood's frigates and small craft off the port, the relay's
+ * links next after the brig in the glyph layout's order (layoutGroups):
+ * in a crowd the lesser ship yields, and the Sirius and the Phoebe, within
+ * a mile or two of the Euryalus, the Naiad, the Pickle and the Weazle as
+ * No. 370 went on, had been squeezed out of sight as the camera came out
+ * to them. The brig, a little larger, still leads the squadron: the lead
+ * stands at her full size where her group crowds, and the Sirius leading
+ * it had cost the combined fleet's label its room in the descent to the
+ * harbour.
+ */
+function relayRank(ship: Ship): number {
+  if (ship.side !== "british" || ship.group !== "frigates") return 0;
+  const k = FRIGATE_LINKS.indexOf(ship.name);
+  return k < 0 ? FRIGATE_LINKS.length : k;
+}
+
+/**
+ * The frigates among the relay's links in their rank (relayRank): the
+ * Euryalus before the Sirius (session 35, part two). As the camera draws
+ * back from the port the frigates run together on screen and the lesser
+ * yields, each glyph's size eased over the scroll from a little ahead: the
+ * Sirius, first in rank, had put out the Euryalus from before her repeat
+ * of No. 370 at 7.20. The Sirius makes it first, at 7.00, before they run
+ * together, so she shows at her own signal either way.
+ */
+const FRIGATE_LINKS: readonly string[] = ["Euryalus", "Sirius", "Phoebe"];
+
+/**
+ * At the relay's end the British fleet's label stands by its body
+ * (applyHeads): Blackwood's frigates watching the port, some 50 nm east
+ * of it, don't count toward its place, nor do the chain's ships as far as
+ * they stand apart. Counted, the frigates had drawn the label's place 15
+ * km and more east of the body, off the frame of the view at 9.30. Only
+ * from the camera's coming to the station: from the fleets' coming in, it
+ * had moved the label in the descent to the harbour and the combined
+ * fleet's label, keeping clear of it, blinked. Back before the fleets
+ * return in the night, where the frigates lie between them and count.
+ */
+const BRITISH_HEAD_BODY: readonly [number, number, number, number] = [
+  0.772, 0.782, 0.86, 0.87,
+];
+
+/**
  * A fleet's strength over the scroll (FLEET_HEADS): from the start of beat
  * 4, every day its ships of the line come or go (fleets.ts, strengthDays),
  * at its p and over its window.
@@ -1148,6 +1245,21 @@ export class RoadDirector {
   );
   private readonly ndc = new Vector3();
   private victoryIndex: number;
+  /** Whether each ship is one of Blackwood's squadron watching the port (BRITISH_HEAD_BODY). */
+  private readonly watching: boolean[] = this.ships.map(
+    (s) =>
+      s.side === "british" &&
+      s.group === "frigates" &&
+      s.name !== "Entreprenante",
+  );
+  /** Where each ship leaves the story on the scroll (Ship.until; NaN for none). */
+  private readonly untilP: number[] = this.ships.map((s) =>
+    s.until === undefined ? Number.NaN : pOfDay(s.until, FLEET_BEATS),
+  );
+  /** Whether each ship is one of the chain's four (CHAIN_APART). */
+  private readonly chain: boolean[] = this.ships.map(
+    (s) => s.side === "british" && CHAIN_SHIPS.includes(s.name),
+  );
   /** Each squadron's eased heading by step of p from the start of the chase (prepare). */
   private squadHeadings: Float32Array[] = [];
   /**
@@ -1594,6 +1706,7 @@ export class RoadDirector {
           (a, b) =>
             Number(b.ship.lead) - Number(a.ship.lead) ||
             (b.ship.rig.size ?? 1) - (a.ship.rig.size ?? 1) ||
+            relayRank(a.ship) - relayRank(b.ship) ||
             a.i - b.i,
         )
         .map(({ i }) => i);
@@ -1711,6 +1824,7 @@ export class RoadDirector {
     this.layout?.setProgress(p);
     this.smoke?.setProgress(p);
     this.lanterns?.setProgress(p);
+    this.signals?.setProgress(p);
   }
 
   /**
@@ -1758,6 +1872,13 @@ export class RoadDirector {
 
   private lanterns: NightLanterns | null = null;
 
+  /** The relay's day signals of 19 October (signals.ts; they read the scene's progress). */
+  setSignals(signals: RelaySignals): void {
+    this.signals = signals;
+  }
+
+  private signals: RelaySignals | null = null;
+
   dispose(): void {
     this.restorePainted();
   }
@@ -1803,11 +1924,15 @@ export class RoadDirector {
         glyphs.setType(i, ship.rig.sail, anchor, k);
       else glyphs.setType(i, ship.rig.sail);
       glyphs.setUnderWay(i, 1 - k);
+      glyphs.setApart(i, this.chain[i] ? fade(p, CHAIN_APART) : 0);
+      glyphs.setFree(i, this.chain[i] ? fade(p, CHAIN_FREE) : 0);
       let opacity = Math.min(1, shown);
       // A ship leaving the story (the Weazle, bound for Gibraltar) fades
-      // out over its last few hours, out at sea.
-      if (ship.until !== undefined)
-        opacity *= 1 - smooth(ship.until - 0.12, ship.until, d);
+      // out, out at sea, over a stretch of scroll ending on her day: over
+      // her last few hours she had gone within two steps of p once the
+      // clock ran fast after the relay.
+      const gone = this.untilP[i];
+      if (!Number.isNaN(gone)) opacity *= 1 - smooth(gone - CHANGE_P, gone, p);
       // With the fleet by date (fleets.ts, withFleet): she comes and goes
       // as its label's figure changes (fleetPresence).
       opacity *= this.fleetPresence(i, p);
@@ -2124,15 +2249,19 @@ export class RoadDirector {
         }
       }
       // Among its ships, each counting as far as she is there, so a ship
-      // coming or going (fleetPresence) moves the label smoothly.
+      // coming or going (fleetPresence) moves the label smoothly; the
+      // chain's ships as far as they are with the fleet (CHAIN_APART).
       let x = 0;
       let y = 0;
       let weight = 0;
+      const body = fade(p, BRITISH_HEAD_BODY);
       this.ships.forEach((ship, i) => {
-        if (ship.side !== fleet.side || it.opacity[i] <= 0) return;
-        x += it.x[i] * it.opacity[i];
-        y += it.y[i] * it.opacity[i];
-        weight += it.opacity[i];
+        let v = it.opacity[i] * (1 - it.apart[i]);
+        if (this.watching[i]) v *= 1 - body;
+        if (ship.side !== fleet.side || v <= 0) return;
+        x += it.x[i] * v;
+        y += it.y[i] * v;
+        weight += v;
       });
       const there = weight > 1e-6;
       const presence = there ? inStory : 0;

@@ -1315,6 +1315,7 @@ The owner's order: the blinks of "Villeneuve, 33 sail" on the wide screens as th
 ### Accepted (the owner's order of 17 November 2026)
 
 - **One blink in the pull-back** (0.772–0.776) on the wide screens forward at 300 px/s, where `main` has one of its own in its pull-back (0.7876), and **at 1920 scrolling back at 800 px/s two blinks against `main`'s one** (a flash as the harbour comes back into the frame at about 0.783, and the pull-back's blink at 0.7735). Every other run is level with `main` or better. The production build's numbers are in progress.md (session 37, part one).
+- **Session 37, part two's full checks** (the same source, the sweep from 0.65 instead of 0.655, so a scroll samples the pull-back's frames at another phase): the same pull-back blink also forward at 800 px/s on the wide screens (0.7769; at 2560 with a flash at 0.7793), 38 blinks in all against `main`'s 51. Nothing new: the same blink, accepted as above.
 
 ### The review of session 35 (read-only workflow `s37a-review`, run `wf_df44f1ad-a65`: one reviewer over `122ec57..c0bc69d`, src and scripts)
 

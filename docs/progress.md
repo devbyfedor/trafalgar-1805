@@ -2,6 +2,30 @@
 
 Live checklist. A later session picks up from here. The briefs are `docs/scene-01-brief.md` and `docs/scene-02-brief.md`; decisions and deviations are in `docs/decisions.md`.
 
+## Session 37, part one (17 November 2026): the label's blinks out of the bay, the review
+
+**The owner's order** (complete; it ends "Конец сообщения"). Branch `s35-relay`. His answers to session 35's questions: (1) the frigates off the port stay as they are (their signal reads by the puffs); (2) Next.js is upgraded to 16.4.6 on a short branch of its own right after the merge (the known advisories concern server functions, which a static site doesn't have). **He cut the rest of scene 2 to the essentials** (`decisions.md`, "Scene 2's rest cut to the essentials"; the plan below). This part: the blinks and the review; **the full checks and the merge are part two's, not this part's.** Order of work:
+1. The blinks of "Villeneuve, 33 sail" on the wide screens as the camera comes out of the bay: the camera's framing, not the labels' logic; a few tries at most; if the branch can't be made no worse than `main`, keep the best and record the rest in `decisions.md` as accepted.
+2. The code review of session 35: one pass, at most one background helper; fix what it finds.
+3. What changed, checked on the production build with `served.mjs`: blinks, jerks and clashes in beats 4 and 5 at the four sizes.
+4. Commit, this file, a short report; stop. **Not into `main`.**
+If something doesn't come after a few tries: commit what there is, say what is in the way, stop. Never `npm run screenshots`. Commit after each step.
+
+**Plan and state:**
+- [x] Step 0: oriented (clean tree at `0d3e3f6`; `main` at `122ec57`; ports 3000, 4173, 4175 free). The owner's answers and his cut into this file and `decisions.md`.
+- [ ] Step 1: the blinks out of the bay (camera framing).
+- [ ] Step 2: the review of session 35.
+- [ ] Step 3: the checks on the production build.
+- [ ] Step 4: commit, this file, the report; stop.
+
+### Scene 2's remaining plan (updated in session 37, the owner's order of 17 November 2026)
+
+**Cut to the essentials by the owner** (`decisions.md`, "Scene 2's rest cut to the essentials"): the night signals of 20–21 October are not built (the lanterns hold the night); `s32-label-low-views` is not merged and stays deferred, the old label blinks on a fast scroll accepted as they are; the point 0.70 on the descent to the harbour is not touched (the frames on a scroll are not late); the dip of about a second at the start of scene 2 off Cádiz gets one try in the final session, and stays if that fails. **Still open, in order:**
+1. **Session 37, part one (this one):** the combined fleet's label blinks out of the bay (camera framing), the review of session 35, the checks of what changed on the production build. Not merged.
+2. **Session 37, part two:** the full checks and the merge of the relay (`s35-relay`) into `main`.
+3. **Session 38:** Next.js upgraded to 16.4.6 on a short branch of its own, right after the merge.
+4. **Session 39:** the stills, the dip at the start off Cádiz (one try), the final check and README. **Scene 2 is then closed.**
+
 ## Session 35, part two (16 November 2026): the day relay's signals
 
 **The owner's order** (complete; it ends "Конец сообщения"). Branch `s35-relay`; part one's groundwork changed only where the signals truly need it; the night signals not touched. His answers to part one's questions: (1) **yes**: the harbour's hold keeps its length, the relay's screen and a half comes from the high view after it (recorded in `decisions.md` in place of his earlier answer); (2) **the Victory is not shown alone** (a lone flagship breaks the rule "a fleet shows as its label or as its ships"): the camera holds over Nelson's station, the time taken from the start of the rise toward Ulm in beat 5, so the fleet shows as ships and the Victory's answer shows on her own ship; the pin's whole length unchanged. **The blinks of "Villeneuve, 33 sail"** on the wide screens and at the junction with beat 5 are not fixed in this part, but they are **not** deferred to the final polish: they come from the new camera, not from `main`; in session 37, before the merge, the branch must be no worse than `main` on blinks, trying the camera's framing first, not the labels' logic (in the plan below). Order of work:
@@ -70,7 +94,7 @@ If something doesn't come after a few tries: commit what there is, say what is i
 - **Questions for the owner:** (1) the harbour's hold kept at its length (shorter, the anchored ships came in only as a flash or not at all), the relay's screen and a half taken from the high view after it: right? (2) At 9.30 Nelson's body shows as its label: its ships read one by one only from a view held over them for about 0.6 of a screen, which beat 4 has no room for. For part two (the Victory's answer, one flag and two guns): may the Victory show apart with the chain at her answer, as the four of the line do, or should the camera hold over the station, taking the time from the rise toward Ulm at the start of beat 5?
 - **Next steps, in order:** (1) session 35, part two, with the owner's answers: the signals (branch 2's hoists and gun puffs and `SignalRelay` ported onto the CPU glyph layout and `fx/`, driven by `relay.ts`), the Euryalus in the inshore view (she yields to the Sirius at 0.764–0.776), the Victory at 9.30 by his answer; the checks again on the production build; (2) session 36: the night signals; (3) session 37: his notes, the review, the full checks, the merge, with the labels' blinks above in the polish.
 
-### Scene 2's remaining plan (updated in session 35, the owner's order)
+### Scene 2's remaining plan (updated in session 35, the owner's order; superseded by the one in session 37 above)
 
 **Done and in `main`:** the Cádiz labels, the march to Ulm, the history section (session 32); the smoke at Finisterre and the lanterns at night (sessions 33–34, `db23401`). **Still open, in order** (every session opens as the deferred plan in session 31 says: `served.mjs --free`, the build, `served.mjs` OK, no helper while anything is timed, never `npm run screenshots`):
 1. **Session 35: the day relay of 19 October, in two parts, not merged.** Part one (this one): the harbour's hold shortened (about 1.5 screens to the relay, the pin's length unchanged), the relay's clock, the chain's four ships of the line apart from the fleet (and their moves before their stations, `backlog.md` K12), the camera along the chain from the Sirius to the Victory; checked on the production build. Part two: the signals themselves (branch 2's hoists and gun puffs and `SignalRelay`, ported onto the CPU glyph layout and `fx/` as the smoke and the lanterns were).

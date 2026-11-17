@@ -127,7 +127,7 @@ Checked file: `81d46a93-.../scratchpad/research/h2-boulogne-cadiz.md`, section 4
   - To Ford, 2 Oct: "will leave the Fleet this day" (p. 66).
   - Log: "October 3rd. P.M. at 6, Queen, Canopus, Spencer, Zealous, Tigre, and Endymion, parted" (p. 63 n.).
   - Francis Austen, Canopus, letter of 15 Oct: he had written on the 2nd, "We sailed that evening with four other ships of the line, a frigate, and five merchant vessels under convoy" (Hubback p. 148). https://archive.org/details/janeaustenssailo00hubbuoft/page/148/mode/1up
-- Log reckoning. The Admiralty circular of 11 October 1805 ordered the civil day. It "reached the Mediterranean Fleet too late for Trafalgar, so that the Trafalgar logs are in the old form" (Admiralty Trafalgar Committee, 1913, quoted by the Naval Marine Archive). Nelson's diary was kept in civil time. https://navalmarinearchive.com/research/docs/nautical_time_and_date.html
+- Log reckoning. The Admiralty circular of 11 October 1805 ordered the civil day. It came to the Mediterranean fleet only after the battle, so the Trafalgar logs still keep the nautical day (the Naval Marine Archive's page on nautical time, which draws on the Admiralty Trafalgar Committee's report of 1913; our paraphrase). Nelson's diary was kept in civil time. https://navalmarinearchive.com/research/docs/nautical_time_and_date.html
 - Turning back.
   - Austen: "on the following morning fell in with the Euryalus … induce Admiral …" (pp. 148–149).
   - James III p. 380: "on the 3rd, to return".
@@ -313,6 +313,6 @@ Checked file: `81d46a93-.../scratchpad/research/h2-boulogne-cadiz.md`, section 4
 - **A. T. Mahan, *The Life of Nelson*, vol. II (1897).** https://www.gutenberg.org/ebooks/16915
 - **J. H. and E. C. Hubback, *Jane Austen's Sailor Brothers* (1906).** Pp. 147–153 (Francis Austen's letters of 15–27 October 1805). https://archive.org/details/janeaustenssailo00hubbuoft
 - ***Memoir of the Life of Admiral Sir Edward Codrington*, vol. I (1873).** Pp. 51, 57. https://archive.org/details/cu31924087998500
-- **Naval Marine Archive, "Nautical time and date"**, quoting the Admiralty Trafalgar Committee report of 1913. https://navalmarinearchive.com/research/docs/nautical_time_and_date.html
+- **Naval Marine Archive, "Nautical time and date"**, drawing on the Admiralty Trafalgar Committee report of 1913. https://navalmarinearchive.com/research/docs/nautical_time_and_date.html
 - **Torre Tavira museum panel.** https://torretavira.com/wp-content/uploads/2024/05/paneles_sala02_compressed.pdf
 - **Royal Museums Greenwich, plans of Tigre (1795).** https://www.rmg.co.uk/collections/objects/rmgc-object-81018

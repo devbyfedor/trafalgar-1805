@@ -2,6 +2,21 @@
 
 Live checklist. A later session picks up from here. The briefs are `docs/scene-01-brief.md` and `docs/scene-02-brief.md`; decisions and deviations are in `docs/decisions.md`.
 
+## Session 40 (17 November 2026): the final check on a rested machine; scene 2 closed
+
+**The owner's order** (complete; it ends "Конец сообщения"). The laptop restarted, nothing open but VS Code. Branch `s39-stills-readme`:
+1. The production build and `npm run check` whole, the build checked with `served.mjs`. One run.
+2. 37 of 37: into `main` by a true merge (not a squash); this file marks scene 2 closed; a short report; stop.
+3. Only Boulogne's hold fails again: that test once on `main`'s build. Fails on `main` too: the machine; merge, record it in `decisions.md`, report, stop. Passes on `main` and not on the branch: no merge, report, stop.
+4. Anything else fails: no merge, report, stop.
+No background helpers. Never `npm run screenshots`.
+
+**Plan and state** (branch at `06f7c77`, clean; `main` untouched at `fc061d4`, an ancestor of the branch; ports 3000, 4173, 4174, 4175 free; the laptop booted 21:16, on mains, the balanced scheme, no node or browser process, the CPU idle but VS Code under 1 %; local aids and output in `.claude/s40/`, git-ignored):
+- [x] Step 1: **the production build:** `npm run build` went through on the first run (21:19:25–21:19:35, `.claude/s40/build1.log`; Next.js 16.4.6, no notice, no warning): build `8l8YJvPLdZ2YAEmHLFSp_` of `06f7c77`, source `262b27cbab71`; served on 4173 with `node_modules/.bin/serve`, **`served.mjs` OK**; the server stopped before the check, every port free.
+- [x] Step 1: **`npm run check` whole: 37 of 37 pass, one run** (`.claude/s40/chain-check.sh`, 21:20:00–21:29:58, `.claude/s40/checks/npm-check-06f7c77.txt`; no helper). Lint (306 files, the two old infos), typecheck, lettering (82 names and 11 figures); the check's own build `Ps6j8m6IlQnvwMfEv6JiI` of `06f7c77`, source `262b27cbab71`, no notice or warning; **the tests' server on 4174 checked with `served.mjs` during the run (21:20:38): OK.** **Boulogne's hold at rest passes:** the main thread p95 4.5, 5.1, 5.6, 5.4 ms at hold 0.25, 0.5, 0.75, 1 (the limit 8; medians 3.4–4.5; 0 late of 94–96), the chart's GPU 0.41–0.59 p95: back to session 38's level (4.3–4.7), so session 39's 8.2–8.5 was the machine's state, as read then. **Scene 1's regression passes:** moved p 0 0.0017 %, p 0.5 0.055 %, p 0.75 0.070 % (the limit 0.6); block median at most 0.98, p99 at most 16.8. The lab's flight GPU p95 at worst 8.33 ms, CPU 3.3; the interlude's dive and rise 8.88, CPU 2.3; both wheel tests without a long task. `perf` (report only): 4 long tasks over 50 ms scrolling, the longest 102 ms (session 38: 11 and 99; session 39's re-run: 172 and 1125).
+- **Every check passed:** into `main` (the order's case 2).
+- [ ] Step 2: `git merge --no-ff s39-stills-readme` into `main`; scene 2 marked closed in this file on `main`; the report; stop.
+
 ## Session 39 (17 November 2026): scene 2's stills, README, the final check; scene 2 closed
 
 **The owner's order** (complete; it ends "Конец сообщения"). The last session of scene 2, only what's needed. His decisions (`decisions.md`, "Scene 2 closed: the owner's last decisions"; `backlog.md`, "Before publication"): **the dip of about a second at the start of scene 2 off Cádiz stays as `main` has it** (no try); **`npm audit`'s findings in `serve` and `wrangler` are not touched now** (development tools, not in the site; revisited before publication). From `main`:

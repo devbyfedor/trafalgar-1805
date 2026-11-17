@@ -2,6 +2,24 @@
 
 Live checklist. A later session picks up from here. The briefs are `docs/scene-01-brief.md` and `docs/scene-02-brief.md`; decisions and deviations are in `docs/decisions.md`.
 
+## Session 38 (17 November 2026): Next.js 16.4.6, only what's needed
+
+**The owner's order** (complete; it ends "Конец сообщения"). From `main`:
+1. Delete `s35-relay`, after checking it is wholly in `main`.
+2. A branch from `main`; `next` to the latest 16.4.x (16.4.6 or later), and the packages that ship with `next` to the same version. **Nothing else upgraded.**
+3. The production build goes through on the first run, without stopping on the upgrade notice.
+4. `npm run check` whole, scene 1's regression in it, the build checked with `served.mjs`. One re-run allowed, only if a failure looks like the machine's noise.
+5. All passed: into `main` by a true merge (not a squash); this file; a short report; stop.
+6. A check failed for real: no merge, no fixing in circles: commit, say in the report what failed, stop.
+No background helpers. Never `npm run screenshots`.
+
+**Plan and state** (`main` at `dd1f107` at the start, clean; ports 3000, 4173, 4174, 4175 free; local aids and output in `.claude/s38/`, git-ignored):
+- [x] Step 1: `s35-relay` deleted (`git branch -d`; it was `46a5e8f`: 0 commits not in `main`, an ancestor of `main`, the merge `7fc2382`'s tree equal to it; no worktree on it).
+- [ ] Step 2: branch `s38-next-16.4.6` from `main`; `next` 16.4.3 → 16.4.6 (the latest 16.4.x and `latest` on npm, 9 November). What ships with `next`: `@next/env` and the `@next/swc-*` binaries, both pinned by `next` itself to its own version (no direct dependency in `package.json`; no `eslint-config-next` or other `@next/*` package here). 16.4.4 and 16.4.6 are backported fixes (Turbopack, the analyzer, route handlers' compression), 16.4.5 the November security fixes (`use cache`, Edge cookies, image optimization: none of them in a static export).
+- [ ] Step 3: `npm run build` on the first run, no upgrade notice; served with `node_modules/.bin/serve`, `served.mjs` OK.
+- [ ] Step 4: `npm run check` whole, `served.mjs` on the tests' server (4174) while it runs.
+- [ ] Step 5: the merge, this file, the report.
+
 ## Session 37, part two (17 November 2026): the full checks, the merge of the relay
 
 **The owner's order** (complete; it ends "Конец сообщения"). Branch `s35-relay`. This part: the full checks and the merge into `main`; **no new features**. Order of work:

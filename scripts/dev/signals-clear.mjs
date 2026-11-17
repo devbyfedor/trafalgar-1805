@@ -13,14 +13,15 @@
 // settled.
 //   node scripts/dev/signals-clear.mjs [from] [to] [step]
 // Defaults: 0.70 to 0.86 every 0.0005 (from before the relay's first hoist,
-// about 0.764, past its last, the Victory's, gone with the fleets at the
-// cut-away). Environment: BASE (default http://127.0.0.1:3000; the
+// about 0.764, past its last, the Victory's, gone with the October fleets
+// as they leave the story). Environment: BASE (default http://127.0.0.1:3000; the
 // production preview is http://127.0.0.1:4173), SIZES (default
 // "1280x720@1.5,1920x1080@1,2560x1440@1,3440x1440@1"), SEEN (the least
 // product of a mark's and an outline's opacity that counts, 0.02), LAND_KM
 // (the least distance from the coast under a puff, 2), SHIP_PX (how far a
 // flag may stand outside her glyph's box, CSS px, 2), SPAN (the p range a
-// signal may show in, "0.76,0.86"), JSON=<file> for every step's counts.
+// signal may show in, "0.76,0.836": the relay ends with the October fleets
+// leaving the story, 0.826 to 0.833), JSON=<file> for every step's counts.
 // A step fails where a flag or a puff shown overlaps an outline shown by
 // more than half a px², a puff stands within LAND_KM of land, a flag stands
 // off her ship or at a ship that is not a link, or anything shows outside
@@ -37,7 +38,7 @@ const step = Number(process.argv[4] ?? 0.0005);
 const seen = Number(process.env.SEEN ?? 0.02);
 const landKm = Number(process.env.LAND_KM ?? 2);
 const shipPx = Number(process.env.SHIP_PX ?? 2);
-const span = (process.env.SPAN ?? "0.76,0.86").split(",").map(Number);
+const span = (process.env.SPAN ?? "0.76,0.836").split(",").map(Number);
 // The long run west, where the chain's ships of the line show their hoists:
 // a sweep across it must draw flags.
 const LONG_RUN = [0.78, 0.8];

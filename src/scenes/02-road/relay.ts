@@ -8,9 +8,12 @@ import { day } from "./dates";
  * the frigates off Cádiz down the chain of ships of the line to the
  * Victory, about 50 nm west, from 7.00 to 9.30. The links in order, each
  * with the hour her signal is up on the story's clock (beats.ts,
- * RELAY_CLOCK). This part holds the table and its places on the scroll,
- * which the camera follows (camera.ts); what each link shows (her hoist,
- * her counted guns) is drawn from it in the relay's second part.
+ * RELAY_CLOCK). This part holds the table and the hours' places on the
+ * scroll (pOfRelayHour), from which the relay is played (signals.ts: each
+ * link's hoist and counted guns). The camera's keys along the chain are
+ * fixed values of p (camera.ts, RELAY_VIEWS), set by hand a little after
+ * the signals they show: moving an hour in RELAY_CLOCK moves its signal,
+ * not the camera.
  *
  * Logged: the Sirius at 7.00 and the Euryalus repeating to the Phoebe at
  * 7.20 with No. 163, "West" (the Euryalus's log and signal log); the
@@ -71,11 +74,4 @@ export function pOfRelayHour(hour: number): number {
     else hi = mid;
   }
   return hi;
-}
-
-/** The progress p at which a link's signal is up. */
-export function relayP(name: string): number {
-  const link = RELAY_LINKS.find((l) => l.name === name);
-  if (!link) throw new Error(`relay: no link ${name}`);
-  return pOfRelayHour(link.hour);
 }

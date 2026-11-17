@@ -191,9 +191,15 @@ const CLOCK: Record<BeatId, readonly Keyframe[]> = {
     [0.664, day(10, 6, 12)],
     [0.6705, day(10, 8, 16)],
     [0.69, day(10, 18)],
-    // From 6 a.m. on the 19th to 9 a.m. on the 20th the relay's clock
-    // stands in (RELAY_CLOCK, relayClock); the key at 0.78 still shapes
-    // the curve's pace at 0.82, where beat 5 takes over.
+    // From 6 a.m. on the 19th (p 0.70) to the evening of the 20th (p
+    // 0.87, RELAY_SPAN) the relay's clock stands in (RELAY_CLOCK,
+    // relayClock), beat 5's first frames (0.82 to 0.87) with it. The keys
+    // at 0.78 and 0.82 still shape this curve's pace where the relay's
+    // joins it: the 0.78 at 0.70 (and the descent's last step, 0.69 to
+    // 0.70), the 0.82 at 0.85, so beat 5's frames from 0.87. The relay's
+    // first interval has little room under hermiteCurve's monotone limit
+    // (a²+b² about 8.9 against 9): the 0.78 key a tenth of an hour later,
+    // or the hold's first hour a minute earlier, and it throws at load.
     [0.7, day(10, 19, 6)],
     [0.78, day(10, 19, 9.6)],
     [0.82, day(10, 20, 9)],
@@ -277,9 +283,9 @@ function heldClock(clock: (p: number) => number): (p: number) => number {
  * The clock through the harbour's hold and the relay (RELAY_CLOCK): a
  * Hermite curve through the relay's keys, joined to the unbroken curve at
  * RELAY_SPAN's ends at its own hours and pace, so no frame outside the
- * span changes (the descent before 6 a.m. on the 19th, beat 5 from 9 a.m.
- * on the 20th). The unbroken curve alone had put 7.00 at p 0.7095, in the
- * descent, and held the harbour from 7.45 to 8.40.
+ * span changes (the descent before 6 a.m. on the 19th, beat 5 from the
+ * evening of the 20th, p 0.87). The unbroken curve alone had put 7.00 at
+ * p 0.7095, in the descent, and held the harbour from 7.45 to 8.40.
  */
 function relayClock(clock: (p: number) => number): (p: number) => number {
   const [from, to] = RELAY_SPAN;

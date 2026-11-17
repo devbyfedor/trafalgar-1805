@@ -8,6 +8,7 @@ import {
 } from "@/components/chart/fx/Smoke";
 import type { Glyphs } from "@/components/chart/glyphs/Glyphs";
 import type { MastId } from "@/components/ship/types";
+import { FLEETS_OFF_CADIZ } from "./director";
 import { BRITISH, COMBINED } from "./fleets";
 import { pOfRelayHour, RELAY_LINKS, type RelayLink } from "./relay";
 
@@ -126,11 +127,14 @@ const MARS_DISTANT_H = 9 + 6 / 60;
 /** Each link's hoist comes down this many story hours after the next one's, as the answer runs back. */
 const ANSWER_BACK_H = 0.1;
 /**
- * The Victory's flag flies through the fleet's making sail; the relay's
- * signals end with the beat's fleets going out of the story for the
- * cut-away (director.ts, CHAIN_FREE).
+ * The Victory's flag flies through the fleet's making sail, and every flag
+ * and puff goes with its ship as the October fleets leave the story while
+ * the camera still holds over the station (director.ts, FLEETS_OFF_CADIZ,
+ * 0.826 to 0.833: a flag or puff draws only on a ship drawn). The relay's
+ * own fade (HOIST_P) comes after that, where nothing shows, so it never
+ * cuts a flag; from there the relay does no work.
  */
-const RELAY_END_P = 0.86;
+const RELAY_END_P = FLEETS_OFF_CADIZ[3] + HOIST_P;
 
 /**
  * A gun puff's size in bloom (glyph heights), its swelling over its life,

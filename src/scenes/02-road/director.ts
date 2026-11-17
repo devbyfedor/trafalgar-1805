@@ -286,7 +286,7 @@ const ARROW_HAND_P = 0.002;
  * set off and the story's clock ran on) they had run across the frame by
  * nearly four of their heights a step.
  */
-const FLEETS_OFF_CADIZ = [0.655, 0.675, 0.826, 0.833] as const;
+export const FLEETS_OFF_CADIZ = [0.655, 0.675, 0.826, 0.833] as const;
 
 /**
  * Where the October fleets' labels first read off Cádiz (readableChanges):

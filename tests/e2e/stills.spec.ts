@@ -20,16 +20,34 @@ import { open, scrollToRoad } from "./helpers";
 
 const OUT = path.join(process.cwd(), "public", "stills", "scene-02");
 
-/** Each beat's frame: its camera settled, its caption showing. */
+/**
+ * Each beat's frame: its camera settled, its caption showing. A still is
+ * for readers who cannot see the motion, so it shows its beat's substance
+ * (the owner's rule, session 31; the moments chosen in session 39,
+ * docs/decisions.md, "Scene 2's stills by the beat's substance").
+ */
 const FRAMES: readonly [beat: string, p: number][] = [
   ["transition", 0.085],
   ["boulogne", 0.215],
   ["chase", 0.41],
+  // Inside the firing: the two lines in their smoke, both squadrons named.
   ["finisterre", 0.54],
-  // The middle of the harbour's hold, every ship at anchor in.
-  ["cadiz", 0.735],
-  ["night", 1],
+  // The relay: the whole chain from the frigates off Cádiz, their hoists
+  // and guns, out to the ships of the line taking the signal seaward.
+  ["cadiz", 0.783],
+  // The night: the fleets closing off Cape Trafalgar, their lanterns lit.
+  ["night", 0.945],
 ];
+
+/**
+ * Each frame is come to as a reader comes to it, scrolling forward: the
+ * scroll stops this much of p short first. A fleet's label takes a place
+ * only with ample room and keeps it with less (HeadLabels.ts), so a frame
+ * jumped to from far off can lack a label a reader sees there ("Villeneuve,
+ * 33 sail" at the relay's 0.783, even after 6 s). Boulogne's interlude (at
+ * 0.21) lies outside every run-up.
+ */
+const RUN_UP = 0.003;
 
 test("renders one still per beat", async ({ page }) => {
   test.setTimeout(300_000);
@@ -45,6 +63,9 @@ test("renders one still per beat", async ({ page }) => {
       "#road [data-layer=text], #road [data-layer=sea] { visibility: hidden !important; }",
   });
   for (const [beat, p] of FRAMES) {
+    await scrollToRoad(page, p - RUN_UP);
+    // Long enough for a label to take its place and hold it (1 s).
+    await page.waitForTimeout(1500);
     await scrollToRoad(page, p);
     // The scrub settles over 0.6 s; then a few frames of the chart.
     await page.waitForTimeout(1800);

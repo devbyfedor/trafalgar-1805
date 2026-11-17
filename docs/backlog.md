@@ -54,3 +54,8 @@ Points the four independent reviews of the history section left for the code (`d
 
 ## Scene 2, found in session 34's checks (16 November 2026)
 - **The squadrons' labels blink as the camera settles over the action off Finisterre, on a fast scroll.** `label-flicker.mjs` at 800 px/s, on `main`'s build and on `s33-smoke` alike, run for run: Calder's label down to nothing for 0.35 s at p 0.5296 (1280×720@1.5); Villeneuve's for 0.37 s at 0.5276 and a quick move of Calder's at 0.5346 (1920×1080). The labels coming in as the camera arrives at the hold (0.527). At 300 px/s none inside the hold. By the owner's rule (15 November 2026) a blink is not acceptable. **The owner's decision (16 November 2026, session 34 part two): not fixed now; it goes into scene 2's final polish, together with the deferred low views' branch (`s32-label-low-views`).** There: `label-flicker` and `label-steps` at the four sizes over 0.50–0.57 both ways (`.claude/s34a/chain-look.sh` has the runs).
+
+## Before publication (the owner's order of 17 November 2026, session 39)
+
+- **`npm audit`'s findings in the development tools.** `serve` 14.2.6 (its `compression`: a denial of service; fixed in `serve` 14.2.8) and `wrangler` 4.152.0 (its `miniflare`'s `undici`; fixed in `wrangler` 4.164.0). Neither reaches the site (the local preview and the deploy command). Upgrade both, pinned exactly, on a branch of their own before the first deploy, and run `npm run preview` and `npm run check` after (`decisions.md`, "Scene 2 closed: the owner's last decisions").
+- **The dip of about a second at the start of scene 2 off Cádiz** is left as it is by the owner's order; no further work planned unless he reopens it.

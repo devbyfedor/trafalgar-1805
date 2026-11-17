@@ -2,6 +2,27 @@
 
 Live checklist. A later session picks up from here. The briefs are `docs/scene-01-brief.md` and `docs/scene-02-brief.md`; decisions and deviations are in `docs/decisions.md`.
 
+## Session 39 (17 November 2026): scene 2's stills, README, the final check; scene 2 closed
+
+**The owner's order** (complete; it ends "Конец сообщения"). The last session of scene 2, only what's needed. His decisions (`decisions.md`, "Scene 2 closed: the owner's last decisions"; `backlog.md`, "Before publication"): **the dip of about a second at the start of scene 2 off Cádiz stays as `main` has it** (no try); **`npm audit`'s findings in `serve` and `wrangler` are not touched now** (development tools, not in the site; revisited before publication). From `main`:
+1. Delete `s38-next-16.4.6`, after checking it is wholly in `main`.
+2. A branch from `main`.
+3. Scene 2's stills by the rule of the beat's substance, only with `npx playwright test --project=stills -g "one still per beat"`.
+4. README brought up to the project's present state, scene 2 done; short.
+5. The production build and `npm run check` whole, scene 1's regression in it, the build checked with `served.mjs`. One re-run allowed, only if a failure looks like the machine's noise.
+6. All passed: into `main` by a true merge (not a squash); this file marks scene 2 closed; a short report with the commands to see `main` on the preview; stop.
+7. A check failed for real: no merge, no fixing in circles: commit, say in the report what failed, stop.
+No background helpers. Never `npm run screenshots`.
+
+**Plan and state** (`main` at `fc061d4` at the start, clean; ports 3000, 4173, 4174, 4175 free; local aids and output in `.claude/s39/`, git-ignored):
+- [x] Step 1: `s38-next-16.4.6` deleted (`git branch -d`; it was `4c17c3c`: 0 commits not in `main`, an ancestor of `main`; no worktree on it).
+- [x] Step 2: branch `s39-stills-readme` from `main` (`fc061d4`).
+  - A slip of mine on the way: a shell command with an unclosed heredoc ran fragments of this record as commands. Nothing changed: a `playwright test` started and failed at once on a malformed `-g` pattern (no test ran, no still written; it only replaced the git-ignored `test-results/` and `playwright-report/`), and the `npm run` fragments named no script. Checked: the stills' files untouched, no server left, every port free.
+- [ ] Step 3: the stills.
+- [ ] Step 4: README.
+- [ ] Step 5: the production build, `npm run check` whole.
+- [ ] Step 6: the merge, this file, the report.
+
 ## Session 38 (17 November 2026): Next.js 16.4.6, only what's needed
 
 **The owner's order** (complete; it ends "Конец сообщения"). From `main`:

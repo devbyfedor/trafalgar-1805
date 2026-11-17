@@ -14,7 +14,7 @@ If something doesn't come after a few tries: commit what there is, say what is i
 **Plan and state:**
 - [x] Step 0: oriented (clean tree at `0d3e3f6`; `main` at `122ec57`; ports 3000, 4173, 4175 free). The owner's answers and his cut into this file and `decisions.md`.
 - [x] Step 1: the blinks out of the bay (camera framing): the Sirius's view steeper (`camera.ts`, the key at 0.764: 10 km back, 11 up, was 13 and 9), so the label keeps its place by the anchorage all the way out of the bay (`decisions.md`, "The combined fleet's label out of the bay"). On the dev server (`label-flicker` 0.655–0.89, the four sizes, both ways, 300 and 800 px/s; `.claude/s37a/flk/v1full/`): 24 blinks against `main`'s 45 (the branch before 43), every run level with `main` or better but 1920 back at 800 (2 against 1); the pull-back's one blink on the wide screens forward at 300, `main` one there too. Tried and dropped: the long run turned east (16°). The rest accepted by the owner's order. Side checks on the dev server: `signals-clear` 0 failing at the four sizes, contrast 0.745–0.79 0 rows under 4.5:1, `glyph-paths` no larger turns, `fleet-scroll` at 1280 71/131 frames (session 35's build 91/136).
-- [ ] Step 2: the review of session 35.
+- [ ] Step 2: the review of session 35 (workflow `s37a-review`, run `wf_df44f1ad-a65`: one read-only reviewer over `122ec57..c0bc69d`, src and scripts; running).
 - [ ] Step 3: the checks on the production build.
 - [ ] Step 4: commit, this file, the report; stop.
 

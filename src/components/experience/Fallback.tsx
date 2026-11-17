@@ -18,6 +18,11 @@ import { dawnContent } from "@/scenes/01-dawn/content";
  * The ship is mounted on the client only while the fallback query matches,
  * so desktop pages carry no second copy of the hero art.
  *
+ * On a phone held sideways (landscape, at most 540px tall) the ship stands
+ * to the right of the text column and the title is held to 18svh, so the
+ * card stays in the sea below the horizon and clear of her hull (session
+ * 43; upright, the screen is as approved).
+ *
  * The page's only h1 lives in scene 1, which stays in the accessibility tree
  * (visually hidden) in fallback mode, so the title and dateline here are
  * visual duplicates and hidden from assistive technology. The notice is
@@ -49,7 +54,7 @@ export function Fallback() {
   return (
     <div
       data-fallback
-      className="relative hidden min-h-svh flex-col justify-end overflow-hidden bg-deep-sea px-6 pt-16 pb-12 fallback:flex"
+      className="relative hidden min-h-svh flex-col justify-end overflow-hidden bg-deep-sea px-6 pt-16 pb-12 fallback:flex [@media(orientation:landscape)_and_(max-height:540px)]:pb-8"
     >
       <div aria-hidden="true" className="absolute inset-0">
         <div
@@ -82,7 +87,7 @@ export function Fallback() {
         {showArt ? (
           // Cut at the waterline: nothing below it shows.
           <div
-            className="absolute left-1/2 overflow-hidden"
+            className="absolute left-1/2 overflow-hidden [@media(orientation:landscape)_and_(max-height:540px)]:left-[70%]"
             style={
               {
                 "--w": `min(96vw, calc(46svh / ${ASPECT}))`,
@@ -118,7 +123,7 @@ export function Fallback() {
         </p>
         <p
           aria-hidden="true"
-          className="mt-2 font-display text-[clamp(48px,16vw,96px)] leading-[0.95] tracking-[-0.01em] text-ink [font-optical-sizing:auto]"
+          className="mt-2 font-display text-[clamp(48px,16vw,96px)] [@media(orientation:landscape)_and_(max-height:540px)]:text-[clamp(40px,18svh,96px)] leading-[0.95] tracking-[-0.01em] text-ink [font-optical-sizing:auto]"
         >
           {dawnContent.title}
         </p>

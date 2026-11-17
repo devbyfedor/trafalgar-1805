@@ -151,7 +151,7 @@ export function ToBeContinued() {
       aria-labelledby="continued-title"
       className="relative flex flex-1 flex-col justify-end px-[4.6vw] pt-[52vh] pb-[9vh] motion-safe:bg-[linear-gradient(to_bottom,rgba(36,54,61,0)_0,#24363d_10vh,var(--color-deep-sea)_40vh)] motion-reduce:bg-deep-sea motion-reduce:pt-[42vh]"
     >
-      <div className="relative w-[min(80vh,58vw)]">
+      <div className="relative max-w-[92vw]">
         <p
           data-el="line"
           className="mb-[1vh] text-[clamp(14px,2vh,21px)] leading-snug text-ink"
@@ -170,7 +170,7 @@ export function ToBeContinued() {
           className="mt-[2.8vh] text-[clamp(16px,2.35vh,27px)] leading-[1.45] text-ink"
         >
           {continuedContent.next.map((sentence) => (
-            <span key={sentence} className="block">
+            <span key={sentence} className="block text-balance">
               {sentence}
             </span>
           ))}

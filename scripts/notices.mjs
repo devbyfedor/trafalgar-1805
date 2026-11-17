@@ -58,16 +58,27 @@ const file = (...p) => ({ file: nm(...p) });
  * libraries Next.js and troika-three-text carry inside their own builds
  * have no files of their own here; their lines are from their upstream
  * licences at the versions bundled (session 42's audit, checked twice).
+ * Checked against the production build's source maps in session 43
+ * (scripts/dev/bundle-packages.mjs): every package in the bundle is here,
+ * and nothing here is missing from it (the libraries inside Next.js'
+ * polyfill and troika-three-text's own builds are inside those files).
  */
 function software() {
   const react = nextReact();
   return [
     {
-      name: "Next.js",
+      name: "Next.js, with its Turbopack runtime",
       version: version(nm("next")),
       url: "https://github.com/vercel/next.js",
       licence: "MIT",
       notice: file("next", "license.md"),
+    },
+    {
+      name: "process, the browser shim (inside Next.js)",
+      version: "as Next.js bundles it",
+      url: "https://github.com/defunctzombie/node-process",
+      licence: "MIT",
+      notice: file("next", "dist", "compiled", "process", "LICENSE"),
     },
     {
       name: "React, React DOM, Scheduler and the React Server Components client",

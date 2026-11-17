@@ -144,7 +144,7 @@ Both under the SIL Open Font License 1.1 (https://openfontlicense.org), converte
 
 The site's JavaScript includes:
 
-- Next.js, © Vercel, Inc., MIT; with React, React DOM and Scheduler, © Meta Platforms, Inc. and affiliates, MIT; `@swc/helpers`, © SWC contributors, Apache-2.0; and its polyfill for old browsers: core-js (© Denis Pushkarev), whatwg-fetch (© GitHub, Inc.) and object-assign (© Sindre Sorhus), MIT.
+- Next.js with its Turbopack runtime, © Vercel, Inc., MIT; with React, React DOM, Scheduler and the React Server Components client, © Meta Platforms, Inc. and affiliates, MIT; `@swc/helpers`, © SWC contributors, Apache-2.0; the `process` shim, © Roman Shtylman, MIT; and its polyfill for old browsers: core-js (© Denis Pushkarev), whatwg-fetch (© GitHub, Inc.) and object-assign (© Sindre Sorhus), MIT.
 - three.js, © three.js authors, MIT.
 - troika-three-text, troika-three-utils and troika-worker-utils, © ProtectWise and Jason Johnston, MIT; bidi-js and webgl-sdf-generator, © Jason Johnston, MIT; and, inside troika-three-text, Typr.ts (© Photopea, MIT), @unicode-font-resolver/client (© Jason Johnston, MIT), fflate (© Arjun Barrett, MIT) and woff2otf.js (© Steffen Hanikel, Apache-2.0).
 - Lenis, © darkroom.engineering, MIT.

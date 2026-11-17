@@ -2,6 +2,36 @@
 
 Live checklist. A later session picks up from here. The briefs are `docs/scene-01-brief.md` and `docs/scene-02-brief.md`; decisions and deviations are in `docs/decisions.md`.
 
+## Session 41 (17 November 2026): the branches tidied after scene 2; the owner's two decisions
+
+**The owner's order** (complete; it ends "Конец сообщения"). From `main`; no code touched. First his two decisions into `decisions.md`; then:
+1. Delete the branches wholly in `main`, `s39-stills-readme` among them.
+2. The branches not wholly in `main` (the deferred `s32-label-low-views` and branch 2 among them) are not lost: a tag `archive/<branch>` on each, checked to point at its last commit, and only then the branch deleted.
+3. Worktrees removed by the rule: the `node_modules` link first with `cmd /c rmdir`, then the copy; the main tree's `node_modules` checked after every step.
+4. At the end only `main` in the branch list; this file lists the archive tags and what each holds, one line a tag.
+5. A short report; stop.
+Never push. Never `npm run screenshots`.
+
+**Done** (`main` at `e4ddf9b` at the start, clean; local aids in `.claude/s41/`, git-ignored: `nm-check.sh`, `rm-wt.sh`):
+- [x] **The owner's decisions** (`7fb9827`; `decisions.md`, "The first chapter goes out; scenes 3 and 4 become one"): scenes 1 and 2 published now as the first chapter, marked "to be continued", the preparation the next session; scenes 3 and 4 one scene (the fleets on the chart with the ships' cards, Nelson's plan where the line flows into two columns).
+- [x] **Step 1:** deleted with `git branch -d`, each checked an ancestor of `main` first: `s23-history` (`5027fdc`; its clean worktree removed first, no `node_modules` in it), `s32-gulf-labels` (`c80c190`), `s39-stills-readme` (`623a134`), `wip/s23-gulf-labels` (`e6ae1fd`), `wip/s32-labels-march` (`3f3f24f`).
+- [x] **Step 2:** eight annotated tags `archive/<branch>`, each a note of what it holds; each checked (`git rev-parse archive/<branch>^{commit}` equal to the branch's head) before the branch was deleted with `git branch -D`, and the tag read again after.
+- [x] **Step 3:** seven worktrees removed (`.claude/s41/rm-wt.sh`). Before: every reparse point inside them listed (`dir /AL /S`): only the four `node_modules` junctions into the main tree (`s23-ref`, `s32-ref`, `s32-low`, `s32-p1`); for each, `cmd /c rmdir` of the junction, the main tree's `node_modules` checked, then `git worktree remove` (`--force` for `s32-low` and `s32-p1`, whose only change was the local uncommitted `turbopack.root` line in `next.config.ts`), checked again. `s21-perf`, `wf_016f0c7a-068-2` and `-068-3` had real `node_modules` folders of their own with no link inside: removed whole, checked after each. `s32-p1` was detached at `3c12736`, in `main`. Discarded with the copies: their builds (`out/`, `.next/`), and `s21-perf`'s git-ignored raw traces of session 21 (`scripts/dev/perf/runs/`, 987 MB, 117 entries; its findings are in the branch's committed perf note, so in `archive/s21-perf`). **The main tree's `node_modules` intact after every step** (17086 files, the same top-level listing, `next`, `serve`, `three`, `gsap`, `lenis`, `troika-three-text`, Playwright, Biome, TypeScript and React present; `next` and `three` resolve).
+- [x] **Step 4:** `git branch -a` lists only `main`; `git worktree list` only the main tree; `.claude/worktrees/` empty; `git fsck --connectivity-only` clean.
+
+**The archive tags** (local only: no remote is set, and a plain push sends no tags; `git push origin --tags` would, into a public repository; `git checkout -b <name> archive/<branch>` brings a branch back):
+- `archive/s21-load-wip` → `93b0f7c`: session 21's first changes for the start-up dip (chart engine context and slice, scene 2's stage), parked at the owner's stop, not measured; the dip stays as `main` has it.
+- `archive/s21-perf` → `bae9c20`: session 21's perf tools for the first seconds after load (`startup.mjs`, `stages.mjs`, `s21-trace.sh`), the dip's plan and protocol, the prototypes measured.
+- `archive/s32-label-low-views` → `76f70d2`: session 32's deferred fleet labels in the lowest views off Cádiz (places toward the eye, the search over the views ahead spread over frames); not merged: the reader's check failed at 2560 and the review found a lost place held over a ship.
+- `archive/wip/s23-ref-build` → `c90ccf6`: session 23's one local line for the reference worktree (`next.config.ts`'s Turbopack root for the `node_modules` junction); never meant for `main`.
+- `archive/wip/s32-ref-build` → `ccb825e`: the same line for session 32's reference worktree.
+- `archive/worktree-wf_016f0c7a-068-1` → `1aba452`: branch 1, sessions 12–17, stopped mid-work: the Channel tile (15-second ETOPO around Boulogne) and its soundings, the detail tiles sharing one slot and their hand-overs; unfinished, unreviewed.
+- `archive/worktree-wf_016f0c7a-068-2` → `51266cf`: branch 2, sessions 12–14: the signals layer (engraved smoke puffs, painted night lights, hoists at glyph marks, the relay) with its design record; `main` ported its smoke, lanterns, hoists and relay in sessions 33–35.
+- `archive/worktree-wf_016f0c7a-068-3` → `63ce56c`: branch 3, session 12, stopped before review: Boulogne's camps, small-craft glyphs and the Boulogne layout, with the lab demo.
+
+**Where we stopped (the owner's planned end of session 41, 17 November 2026).** On `main`, all committed and clean; the only branch. Nothing runs: no server, no check, no helper. The main tree's `out/` is session 40's check build `Ps6j8m6IlQnvwMfEv6JiI` of `06f7c77`, the same source as `main`'s head.
+- **Next steps, in order:** (1) session 42: the first chapter's preparation for publication (scenes 1 and 2 with "to be continued" where the scene 3 placeholder stands; the `backlog.md` items "Before publication", `npm audit`'s `serve` and `wrangler` findings among them; the owner deploys); (2) then the merged scene 3 (the old 3 and 4) by its brief, still to come.
+
 ## Session 40 (17 November 2026): the final check on a rested machine; scene 2 closed, in `main`
 
 **The owner's order** (complete; it ends "Конец сообщения"). The laptop restarted, nothing open but VS Code. Branch `s39-stills-readme`:

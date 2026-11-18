@@ -210,17 +210,17 @@ Period sources (public domain):
 - J. S. Corbett, *The Campaign of Trafalgar* (1910): the Harbin plan (frontispiece and its key) and appendix E, p. 452. https://archive.org/details/campaignoftrafal00corb
 - D. Steel, *The Elements and Practice of Rigging and Seamanship*, vol. I (1794), "Mastmaking", pp. 2, 39–41, 52, and the description of sails. https://archive.org/details/bim_eighteenth-century_the-elements-and-practic_steel-david_1794_1
 - W. Beatty, *Authentic Narrative of the Death of Lord Nelson* (1807), pp. 7–8. https://archive.org/details/b22036611_0001
-- J. Marshall, *Royal Naval Biography*, Supplement (1828), entry for John Richards Lapenotière (via Wikisource).
+- J. Marshall, *Royal Naval Biography*, Supplement, part 2 (1828), pp. 404–410, entry for John Richards Lapenotière (via Wikisource). https://en.wikisource.org/wiki/Royal_Naval_Biography/Lapenoti%C3%A8re,_John_Richards
 - N. Pocock, *The Battle of Trafalgar, 21 October 1805: Beginning of the Action* (c. 1808), National Maritime Museum BHC0548.
 
 Modern references (facts only, paraphrased):
 
 - R. Winfield, *British Warships in the Age of Sail 1793–1817* (2008), and R. Winfield and S. S. Roberts, *French Warships in the Age of Sail 1786–1861* (2015), as reported by threedecks.org and Wikipedia; not read directly.
-- threedecks.org (https://threedecks.org/): Pickle (ex-Sting), id 6910; Entreprenante, id 4112; Le Furet (1802), id 13186; L'Argus (1800), id 32372.
-- Wikipedia: HMS Pickle (1800); HMS Entreprenante; French brig Furet (1801); French brig Argus (1800); French brig Observateur; Abeille-class brig; HMS Weazel (1805). Used as pointers to Winfield, Roche, Hore, Marshall, the London Gazette and Dallas.
+- threedecks.org: Pickle (ex-Sting), id 6910, https://threedecks.org/index.php?display_type=show_ship&id=6910; Entreprenante, id 4112 (dated 1798 there), https://threedecks.org/index.php?display_type=show_ship&id=4112; Le Furet (1802), id 13186, https://threedecks.org/index.php?display_type=show_ship&id=13186; L'Argus (1800), id 32372, https://threedecks.org/index.php?display_type=show_ship&id=32372.
+- Wikipedia, used as pointers to Winfield, Roche, Hore, Marshall, the London Gazette and Dallas: HMS Pickle (1800), https://en.wikipedia.org/wiki/HMS_Pickle_(1800); HMS Entreprenante, https://en.wikipedia.org/wiki/HMS_Entreprenante; French brig Furet (1801), https://en.wikipedia.org/wiki/French_brig_Furet_(1801); French brig Argus (1800), https://en.wikipedia.org/wiki/French_brig_Argus_(1800); French brig Observateur, https://en.wikipedia.org/wiki/French_brig_Observateur; Abeille-class brig, https://en.wikipedia.org/wiki/Abeille-class_brig; HMS Weazel (1805), https://en.wikipedia.org/wiki/HMS_Weazel_(1805).
 - maritimeviews.co.uk, "The prelude" (Trafalgar), https://www.maritimeviews.co.uk/trafalgar/the-prelude/, for the Pickle's manuscript log ADM 52/3669 (noon reckoning of 21 October; the log-keeper's name; Lyon's dimensions).
-- French Wikipedia, "Le Renard (bateau)", for the replica cutter's dimensions; Pride of Baltimore II specification sheet for her rig height.
-- Royal Museums Greenwich catalogue: model of the Pickle by William Haines, SLR2745.19; Pocock, BHC0548 (https://www.rmg.co.uk/collections/objects/rmgc-object-12040).
+- French Wikipedia, "Le Renard (bateau)", for the replica cutter's dimensions: https://fr.wikipedia.org/wiki/Le_Renard_(bateau). Pride of Baltimore II's specifications from her own organisation, for her rig height (its "air draft", 107 ft; sparred length 157 ft): https://pride2.org/membership/
+- Royal Museums Greenwich catalogue: model of the Pickle by William Haines, SLR2745.19 (https://www.rmg.co.uk/collections/objects/rmgc-object-539242); Pocock, BHC0548 (https://www.rmg.co.uk/collections/objects/rmgc-object-12040).
 
 ## What the check changed
 

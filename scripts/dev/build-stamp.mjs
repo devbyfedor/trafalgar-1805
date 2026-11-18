@@ -1,13 +1,14 @@
 // Stamps a production build with what it was built from: run by npm after
 // `npm run build` (the `postbuild` script). Writes `.next/build-stamp.json`
 // (never into `out/`, so nothing of it is deployed): the build's id as Next
-// wrote it, the folder, the commit and an id of the source it read, so
+// wrote it, the folder, the commit, an id of the source it read and whether
+// it has the lab pages (only `npm run build:labs` makes them), so
 // `scripts/dev/served.mjs` can tell whether a server answers with this build
 // and whether the source has changed since. Never fails the build.
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 /** What a build reads: a change anywhere else (the docs, the dev scripts) leaves a build as it was. */
@@ -68,6 +69,7 @@ if (isMain) {
       buildId,
       dir,
       ...sourceState(dir),
+      labs: existsSync(join(dir, "out", "lab")),
       at: new Date().toISOString(),
     };
     writeFileSync(
@@ -75,7 +77,7 @@ if (isMain) {
       `${JSON.stringify(stamp, null, 2)}\n`,
     );
     console.log(
-      `build stamp: ${buildId} from ${stamp.commit.slice(0, 7)}${stamp.dirty ? " with uncommitted changes" : ""}, source ${stamp.source}, in ${dir}`,
+      `build stamp: ${buildId} from ${stamp.commit.slice(0, 7)}${stamp.dirty ? " with uncommitted changes" : ""}, source ${stamp.source}, ${stamp.labs ? "with" : "without"} the lab pages, in ${dir}`,
     );
   } catch (e) {
     console.warn(`build stamp: not written (${e.message})`);

@@ -492,7 +492,7 @@ The belly of each sail (camber ≈10–15 % of the width, along the sail's forwa
   - *Nelson's Flagships at Anchor* (1807, BHC1096).
 - **J. M. W. Turner.**
   - *The Battle of Trafalgar, as Seen from the Mizen Starboard Shrouds of the Victory* (1806–08, Tate N00480). Turner drew Victory at Sheerness and Chatham in December 1805 (Tate "Nelson" sketchbook).
-  - *The Battle of Trafalgar* (1822–24, RMG BHC0565, Greenwich Hospital Collection). It compresses events from different times of day. The RMG/Flag Institute caption notes that it shows Victory still flying the flags of Nelson's signal, and a Union flag by the mainmast. The contemporary naval criticism of its accuracy is well known but was not re-checked here.
+  - *The Battle of Trafalgar* (1822–24, RMG BHC0565, Greenwich Hospital Collection; https://www.rmg.co.uk/collections/objects/rmgc-object-12057). It compresses events from different times of day. The RMG/Flag Institute caption notes that it shows Victory still flying the flags of Nelson's signal, and a Union flag by the mainmast. The contemporary naval criticism of its accuracy is well known but was not re-checked here.
 - **Robert Dodd**, *The 'Victory' Sailing from Spithead* (1792, RMG BHC3694), and **Monamy Swaine**, *The 'Victory' Leaving the Channel in 1793* (c. 1795, RMG BHC3696). These show her **pre-1800 appearance**: open stern galleries and red sides. Use them for convention only.
 - **Thomas Whitcombe**, *Battle of Trafalgar* (Euryalus, Victory, Temeraire; RMG; Commons file).
 - **Clarkson Stanfield**, *The Battle of Trafalgar, and the Victory of Lord Nelson…* (sketch 1833, Tate N00405; large picture 1836).

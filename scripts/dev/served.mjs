@@ -92,7 +92,9 @@ try {
     readFileSync(join(dir, ".next", "build-stamp.json"), "utf8"),
   );
 } catch {
-  problems.push("no build stamp (build with `npm run build`, which stamps it)");
+  problems.push(
+    "no build stamp (build with `npm run build` or `npm run build:labs`, which stamp it)",
+  );
 }
 if (built && served !== built)
   problems.push(
@@ -113,8 +115,12 @@ if (stamp) {
     moved = `; the folder has moved on to ${now.commit.slice(0, 7)} since, with the same source`;
 }
 
+const labs =
+  stamp && "labs" in stamp
+    ? `, ${stamp.labs ? "with" : "without"} the lab pages`
+    : "";
 const what = stamp
-  ? `${stamp.commit.slice(0, 7)}${stamp.dirty ? " with uncommitted changes" : ""} (source ${stamp.source})`
+  ? `${stamp.commit.slice(0, 7)}${stamp.dirty ? " with uncommitted changes" : ""} (source ${stamp.source}${labs})`
   : "?";
 if (problems.length) {
   console.error(`MISMATCH at ${base}${who ? ` (${who})` : ""}:`);

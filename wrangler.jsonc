@@ -4,8 +4,16 @@
   // connects Cloudflare and runs it.
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "trafalgar-1805",
-  // Not after the workerd bundled with wrangler 4.152 (1.20261019.x).
-  "compatibility_date": "2026-10-19",
+  // Required for every upload, assets-only Workers too. Not after the workerd
+  // bundled with the pinned wrangler (4.164.0 bundles 1.20261117.1).
+  "compatibility_date": "2026-11-17",
+  // The site lives at trafalgar-1805.<account subdomain>.workers.dev (the
+  // default without routes, written out so a deploy never changes it), and
+  // no per-version preview URLs: no public copies of older versions.
+  "workers_dev": true,
+  "preview_urls": false,
+  // No usage metrics from this project's wrangler runs.
+  "send_metrics": false,
   "assets": {
     "directory": "./out",
     // Next exports every page as folder/index.html with trailingSlash: true;

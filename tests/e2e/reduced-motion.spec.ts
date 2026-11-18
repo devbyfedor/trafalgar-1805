@@ -45,5 +45,13 @@ test("reduced motion shows the static hero frame without a pin", async ({
   }
   await expect(page.locator("[data-stills=stacked] figcaption")).toHaveCount(5);
 
+  // The closing card after the last still, whole and still: no letters split.
+  const card = page.getByRole("heading", { name: "To be continued" });
+  await card.scrollIntoViewIfNeeded();
+  await expect(card).toBeInViewport();
+  await expect(page.locator("#continued .title-char")).toHaveCount(0);
+  for (const el of await page.locator("#continued [data-el=line]").all())
+    expect(await el.evaluate((e) => getComputedStyle(e).opacity)).toBe("1");
+
   expect(errors).toEqual([]);
 });

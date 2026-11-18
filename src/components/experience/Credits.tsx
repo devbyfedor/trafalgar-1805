@@ -2,7 +2,10 @@
  * The credits after the scenes: the chart's data with its sources' own
  * sources (ETOPO 2022's land heights come from FABDEM on the Copernicus DEM,
  * whose licence asks for its notice wherever adapted data reaches the
- * public), the type with ANRT's mention, and a link to the notices file
+ * public), FABDEM's citation and licence (CC BY-NC-SA 4.0: share-alike, so
+ * the chart's relief tiles, adapted from it, are shared under it too, as a
+ * precaution; the code is not), the type with ANRT's mention, and a link to
+ * the notices file
  * (public/third-party-notices.txt, `npm run notices`), which carries every
  * notice and licence in full: the minified bundle keeps none of them.
  *
@@ -20,6 +23,22 @@ export function Credits() {
           Copernicus DEM (© DLR e.V. 2010–2014, © Airbus Defence and Space GmbH
           2014–2018) and depths from GEBCO and GMRT. Coastlines and rivers:
           Natural Earth.
+        </p>
+        <p>
+          FABDEM: Hawker, Uhe, Paulo, Sosa, Savage, Sampson and Neal (2022), “A
+          30 m global map of elevation with forests and buildings removed”,
+          Environmental Research Letters; licensed under{" "}
+          <a
+            href="https://creativecommons.org/licenses/by-nc-sa/4.0/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="whitespace-nowrap underline decoration-[0.06em] underline-offset-[0.2em] hover:decoration-[0.1em] focus-visible:rounded-[2px] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink"
+          >
+            CC BY-NC-SA 4.0
+            <span className="sr-only"> (opens in a new tab)</span>
+          </a>
+          . The chart's relief tiles, adapted from these data, are shared under
+          the same licence.
         </p>
         <p>
           Type: Bodoni Moda by Owen Earl; Baskervville by ANRT (Atelier National

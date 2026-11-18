@@ -2,6 +2,24 @@
 
 Live checklist. A later session picks up from here. The briefs are `docs/scene-01-brief.md` and `docs/scene-02-brief.md`; decisions and deviations are in `docs/decisions.md`.
 
+## Session 44 (18 November 2026): publication, part two (b): FABDEM, the full check, the merge, the e-mail
+
+**The owner's order** (complete; it ends "Конец сообщения"). The last part of the first chapter's preparation; nothing else on the site changes. His answer to session 43's question: the site's address comes when he sets up a subdomain on Cloudflare; he writes `.env.production.local` himself, not needed this session. On branch `s42-publish-prep`:
+1. FABDEM: CC BY-NC-SA 4.0 (Google Earth Engine's catalogue, Fathom's page: "free for non-commercial use"), cited as Hawker, Uhe, Paulo, Sosa, Savage, Sampson, Neal (2022), "A 30 m global map of elevation with forests and buildings removed", Environmental Research Letters: in the page's credits, the README and the notices; in Credits, as a precaution, the relief tiles built on these data shared on the same terms; the code not affected; the backlog item removed.
+2. The production build and `npm run check` whole, scene 1's regression in it, the build checked with `served.mjs`. One repeat allowed, only if a failure looks like the machine's noise.
+3. All passed: into `main` by a true merge, not a squash.
+4. After the merge, the author's and committer's e-mail in all of `main`'s history replaced by `278126490+devbyfedor@users.noreply.github.com`: first a full backup in a git bundle outside the project folder; only `main` rewritten, the archive tags untouched; checked: the last commit's tree unchanged, the same number of commits, the old address nowhere in `main`'s history; the repository's `git config user.email` the noreply address; this file says that commit hashes in the documents before this day belong to the old history.
+5. This file; the report with the publication instructions (the new e-mail, the name `devbyfedor`, the Cloudflare subdomain and `.env.production.local`) and the commands to see `main` on the preview. Stop.
+6. A real failure in step 2: no merge, no rewrite, no fixing in circles: commit, report, stop.
+No background helpers. Never push. Never `npm run screenshots`.
+
+**Plan and state** (branch `s42-publish-prep` at `930b90b` at the start, clean; `main` at `55f2373`; local aids and output in `.claude/s44/`, git-ignored):
+- [x] Step 1: **FABDEM's licence and citation** (`decisions.md`, "Publication, part two (b)"): `Credits.tsx` (a paragraph after the relief line: the citation, "licensed under CC BY-NC-SA 4.0" linked to the licence's deed, and "The chart's relief tiles, adapted from these data, are shared under the same licence."), README Credits (the citation, the licence, the relief tiles named and shared under it; Licence: the code not affected), `scripts/notices.mjs` and the regenerated `public/third-party-notices.txt` (`check:notices` up to date). The backlog item removed.
+- [ ] Step 2: the production build, `served.mjs`, `npm run check` whole.
+- [ ] Step 3: the merge into `main`.
+- [ ] Step 4: the e-mail in `main`'s history.
+- [ ] Step 5: this file, the report.
+
 ## Session 43 (17 November 2026): publication, part two (a): what the visitor sees
 
 **The owner's order** (complete; it ends "Конец сообщения"). Part two of the preparation is split in two; this is the first half, what a visitor sees. **The full check, the merge into `main` and the e-mail rewrite are the next session's, not this one's.** His answers to session 42's questions: (1) the e-mail in the history is rewritten to his noreply address `278126490+devbyfedor@users.noreply.github.com` before the first push (his GitHub name is now `devbyfedor`), next session; now only recorded in `decisions.md`; (2) the lab pages are left out of the deploy; they stay in the repository and in development. On branch `s42-publish-prep`:
